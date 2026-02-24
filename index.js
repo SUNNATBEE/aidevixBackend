@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
+const swaggerAuth = require('./middleware/swaggerAuth');
 const connectDB = require('./config/database');
 
 // Initialize Express app
@@ -27,15 +28,15 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Swagger UI Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+// Swagger UI Documentation (Parol bilan himoyalangan)
+app.use('/api-docs', swaggerAuth, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'Aidevix API Documentation',
   customfavIcon: '/favicon.ico',
 }));
 
-// Swagger JSON endpoint
-app.get('/api-docs.json', (req, res) => {
+// Swagger JSON endpoint (Parol bilan himoyalangan)
+app.get('/api-docs.json', swaggerAuth, (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });
