@@ -7,7 +7,25 @@ const { authenticate } = require('../middleware/auth');
  * @swagger
  * /api/subscriptions/verify-instagram:
  *   post:
- *     summary: Verify Instagram subscription
+ *     summary: Instagram obunasini tekshirish
+ *     description: |
+ *       Bu endpoint foydalanuvchining Instagram kanaliga obuna bo'lganligini tekshiradi.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. Authorization header'da accessToken yuboriladi
+ *       2. Request body'da Instagram username yuboriladi
+ *       3. Instagram API orqali obuna tekshiriladi
+ *       4. Natija ma'lumotlar bazasiga saqlanadi
+ *       
+ *       **Muhim:**
+ *       - Video ko'rish uchun Instagram obuna bo'lish kerak
+ *       - Obuna holati real-time tekshiriladi
+ *       - Agar obuna bekor qilsangiz, video ko'ra olmaysiz
+ *       
+ *       **Status kodlar:**
+ *       - 200: Obuna tekshirildi (obuna bo'lgan yoki bo'lmagan)
+ *       - 400: Username berilmagan
+ *       - 401: Token noto'g'ri
  *     tags: [Subscriptions]
  *     security:
  *       - bearerAuth: []
@@ -53,7 +71,26 @@ router.post('/verify-instagram', authenticate, verifyInstagram);
  * @swagger
  * /api/subscriptions/verify-telegram:
  *   post:
- *     summary: Verify Telegram subscription
+ *     summary: Telegram obunasini tekshirish
+ *     description: |
+ *       Bu endpoint foydalanuvchining Telegram kanaliga obuna bo'lganligini tekshiradi.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. Authorization header'da accessToken yuboriladi
+ *       2. Request body'da Telegram username va telegramUserId yuboriladi
+ *       3. Telegram Bot API orqali obuna tekshiriladi
+ *       4. Natija ma'lumotlar bazasiga saqlanadi
+ *       
+ *       **Muhim:**
+ *       - telegramUserId majburiy (real-time verification uchun)
+ *       - Video ko'rish uchun Telegram obuna bo'lish kerak
+ *       - Obuna holati real-time tekshiriladi
+ *       - Agar obuna bekor qilsangiz, video ko'ra olmaysiz
+ *       
+ *       **Status kodlar:**
+ *       - 200: Obuna tekshirildi
+ *       - 400: Username yoki telegramUserId berilmagan
+ *       - 401: Token noto'g'ri
  *     tags: [Subscriptions]
  *     security:
  *       - bearerAuth: []
@@ -104,7 +141,26 @@ router.post('/verify-telegram', authenticate, verifyTelegram);
  * @swagger
  * /api/subscriptions/status:
  *   get:
- *     summary: Get subscription status
+ *     summary: Obuna holatini olish
+ *     description: |
+ *       Bu endpoint foydalanuvchining Instagram va Telegram obuna holatini qaytaradi.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. Authorization header'da accessToken yuboriladi
+ *       2. Foydalanuvchi obuna holati qaytariladi
+ *       
+ *       **Qaytarilgan ma'lumotlar:**
+ *       - Instagram obuna holati (subscribed, username, verifiedAt)
+ *       - Telegram obuna holati (subscribed, username, telegramUserId, verifiedAt)
+ *       - hasAllSubscriptions (ikkala obuna ham bor-yo'qligi)
+ *       
+ *       **Muhim:**
+ *       - Video ko'rish uchun ikkala obuna ham bo'lishi kerak
+ *       - hasAllSubscriptions: true bo'lsa, video ko'rish mumkin
+ *       
+ *       **Status kodlar:**
+ *       - 200: Obuna holati muvaffaqiyatli olingan
+ *       - 401: Token noto'g'ri
  *     tags: [Subscriptions]
  *     security:
  *       - bearerAuth: []

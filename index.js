@@ -69,7 +69,21 @@ app.use('/api/videos', require('./routes/videoRoutes'));
  * @swagger
  * /health:
  *   get:
- *     summary: Server health check
+ *     summary: Server holatini tekshirish
+ *     description: |
+ *       Bu endpoint server ishlayotganini tekshiradi. Token kerak emas.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. GET so'rov yuboriladi
+ *       2. Server holati qaytariladi
+ *       
+ *       **Qaytarilgan ma'lumotlar:**
+ *       - success: true (server ishlayapti)
+ *       - message: "Server is running"
+ *       - timestamp: Joriy vaqt
+ *       
+ *       **Status kodlar:**
+ *       - 200: Server ishlayapti
  *     tags: [Health]
  *     responses:
  *       200:

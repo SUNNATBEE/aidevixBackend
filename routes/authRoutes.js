@@ -7,7 +7,23 @@ const { authenticate } = require('../middleware/auth');
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: Register a new user
+ *     summary: Yangi foydalanuvchi ro'yxatdan o'tkazish
+ *     description: |
+ *       Bu endpoint yangi foydalanuvchini ro'yxatdan o'tkazadi.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. Request body'da username, email va password yuboriladi
+ *       2. Email to'g'ri formatda bo'lishi kerak
+ *       3. Parol kamida 6 belgi bo'lishi kerak
+ *       4. Agar foydalanuvchi mavjud bo'lsa, xato qaytadi
+ *       5. Muvaffaqiyatli bo'lsa, accessToken va refreshToken qaytadi
+ *       
+ *       **Qaytarilgan ma'lumotlar:**
+ *       - User ma'lumotlari (id, username, email, subscriptions)
+ *       - accessToken (15 daqiqa muddatli)
+ *       - refreshToken (7 kun muddatli)
+ *       
+ *       **Muhim:** Token'larni saqlang, keyingi so'rovlarda ishlatishingiz kerak!
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -70,7 +86,26 @@ router.post('/register', register);
  * @swagger
  * /api/auth/login:
  *   post:
- *     summary: Login user
+ *     summary: Foydalanuvchi tizimga kirishi
+ *     description: |
+ *       Bu endpoint foydalanuvchini tizimga kirishi uchun ishlatiladi.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. Request body'da email va password yuboriladi
+ *       2. Email va parol tekshiriladi
+ *       3. Agar to'g'ri bo'lsa, accessToken va refreshToken qaytadi
+ *       4. Agar noto'g'ri bo'lsa, 401 xatosi qaytadi
+ *       
+ *       **Qaytarilgan ma'lumotlar:**
+ *       - User ma'lumotlari
+ *       - accessToken (15 daqiqa muddatli)
+ *       - refreshToken (7 kun muddatli)
+ *       
+ *       **Status kodlar:**
+ *       - 200: Muvaffaqiyatli kirish
+ *       - 400: Email yoki parol berilmagan
+ *       - 401: Noto'g'ri email yoki parol
+ *       - 403: Hisob deaktivatsiya qilingan
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -128,7 +163,24 @@ router.post('/login', login);
  * @swagger
  * /api/auth/refresh-token:
  *   post:
- *     summary: Refresh access token
+ *     summary: Access token'ni yangilash
+ *     description: |
+ *       Bu endpoint access token muddati o'tganda yangi token olish uchun ishlatiladi.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. Request body'da refreshToken yuboriladi
+ *       2. Refresh token tekshiriladi
+ *       3. Agar to'g'ri bo'lsa, yangi accessToken qaytadi
+ *       
+ *       **Muhim:**
+ *       - Refresh token 7 kun muddatli
+ *       - Access token 15 daqiqa muddatli
+ *       - Access token muddati o'tganda, refresh token bilan yangilash mumkin
+ *       
+ *       **Status kodlar:**
+ *       - 200: Token muvaffaqiyatli yangilandi
+ *       - 400: Refresh token berilmagan
+ *       - 401: Refresh token noto'g'ri yoki muddati o'tgan
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -174,7 +226,19 @@ router.post('/refresh-token', refreshToken);
  * @swagger
  * /api/auth/logout:
  *   post:
- *     summary: Logout user
+ *     summary: Foydalanuvchi tizimdan chiqishi
+ *     description: |
+ *       Bu endpoint foydalanuvchini tizimdan chiqaradi.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. Authorization header'da accessToken yuboriladi
+ *       2. Foydalanuvchi refreshToken o'chiriladi
+ *       3. Keyingi so'rovlarda token ishlamaydi
+ *       
+ *       **Muhim:**
+ *       - Token kerak (Authorization: Bearer YOUR_TOKEN)
+ *       - Logout qilgandan keyin token'lar ishlamaydi
+ *       - Qayta kirish uchun login qilish kerak
  *     tags: [Authentication]
  *     security:
  *       - bearerAuth: []
@@ -203,7 +267,25 @@ router.post('/logout', authenticate, logout);
  * @swagger
  * /api/auth/me:
  *   get:
- *     summary: Get current user information
+ *     summary: Joriy foydalanuvchi ma'lumotlarini olish
+ *     description: |
+ *       Bu endpoint hozirgi tizimga kirgan foydalanuvchi ma'lumotlarini qaytaradi.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. Authorization header'da accessToken yuboriladi
+ *       2. Token tekshiriladi va foydalanuvchi aniqlanadi
+ *       3. Foydalanuvchi ma'lumotlari qaytariladi
+ *       
+ *       **Qaytarilgan ma'lumotlar:**
+ *       - User ID
+ *       - Username
+ *       - Email
+ *       - Subscriptions (Instagram va Telegram obuna holati)
+ *       - Role (user yoki admin)
+ *       
+ *       **Status kodlar:**
+ *       - 200: Ma'lumotlar muvaffaqiyatli olingan
+ *       - 401: Token noto'g'ri yoki muddati o'tgan
  *     tags: [Authentication]
  *     security:
  *       - bearerAuth: []

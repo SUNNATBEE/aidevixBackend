@@ -7,7 +7,21 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  * @swagger
  * /api/courses:
  *   get:
- *     summary: Get all courses (Public)
+ *     summary: Barcha kurslarni olish (Ochiq)
+ *     description: |
+ *       Bu endpoint barcha mavjud kurslarni qaytaradi. Token kerak emas, hamma ko'ra oladi.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. GET so'rov yuboriladi
+ *       2. Barcha faol kurslar qaytariladi
+ *       
+ *       **Qaytarilgan ma'lumotlar:**
+ *       - Kurslar ro'yxati (title, description, price, thumbnail, instructor)
+ *       - Kurslar soni
+ *       
+ *       **Status kodlar:**
+ *       - 200: Kurslar muvaffaqiyatli olingan
+ *       - 500: Server xatosi
  *     tags: [Courses]
  *     responses:
  *       200:
@@ -32,7 +46,29 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *       500:
  *         description: Server error
  *   post:
- *     summary: Create a new course (Admin only)
+ *     summary: Yangi kurs yaratish (Faqat Admin)
+ *     description: |
+ *       Bu endpoint yangi kurs yaratadi. Faqat admin foydalanishi mumkin.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. Authorization header'da admin accessToken yuboriladi
+ *       2. Request body'da kurs ma'lumotlari yuboriladi (title, description, price, thumbnail, category)
+ *       3. Yangi kurs yaratiladi
+ *       
+ *       **Majburiy maydonlar:**
+ *       - title: Kurs nomi
+ *       - description: Kurs tavsifi
+ *       - price: Kurs narxi
+ *       
+ *       **Ixtiyoriy maydonlar:**
+ *       - thumbnail: Kurs rasmi URL
+ *       - category: Kurs kategoriyasi
+ *       
+ *       **Status kodlar:**
+ *       - 201: Kurs muvaffaqiyatli yaratildi
+ *       - 400: Validation xatosi
+ *       - 401: Token noto'g'ri
+ *       - 403: Admin huquqi kerak
  *     tags: [Courses]
  *     security:
  *       - bearerAuth: []
@@ -81,7 +117,22 @@ router.post('/', authenticate, requireAdmin, createCourse);
  * @swagger
  * /api/courses/{id}:
  *   get:
- *     summary: Get single course by ID (Public)
+ *     summary: Bitta kursni ID bo'yicha olish (Ochiq)
+ *     description: |
+ *       Bu endpoint bitta kursning to'liq ma'lumotlarini qaytaradi. Token kerak emas.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. URL'da kurs ID yuboriladi
+ *       2. Kurs ma'lumotlari qaytariladi
+ *       
+ *       **Qaytarilgan ma'lumotlar:**
+ *       - Kurs to'liq ma'lumotlari
+ *       - Kurs videolari ro'yxati
+ *       - Instructor ma'lumotlari
+ *       
+ *       **Status kodlar:**
+ *       - 200: Kurs muvaffaqiyatli olingan
+ *       - 404: Kurs topilmadi
  *     tags: [Courses]
  *     parameters:
  *       - in: path
@@ -98,7 +149,22 @@ router.post('/', authenticate, requireAdmin, createCourse);
  *       500:
  *         description: Server error
  *   put:
- *     summary: Update course (Admin only)
+ *     summary: Kursni yangilash (Faqat Admin)
+ *     description: |
+ *       Bu endpoint mavjud kursni yangilaydi. Faqat admin foydalanishi mumkin.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. Authorization header'da admin accessToken yuboriladi
+ *       2. URL'da kurs ID yuboriladi
+ *       3. Request body'da yangilanish kerak bo'lgan maydonlar yuboriladi
+ *       4. Kurs yangilanadi
+ *       
+ *       **Status kodlar:**
+ *       - 200: Kurs muvaffaqiyatli yangilandi
+ *       - 400: Validation xatosi
+ *       - 401: Token noto'g'ri
+ *       - 403: Admin huquqi kerak
+ *       - 404: Kurs topilmadi
  *     tags: [Courses]
  *     security:
  *       - bearerAuth: []
@@ -137,7 +203,24 @@ router.post('/', authenticate, requireAdmin, createCourse);
  *       500:
  *         description: Server error
  *   delete:
- *     summary: Delete course (Admin only)
+ *     summary: Kursni o'chirish (Faqat Admin)
+ *     description: |
+ *       Bu endpoint kursni o'chiradi. Faqat admin foydalanishi mumkin.
+ *       
+ *       **Qanday ishlatiladi:**
+ *       1. Authorization header'da admin accessToken yuboriladi
+ *       2. URL'da kurs ID yuboriladi
+ *       3. Kurs o'chiriladi
+ *       
+ *       **Muhim:**
+ *       - Kurs o'chirilgandan keyin qayta tiklash mumkin emas
+ *       - Kurs videolari ham o'chiriladi
+ *       
+ *       **Status kodlar:**
+ *       - 200: Kurs muvaffaqiyatli o'chirildi
+ *       - 401: Token noto'g'ri
+ *       - 403: Admin huquqi kerak
+ *       - 404: Kurs topilmadi
  *     tags: [Courses]
  *     security:
  *       - bearerAuth: []

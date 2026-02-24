@@ -6,7 +6,24 @@ const options = {
     info: {
       title: 'Aidevix Backend API',
       version: '1.0.0',
-      description: 'Online course platform API with authentication and social media subscription verification. Real-time subscription checks ensure users maintain active subscriptions to access video content.',
+      description: `Online kurs platformasi API - Authentication va ijtimoiy tarmoq obuna tekshiruvi bilan.
+
+**Asosiy funksiyalar:**
+- Foydalanuvchi ro'yxatdan o'tish va kirish
+- Instagram va Telegram obuna tekshiruvi
+- Kurslar va videolar bilan ishlash
+- Real-time obuna tekshiruvi (video ko'rish uchun)
+
+**Qanday ishlatish:**
+1. Avval ro'yxatdan o'ting yoki kirish qiling
+2. Instagram va Telegram obunasini tekshiring
+3. Kurslarni ko'ring
+4. Videolarni ko'ring (obuna talab qilinadi)
+
+**Muhim:**
+- Video ko'rish uchun Instagram va Telegram'ga obuna bo'lish majburiy
+- Real-time tekshiruv: har safar obuna holati tekshiriladi
+- Agar obuna bekor qilsangiz, video ko'ra olmaysiz`
       contact: {
         name: 'API Support',
         email: 'support@aidevix.com',
