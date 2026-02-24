@@ -9,7 +9,7 @@ http://localhost:5000
 
 **Production (Render):**
 ```
-https://aidevix-backend.onrender.com
+https://aidevixbackend.onrender.com
 ```
 
 ## Authentication
@@ -36,7 +36,12 @@ Content-Type: application/json
 }
 ```
 
-**Response:**
+**Status Codes:**
+- `201` - User registered successfully
+- `400` - Validation error (missing fields, invalid email, short password, user exists)
+- `500` - Server error
+
+**Response (201):**
 ```json
 {
   "success": true,
@@ -68,13 +73,25 @@ Content-Type: application/json
 }
 ```
 
-**Response:** (Register bilan bir xil format)
+**Status Codes:**
+- `200` - Login successful
+- `400` - Missing email or password
+- `401` - Invalid credentials
+- `403` - Account deactivated
+- `500` - Server error
+
+**Response (200):** (Register bilan bir xil format)
 
 ### Get Current User
 ```http
 GET /api/auth/me
 Authorization: Bearer YOUR_ACCESS_TOKEN
 ```
+
+**Status Codes:**
+- `200` - User information retrieved successfully
+- `401` - Unauthorized (invalid or expired token)
+- `500` - Server error
 
 ### Refresh Token
 ```http
@@ -86,11 +103,22 @@ Content-Type: application/json
 }
 ```
 
+**Status Codes:**
+- `200` - Token refreshed successfully
+- `400` - Refresh token is required
+- `401` - Invalid or expired refresh token
+- `500` - Server error
+
 ### Logout
 ```http
 POST /api/auth/logout
 Authorization: Bearer YOUR_ACCESS_TOKEN
 ```
+
+**Status Codes:**
+- `200` - Logout successful
+- `401` - Unauthorized
+- `500` - Server error
 
 ---
 
@@ -107,6 +135,12 @@ Content-Type: application/json
 }
 ```
 
+**Status Codes:**
+- `200` - Subscription verification result
+- `400` - Instagram username is required
+- `401` - Unauthorized
+- `500` - Server error
+
 ### Verify Telegram
 ```http
 POST /api/subscriptions/verify-telegram
@@ -121,11 +155,22 @@ Content-Type: application/json
 
 **Muhim:** `telegramUserId` real-time verification uchun kerak.
 
+**Status Codes:**
+- `200` - Subscription verification result
+- `400` - Missing username or telegramUserId
+- `401` - Unauthorized
+- `500` - Server error
+
 ### Get Subscription Status
 ```http
 GET /api/subscriptions/status
 Authorization: Bearer YOUR_ACCESS_TOKEN
 ```
+
+**Status Codes:**
+- `200` - Subscription status retrieved successfully
+- `401` - Unauthorized
+- `500` - Server error
 
 **Response:**
 ```json
@@ -159,7 +204,11 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 GET /api/courses
 ```
 
-**Response:**
+**Status Codes:**
+- `200` - List of courses retrieved successfully
+- `500` - Server error
+
+**Response (200):**
 ```json
 {
   "success": true,
@@ -188,6 +237,11 @@ GET /api/courses
 GET /api/courses/:id
 ```
 
+**Status Codes:**
+- `200` - Course retrieved successfully
+- `404` - Course not found
+- `500` - Server error
+
 ### Create Course (Admin Only)
 ```http
 POST /api/courses
@@ -203,6 +257,13 @@ Content-Type: application/json
 }
 ```
 
+**Status Codes:**
+- `201` - Course created successfully
+- `400` - Validation error
+- `401` - Unauthorized
+- `403` - Admin access required
+- `500` - Server error
+
 ---
 
 ## 🎥 Video Endpoints
@@ -211,6 +272,10 @@ Content-Type: application/json
 ```http
 GET /api/videos/course/:courseId
 ```
+
+**Status Codes:**
+- `200` - Videos retrieved successfully
+- `500` - Server error
 
 ### Get Video (Requires Subscriptions)
 ```http
@@ -223,7 +288,14 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 - Real-time subscription check qilinadi
 - Agar obuna bekor qilingan bo'lsa, xato qaytadi
 
-**Response:**
+**Status Codes:**
+- `200` - Video retrieved successfully with one-time link
+- `403` - Subscription required or user unsubscribed
+- `404` - Video not found
+- `401` - Unauthorized
+- `500` - Server error
+
+**Response (200):**
 ```json
 {
   "success": true,
@@ -268,6 +340,14 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 - Real-time subscription check qilinadi
 - Link bir martalik (isUsed bo'lgandan keyin ishlamaydi)
 
+**Status Codes:**
+- `200` - Video link used successfully
+- `400` - Link already used or expired
+- `403` - Subscription required or user unsubscribed
+- `404` - Video link not found
+- `401` - Unauthorized
+- `500` - Server error
+
 ---
 
 ## 🔍 Health Check
@@ -276,7 +356,10 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 GET /health
 ```
 
-**Response:**
+**Status Codes:**
+- `200` - Server is running successfully
+
+**Response (200):**
 ```json
 {
   "success": true,
@@ -341,7 +424,7 @@ GET /health
 
 ```javascript
 // API Service
-const API_URL = 'https://aidevix-backend.onrender.com';
+const API_URL = 'https://aidevixbackend.onrender.com';
 
 // Register
 const register = async (username, email, password) => {

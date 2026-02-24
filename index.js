@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 const connectDB = require('./config/database');
 
 // Initialize Express app
@@ -24,6 +26,19 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Swagger UI Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Aidevix API Documentation',
+  customfavIcon: '/favicon.ico',
+}));
+
+// Swagger JSON endpoint
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // Security headers
 app.use((req, res, next) => {
@@ -50,6 +65,31 @@ app.use('/api/courses', require('./routes/courseRoutes'));
 app.use('/api/videos', require('./routes/videoRoutes'));
 
 // Health check route
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Server health check
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Server is running successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Server is running
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                   example: 2026-02-24T12:45:37.780Z
+ */
 app.get('/health', (req, res) => {
   res.json({
     success: true,

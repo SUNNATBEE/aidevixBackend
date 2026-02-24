@@ -209,7 +209,7 @@ git push -u origin main
 
 Deploy qilingandan keyin API base URL:
 ```
-https://aidevix-backend.onrender.com
+https://aidevixbackend.onrender.com
 ```
 
 ### Health Check
@@ -223,8 +223,55 @@ https://aidevix-backend.onrender.com/health
 
 React yoki boshqa frontend'da:
 ```javascript
-const API_URL = 'https://aidevix-backend.onrender.com';
+const API_URL = 'https://aidevixbackend.onrender.com';
 ```
+
+## API Dokumentatsiya
+
+### Swagger UI (Interaktiv)
+
+Interaktiv API dokumentatsiyasini ko'rish:
+
+**Production:**
+```
+https://aidevixbackend.onrender.com/api-docs
+```
+
+**Local:**
+```
+http://localhost:5000/api-docs
+```
+
+Bu yerda:
+- ✅ Barcha endpoint'lar ko'rinadi
+- ✅ Har bir endpoint'ni to'g'ridan-to'g'ri test qilish mumkin
+- ✅ Request/Response misollari bor
+- ✅ Authentication token qo'shish mumkin
+- ✅ Status kodlar ko'rsatiladi
+
+### Swagger JSON
+
+Swagger JSON formatida export qilish:
+
+```
+https://aidevixbackend.onrender.com/api-docs.json
+```
+
+### Postman Collection
+
+Postman'da ishlatish uchun:
+
+1. Postman'ni oching
+2. `Import` tugmasini bosing
+3. `postman_collection.json` faylini tanlang
+4. Collection variables'ni sozlang:
+   - `baseUrl`: `https://aidevixbackend.onrender.com`
+
+### Qo'shimcha Dokumentatsiya
+
+- **API_DOCUMENTATION.md** - To'liq API dokumentatsiyasi (status kodlar bilan)
+- **OQUVCHILAR_UCHUN.md** - O'zbek tilida qo'llanma (boshlang'ich uchun)
+- **DEPLOY.md** - Render'ga deploy qo'llanmasi
 
 ## Production Checklist
 
