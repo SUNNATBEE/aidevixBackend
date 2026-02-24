@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: aidevix-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: ACCESS_TOKEN_SECRET
+        sync: false
+      - key: REFRESH_TOKEN_SECRET
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHANNEL_USERNAME
+        sync: false
+      - key: TELEGRAM_PRIVATE_CHANNEL_USERNAME
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
