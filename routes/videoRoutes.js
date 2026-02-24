@@ -198,32 +198,60 @@ router.post('/link/:linkId/use', authenticate, useVideoLink);
  * @swagger
  * /api/videos:
  *   post:
- *     summary: Yangi video yaratish (Faqat Admin)
+ *     summary: 🎥 Yangi video yaratish (Admin Panel)
  *     description: |
- *       Bu endpoint yangi video yaratadi. Faqat admin foydalanishi mumkin.
+ *       **ADMIN PANEL ENDPOINT** - Bu endpoint yangi video yaratish uchun ishlatiladi.
  *       
- *       **Qanday ishlatiladi:**
- *       1. Authorization header'da admin accessToken yuboriladi
- *       2. Request body'da video ma'lumotlari yuboriladi (title, description, courseId, order, duration, thumbnail)
- *       3. Yangi video yaratiladi va kursga qo'shiladi
+ *       **📋 Vazifasi:**
+ *       - Kursga yangi video qo'shish
+ *       - Video ma'lumotlarini saqlash
+ *       - Videoni kursga bog'lash
  *       
- *       **Majburiy maydonlar:**
- *       - title: Video nomi
- *       - courseId: Kurs ID
+ *       **🔐 Kimlar foydalanishi mumkin:**
+ *       - Faqat admin role'ga ega foydalanuvchilar
  *       
- *       **Ixtiyoriy maydonlar:**
- *       - description: Video tavsifi
- *       - order: Video tartibi
- *       - duration: Video davomiyligi (soniyalarda)
- *       - thumbnail: Video rasmi URL
+ *       **📝 Qadam-baqadam ko'rsatma:**
+ *       1. Admin token bilan POST so'rov yuboring
+ *       2. Request body'da video ma'lumotlarini yuboring
+ *       3. Server video yaratadi va kursga qo'shadi
  *       
- *       **Status kodlar:**
- *       - 201: Video muvaffaqiyatli yaratildi
- *       - 400: Validation xatosi
+ *       **📤 Request Body (Majburiy maydonlar):**
+ *       - `title` (string): Video nomi, masalan: "JavaScript Kirish"
+ *       - `courseId` (string): Kurs ID (qaysi kursga qo'shilishi)
+ *       
+ *       **📤 Request Body (Ixtiyoriy maydonlar):**
+ *       - `description` (string): Video tavsifi
+ *       - `order` (number): Video tartibi (0, 1, 2, ...)
+ *       - `duration` (number): Video davomiyligi (soniyalarda), masalan: 1200 (20 daqiqa)
+ *       - `thumbnail` (string): Video rasmi URL
+ *       
+ *       **📥 Response (201 - Muvaffaqiyatli):**
+ *       ```json
+ *       {
+ *         "success": true,
+ *         "message": "Video created successfully.",
+ *         "data": {
+ *           "video": {
+ *             "_id": "...",
+ *             "title": "JavaScript Kirish",
+ *             "course": "...",
+ *             "order": 0
+ *           }
+ *         }
+ *       }
+ *       ```
+ *       
+ *       **❌ Xato holatlar:**
+ *       - 400: Title yoki courseId berilmagan
  *       - 401: Token noto'g'ri
- *       - 403: Admin huquqi kerak
+ *       - 403: Admin huquqi yo'q
  *       - 404: Kurs topilmadi
- *     tags: [Videos]
+ *       
+ *       **💡 Maslahatlar:**
+ *       - Video tartibini (order) to'g'ri belgilang
+ *       - Duration'ni soniyalarda kiriting (1 daqiqa = 60 soniya)
+ *       - Thumbnail uchun yaxshi sifatli rasm ishlating
+ *     tags: [Admin Panel - Videos]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -268,22 +296,48 @@ router.post('/', authenticate, requireAdmin, createVideo);
  * @swagger
  * /api/videos/{id}:
  *   put:
- *     summary: Videoni yangilash (Faqat Admin)
+ *     summary: ✏️ Videoni yangilash (Admin Panel)
  *     description: |
- *       Bu endpoint mavjud videoni yangilaydi. Faqat admin foydalanishi mumkin.
+ *       **ADMIN PANEL ENDPOINT** - Bu endpoint mavjud videoni yangilash uchun ishlatiladi.
  *       
- *       **Qanday ishlatiladi:**
- *       1. Authorization header'da admin accessToken yuboriladi
- *       2. URL'da video ID yuboriladi
- *       3. Request body'da yangilanish kerak bo'lgan maydonlar yuboriladi
- *       4. Video yangilanadi
+ *       **📋 Vazifasi:**
+ *       - Video ma'lumotlarini o'zgartirish
+ *       - Video tartibini yangilash
+ *       - Video holatini o'zgartirish (faol/yashirin)
  *       
- *       **Status kodlar:**
- *       - 200: Video muvaffaqiyatli yangilandi
+ *       **🔐 Kimlar foydalanishi mumkin:**
+ *       - Faqat admin role'ga ega foydalanuvchilar
+ *       
+ *       **📝 Qadam-baqadam ko'rsatma:**
+ *       1. Admin token bilan PUT so'rov yuboring
+ *       2. URL'da video ID'ni belgilang: `/api/videos/VIDEO_ID`
+ *       3. Request body'da faqat o'zgartirish kerak bo'lgan maydonlarni yuboring
+ *       4. Server videoni yangilaydi
+ *       
+ *       **📤 Request Body (Ixtiyoriy - faqat o'zgartirish kerak bo'lganlar):**
+ *       - `title` (string): Yangi video nomi
+ *       - `description` (string): Yangi video tavsifi
+ *       - `order` (number): Yangi video tartibi
+ *       - `duration` (number): Yangi video davomiyligi (soniyalarda)
+ *       - `thumbnail` (string): Yangi video rasmi URL
+ *       - `isActive` (boolean): Video holati (true = faol, false = yashirin)
+ *       
+ *       **📥 Response (200 - Muvaffaqiyatli):**
+ *       ```json
+ *       {
+ *         "success": true,
+ *         "message": "Video updated successfully.",
+ *         "data": {
+ *           "video": { ... }
+ *         }
+ *       }
+ *       ```
+ *       
+ *       **❌ Xato holatlar:**
  *       - 401: Token noto'g'ri
- *       - 403: Admin huquqi kerak
+ *       - 403: Admin huquqi yo'q
  *       - 404: Video topilmadi
- *     tags: [Videos]
+ *     tags: [Admin Panel - Videos]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -322,25 +376,45 @@ router.post('/', authenticate, requireAdmin, createVideo);
  *       500:
  *         description: Server error
  *   delete:
- *     summary: Videoni o'chirish (Faqat Admin)
+ *     summary: 🗑️ Videoni o'chirish (Admin Panel)
  *     description: |
- *       Bu endpoint videoni o'chiradi. Faqat admin foydalanishi mumkin.
+ *       **ADMIN PANEL ENDPOINT** - Bu endpoint videoni butunlay o'chirish uchun ishlatiladi.
  *       
- *       **Qanday ishlatiladi:**
- *       1. Authorization header'da admin accessToken yuboriladi
- *       2. URL'da video ID yuboriladi
- *       3. Video o'chiriladi
+ *       **📋 Vazifasi:**
+ *       - Videoni ma'lumotlar bazasidan o'chirish
+ *       - Video linklarini o'chirish
+ *       - Videoni kursdan olib tashlash
  *       
- *       **Muhim:**
- *       - Video o'chirilgandan keyin qayta tiklash mumkin emas
- *       - Video linklar ham o'chiriladi
+ *       **⚠️ MUHIM OGOHLANTIRISH:**
+ *       - Video o'chirilgandan keyin qayta tiklash mumkin emas!
+ *       - Video linklar ham o'chiriladi!
+ *       - Foydalanuvchilar videoni ko'ra olmaydi!
  *       
- *       **Status kodlar:**
- *       - 200: Video muvaffaqiyatli o'chirildi
+ *       **🔐 Kimlar foydalanishi mumkin:**
+ *       - Faqat admin role'ga ega foydalanuvchilar
+ *       
+ *       **📝 Qadam-baqadam ko'rsatma:**
+ *       1. Admin token bilan DELETE so'rov yuboring
+ *       2. URL'da video ID'ni belgilang: `/api/videos/VIDEO_ID`
+ *       3. Server videoni o'chiradi
+ *       
+ *       **💡 Maslahat:**
+ *       - O'chirish o'rniga `isActive: false` qilib yashirin qilish yaxshiroq
+ *       - Keyinroq kerak bo'lsa, videoni qayta faollashtirish mumkin
+ *       
+ *       **📥 Response (200 - Muvaffaqiyatli):**
+ *       ```json
+ *       {
+ *         "success": true,
+ *         "message": "Video deleted successfully."
+ *       }
+ *       ```
+ *       
+ *       **❌ Xato holatlar:**
  *       - 401: Token noto'g'ri
- *       - 403: Admin huquqi kerak
+ *       - 403: Admin huquqi yo'q
  *       - 404: Video topilmadi
- *     tags: [Videos]
+ *     tags: [Admin Panel - Videos]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -46,30 +46,64 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *       500:
  *         description: Server error
  *   post:
- *     summary: Yangi kurs yaratish (Faqat Admin)
+ *     summary: 🎓 Yangi kurs yaratish (Admin Panel)
  *     description: |
- *       Bu endpoint yangi kurs yaratadi. Faqat admin foydalanishi mumkin.
+ *       **ADMIN PANEL ENDPOINT** - Bu endpoint yangi kurs yaratish uchun ishlatiladi.
  *       
- *       **Qanday ishlatiladi:**
- *       1. Authorization header'da admin accessToken yuboriladi
- *       2. Request body'da kurs ma'lumotlari yuboriladi (title, description, price, thumbnail, category)
- *       3. Yangi kurs yaratiladi
+ *       **📋 Vazifasi:**
+ *       - Platformaga yangi kurs qo'shish
+ *       - Kurs ma'lumotlarini saqlash
+ *       - Instructor'ni avtomatik tayinlash (hozirgi admin)
  *       
- *       **Majburiy maydonlar:**
- *       - title: Kurs nomi
- *       - description: Kurs tavsifi
- *       - price: Kurs narxi
+ *       **🔐 Kimlar foydalanishi mumkin:**
+ *       - Faqat admin role'ga ega foydalanuvchilar
+ *       - Admin accessToken talab qilinadi
  *       
- *       **Ixtiyoriy maydonlar:**
- *       - thumbnail: Kurs rasmi URL
- *       - category: Kurs kategoriyasi
+ *       **📝 Qadam-baqadam ko'rsatma:**
+ *       1. Admin sifatida tizimga kiring va accessToken oling
+ *       2. Authorization header'ga token qo'shing: `Authorization: Bearer YOUR_TOKEN`
+ *       3. Request body'da kurs ma'lumotlarini yuboring
+ *       4. Server kursni yaratadi va qaytaradi
  *       
- *       **Status kodlar:**
- *       - 201: Kurs muvaffaqiyatli yaratildi
- *       - 400: Validation xatosi
- *       - 401: Token noto'g'ri
- *       - 403: Admin huquqi kerak
- *     tags: [Courses]
+ *       **📤 Request Body (Majburiy maydonlar):**
+ *       - `title` (string): Kurs nomi, masalan: "JavaScript Fundamentals"
+ *       - `description` (string): Kurs tavsifi, masalan: "JavaScript asoslarini o'rganing"
+ *       - `price` (number): Kurs narxi, masalan: 99.99
+ *       
+ *       **📤 Request Body (Ixtiyoriy maydonlar):**
+ *       - `thumbnail` (string): Kurs rasmi URL, masalan: "https://example.com/image.jpg"
+ *       - `category` (string): Kurs kategoriyasi, masalan: "programming", "design", "marketing"
+ *       
+ *       **📥 Response (201 - Muvaffaqiyatli):**
+ *       ```json
+ *       {
+ *         "success": true,
+ *         "message": "Course created successfully.",
+ *         "data": {
+ *           "course": {
+ *             "_id": "...",
+ *             "title": "JavaScript Fundamentals",
+ *             "description": "...",
+ *             "price": 99.99,
+ *             "instructor": "...",
+ *             "createdAt": "..."
+ *           }
+ *         }
+ *       }
+ *       ```
+ *       
+ *       **❌ Xato holatlar:**
+ *       - 400: Majburiy maydonlar berilmagan yoki noto'g'ri format
+ *       - 401: Token berilmagan yoki noto'g'ri
+ *       - 403: Foydalanuvchi admin emas
+ *       - 500: Server xatosi
+ *       
+ *       **💡 Maslahatlar:**
+ *       - Kurs nomi va tavsifi aniq va tushunarli bo'lishi kerak
+ *       - Narxni to'g'ri belgilang
+ *       - Thumbnail uchun yaxshi sifatli rasm ishlating
+ *       - Category'ni to'g'ri tanlang (keyinroq filtrlash uchun)
+ *     tags: [Admin Panel - Courses]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -149,23 +183,48 @@ router.post('/', authenticate, requireAdmin, createCourse);
  *       500:
  *         description: Server error
  *   put:
- *     summary: Kursni yangilash (Faqat Admin)
+ *     summary: ✏️ Kursni yangilash (Admin Panel)
  *     description: |
- *       Bu endpoint mavjud kursni yangilaydi. Faqat admin foydalanishi mumkin.
+ *       **ADMIN PANEL ENDPOINT** - Bu endpoint mavjud kursni yangilash uchun ishlatiladi.
  *       
- *       **Qanday ishlatiladi:**
- *       1. Authorization header'da admin accessToken yuboriladi
- *       2. URL'da kurs ID yuboriladi
- *       3. Request body'da yangilanish kerak bo'lgan maydonlar yuboriladi
- *       4. Kurs yangilanadi
+ *       **📋 Vazifasi:**
+ *       - Kurs ma'lumotlarini o'zgartirish
+ *       - Kurs narxini yangilash
+ *       - Kurs holatini o'zgartirish (faol/yashirin)
  *       
- *       **Status kodlar:**
- *       - 200: Kurs muvaffaqiyatli yangilandi
- *       - 400: Validation xatosi
+ *       **🔐 Kimlar foydalanishi mumkin:**
+ *       - Faqat admin role'ga ega foydalanuvchilar
+ *       
+ *       **📝 Qadam-baqadam ko'rsatma:**
+ *       1. Admin token bilan so'rov yuboring
+ *       2. URL'da kurs ID'ni belgilang: `/api/courses/COURSE_ID`
+ *       3. Request body'da faqat o'zgartirish kerak bo'lgan maydonlarni yuboring
+ *       4. Server kursni yangilaydi
+ *       
+ *       **📤 Request Body (Ixtiyoriy - faqat o'zgartirish kerak bo'lganlar):**
+ *       - `title` (string): Yangi kurs nomi
+ *       - `description` (string): Yangi kurs tavsifi
+ *       - `price` (number): Yangi kurs narxi
+ *       - `thumbnail` (string): Yangi kurs rasmi URL
+ *       - `category` (string): Yangi kategoriya
+ *       - `isActive` (boolean): Kurs holati (true = faol, false = yashirin)
+ *       
+ *       **📥 Response (200 - Muvaffaqiyatli):**
+ *       ```json
+ *       {
+ *         "success": true,
+ *         "message": "Course updated successfully.",
+ *         "data": {
+ *           "course": { ... }
+ *         }
+ *       }
+ *       ```
+ *       
+ *       **❌ Xato holatlar:**
  *       - 401: Token noto'g'ri
- *       - 403: Admin huquqi kerak
+ *       - 403: Admin huquqi yo'q
  *       - 404: Kurs topilmadi
- *     tags: [Courses]
+ *     tags: [Admin Panel - Courses]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -203,25 +262,44 @@ router.post('/', authenticate, requireAdmin, createCourse);
  *       500:
  *         description: Server error
  *   delete:
- *     summary: Kursni o'chirish (Faqat Admin)
+ *     summary: 🗑️ Kursni o'chirish (Admin Panel)
  *     description: |
- *       Bu endpoint kursni o'chiradi. Faqat admin foydalanishi mumkin.
+ *       **ADMIN PANEL ENDPOINT** - Bu endpoint kursni butunlay o'chirish uchun ishlatiladi.
  *       
- *       **Qanday ishlatiladi:**
- *       1. Authorization header'da admin accessToken yuboriladi
- *       2. URL'da kurs ID yuboriladi
- *       3. Kurs o'chiriladi
+ *       **📋 Vazifasi:**
+ *       - Kursni ma'lumotlar bazasidan o'chirish
+ *       - Kurs bilan bog'liq barcha ma'lumotlarni o'chirish
  *       
- *       **Muhim:**
- *       - Kurs o'chirilgandan keyin qayta tiklash mumkin emas
- *       - Kurs videolari ham o'chiriladi
+ *       **⚠️ MUHIM OGOHLANTIRISH:**
+ *       - Kurs o'chirilgandan keyin qayta tiklash mumkin emas!
+ *       - Kurs videolari ham o'chiriladi!
+ *       - Foydalanuvchilar kursni ko'ra olmaydi!
  *       
- *       **Status kodlar:**
- *       - 200: Kurs muvaffaqiyatli o'chirildi
+ *       **🔐 Kimlar foydalanishi mumkin:**
+ *       - Faqat admin role'ga ega foydalanuvchilar
+ *       
+ *       **📝 Qadam-baqadam ko'rsatma:**
+ *       1. Admin token bilan DELETE so'rov yuboring
+ *       2. URL'da kurs ID'ni belgilang: `/api/courses/COURSE_ID`
+ *       3. Server kursni o'chiradi
+ *       
+ *       **💡 Maslahat:**
+ *       - O'chirish o'rniga `isActive: false` qilib yashirin qilish yaxshiroq
+ *       - Keyinroq kerak bo'lsa, kursni qayta faollashtirish mumkin
+ *       
+ *       **📥 Response (200 - Muvaffaqiyatli):**
+ *       ```json
+ *       {
+ *         "success": true,
+ *         "message": "Course deleted successfully."
+ *       }
+ *       ```
+ *       
+ *       **❌ Xato holatlar:**
  *       - 401: Token noto'g'ri
- *       - 403: Admin huquqi kerak
+ *       - 403: Admin huquqi yo'q
  *       - 404: Kurs topilmadi
- *     tags: [Courses]
+ *     tags: [Admin Panel - Courses]
  *     security:
  *       - bearerAuth: []
  *     parameters:

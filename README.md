@@ -230,24 +230,24 @@ const API_URL = 'https://aidevixbackend.onrender.com';
 
 ### Swagger UI (Interaktiv)
 
-Interaktiv API dokumentatsiyasini ko'rish:
+**Umumiy API Dokumentatsiya:**
+- **Production:** `https://aidevixbackend.onrender.com/api-docs`
+- **Local:** `http://localhost:5000/api-docs`
+- **Parol:** Username: `Aidevix`, Password: `sunnatbee`
 
-**Production:**
-```
-https://aidevixbackend.onrender.com/api-docs
-```
+**Admin Panel API Dokumentatsiya:**
+- **Production:** `https://aidevixbackend.onrender.com/admin-docs`
+- **Local:** `http://localhost:5000/admin-docs`
+- **Parol:** Username: `Aidevix`, Password: `sunnatbee`
 
-**Local:**
-```
-http://localhost:5000/api-docs
-```
-
-Bu yerda:
+**Xususiyatlar:**
 - ✅ Barcha endpoint'lar ko'rinadi
 - ✅ Har bir endpoint'ni to'g'ridan-to'g'ri test qilish mumkin
 - ✅ Request/Response misollari bor
 - ✅ Authentication token qo'shish mumkin
 - ✅ Status kodlar ko'rsatiladi
+- ✅ O'zbek tilida to'liq tushuntirishlar
+- ✅ Admin endpoint'lar alohida ko'rsatilgan
 
 ### Swagger JSON
 

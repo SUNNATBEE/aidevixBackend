@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
+const swaggerAdminSpec = require('./config/swaggerAdmin');
 const swaggerAuth = require('./middleware/swaggerAuth');
 const connectDB = require('./config/database');
 
@@ -39,6 +40,19 @@ app.use('/api-docs', swaggerAuth, swaggerUi.serve, swaggerUi.setup(swaggerSpec, 
 app.get('/api-docs.json', swaggerAuth, (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
+});
+
+// Admin Panel Swagger UI Documentation (Parol bilan himoyalangan)
+app.use('/admin-docs', swaggerAuth, swaggerUi.serve, swaggerUi.setup(swaggerAdminSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Aidevix Admin Panel API',
+  customfavIcon: '/favicon.ico',
+}));
+
+// Admin Panel Swagger JSON endpoint (Parol bilan himoyalangan)
+app.get('/admin-docs.json', swaggerAuth, (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerAdminSpec);
 });
 
 // Security headers
