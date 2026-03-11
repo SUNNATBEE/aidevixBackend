@@ -84,25 +84,45 @@ app.use('/api/videos', require('./routes/videoRoutes'));
  * @swagger
  * /health:
  *   get:
- *     summary: Server holatini tekshirish
+ *     summary: 💓 Server holati tekshiruvi (Ochiq — token shart emas)
  *     description: |
- *       Bu endpoint server ishlayotganini tekshiradi. Token kerak emas.
- *       
- *       **Qanday ishlatiladi:**
- *       1. GET so'rov yuboriladi
- *       2. Server holati qaytariladi
- *       
- *       **Qaytarilgan ma'lumotlar:**
- *       - success: true (server ishlayapti)
- *       - message: "Server is running"
- *       - timestamp: Joriy vaqt
- *       
- *       **Status kodlar:**
- *       - 200: Server ishlayapti
+ *       ## 🇺🇿 O'ZBEKCHA
+ *
+ *       Server va database ishlayotganligini tekshiradi.
+ *       Bu endpoint monitoring uchun ishlatiladi.
+ *       Token kerak emas — hamma foydalana oladi.
+ *
+ *       ### 💻 Frontend da qanday ishlatish:
+ *       ```javascript
+ *       // Server ishlayaptimi tekshirish
+ *       const checkServer = async () => {
+ *         try {
+ *           const res = await fetch('http://localhost:5000/health');
+ *           const data = await res.json();
+ *           console.log('Server holati:', data.success ? '✅ Ishlayapti' : '❌ Ishlamayapti');
+ *         } catch (err) {
+ *           console.log('❌ Server ulanmadi!');
+ *         }
+ *       };
+ *       ```
+ *
+ *       ---
+ *
+ *       ## 🇷🇺 РУССКИЙ
+ *
+ *       Проверяет работоспособность сервера и базы данных.
+ *       Эндпоинт используется для мониторинга. Токен не нужен.
+ *
+ *       ### 📊 Status kodlar / Коды статусов:
+ *       | Kod | Ma'no (O'z) | Значение (Рус) |
+ *       |-----|------------|----------------|
+ *       | 200 | ✅ Server va database ishlayapti | ✅ Сервер и БД работают |
+ *       | 500 | ❌ Server xatosi | ❌ Ошибка сервера |
  *     tags: [Health]
+ *     security: []
  *     responses:
  *       200:
- *         description: Server is running successfully
+ *         description: ✅ Server ishlayapti / ✅ Сервер работает
  *         content:
  *           application/json:
  *             schema:
@@ -113,11 +133,15 @@ app.use('/api/videos', require('./routes/videoRoutes'));
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: Server is running
+ *                   example: "Server is running"
  *                 timestamp:
  *                   type: string
  *                   format: date-time
- *                   example: 2026-02-24T12:45:37.780Z
+ *                   example: "2026-03-11T10:00:00.000Z"
+ *             example:
+ *               success: true
+ *               message: "Server is running"
+ *               timestamp: "2026-03-11T10:00:00.000Z"
  */
 app.get('/health', (req, res) => {
   res.json({
