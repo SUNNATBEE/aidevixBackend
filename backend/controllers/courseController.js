@@ -1,171 +1,245 @@
 const Course = require('../models/Course');
-const Video = require('../models/Video');
+const Video  = require('../models/Video');
 
-// Get all courses
+/**
+ * @desc  Barcha kurslar — filter, qidiruv, pagination
+ * @route GET /api/courses?category=react&search=...&level=beginner&sort=popular&page=1&limit=12
+ * @access Public
+ */
 const getAllCourses = async (req, res) => {
   try {
-    const courses = await Course.find({ isActive: true })
+    const {
+      category,
+      search,
+      level,
+      sort    = 'newest',
+      page    = 1,
+      limit   = 12,
+      isFree,
+    } = req.query;
+
+    const filter = { isActive: true };
+    if (category && category !== 'all') filter.category = category;
+    if (level) filter.level = level;
+    if (isFree !== undefined) filter.isFree = isFree === 'true';
+    if (search) {
+      filter.$or = [
+        { title:       { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const sortMap = {
+      newest:     { createdAt: -1 },
+      oldest:     { createdAt: 1 },
+      popular:    { viewCount: -1 },
+      rating:     { rating: -1 },
+      price_asc:  { price: 1 },
+      price_desc: { price: -1 },
+    };
+    const sortOption = sortMap[sort] || sortMap.newest;
+
+    const skip  = (parseInt(page) - 1) * parseInt(limit);
+    const total = await Course.countDocuments(filter);
+
+    const courses = await Course.find(filter)
       .populate('instructor', 'username email')
-      .populate('videos', 'title description order duration')
-      .sort({ createdAt: -1 });
+      .sort(sortOption)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .select('-videos');
 
     res.json({
       success: true,
       data: {
         courses,
-        count: courses.length,
+        pagination: {
+          total,
+          page:  parseInt(page),
+          limit: parseInt(limit),
+          pages: Math.ceil(total / parseInt(limit)),
+        },
       },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching courses.',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// Get single course
-const getCourse = async (req, res) => {
+/**
+ * @desc  Top kurslar (eng ko'p ko'rilgan)
+ * @route GET /api/courses/top?limit=6&category=react
+ * @access Public
+ */
+const getTopCourses = async (req, res) => {
   try {
-    const { id } = req.params;
+    const limit    = parseInt(req.query.limit) || 6;
+    const category = req.query.category || null;
 
-    const course = await Course.findById(id)
+    const filter = { isActive: true };
+    if (category) filter.category = category;
+
+    const courses = await Course.find(filter)
       .populate('instructor', 'username email')
-      .populate('videos', 'title description order duration thumbnail');
+      .sort({ viewCount: -1, rating: -1 })
+      .limit(limit)
+      .select('-videos');
 
-    if (!course || !course.isActive) {
-      return res.status(404).json({
-        success: false,
-        message: 'Course not found.',
-      });
-    }
+    res.json({ success: true, data: { courses } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc  Mavjud kategoriyalar va kurslar soni
+ * @route GET /api/courses/categories
+ * @access Public
+ */
+const getCategories = async (req, res) => {
+  try {
+    const categories = await Course.aggregate([
+      { $match: { isActive: true } },
+      { $group: { _id: '$category', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+    ]);
 
     res.json({
       success: true,
       data: {
-        course,
+        categories: categories.map((c) => ({ name: c._id, count: c.count })),
       },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching course.',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// Create course (Admin only)
+/**
+ * @desc  Bitta kurs to'liq ma'lumoti (videolar va loyihalar bilan)
+ * @route GET /api/courses/:id
+ * @access Public
+ */
+const getCourse = async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id)
+      .populate('instructor', 'username email')
+      .populate({
+        path:   'videos',
+        match:  { isActive: true },
+        select: 'title description order duration thumbnail',
+        options: { sort: { order: 1 } },
+      });
+
+    if (!course || !course.isActive) {
+      return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
+    }
+
+    // Ko'rishlar sonini oshirish (background'da)
+    Course.findByIdAndUpdate(req.params.id, { $inc: { viewCount: 1 } }).exec();
+
+    res.json({ success: true, data: { course } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc  Yangi kurs yaratish (Admin)
+ * @route POST /api/courses
+ * @access Admin
+ */
 const createCourse = async (req, res) => {
   try {
-    const { title, description, thumbnail, price, category } = req.body;
+    const {
+      title, description, thumbnail, price, category,
+      level, isFree, rating, ratingCount, studentsCount,
+    } = req.body;
 
-    if (!title || !description || !price) {
+    if (!title || !description || price === undefined) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide title, description, and price.',
+        message: 'title, description va price majburiy maydonlar',
       });
     }
 
     const course = await Course.create({
       title,
       description,
-      thumbnail,
+      thumbnail:     thumbnail || null,
       price,
-      category: category || 'general',
-      instructor: req.user._id,
+      category:      category || 'general',
+      level:         level || 'beginner',
+      isFree:        isFree || false,
+      rating:        rating || 0,
+      ratingCount:   ratingCount || 0,
+      studentsCount: studentsCount || 0,
+      instructor:    req.user._id,
     });
 
     res.status(201).json({
       success: true,
-      message: 'Course created successfully.',
-      data: {
-        course,
-      },
+      message: 'Kurs muvaffaqiyatli yaratildi',
+      data: { course },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error creating course.',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// Update course (Admin only)
+/**
+ * @desc  Kursni yangilash (Admin)
+ * @route PUT /api/courses/:id
+ * @access Admin
+ */
 const updateCourse = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { title, description, thumbnail, price, category, isActive } = req.body;
+    const allowed = [
+      'title', 'description', 'thumbnail', 'price', 'category',
+      'level', 'isFree', 'isActive', 'rating', 'ratingCount', 'studentsCount',
+    ];
 
-    const course = await Course.findById(id);
-
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: 'Course not found.',
-      });
-    }
-
-    // Update fields
-    if (title) course.title = title;
-    if (description) course.description = description;
-    if (thumbnail) course.thumbnail = thumbnail;
-    if (price !== undefined) course.price = price;
-    if (category) course.category = category;
-    if (isActive !== undefined) course.isActive = isActive;
-
-    await course.save();
-
-    res.json({
-      success: true,
-      message: 'Course updated successfully.',
-      data: {
-        course,
-      },
+    const update = {};
+    allowed.forEach((f) => {
+      if (req.body[f] !== undefined) update[f] = req.body[f];
     });
+
+    const course = await Course.findByIdAndUpdate(
+      req.params.id,
+      update,
+      { new: true, runValidators: true },
+    );
+
+    if (!course) return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
+
+    res.json({ success: true, message: 'Kurs yangilandi', data: { course } });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error updating course.',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// Delete course (Admin only)
+/**
+ * @desc  Kursni o'chirish (Admin)
+ * @route DELETE /api/courses/:id
+ * @access Admin
+ */
 const deleteCourse = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const course = await Course.findById(id);
-
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: 'Course not found.',
-      });
-    }
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
 
     await course.deleteOne();
-
-    res.json({
-      success: true,
-      message: 'Course deleted successfully.',
-    });
+    res.json({ success: true, message: 'Kurs o\'chirildi' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting course.',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 module.exports = {
   getAllCourses,
   getCourse,
+  getTopCourses,
+  getCategories,
   createCourse,
   updateCourse,
   deleteCourse,

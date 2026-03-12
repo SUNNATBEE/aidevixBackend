@@ -78,8 +78,9 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/subscriptions', require('./routes/subscriptionRoutes'));
 app.use('/api/courses', require('./routes/courseRoutes'));
 app.use('/api/videos', require('./routes/videoRoutes'));
-app.use('/api/ranking', require('./routes/rankingRoutes'));   // Numton + Suhrob
-app.use('/api/xp', require('./routes/xpRoutes'));             // Suhrob XP tizimi
+app.use('/api/ranking',  require('./routes/rankingRoutes'));  // Numton + Suhrob
+app.use('/api/xp',       require('./routes/xpRoutes'));       // Suhrob XP tizimi
+app.use('/api/projects', require('./routes/projectRoutes'));  // Loyihalar (barcha oquvchilar)
 
 // Health check route
 /**

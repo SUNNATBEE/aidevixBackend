@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { getAllCourses, getCourse, createCourse, updateCourse, deleteCourse } = require('../controllers/courseController');
+const {
+  getAllCourses,
+  getCourse,
+  getTopCourses,
+  getCategories,
+  createCourse,
+  updateCourse,
+  deleteCourse,
+} = require('../controllers/courseController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
 // ════════════════════════════════════════════════════════════════
@@ -375,7 +383,9 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/', getAllCourses);
+router.get('/',            getAllCourses);
+router.get('/top',         getTopCourses);         // GET /api/courses/top
+router.get('/categories',  getCategories);          // GET /api/courses/categories
 router.post('/', authenticate, requireAdmin, createCourse);
 
 // ════════════════════════════════════════════════════════════════
