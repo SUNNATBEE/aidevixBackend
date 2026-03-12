@@ -31,6 +31,28 @@ const videoSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  // Ko'rishlar soni (statistika uchun)
+  viewCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  // Video materiallari (PDF, zip fayllar)
+  materials: [
+    {
+      name: { type: String },
+      url: { type: String },
+    },
+  ],
+  // Savollar (Q&A)
+  questions: [
+    {
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      text: { type: String },
+      createdAt: { type: Date, default: Date.now },
+      answer: { type: String, default: null },
+    },
+  ],
 }, {
   timestamps: true,
 });
