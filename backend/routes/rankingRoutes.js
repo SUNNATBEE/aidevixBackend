@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getTopCourses, getTopUsers, getUserPosition } = require('../controllers/rankingController');
-const { protect } = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -106,6 +106,6 @@ router.get('/users', getTopUsers);
  *       200:
  *         description: Foydalanuvchi pozitsiyasi
  */
-router.get('/users/:userId/position', protect, getUserPosition);
+router.get('/users/:userId/position', authenticate, getUserPosition);
 
 module.exports = router;

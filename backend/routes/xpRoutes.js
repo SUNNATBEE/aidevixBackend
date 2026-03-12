@@ -7,7 +7,7 @@ const {
   getQuizByVideo,
   updateProfile,
 } = require('../controllers/xpController');
-const { protect } = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -51,7 +51,7 @@ const { protect } = require('../middleware/auth');
  *                 videosWatched: 42
  *                 quizzesCompleted: 15
  */
-router.get('/stats', protect, getUserStats);
+router.get('/stats', authenticate, getUserStats);
 
 /**
  * @swagger
@@ -74,7 +74,7 @@ router.get('/stats', protect, getUserStats);
  *       200:
  *         description: XP berildi
  */
-router.post('/video-watched/:videoId', protect, addVideoWatchXP);
+router.post('/video-watched/:videoId', authenticate, addVideoWatchXP);
 
 /**
  * @swagger
@@ -119,7 +119,7 @@ router.post('/video-watched/:videoId', protect, addVideoWatchXP);
  *       200:
  *         description: Quiz natijasi va XP
  */
-router.post('/quiz/:quizId', protect, submitQuiz);
+router.post('/quiz/:quizId', authenticate, submitQuiz);
 
 /**
  * @swagger
@@ -140,7 +140,7 @@ router.post('/quiz/:quizId', protect, submitQuiz);
  *       200:
  *         description: Quiz ma'lumotlari
  */
-router.get('/quiz/video/:videoId', protect, getQuizByVideo);
+router.get('/quiz/video/:videoId', authenticate, getQuizByVideo);
 
 /**
  * @swagger
@@ -164,6 +164,6 @@ router.get('/quiz/video/:videoId', protect, getQuizByVideo);
  *       200:
  *         description: Profil yangilandi
  */
-router.put('/profile', protect, updateProfile);
+router.put('/profile', authenticate, updateProfile);
 
 module.exports = router;
