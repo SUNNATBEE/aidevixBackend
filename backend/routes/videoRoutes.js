@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getCourseVideos, getVideo, useVideoLink, createVideo, updateVideo, deleteVideo } = require('../controllers/videoController');
+const { getCourseVideos, getVideo, useVideoLink, createVideo, updateVideo, deleteVideo, askQuestion, getVideoQuestions, answerQuestion } = require('../controllers/videoController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { checkSubscriptions } = require('../middleware/subscriptionCheck');
 
@@ -855,5 +855,113 @@ router.post('/', authenticate, requireAdmin, createVideo);
  */
 router.put('/:id', authenticate, requireAdmin, updateVideo);
 router.delete('/:id', authenticate, requireAdmin, deleteVideo);
+
+/**
+ * @swagger
+ * /api/videos/{id}/questions:
+ *   get:
+ *     summary: ❓ Video savol-javoblari ro'yxati
+ *     tags: [Videos]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Savollar ro'yxati
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 total: 5
+ *                 page: 1
+ *                 pages: 1
+ *                 questions:
+ *                   - _id: "q1"
+ *                     question: "useState bilan useReducer farqi nima?"
+ *                     answer: "useState oddiy holatlar uchun, useReducer murakkab holatlar uchun."
+ *                     isAnswered: true
+ *                     userId:
+ *                       username: "ahmadjon"
+ *                     answeredBy:
+ *                       username: "admin"
+ *   post:
+ *     summary: ❓ Videoga savol berish
+ *     tags: [Videos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [question]
+ *             properties:
+ *               question:
+ *                 type: string
+ *                 example: "useState bilan useReducer farqi nima?"
+ *     responses:
+ *       201:
+ *         description: Savol yuborildi
+ */
+router.get('/:id/questions', getVideoQuestions);
+router.post('/:id/questions', authenticate, askQuestion);
+
+/**
+ * @swagger
+ * /api/videos/{id}/questions/{questionId}/answer:
+ *   post:
+ *     summary: ✅ Savolga javob berish (Admin)
+ *     tags: [Videos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: questionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [answer]
+ *             properties:
+ *               answer:
+ *                 type: string
+ *                 example: "useState oddiy, useReducer murakkab holatlar uchun."
+ *     responses:
+ *       200:
+ *         description: Javob saqlandi
+ */
+router.post('/:id/questions/:questionId/answer', authenticate, requireAdmin, answerQuestion);
 
 module.exports = router;

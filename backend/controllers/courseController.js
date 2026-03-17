@@ -1,5 +1,6 @@
 const Course = require('../models/Course');
 const Video  = require('../models/Video');
+const CourseRating = require('../models/CourseRating');
 
 /**
  * @desc  Barcha kurslar — filter, qidiruv, pagination
@@ -265,6 +266,57 @@ const deleteCourse = async (req, res) => {
   }
 };
 
+/**
+ * @desc  Kursni baholash (1-5 yulduz)
+ * @route POST /api/courses/:id/rate
+ * @access Private
+ */
+const rateCourse = async (req, res) => {
+  try {
+    const { rating, review } = req.body;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ success: false, message: 'Reyting 1 dan 5 gacha bo\'lishi kerak' });
+    }
+
+    const course = await Course.findById(req.params.id);
+    if (!course || !course.isActive) {
+      return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
+    }
+
+    // Upsert rating — har bir foydalanuvchi faqat bir marta baholay oladi
+    const existing = await CourseRating.findOne({ userId: req.user._id, courseId: course._id });
+
+    if (existing) {
+      existing.rating = rating;
+      if (review !== undefined) existing.review = review;
+      await existing.save();
+    } else {
+      await CourseRating.create({ userId: req.user._id, courseId: course._id, rating, review });
+    }
+
+    // Kurs o'rtacha reytingini qayta hisoblash
+    const agg = await CourseRating.aggregate([
+      { $match: { courseId: course._id } },
+      { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
+    ]);
+
+    if (agg.length > 0) {
+      course.rating      = Math.round(agg[0].avg * 10) / 10;
+      course.ratingCount = agg[0].count;
+      await course.save();
+    }
+
+    res.json({
+      success: true,
+      message: 'Baholash saqlandi',
+      data: { rating: course.rating, ratingCount: course.ratingCount },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getAllCourses,
   getCourse,
@@ -274,4 +326,5 @@ module.exports = {
   createCourse,
   updateCourse,
   deleteCourse,
+  rateCourse,
 };

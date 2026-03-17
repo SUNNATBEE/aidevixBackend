@@ -6,6 +6,9 @@ const {
   submitQuiz,
   getQuizByVideo,
   updateProfile,
+  useStreakFreeze,
+  addStreakFreeze,
+  getWeeklyLeaderboard,
 } = require('../controllers/xpController');
 const { authenticate } = require('../middleware/auth');
 
@@ -165,5 +168,84 @@ router.get('/quiz/video/:videoId', authenticate, getQuizByVideo);
  *         description: Profil yangilandi
  */
 router.put('/profile', authenticate, updateProfile);
+
+/**
+ * @swagger
+ * /api/xp/weekly-leaderboard:
+ *   get:
+ *     summary: 🏆 Haftalik liderlar jadvali (weeklyXp bo'yicha)
+ *     tags: [XP]
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Haftalik TOP foydalanuvchilar
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 leaderboard:
+ *                   - rank: 1
+ *                     weeklyXp: 850
+ *                     level: 12
+ *                     streak: 7
+ *                     user:
+ *                       username: "top_coder"
+ */
+router.get('/weekly-leaderboard', getWeeklyLeaderboard);
+
+/**
+ * @swagger
+ * /api/xp/streak-freeze:
+ *   post:
+ *     summary: 🧊 Streak freeze ishlatish
+ *     description: Bir kunlik streak freeze sarflaydi (bugungi streakni saqlaydi). Maksimal 5 ta bo'ladi.
+ *     tags: [XP]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Streak freeze ishlatildi
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Streak freeze ishlatildi"
+ *               data:
+ *                 streakFreezes: 2
+ *                 streak: 15
+ *       400:
+ *         description: Streak freeze qolmadi
+ */
+router.post('/streak-freeze', authenticate, useStreakFreeze);
+
+/**
+ * @swagger
+ * /api/xp/streak-freeze/add:
+ *   post:
+ *     summary: ➕ Streak freeze qo'shish (Admin)
+ *     tags: [XP]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: "Admin boshqa foydalanuvchiga qo'shmoqchi bo'lsa. Bo'sh qoldirilsa o'ziga."
+ *     responses:
+ *       200:
+ *         description: Streak freeze qo'shildi
+ */
+router.post('/streak-freeze/add', authenticate, addStreakFreeze);
 
 module.exports = router;

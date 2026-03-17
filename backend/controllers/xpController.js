@@ -1,6 +1,7 @@
 const UserStats = require('../models/UserStats');
 const Quiz = require('../models/Quiz');
 const QuizResult = require('../models/QuizResult');
+const { awardBadges } = require('../utils/badgeService');
 
 /**
  * @desc  Foydalanuvchi statsini olish
@@ -62,6 +63,7 @@ const addVideoWatchXP = async (req, res) => {
     }
 
     stats.xp += XP_FOR_VIDEO;
+    stats.weeklyXp = (stats.weeklyXp || 0) + XP_FOR_VIDEO;
     stats.videosWatched += 1;
     stats.level = stats.calculateLevel();
 
@@ -77,7 +79,14 @@ const addVideoWatchXP = async (req, res) => {
       if (diffDays === 1) {
         stats.streak += 1; // Ketma-ket kun
       } else if (diffDays > 1) {
-        stats.streak = 1; // Streak uzildi
+        // Streak freeze tekshiruvi
+        if ((stats.streakFreezes || 0) > 0 && diffDays === 2) {
+          stats.streakFreezes -= 1;
+          stats.streakFreezeUsedAt = new Date();
+          // streak saqlanadi
+        } else {
+          stats.streak = 1; // Streak uzildi
+        }
       }
       // diffDays === 0 bo'lsa — bugun allaqachon faol bo'lgan, streak o'zgarmaydi
     } else {
@@ -86,6 +95,9 @@ const addVideoWatchXP = async (req, res) => {
 
     stats.lastActivityDate = new Date();
     await stats.save();
+
+    // Badge auto-award
+    awardBadges(req.user.id).catch(() => {});
 
     res.json({
       success: true,
@@ -171,10 +183,14 @@ const submitQuiz = async (req, res) => {
     }
 
     stats.xp += totalXP;
+    stats.weeklyXp = (stats.weeklyXp || 0) + totalXP;
     stats.quizzesCompleted += 1;
     stats.level = stats.calculateLevel();
     stats.lastActivityDate = new Date();
     await stats.save();
+
+    // Badge auto-award
+    awardBadges(req.user.id).catch(() => {});
 
     res.json({
       success: true,
@@ -258,4 +274,107 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = { getUserStats, addVideoWatchXP, submitQuiz, getQuizByVideo, updateProfile };
+/**
+ * @desc  Streak freeze ishlatish (1 ta freeze sarflaydi)
+ * @route POST /api/xp/streak-freeze
+ * @access Private
+ */
+const useStreakFreeze = async (req, res) => {
+  try {
+    let stats = await UserStats.findOne({ userId: req.user.id });
+    if (!stats) {
+      return res.status(404).json({ success: false, message: 'Stats topilmadi' });
+    }
+
+    if ((stats.streakFreezes || 0) <= 0) {
+      return res.status(400).json({ success: false, message: 'Streak freeze qolmadi (max 5 ta)' });
+    }
+
+    stats.streakFreezes -= 1;
+    stats.streakFreezeUsedAt = new Date();
+    await stats.save();
+
+    res.json({
+      success: true,
+      message: 'Streak freeze ishlatildi',
+      data: { streakFreezes: stats.streakFreezes, streak: stats.streak },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * @desc  Streak freeze qo'shish (Admin yoki sovg'a sifatida)
+ * @route POST /api/xp/streak-freeze/add
+ * @access Private
+ */
+const addStreakFreeze = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const targetId = userId || req.user.id;
+
+    let stats = await UserStats.findOne({ userId: targetId });
+    if (!stats) {
+      stats = await UserStats.create({ userId: targetId });
+    }
+
+    const MAX_FREEZES = 5;
+    if ((stats.streakFreezes || 0) >= MAX_FREEZES) {
+      return res.status(400).json({ success: false, message: `Maksimal ${MAX_FREEZES} ta streak freeze bo'lishi mumkin` });
+    }
+
+    stats.streakFreezes = (stats.streakFreezes || 0) + 1;
+    await stats.save();
+
+    res.json({
+      success: true,
+      message: 'Streak freeze qo\'shildi',
+      data: { streakFreezes: stats.streakFreezes },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * @desc  Haftalik liderlar jadvali (weeklyXp bo'yicha)
+ * @route GET /api/xp/weekly-leaderboard
+ * @access Public
+ */
+const getWeeklyLeaderboard = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+
+    const leaders = await UserStats.find({ weeklyXp: { $gt: 0 } })
+      .sort({ weeklyXp: -1 })
+      .limit(limit)
+      .populate('userId', 'username');
+
+    res.json({
+      success: true,
+      data: {
+        leaderboard: leaders.map((s, i) => ({
+          rank: i + 1,
+          user: s.userId,
+          weeklyXp: s.weeklyXp || 0,
+          level: s.level,
+          streak: s.streak,
+        })),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = {
+  getUserStats,
+  addVideoWatchXP,
+  submitQuiz,
+  getQuizByVideo,
+  updateProfile,
+  useStreakFreeze,
+  addStreakFreeze,
+  getWeeklyLeaderboard,
+};

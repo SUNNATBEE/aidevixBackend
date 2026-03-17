@@ -74,6 +74,27 @@ const userStatsSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  // Haftalik XP (weekly leaderboard uchun)
+  weeklyXp: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  lastWeekReset: {
+    type: Date,
+    default: null,
+  },
+  // Streak Freeze — streakni bir kun uchun himoyalash
+  streakFreezes: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+  },
+  streakFreezeUsedAt: {
+    type: Date,
+    default: null,
+  },
 }, {
   timestamps: true,
 });
