@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"C:/Users/User/OneDrive/Рабочий стол/AidevixBackend/backend\" && node -e \"\nconst swaggerJsdoc = require\\('swagger-jsdoc'\\);\nconst swaggerSpec = require\\('./config/swagger'\\);\nconst paths = Object.keys\\(swaggerSpec.paths || {}\\);\nconst schemas = Object.keys\\(swaggerSpec.components?.schemas || {}\\);\nconsole.log\\('✅ Swagger kompilatsiyasi muvaffaqiyatli!'\\);\nconsole.log\\('📋 Endpointlar soni:', paths.length\\);\nconsole.log\\('📦 Schemalar soni:', schemas.length\\);\nconsole.log\\('Endpointlar:', paths.join\\(', '\\)\\);\nconsole.log\\('Schemalar:', schemas.join\\(', '\\)\\);\n\" 2>&1)",
+      "Bash(cd:*)",
+      "Bash(cd \"C:/Users/User/OneDrive/Рабочий стол/AidevixBackend\" && git push origin main 2>&1)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_press_key"
+    ]
+  }
+}
