@@ -1,62 +1,57 @@
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+// ============================================================
+// OQUVCHI  : QUDRAT
+// BRANCH   : feature/qudrat-loading
+// FAYL     : src/animations/gsap/cardAnimations.js
+// ============================================================
+//
+// VAZIFA: Kart va seksiya animatsiyalarini GSAP ScrollTrigger bilan yaratish
+//
+// EKSPORT QILINADIGAN FUNKSIYALAR:
+//
+//  1. animateCardsOnScroll(selector)
+//     - Viewport'ga kirganida staggered kirish animatsiyasi:
+//       - { opacity:0, y:50 } → { opacity:1, y:0 }
+//       - duration: 0.6, stagger: 0.1
+//       - ScrollTrigger: { trigger: selector, start: 'top 85%', once: true }
+//     - Returns: gsap animation instance
+//
+//  2. animateSectionTitle(el)
+//     - Chap tomondan kirish animatsiyasi:
+//       - { opacity:0, x:-30 } → { opacity:1, x:0 }
+//       - duration: 0.7, ease: 'power2.out'
+//       - ScrollTrigger: { trigger: el, start: 'top 88%', once: true }
+//
+//  3. animateStatsCounter(els)
+//     - Raqam sanash animatsiyasi (count-up):
+//       - els: HTMLElement array, har biri data-target atributiga ega
+//       - gsap.to(counter, { val: target, duration: 2, ease: 'power1.out' })
+//       - onUpdate: el.textContent = Math.round(counter.val).toLocaleString()
+//       - ScrollTrigger bilan: start: 'top 90%', once: true
+//
+// ISHLATISH:
+//   import { animateCardsOnScroll, animateSectionTitle } from '@animations/gsap/cardAnimations'
+//   import { ScrollTrigger } from 'gsap/ScrollTrigger'
+//   import { gsap } from 'gsap'
+//   gsap.registerPlugin(ScrollTrigger)
+//
+//   useEffect(() => {
+//     animateCardsOnScroll('.course-card')
+//     animateSectionTitle(titleRef.current)
+//   }, [])
+//
+// KERAKLI IMPORTLAR:
+//   import { gsap } from 'gsap'
+//   import { ScrollTrigger } from 'gsap/ScrollTrigger'
+// ============================================================
 
-/**
- * animateCardsOnScroll — staggered entrance when cards enter viewport
- * @param {string|HTMLElement} selector - CSS selector or NodeList
- */
 export function animateCardsOnScroll(selector) {
-  return gsap.fromTo(
-    selector,
-    { opacity: 0, y: 50 },
-    {
-      opacity: 1,
-      y: 0,
-      duration: 0.6,
-      stagger: 0.1,
-      ease: 'power2.out',
-      scrollTrigger: {
-        trigger: selector,
-        start: 'top 85%',
-        once: true,
-      },
-    },
-  )
+  // TODO: QUDRAT bu funksiyani to'liq yozadi
 }
 
-/**
- * animateSectionTitle — fade-in from left for section headings
- */
 export function animateSectionTitle(el) {
-  if (!el) return
-  return gsap.fromTo(
-    el,
-    { opacity: 0, x: -30 },
-    {
-      opacity: 1,
-      x: 0,
-      duration: 0.7,
-      ease: 'power2.out',
-      scrollTrigger: { trigger: el, start: 'top 88%', once: true },
-    },
-  )
+  // TODO: QUDRAT bu funksiyani to'liq yozadi
 }
 
-/**
- * animateStatsCounter — count-up animation for numeric stats
- * @param {HTMLElement[]} els - array of elements with data-target attribute
- */
 export function animateStatsCounter(els) {
-  els.forEach((el) => {
-    const target = parseInt(el.dataset.target, 10) || 0
-    const counter = { val: 0 }
-
-    gsap.to(counter, {
-      val: target,
-      duration: 2,
-      ease: 'power1.out',
-      scrollTrigger: { trigger: el, start: 'top 90%', once: true },
-      onUpdate: () => { el.textContent = Math.round(counter.val).toLocaleString() },
-    })
-  })
+  // TODO: QUDRAT bu funksiyani to'liq yozadi
 }
