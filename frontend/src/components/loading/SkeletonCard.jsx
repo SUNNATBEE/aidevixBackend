@@ -1,40 +1,40 @@
-// ╔══════════════════════════════════════════════════════════════╗
-// ║  SkeletonCard.jsx                                            ║
-// ║  OQUVCHI: QUDRAT                                             ║
-// ║  Branch:  feature/qudrat-loading                             ║
-// ║  Vazifa:  Kurs/User kartalar uchun loading skeleton          ║
-// ╚══════════════════════════════════════════════════════════════╝
-
-/**
- * Props:
- * - type: 'course' | 'user' | 'video' | 'profile'
- * - count: nechta skeleton ko'rsatish (default: 1)
- *
- * Ishlatish:
- * import SkeletonCard from '@components/loading/SkeletonCard'
- * <SkeletonCard type="course" count={6} />
- *
- * Texnologiyalar:
- * - DaisyUI skeleton class
- * - Tailwind CSS animate-pulse
- */
+// ============================================================
+// OQUVCHI  : QUDRAT
+// BRANCH   : feature/qudrat-loading
+// FAYL     : src/components/loading/SkeletonCard.jsx
+// ============================================================
+//
+// VAZIFA: Kontent yuklanayotganda ko'rsatiladigan skeleton kartalar
+//
+// PROPS:
+//   - type: 'course' | 'user' | 'video' | 'profile'
+//   - count: nechta skeleton (default: 1)
+//
+// TYPE BO'YICHA SKELETON TUZILISHI:
+//
+//  type="course":
+//   - h-44 rasm joy + karta tanasi (sarlavha, tavsif, narx) — animate-pulse
+//
+//  type="user":
+//   - Dumaloq avatar + ism + level + XP progress bar
+//
+//  type="video":
+//   - Gorizontal: thumbnail + sarlavha + davomiylik
+//
+//  type="profile":
+//   - Katta avatar markazi + 4 ta statistika katak
+//
+// ISHLATISH:
+//   import SkeletonCard from '@components/loading/SkeletonCard'
+//   <SkeletonCard type="course" count={6} />
+//   <SkeletonCard type="user" count={3} />
+//
+// KERAKLI IMPORTLAR: (faqat Tailwind/DaisyUI klass kerak)
+// ============================================================
 
 const SkeletonCard = ({ type = 'course', count = 1 }) => {
   // TODO: QUDRAT type ga mos skeleton dizayn yozadi
-  return (
-    <>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="card bg-base-200 shadow animate-pulse">
-          <div className="h-48 bg-base-300 rounded-t-2xl"></div>
-          <div className="card-body gap-3">
-            <div className="h-4 bg-base-300 rounded w-3/4"></div>
-            <div className="h-3 bg-base-300 rounded w-1/2"></div>
-            <div className="h-3 bg-base-300 rounded w-full"></div>
-          </div>
-        </div>
-      ))}
-    </>
-  )
+  return null
 }
 
 export default SkeletonCard
