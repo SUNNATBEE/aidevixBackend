@@ -270,3 +270,301 @@ const LevelUpPage = () => {
 - [ ] Confetti animatsiya ishlaydi
 - [ ] Level UP'dan keyin "Davom etish" tugmasi ishlaydi
 - [ ] Dizayn Figma bilan mos keladi
+
+---
+
+## 🌐 BACKEND API — TO'LIQ QO'LLANMA
+
+**Backend:** Node.js + Express.js | **Port:** 5000 | **Database:** MongoDB Atlas
+**Jami endpointlar: ~75 ta**
+
+### 🔗 Server URL'lari
+
+| Muhit | URL |
+|-------|-----|
+| Local (Development) | `http://localhost:5000` |
+| Production (Render) | `https://aidevixbackend.onrender.com` |
+
+---
+
+### 📖 Swagger UI — Interaktiv Hujjat
+
+```
+URL:      http://localhost:5000/api-docs
+Username: admin
+Password: admin123
+```
+
+**Swagger'da token kiritish:**
+1. `http://localhost:5000/api-docs` ni oching
+2. Yuqori o'ngda **"Authorize 🔓"** tugmasini bosing
+3. `Bearer eyJhbGciOiJ...` formatida token kiriting
+4. **"Authorize"** bosing — endi `🔒` belgili endpointlar ishlaydi
+
+> **Token qanday olish?** Authentication → POST `/api/auth/login` → Execute → Response'dan `accessToken` ni ko'chiring
+
+---
+
+## 📋 BARCHA ENDPOINTLAR (~75 ta)
+
+### 1️⃣ AUTHENTICATION — `/api/auth` (5 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| POST | `/api/auth/register` | ❌ | Ro'yxatdan o'tish |
+| POST | `/api/auth/login` | ❌ | Tizimga kirish |
+| POST | `/api/auth/refresh-token` | ❌ | Token yangilash |
+| POST | `/api/auth/logout` | ✅ | Chiqish |
+| GET | `/api/auth/me` | ✅ | Mening profilim |
+
+---
+
+### 2️⃣ SUBSCRIPTIONS — `/api/subscriptions` (3 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/subscriptions/status` | ✅ | Obuna holati |
+| POST | `/api/subscriptions/verify-instagram` | ✅ | Instagram tasdiqlash |
+| POST | `/api/subscriptions/verify-telegram` | ✅ | Telegram tasdiqlash |
+
+---
+
+### 3️⃣ COURSES — `/api/courses` (9 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/courses` | ❌ | Barcha kurslar |
+| GET | `/api/courses/top` | ❌ | Top kurslar |
+| GET | `/api/courses/categories` | ❌ | Kategoriyalar |
+| GET | `/api/courses/:id` | ❌ | Bitta kurs |
+| GET | `/api/courses/:id/recommended` | ❌ | Tavsiya etilgan |
+| POST | `/api/courses/:id/rate` | ✅ | Baholash |
+| POST | `/api/courses` | ✅ Admin | Yaratish |
+| PUT | `/api/courses/:id` | ✅ Admin | Yangilash |
+| DELETE | `/api/courses/:id` | ✅ Admin | O'chirish |
+
+---
+
+### 4️⃣ VIDEOS — `/api/videos` (9 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/videos/course/:courseId` | ❌ | Kurs videolari |
+| GET | `/api/videos/:id` | ✅ + Obuna | Video + Telegram link |
+| POST | `/api/videos/link/:linkId/use` | ✅ | Linkni belgilash |
+| GET | `/api/videos/:id/questions` | ❌ | Q&A |
+| POST | `/api/videos/:id/questions` | ✅ | Savol berish |
+| POST | `/api/videos/:id/questions/:qId/answer` | ✅ Admin | Javob |
+| POST | `/api/videos` | ✅ Admin | Yaratish |
+| PUT | `/api/videos/:id` | ✅ Admin | Yangilash |
+| DELETE | `/api/videos/:id` | ✅ Admin | O'chirish |
+
+---
+
+### 5️⃣ XP TIZIMI — `/api/xp` (8 ta) ← SEN ISHLATASAN
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| **GET** | **`/api/xp/stats`** | ✅ | **XP, level, streak, badges** |
+| POST | `/api/xp/video-watched/:videoId` | ✅ | +50 XP |
+| **GET** | **`/api/xp/quiz/video/:videoId`** | ✅ | **Video quizini olish** |
+| **POST** | **`/api/xp/quiz/:quizId`** | ✅ | **Quiz yechish (+XP)** |
+| PUT | `/api/xp/profile` | ✅ | Profil yangilash |
+| GET | `/api/xp/weekly-leaderboard` | ❌ | Haftalik TOP |
+| POST | `/api/xp/streak-freeze` | ✅ | Freeze ishlatish |
+| POST | `/api/xp/streak-freeze/add` | ✅ | Freeze qo'shish |
+
+**GET `/api/xp/stats`** — Foydalanuvchi XP statistikasi:
+```json
+{
+  "success": true,
+  "data": {
+    "stats": {
+      "userId": "64f1a2b3c4d5e6f7g8h9i0j1",
+      "xp": 4234,
+      "level": 4,
+      "xpToNextLevel": 766,
+      "streak": 3,
+      "streakFreezes": 1,
+      "videosWatched": 47,
+      "quizzesCompleted": 23,
+      "badges": [
+        { "id": "first_video", "name": "Birinchi Video", "icon": "🎬", "earnedAt": "2026-03-01" },
+        { "id": "week_streak", "name": "7 Kunlik Streak", "icon": "🔥", "earnedAt": "2026-03-07" }
+      ],
+      "bio": "React developer",
+      "skills": ["JavaScript", "React", "Node.js"],
+      "avatar": "https://res.cloudinary.com/aidevix/avatars/user123.jpg"
+    }
+  }
+}
+// xp = 4234, level = 4 (1000 XP = 1 Level)
+// xpToNextLevel = 5000 - 4234 = 766 XP qoldi
+// streak = ketma-ket faol kunlar
+```
+
+---
+
+### 6️⃣ RANKING — `/api/ranking` (3 ta) ← SEN ISHLATASAN
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/ranking/courses` | ❌ | Top kurslar |
+| **GET** | **`/api/ranking/users`** | ❌ | **Top foydalanuvchilar (XP bo'yicha)** |
+| **GET** | **`/api/ranking/users/:userId/position`** | ✅ | **O'z pozitsiyasi** |
+
+**GET `/api/ranking/users`** — Leaderboard ro'yxati:
+```json
+{
+  "success": true,
+  "data": {
+    "users": [
+      {
+        "_id": "64f1a2b3c4d5e6f7g8h9i0j1",
+        "username": "jamshidk",
+        "avatar": "https://res.cloudinary.com/aidevix/avatars/jamshid.jpg",
+        "xp": 145269,
+        "level": 145,
+        "streak": 62,
+        "badges": ["grandmaster", "week_streak", "quiz_master"],
+        "rank": 1
+      },
+      {
+        "_id": "64f1a2b3c4d5e6f7g8h9i0j2",
+        "username": "malikar",
+        "xp": 98540,
+        "level": 98,
+        "streak": 31,
+        "rank": 2
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 1642,
+      "totalPages": 83
+    }
+  }
+}
+```
+
+**GET `/api/ranking/users?page=2&limit=20`** — Sahifalash:
+```json
+{
+  "success": true,
+  "data": {
+    "users": [ /* 21-40 o'rinlar */ ],
+    "pagination": { "page": 2, "limit": 20, "total": 1642 }
+  }
+}
+```
+
+**GET `/api/ranking/users/:userId/position`** — O'z pozitsiyasi:
+```json
+{
+  "success": true,
+  "data": {
+    "position": {
+      "rank": 42,
+      "totalUsers": 1642,
+      "percentile": 11,
+      "xp": 4234,
+      "level": 4
+    }
+  }
+}
+// rank: 42 → "42-o'RIN"
+// percentile: 11 → "Top 11%"
+```
+
+**useTopUsers hook qanday ishlaydi:**
+```javascript
+import { useTopUsers } from '@hooks/useRanking'
+import { useUserStats } from '@hooks/useUserStats'
+
+const LeaderboardPage = () => {
+  const { users, loading, pagination, loadMore } = useTopUsers({ page: 1, limit: 20 })
+  const { xp, level, streak, badges } = useUserStats()
+
+  // users[0], users[1], users[2] → Podium (Top 3)
+  // users.slice(3) → Jadval (#4 dan pastga)
+  // pagination.total → "1,642 o'quvchi"
+
+  const handleLoadMore = () => loadMore(pagination.page + 1)
+}
+```
+
+---
+
+### 7️⃣–1️⃣6️⃣ QOLGAN ENDPOINTLAR
+
+| Guruh | Endpoint | Soni |
+|-------|----------|------|
+| Projects | `/api/projects` | 6 ta |
+| Enrollments | `/api/enrollments` | 4 ta |
+| Wishlist | `/api/wishlist` | 3 ta |
+| Certificates | `/api/certificates` | 2 ta |
+| Sections | `/api/sections` | 5 ta |
+| Follow | `/api/follow` | 4 ta |
+| Challenges | `/api/challenges` | 3 ta |
+| Payments | `/api/payments` | 3 ta |
+| Admin | `/api/admin` | 5 ta |
+| Upload | `/api/upload` | 2 ta |
+| Health | `/health` | 1 ta |
+
+---
+
+### ❌ HTTP Status Kodlar
+
+| Kod | Ma'no | Sabab |
+|-----|-------|-------|
+| `200` | OK | Muvaffaqiyat |
+| `201` | Created | Yaratildi |
+| `400` | Bad Request | Noto'g'ri ma'lumot |
+| `401` | Unauthorized | Token yo'q/eskirgan |
+| `403` | Forbidden | Ruxsat yo'q |
+| `404` | Not Found | Topilmadi |
+| `429` | Too Many Requests | Rate limit (200 req/15min) |
+| `500` | Server Error | Server xatosi |
+
+### 🎮 XP Tizimi — To'liq Hisoblash
+
+```
+1000 XP = 1 Level
+Level = Math.floor(xp / 1000) + 1
+
+XP manbalari:
+  +50 XP  → Video ko'rish (POST /api/xp/video-watched/:videoId)
+  +10–100 XP → Quiz yechish (POST /api/xp/quiz/:quizId)
+  +150 XP → Amaliy mashq
+  +500 XP → Challenge
+
+XP progress:
+  xp = 4234 → Level 4
+  currentLevelXP = 4234 % 1000 = 234
+  progressBar = 234 / 1000 = 23.4%
+  xpToNextLevel = 1000 - 234 = 766
+
+Streak:
+  Har kuni login qilsa streak oshadi
+  1 kun o'tkazib yuborsa streak sıfırlanadi
+  streakFreeze ishlatilsa saqlangan bo'ladi
+```
+
+### 🏆 Leaderboard To'liq Oqimi
+
+```
+1. LeaderboardPage ochiladi
+2. GET /api/ranking/users?page=1&limit=20 → Top 20 yuklanadi
+3. GET /api/xp/stats (agar login) → O'z XP/level/streak
+4. GET /api/ranking/users/:userId/position → O'z o'rni
+
+5. "Ko'proq yuklash" bosiladi
+   → GET /api/ranking/users?page=2&limit=20
+   → users massivga qo'shiladi (concat)
+
+6. Level UP trigger:
+   → Yangi video ko'riladi → POST /api/xp/video-watched/:videoId
+   → Response: { newLevel: 5, leveledUp: true }
+   → LevelUpPage/Modal ko'rsatiladi + Confetti 🎉
+```

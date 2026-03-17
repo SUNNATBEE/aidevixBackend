@@ -260,3 +260,207 @@ function App() {
 - [ ] SkeletonCard type="user" ishlaydi
 - [ ] SkeletonCard count={6} → 6 ta skeleton ko'rsatiladi
 - [ ] Performans yaxshi (60 FPS)
+
+---
+
+## 🌐 BACKEND API — TO'LIQ QO'LLANMA
+
+**Backend:** Node.js + Express.js | **Port:** 5000 | **Database:** MongoDB Atlas
+**Jami endpointlar: ~75 ta**
+
+> **Loading sahifasi va Skeleton uchun backend API to'g'ridan-to'g'ri kerak emas.**
+> Lekin jamoa bilan ishlashda quyidagi ma'lumotlar zarur bo'ladi.
+
+### 🔗 Server URL'lari
+
+| Muhit | URL |
+|-------|-----|
+| Local (Development) | `http://localhost:5000` |
+| Production (Render) | `https://aidevixbackend.onrender.com` |
+
+---
+
+### 📖 Swagger UI — Interaktiv Hujjat
+
+```
+URL:      http://localhost:5000/api-docs
+Username: admin
+Password: admin123
+```
+
+**Swagger'da ishlash:**
+1. `http://localhost:5000/api-docs` ni oching
+2. Istalgan endpoint'ni bosing → "Try it out" → "Execute"
+3. Token kerak bo'lsa: yuqori o'ngdagi **"Authorize 🔓"** tugmasi → `Bearer <token>`
+
+---
+
+## 📋 BARCHA ENDPOINTLAR (~75 ta)
+
+### 1️⃣ AUTHENTICATION — `/api/auth` (5 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| POST | `/api/auth/register` | ❌ | Ro'yxatdan o'tish |
+| POST | `/api/auth/login` | ❌ | Tizimga kirish |
+| POST | `/api/auth/refresh-token` | ❌ | Token yangilash |
+| POST | `/api/auth/logout` | ✅ | Chiqish |
+| GET | `/api/auth/me` | ✅ | Mening profilim |
+
+**Auth holati — sening koding uchun:**
+```javascript
+// App.jsx da checkAuthStatus bo'lguncha LoadingScreen ko'rsat
+import { useSelector } from 'react-redux'
+import { selectAuthLoading } from '@store/slices/authSlice'
+
+// authLoading true bo'lsa → LoadingScreen
+// authLoading false bo'lsa → AppRouter
+```
+
+---
+
+### 2️⃣ SUBSCRIPTIONS — `/api/subscriptions` (3 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/subscriptions/status` | ✅ | Obuna holati |
+| POST | `/api/subscriptions/verify-instagram` | ✅ | Instagram tasdiqlash |
+| POST | `/api/subscriptions/verify-telegram` | ✅ | Telegram tasdiqlash |
+
+---
+
+### 3️⃣ COURSES — `/api/courses` (9 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/courses` | ❌ | Barcha kurslar |
+| GET | `/api/courses/top` | ❌ | Top kurslar |
+| GET | `/api/courses/categories` | ❌ | Kategoriyalar |
+| GET | `/api/courses/:id` | ❌ | Bitta kurs |
+| GET | `/api/courses/:id/recommended` | ❌ | Tavsiya etilgan |
+| POST | `/api/courses/:id/rate` | ✅ | Baholash |
+| POST | `/api/courses` | ✅ Admin | Yaratish |
+| PUT | `/api/courses/:id` | ✅ Admin | Yangilash |
+| DELETE | `/api/courses/:id` | ✅ Admin | O'chirish |
+
+**SkeletonCard qachon ko'rsatiladi:**
+```javascript
+// Kurslar yuklanganda skeleton:
+const CoursesPage = () => {
+  const { courses, loading } = useCourses()
+
+  if (loading) return (
+    <div className="grid grid-cols-3 gap-4">
+      {[...Array(6)].map((_, i) => (
+        <SkeletonCard key={i} type="course" />
+      ))}
+    </div>
+  )
+
+  return courses.map(course => <CourseCard key={course._id} course={course} />)
+}
+```
+
+---
+
+### 4️⃣ VIDEOS — `/api/videos` (9 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/videos/course/:courseId` | ❌ | Kurs videolari |
+| GET | `/api/videos/:id` | ✅ + Obuna | Video + Telegram link |
+| POST | `/api/videos/link/:linkId/use` | ✅ | Linkni belgilash |
+| GET | `/api/videos/:id/questions` | ❌ | Q&A |
+| POST | `/api/videos/:id/questions` | ✅ | Savol berish |
+| POST | `/api/videos/:id/questions/:qId/answer` | ✅ Admin | Javob |
+| POST | `/api/videos` | ✅ Admin | Yaratish |
+| PUT | `/api/videos/:id` | ✅ Admin | Yangilash |
+| DELETE | `/api/videos/:id` | ✅ Admin | O'chirish |
+
+---
+
+### 5️⃣ XP TIZIMI — `/api/xp` (8 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/xp/stats` | ✅ | XP, level, streak |
+| POST | `/api/xp/video-watched/:videoId` | ✅ | +50 XP |
+| GET | `/api/xp/quiz/video/:videoId` | ✅ | Video quizi |
+| POST | `/api/xp/quiz/:quizId` | ✅ | Quiz yechish |
+| PUT | `/api/xp/profile` | ✅ | Profil yangilash |
+| GET | `/api/xp/weekly-leaderboard` | ❌ | Haftalik TOP |
+| POST | `/api/xp/streak-freeze` | ✅ | Freeze ishlatish |
+| POST | `/api/xp/streak-freeze/add` | ✅ | Freeze qo'shish |
+
+---
+
+### 6️⃣ RANKING — `/api/ranking` (3 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/ranking/courses` | ❌ | Top kurslar |
+| GET | `/api/ranking/users` | ❌ | Top foydalanuvchilar |
+| GET | `/api/ranking/users/:userId/position` | ✅ | O'z pozitsiyasi |
+
+---
+
+### 7️⃣–1️⃣6️⃣ QOLGAN ENDPOINTLAR
+
+| Guruh | Endpoint | Soni |
+|-------|----------|------|
+| Projects | `/api/projects` | 6 ta |
+| Enrollments | `/api/enrollments` | 4 ta |
+| Wishlist | `/api/wishlist` | 3 ta |
+| Certificates | `/api/certificates` | 2 ta |
+| Sections | `/api/sections` | 5 ta |
+| Follow | `/api/follow` | 4 ta |
+| Challenges | `/api/challenges` | 3 ta |
+| Payments | `/api/payments` | 3 ta |
+| Admin | `/api/admin` | 5 ta |
+| Upload | `/api/upload` | 2 ta |
+| Health | `/health` | 1 ta |
+
+---
+
+### ❌ HTTP Status Kodlar
+
+| Kod | Ma'no | Sabab |
+|-----|-------|-------|
+| `200` | OK | Muvaffaqiyat |
+| `201` | Created | Yaratildi |
+| `400` | Bad Request | Noto'g'ri ma'lumot |
+| `401` | Unauthorized | Token yo'q/eskirgan |
+| `403` | Forbidden | Ruxsat yo'q |
+| `404` | Not Found | Topilmadi |
+| `429` | Too Many Requests | Rate limit (200 req/15min) |
+| `500` | Server Error | Server xatosi |
+
+### ⚡ Loading oqimi — App boshlanganda nima bo'ladi
+
+```
+1. App.jsx renders → LoadingScreen ko'rsatiladi (3D animatsiya)
+2. authSlice.checkAuthStatus() dispatch bo'ladi
+3. GET /api/auth/me → token bor/yo'q tekshiriladi
+4. authLoading → false bo'ladi
+5. LoadingScreen.onComplete() → AppRouter ko'rsatiladi
+
+Kurslar sahifasida:
+1. CoursesPage → GET /api/courses (loading: true)
+2. SkeletonCard × 6 ko'rsatiladi
+3. loading: false → kurs kartalar ko'rsatiladi
+```
+
+### 🎨 SkeletonCard — barcha sahifalar uchun
+
+```javascript
+// Qaysi sahifada qaysi skeleton:
+<SkeletonCard type="course" />   // CoursesPage, HomePage
+<SkeletonCard type="user" />     // LeaderboardPage
+<SkeletonCard type="video" />    // VideoPage
+<SkeletonCard type="profile" />  // ProfilePage
+
+// Miqdor bilan:
+{loading && [...Array(count)].map((_, i) => (
+  <SkeletonCard key={i} type={type} />
+))}
+```

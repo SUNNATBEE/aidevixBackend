@@ -201,3 +201,252 @@ useEffect(() => {
 - [ ] Footer barcha linklar bilan
 - [ ] Sahifa yuklanganda GSAP animatsiya ishlaydi
 - [ ] Dizayn Figma bilan mos keladi
+
+---
+
+## 🌐 BACKEND API — TO'LIQ QO'LLANMA
+
+**Backend:** Node.js + Express.js | **Port:** 5000 | **Database:** MongoDB Atlas
+**Jami endpointlar: ~75 ta**
+
+### 🔗 Server URL'lari
+
+| Muhit | URL |
+|-------|-----|
+| Local (Development) | `http://localhost:5000` |
+| Production (Render) | `https://aidevixbackend.onrender.com` |
+
+---
+
+### 📖 Swagger UI — Interaktiv Hujjat
+
+Swagger — barcha endpointlarni ko'rish va brauzerdan **sinab ko'rish** imkonini beradi.
+
+```
+URL:      http://localhost:5000/api-docs
+Username: admin
+Password: admin123
+```
+
+**Swagger'da token kiritish:**
+1. `http://localhost:5000/api-docs` ni oching
+2. Yuqori o'ngda **"Authorize 🔓"** tugmasini bosing
+3. `Bearer eyJhbGciOiJ...` formatida token kiriting
+4. **"Authorize"** bosing — endi `🔒` belgili endpointlar ishlaydi
+
+---
+
+### 🔐 Frontend'da Token bilan Ishlash
+
+```javascript
+// ✅ TO'G'RI YO'L: axiosInstance (token avtomatik qo'shiladi)
+import axiosInstance from '@api/axiosInstance'
+const { data } = await axiosInstance.get('/api/courses/top')
+
+// Oddiy fetch bilan:
+const token = localStorage.getItem('accessToken')
+const res = await fetch('http://localhost:5000/api/courses', {
+  headers: { 'Authorization': `Bearer ${token}` }
+})
+```
+
+---
+
+## 📋 BARCHA ENDPOINTLAR (~75 ta)
+
+### 1️⃣ AUTHENTICATION — `/api/auth` (5 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| POST | `/api/auth/register` | ❌ | Ro'yxatdan o'tish |
+| POST | `/api/auth/login` | ❌ | Tizimga kirish |
+| POST | `/api/auth/refresh-token` | ❌ | AccessToken yangilash |
+| POST | `/api/auth/logout` | ✅ | Tizimdan chiqish |
+| GET | `/api/auth/me` | ✅ | Mening profilim |
+
+**POST `/api/auth/login`** — Response:
+```json
+{
+  "success": true,
+  "data": {
+    "user": { "_id": "...", "username": "ahmadjon", "role": "user",
+      "subscriptions": { "instagram": { "subscribed": false }, "telegram": { "subscribed": false } }
+    },
+    "accessToken": "eyJ...", "refreshToken": "eyJ..."
+  }
+}
+```
+
+---
+
+### 2️⃣ SUBSCRIPTIONS — `/api/subscriptions` (3 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/subscriptions/status` | ✅ | Obuna holati |
+| POST | `/api/subscriptions/verify-instagram` | ✅ | Instagram tekshirish |
+| POST | `/api/subscriptions/verify-telegram` | ✅ | Telegram tekshirish |
+
+---
+
+### 3️⃣ COURSES — `/api/courses` (9 ta) ← SEN ISHLATASAN
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| **GET** | **`/api/courses`** | ❌ | **Barcha kurslar** |
+| **GET** | **`/api/courses/top`** | ❌ | **Top kurslar (viewCount)** |
+| GET | `/api/courses/categories` | ❌ | Kategoriyalar |
+| GET | `/api/courses/:id` | ❌ | Bitta kurs tafsiloti |
+| GET | `/api/courses/:id/recommended` | ❌ | Tavsiya etilgan |
+| POST | `/api/courses/:id/rate` | ✅ | Baholash (1-5 ⭐) |
+| POST | `/api/courses` | ✅ Admin | Yaratish |
+| PUT | `/api/courses/:id` | ✅ Admin | Yangilash |
+| DELETE | `/api/courses/:id` | ✅ Admin | O'chirish |
+
+**GET `/api/courses/top?limit=8`** — HomePage uchun:
+```json
+{
+  "success": true,
+  "data": {
+    "courses": [
+      {
+        "_id": "65f1...", "title": "React.js Frontend Development",
+        "price": 349000, "category": "react", "rating": 4.8,
+        "viewCount": 3840, "thumbnail": "https://...react-icon.svg",
+        "instructor": { "username": "aidevix_admin" }
+      }
+    ],
+    "total": 6
+  }
+}
+```
+
+**GET `/api/courses`** — Query params: `?category=react&page=1&limit=8`
+```json
+{
+  "success": true,
+  "data": {
+    "count": 6,
+    "courses": [
+      {
+        "_id": "65f1...", "title": "React.js Frontend Development",
+        "price": 349000, "category": "react", "rating": 4.8,
+        "instructor": { "username": "aidevix_admin" }
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 4️⃣ VIDEOS — `/api/videos` (9 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/videos/course/:courseId` | ❌ | Kurs videolari |
+| GET | `/api/videos/:id` | ✅ + Obuna | Video + Telegram link |
+| POST | `/api/videos/link/:linkId/use` | ✅ | Linkni ishlatilgan belgilash |
+| GET | `/api/videos/:id/questions` | ❌ | Q&A |
+| POST | `/api/videos/:id/questions` | ✅ | Savol berish |
+| POST | `/api/videos/:id/questions/:qId/answer` | ✅ Admin | Javob berish |
+| POST | `/api/videos` | ✅ Admin | Yaratish |
+| PUT | `/api/videos/:id` | ✅ Admin | Yangilash |
+| DELETE | `/api/videos/:id` | ✅ Admin | O'chirish |
+
+---
+
+### 5️⃣ XP TIZIMI — `/api/xp` (8 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/xp/stats` | ✅ | XP, level, streak |
+| POST | `/api/xp/video-watched/:videoId` | ✅ | +50 XP |
+| GET | `/api/xp/quiz/video/:videoId` | ✅ | Video quizi |
+| POST | `/api/xp/quiz/:quizId` | ✅ | Quiz yechish |
+| PUT | `/api/xp/profile` | ✅ | Bio, skills yangilash |
+| GET | `/api/xp/weekly-leaderboard` | ❌ | Haftalik TOP |
+| POST | `/api/xp/streak-freeze` | ✅ | Freeze ishlatish |
+| POST | `/api/xp/streak-freeze/add` | ✅ | Freeze qo'shish |
+
+---
+
+### 6️⃣ RANKING — `/api/ranking` (3 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/ranking/courses` | ❌ | Top kurslar |
+| GET | `/api/ranking/users` | ❌ | Top foydalanuvchilar |
+| GET | `/api/ranking/users/:userId/position` | ✅ | O'z pozitsiyasi |
+
+---
+
+### 7️⃣ LOYIHALAR — `/api/projects` (6 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/projects/course/:courseId` | ❌ | Kurs loyihalari |
+| GET | `/api/projects/:id` | ❌ | Bitta loyiha |
+| POST | `/api/projects/:id/complete` | ✅ | Bajarish (+XP) |
+| POST | `/api/projects` | ✅ Admin | Yaratish |
+| PUT | `/api/projects/:id` | ✅ Admin | Yangilash |
+| DELETE | `/api/projects/:id` | ✅ Admin | O'chirish |
+
+---
+
+### 8️⃣ KURSGA YOZILISH — `/api/enrollments` (4 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| POST | `/api/enrollments/:courseId` | ✅ | Kursga yozilish |
+| GET | `/api/enrollments/my` | ✅ | Mening kurslarim |
+| GET | `/api/enrollments/:courseId/progress` | ✅ | Progress (%) |
+| POST | `/api/enrollments/:courseId/watch/:videoId` | ✅ | Video ko'rildi |
+
+---
+
+### 9️⃣ WISHLIST — `/api/wishlist` (3 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/wishlist` | ✅ | Saqlangan kurslar |
+| POST | `/api/wishlist/:courseId` | ✅ | Kurs saqlash |
+| DELETE | `/api/wishlist/:courseId` | ✅ | O'chirish |
+
+---
+
+### 🔟 SERTIFIKATLAR — `/api/certificates` (2 ta)
+| GET | `/api/certificates` | ✅ | Mening sertifikatlarim |
+| GET | `/api/certificates/:id` | ✅ | Bitta sertifikat |
+
+> Sertifikat kursni **100% tugatganda** avtomatik beriladi va email yuboriladi!
+
+---
+
+### 1️⃣1️⃣ SEKSIYALAR — `/api/sections` (5 ta) | FOLLOW — `/api/follow` (4 ta)
+### 1️⃣2️⃣ CHALLENGELAR — `/api/challenges` (3 ta) | TO'LOV — `/api/payments` (3 ta)
+### 1️⃣3️⃣ ADMIN — `/api/admin` (5 ta) | YUKLASH — `/api/upload` (2 ta)
+
+---
+
+### 🏥 HEALTH CHECK
+
+```
+GET http://localhost:5000/health
+→ { "success": true, "message": "Server is running", "timestamp": "..." }
+```
+
+---
+
+### ❌ HTTP Status Kodlar
+
+| Kod | Ma'no | Sabab |
+|-----|-------|-------|
+| `200` | OK | Muvaffaqiyat |
+| `201` | Created | Yaratildi |
+| `400` | Bad Request | Noto'g'ri ma'lumot |
+| `401` | Unauthorized | Token yo'q/eskirgan |
+| `403` | Forbidden | Ruxsat yo'q (obuna/admin kerak) |
+| `404` | Not Found | Topilmadi |
+| `429` | Too Many Requests | Rate limit (200 req/15min) |
+| `500` | Server Error | Server xatosi |
