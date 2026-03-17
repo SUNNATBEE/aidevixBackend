@@ -9,6 +9,7 @@ const {
   createCourse,
   updateCourse,
   deleteCourse,
+  rateCourse,
 } = require('../controllers/courseController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
@@ -805,5 +806,58 @@ router.get('/:id/recommended', getRecommendedCourses);
 
 router.put('/:id', authenticate, requireAdmin, updateCourse);
 router.delete('/:id', authenticate, requireAdmin, deleteCourse);
+
+/**
+ * @swagger
+ * /api/courses/{id}/rate:
+ *   post:
+ *     summary: ⭐ Kursni baholash (1-5 yulduz)
+ *     description: |
+ *       Foydalanuvchi kursni 1 dan 5 gacha baholaydi. Har bir foydalanuvchi
+ *       bitta kursni faqat bir marta baholay oladi (keyingi baholash yangilaydi).
+ *       Kurs reytingi avtomatik qayta hisoblanadi.
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [rating]
+ *             properties:
+ *               rating:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 5
+ *                 example: 5
+ *               review:
+ *                 type: string
+ *                 maxLength: 500
+ *                 example: "Juda yaxshi kurs, ko'p narsani o'rgandim!"
+ *     responses:
+ *       200:
+ *         description: Baholash saqlandi
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Baholash saqlandi"
+ *               data:
+ *                 rating: 4.7
+ *                 ratingCount: 128
+ *       400:
+ *         description: Noto'g'ri reyting qiymati
+ *       404:
+ *         description: Kurs topilmadi
+ */
+router.post('/:id/rate', authenticate, rateCourse);
 
 module.exports = router;

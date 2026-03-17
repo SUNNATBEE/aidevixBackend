@@ -44,6 +44,12 @@ const videoSchema = new mongoose.Schema({
       url: { type: String },
     },
   ],
+  // Bo'lim (Section) ga tegishli
+  sectionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Section',
+    default: null,
+  },
   // Savollar (Q&A)
   questions: [
     {

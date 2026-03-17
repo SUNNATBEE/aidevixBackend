@@ -1,6 +1,7 @@
 const Video = require('../models/Video');
 const Course = require('../models/Course');
 const VideoLink = require('../models/VideoLink');
+const VideoQuestion = require('../models/VideoQuestion');
 const { checkSubscriptions } = require('../middleware/subscriptionCheck');
 
 // Get all videos for a course
@@ -376,6 +377,92 @@ const deleteVideo = async (req, res) => {
   }
 };
 
+// Ask a question about a video
+const askQuestion = async (req, res) => {
+  try {
+    const { id: videoId } = req.params;
+    const { question } = req.body;
+
+    if (!question || question.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Savol matni kiritilishi shart' });
+    }
+
+    const video = await Video.findById(videoId);
+    if (!video || !video.isActive) {
+      return res.status(404).json({ success: false, message: 'Video topilmadi' });
+    }
+
+    const qa = await VideoQuestion.create({
+      videoId,
+      courseId: video.course,
+      userId: req.user._id,
+      question: question.trim(),
+    });
+
+    await qa.populate('userId', 'username');
+
+    res.status(201).json({ success: true, data: { question: qa } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get all questions for a video
+const getVideoQuestions = async (req, res) => {
+  try {
+    const { id: videoId } = req.params;
+    const page  = parseInt(req.query.page)  || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip  = (page - 1) * limit;
+
+    const [questions, total] = await Promise.all([
+      VideoQuestion.find({ videoId })
+        .populate('userId', 'username')
+        .populate('answeredBy', 'username')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      VideoQuestion.countDocuments({ videoId }),
+    ]);
+
+    res.json({
+      success: true,
+      data: { questions, total, page, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Answer a question (Admin only)
+const answerQuestion = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+    const { answer } = req.body;
+
+    if (!answer || answer.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Javob matni kiritilishi shart' });
+    }
+
+    const qa = await VideoQuestion.findById(questionId);
+    if (!qa) {
+      return res.status(404).json({ success: false, message: 'Savol topilmadi' });
+    }
+
+    qa.answer     = answer.trim();
+    qa.answeredBy = req.user._id;
+    qa.answeredAt = new Date();
+    qa.isAnswered = true;
+    await qa.save();
+
+    await qa.populate(['userId', 'answeredBy']);
+
+    res.json({ success: true, message: 'Savol javoblandi', data: { question: qa } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getCourseVideos,
   getVideo,
@@ -383,4 +470,7 @@ module.exports = {
   createVideo,
   updateVideo,
   deleteVideo,
+  askQuestion,
+  getVideoQuestions,
+  answerQuestion,
 };

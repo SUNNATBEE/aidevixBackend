@@ -6,6 +6,7 @@ const swaggerSpec = require('./config/swagger');
 const swaggerAdminSpec = require('./config/swaggerAdmin');
 const swaggerAuth = require('./middleware/swaggerAuth');
 const connectDB = require('./config/database');
+const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 
 // Initialize Express app
 const app = express();
@@ -28,6 +29,9 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Global API rate limiter
+app.use('/api/', apiLimiter);
 
 // Swagger UI Documentation (Parol bilan himoyalangan)
 app.use('/api-docs', swaggerAuth, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -74,13 +78,22 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/auth',         authLimiter, require('./routes/authRoutes'));
 app.use('/api/subscriptions', require('./routes/subscriptionRoutes'));
-app.use('/api/courses', require('./routes/courseRoutes'));
-app.use('/api/videos', require('./routes/videoRoutes'));
-app.use('/api/ranking',  require('./routes/rankingRoutes'));  // Numton + Suhrob
-app.use('/api/xp',       require('./routes/xpRoutes'));       // Suhrob XP tizimi
-app.use('/api/projects', require('./routes/projectRoutes'));  // Loyihalar (barcha oquvchilar)
+app.use('/api/courses',      require('./routes/courseRoutes'));
+app.use('/api/videos',       require('./routes/videoRoutes'));
+app.use('/api/ranking',      require('./routes/rankingRoutes'));
+app.use('/api/xp',           require('./routes/xpRoutes'));
+app.use('/api/projects',     require('./routes/projectRoutes'));
+app.use('/api/enrollments',  require('./routes/enrollmentRoutes'));
+app.use('/api/wishlist',     require('./routes/wishlistRoutes'));
+app.use('/api/certificates', require('./routes/certificateRoutes'));
+app.use('/api/sections',     require('./routes/sectionRoutes'));
+app.use('/api/follow',       require('./routes/followRoutes'));
+app.use('/api/challenges',   require('./routes/challengeRoutes'));
+app.use('/api/payments',     require('./routes/paymentRoutes'));
+app.use('/api/admin',        require('./routes/adminRoutes'));
+app.use('/api/upload',       require('./routes/uploadRoutes'));
 
 // Health check route
 /**

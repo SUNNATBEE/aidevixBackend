@@ -1,0 +1,48 @@
+const UserStats = require('../models/UserStats');
+
+/**
+ * Badge shartlari va avtomatik berish tizimi
+ */
+const BADGE_RULES = [
+  { name: 'Birinchi qadam',    icon: '👶', condition: (s) => s.videosWatched >= 1    },
+  { name: 'Video maniac',      icon: '🎬', condition: (s) => s.videosWatched >= 10   },
+  { name: 'Video ustasi',      icon: '🎥', condition: (s) => s.videosWatched >= 50   },
+  { name: 'Quiz boshlangich',  icon: '📝', condition: (s) => s.quizzesCompleted >= 1  },
+  { name: 'Quiz chempioni',    icon: '🏆', condition: (s) => s.quizzesCompleted >= 20 },
+  { name: 'Streak 7',          icon: '🔥', condition: (s) => s.streak >= 7           },
+  { name: 'Streak 30',         icon: '💪', condition: (s) => s.streak >= 30          },
+  { name: 'Streak 100',        icon: '⚡', condition: (s) => s.streak >= 100         },
+  { name: 'XP 1000',           icon: '⭐', condition: (s) => s.xp >= 1000            },
+  { name: 'XP 10000',          icon: '🌟', condition: (s) => s.xp >= 10000           },
+  { name: 'XP 50000',          icon: '💎', condition: (s) => s.xp >= 50000           },
+  { name: 'Level 10',          icon: '🎯', condition: (s) => s.level >= 10           },
+  { name: 'Level 50',          icon: '🚀', condition: (s) => s.level >= 50           },
+  { name: 'Level 99',          icon: '👑', condition: (s) => s.level >= 99           },
+];
+
+/**
+ * Foydalanuvchi statistikasiga qarab yangi badge'larni avtomatik berish
+ * @returns {Array} - Yangi berilgan badge'lar
+ */
+const awardBadges = async (userId) => {
+  const stats = await UserStats.findOne({ userId });
+  if (!stats) return [];
+
+  const existingBadgeNames = stats.badges.map((b) => b.name);
+  const newBadges = [];
+
+  for (const rule of BADGE_RULES) {
+    if (!existingBadgeNames.includes(rule.name) && rule.condition(stats)) {
+      newBadges.push({ name: rule.name, icon: rule.icon, earnedAt: new Date() });
+    }
+  }
+
+  if (newBadges.length > 0) {
+    stats.badges.push(...newBadges);
+    await stats.save();
+  }
+
+  return newBadges;
+};
+
+module.exports = { awardBadges, BADGE_RULES };
