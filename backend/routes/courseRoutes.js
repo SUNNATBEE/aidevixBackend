@@ -5,6 +5,7 @@ const {
   getCourse,
   getTopCourses,
   getCategories,
+  getRecommendedCourses,
   createCourse,
   updateCourse,
   deleteCourse,
@@ -38,9 +39,9 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *       | 1 | HTML Asoslari | html | 99,000 so'm |
  *       | 2 | CSS Stillar va Dizayn | css | 129,000 so'm |
  *       | 3 | JavaScript Dasturlash | javascript | 299,000 so'm |
- *       | 4 | Tailwind CSS Framework | tailwind | 149,000 so'm |
+ *       | 4 | TypeScript Asoslari | typescript | 249,000 so'm |
  *       | 5 | React.js Frontend | react | 349,000 so'm |
- *       | 6 | Redux Holat Boshqaruvi | redux | 199,000 so'm |
+ *       | 6 | Node.js Backend | nodejs | 299,000 so'm |
  *
  *       ### 💻 Frontend da qanday ishlatish:
  *       ```javascript
@@ -132,14 +133,16 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *                       email: "admin@aidevix.com"
  *                     videos: []
  *                   - _id: "65f100000000000000000004"
- *                     title: "Tailwind CSS Framework"
- *                     description: "Utility-first CSS framework. Tez va professional UI yaratish. Dark mode, responsive, custom komponentlar."
- *                     thumbnail: "https://upload.wikimedia.org/wikipedia/commons/d/d5/Tailwind_CSS_Logo.svg"
- *                     price: 149000
- *                     category: "tailwind"
+ *                     title: "TypeScript Asoslari"
+ *                     description: "TypeScript turlari, interfeyslari, generics va zamonaviy TS patterns. Type-safe dasturlash."
+ *                     thumbnail: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Typescript_logo_2020.svg"
+ *                     price: 249000
+ *                     category: "typescript"
  *                     instructor:
  *                       username: "aidevix_admin"
  *                       email: "admin@aidevix.com"
+ *                       jobTitle: "Senior Developer"
+ *                       position: "Tech Lead @ Aidevix"
  *                     videos: []
  *                   - _id: "65f100000000000000000005"
  *                     title: "React.js Frontend Development"
@@ -150,16 +153,20 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *                     instructor:
  *                       username: "aidevix_admin"
  *                       email: "admin@aidevix.com"
+ *                       jobTitle: "Frontend Developer"
+ *                       position: "Senior React Dev @ Aidevix"
  *                     videos: []
  *                   - _id: "65f100000000000000000006"
- *                     title: "Redux Holat Boshqaruvi"
- *                     description: "Redux Toolkit, slices, thunks, middleware. Murakkab React ilovalarida global state boshqarish."
- *                     thumbnail: "https://upload.wikimedia.org/wikipedia/commons/4/49/Redux.png"
- *                     price: 199000
- *                     category: "redux"
+ *                     title: "Node.js Backend Development"
+ *                     description: "Node.js, Express, REST API, MongoDB, JWT auth va production-ready backend ilovalar yaratish."
+ *                     thumbnail: "https://upload.wikimedia.org/wikipedia/commons/d/d9/Node.js_logo.svg"
+ *                     price: 299000
+ *                     category: "nodejs"
  *                     instructor:
  *                       username: "aidevix_admin"
  *                       email: "admin@aidevix.com"
+ *                       jobTitle: "Backend Developer"
+ *                       position: "Node.js Expert @ Aidevix"
  *                     videos: []
  *       500:
  *         description: ❌ Server xatosi / ❌ Ошибка сервера
@@ -192,7 +199,7 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *       5. Yaratilgan kurs qaytariladi
  *
  *       ### 📦 Kurs kategoriyalari / Категории курсов:
- *       `html` | `css` | `javascript` | `tailwind` | `react` | `redux` | `nodejs` | `general`
+ *       `html` | `css` | `javascript` | `react` | `typescript` | `nodejs` | `general`
  *
  *       ### 💻 Frontend da qanday ishlatish:
  *       ```javascript
@@ -263,7 +270,7 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *                 description: "Kurs rasmi URL (ixtiyoriy) / URL изображения (необязательно)"
  *               category:
  *                 type: string
- *                 enum: [html, css, javascript, tailwind, react, redux, nodejs, general]
+ *                 enum: [html, css, javascript, react, typescript, nodejs, general]
  *                 example: "react"
  *                 description: "Kategoriya (ixtiyoriy, default: general) / Категория (необязательно)"
  *           examples:
@@ -291,14 +298,14 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *                 price: 299000
  *                 category: "javascript"
  *                 thumbnail: "https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png"
- *             tailwind_course:
- *               summary: Tailwind CSS kursi
+ *             typescript_course:
+ *               summary: TypeScript kursi
  *               value:
- *                 title: "Tailwind CSS Framework"
- *                 description: "Utility-first CSS framework. Tez va professional UI yaratish. Dark mode, responsive dizayn, custom komponentlar va Tailwind v4."
- *                 price: 149000
- *                 category: "tailwind"
- *                 thumbnail: "https://upload.wikimedia.org/wikipedia/commons/d/d5/Tailwind_CSS_Logo.svg"
+ *                 title: "TypeScript Asoslari"
+ *                 description: "TypeScript turlari, interfeyslari, generics va zamonaviy TS patterns. Type-safe dasturlashni o'rganasiz."
+ *                 price: 249000
+ *                 category: "typescript"
+ *                 thumbnail: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Typescript_logo_2020.svg"
  *             react_course:
  *               summary: React.js kursi
  *               value:
@@ -307,14 +314,14 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *                 price: 349000
  *                 category: "react"
  *                 thumbnail: "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg"
- *             redux_course:
- *               summary: Redux kursi
+ *             nodejs_course:
+ *               summary: Node.js kursi
  *               value:
- *                 title: "Redux Holat Boshqaruvi"
- *                 description: "Redux Toolkit, createSlice, createAsyncThunk, RTK Query, middleware. Murakkab React ilovalarida global state boshqarish."
- *                 price: 199000
- *                 category: "redux"
- *                 thumbnail: "https://upload.wikimedia.org/wikipedia/commons/4/49/Redux.png"
+ *                 title: "Node.js Backend Development"
+ *                 description: "Node.js, Express, REST API, MongoDB, JWT auth va production-ready backend ilovalar yaratish."
+ *                 price: 299000
+ *                 category: "nodejs"
+ *                 thumbnail: "https://upload.wikimedia.org/wikipedia/commons/d/d9/Node.js_logo.svg"
  *     responses:
  *       201:
  *         description: ✅ Kurs yaratildi / ✅ Курс создан
@@ -588,7 +595,7 @@ router.post('/', authenticate, requireAdmin, createCourse);
  *                 description: "Yangi rasm URL / Новый URL изображения"
  *               category:
  *                 type: string
- *                 enum: [html, css, javascript, tailwind, react, redux, nodejs, general]
+ *                 enum: [html, css, javascript, react, typescript, nodejs, general]
  *                 example: "react"
  *                 description: "Yangi kategoriya / Новая категория"
  *               isActive:
@@ -739,6 +746,63 @@ router.post('/', authenticate, requireAdmin, createCourse);
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/:id', getCourse);
+
+/**
+ * @swagger
+ * /api/courses/{id}/recommended:
+ *   get:
+ *     summary: 🎯 Tavsiya etilgan kurslar (Doniyor uchun)
+ *     description: |
+ *       Berilgan kurs bilan bir xil kategoriyadan, eng yuqori reytingli kurslarni qaytaradi.
+ *       **Frontend'da ishlatish:** `CourseDetailPage.jsx` dagi "Tavsiya etilgan kurslar" bo'limida.
+ *
+ *       ```javascript
+ *       const { data } = await courseApi.getRecommendedCourses(courseId, { limit: 4 })
+ *       // data.courses — tavsiya etilgan kurslar
+ *       ```
+ *     tags: [Courses]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Asosiy kurs ID si
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 4
+ *         description: Nechta tavsiya qaytarish (default 4)
+ *     responses:
+ *       200:
+ *         description: Tavsiya etilgan kurslar ro'yxati
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 courses:
+ *                   - _id: "65f100000000000000000002"
+ *                     title: "React Advanced Patterns"
+ *                     category: "react"
+ *                     rating: 4.9
+ *                     price: 349000
+ *                     instructor:
+ *                       username: "aidevix_admin"
+ *                       jobTitle: "Senior Frontend Developer"
+ *                       position: "Tech Lead @ Epam"
+ *       404:
+ *         description: Kurs topilmadi
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: "Kurs topilmadi"
+ */
+router.get('/:id/recommended', getRecommendedCourses);
+
 router.put('/:id', authenticate, requireAdmin, updateCourse);
 router.delete('/:id', authenticate, requireAdmin, deleteCourse);
 

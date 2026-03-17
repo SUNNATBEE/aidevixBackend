@@ -236,6 +236,8 @@ const getMe = async (req, res) => {
           id: user._id,
           username: user.username,
           email: user.email,
+          jobTitle: user.jobTitle,
+          position: user.position,
           subscriptions: user.socialSubscriptions,
           role: user.role,
         },

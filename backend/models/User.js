@@ -62,6 +62,17 @@ const userSchema = new mongoose.Schema({
       },
     },
   },
+  // Instructor profili uchun (Course Details sahifasida ko'rsatiladi)
+  jobTitle: {
+    type: String,
+    default: null,
+    maxlength: 100,
+  },
+  position: {
+    type: String,
+    default: null,
+    maxlength: 150,
+  },
   role: {
     type: String,
     enum: ['user', 'admin'],
