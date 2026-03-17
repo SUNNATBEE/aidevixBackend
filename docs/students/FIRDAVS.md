@@ -262,3 +262,273 @@ const loading = useSelector(selectAuthLoading)
 ---
 
 > 💡 **Maslahat:** Swagger UI da endpointlarni sinab ko'r, so'ng frontend'da ishlatgin.
+
+---
+
+## 🌐 BACKEND API — TO'LIQ QO'LLANMA
+
+**Backend:** Node.js + Express.js | **Port:** 5000 | **Database:** MongoDB Atlas
+**Jami endpointlar: ~75 ta**
+
+### 🔗 Server URL'lari
+
+| Muhit | URL |
+|-------|-----|
+| Local (Development) | `http://localhost:5000` |
+| Production (Render) | `https://aidevixbackend.onrender.com` |
+
+---
+
+### 📖 Swagger UI — Interaktiv Hujjat
+
+```
+URL:      http://localhost:5000/api-docs
+Username: admin
+Password: admin123
+```
+
+**Swagger'da token kiritish:**
+1. `http://localhost:5000/api-docs` ni oching
+2. Yuqori o'ngda **"Authorize 🔓"** tugmasini bosing
+3. `Bearer eyJhbGciOiJ...` formatida token kiriting
+4. **"Authorize"** bosing — endi `🔒` belgili endpointlar ishlaydi
+
+> **Swagger'da token qanday olish?**
+> Authentication → POST `/api/auth/login` → Execute → `accessToken` ni ko'chir → Authorize
+
+---
+
+## 📋 BARCHA ENDPOINTLAR (~75 ta)
+
+### 1️⃣ AUTHENTICATION — `/api/auth` (5 ta) ← SEN ISHLATASAN
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| **POST** | **`/api/auth/register`** | ❌ | **Ro'yxatdan o'tish** |
+| **POST** | **`/api/auth/login`** | ❌ | **Tizimga kirish** |
+| **POST** | **`/api/auth/refresh-token`** | ❌ | **AccessToken yangilash** |
+| **POST** | **`/api/auth/logout`** | ✅ | **Tizimdan chiqish** |
+| **GET** | **`/api/auth/me`** | ✅ | **Mening profilim** |
+
+**POST `/api/auth/register`** — Yangi foydalanuvchi
+```json
+// So'rov body:
+{ "username": "ahmadjon", "email": "ahmadjon@gmail.com", "password": "secret123" }
+
+// Muvaffaqiyatli javob (201):
+{
+  "success": true,
+  "message": "User registered successfully.",
+  "data": {
+    "user": {
+      "_id": "65f1a2b3c4d5e6f7a8b9c0d1",
+      "username": "ahmadjon",
+      "email": "ahmadjon@gmail.com",
+      "role": "user",
+      "isActive": true,
+      "subscriptions": {
+        "instagram": { "subscribed": false, "username": null },
+        "telegram": { "subscribed": false, "username": null }
+      }
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+
+// Xato javoblar:
+// 400: { "success": false, "message": "User with this email already exists." }
+// 400: { "success": false, "message": "Please provide username, email, and password." }
+```
+
+**POST `/api/auth/login`** — Tizimga kirish
+```json
+// So'rov body:
+{ "email": "ahmadjon@gmail.com", "password": "secret123" }
+
+// Muvaffaqiyatli javob (200):
+{
+  "success": true,
+  "message": "Login successful.",
+  "data": {
+    "user": {
+      "_id": "65f1...", "username": "ahmadjon", "email": "ahmadjon@gmail.com",
+      "role": "user",
+      "subscriptions": {
+        "instagram": { "subscribed": true, "username": "ahmadjon_ig" },
+        "telegram": { "subscribed": true, "telegramUserId": "987654321" }
+      }
+    },
+    "accessToken": "eyJ...",
+    "refreshToken": "eyJ..."
+  }
+}
+
+// Xato javoblar:
+// 401: { "success": false, "message": "Invalid email or password." }
+// 403: { "success": false, "message": "Account is deactivated." }
+```
+
+**POST `/api/auth/refresh-token`** — Token yangilash
+```json
+// So'rov: { "refreshToken": "eyJ..." }
+// Javob: { "success": true, "data": { "accessToken": "eyJ...yangi token..." } }
+// ⚠️ AccessToken 15 daqiqada eskiradi, keyin shu endpoint chaqiriladi
+```
+
+**GET `/api/auth/me`** — Mening profilim (Token kerak)
+```json
+// Javob (200):
+{
+  "success": true,
+  "data": {
+    "user": {
+      "_id": "65f1...", "username": "ahmadjon", "email": "ahmadjon@gmail.com",
+      "role": "user", "isActive": true,
+      "subscriptions": {
+        "instagram": { "subscribed": true, "username": "ahmadjon_ig", "verifiedAt": "2026-03-10T08:00:00.000Z" },
+        "telegram": { "subscribed": true, "telegramUserId": "987654321", "verifiedAt": "2026-03-10T08:05:00.000Z" }
+      },
+      "createdAt": "2026-01-15T08:30:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+### 2️⃣ SUBSCRIPTIONS — `/api/subscriptions` (3 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/subscriptions/status` | ✅ | Obuna holati |
+| POST | `/api/subscriptions/verify-instagram` | ✅ | Instagram |
+| POST | `/api/subscriptions/verify-telegram` | ✅ | Telegram |
+
+---
+
+### 3️⃣ COURSES — `/api/courses` (9 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/courses` | ❌ | Barcha kurslar |
+| GET | `/api/courses/top` | ❌ | Top kurslar |
+| GET | `/api/courses/categories` | ❌ | Kategoriyalar |
+| GET | `/api/courses/:id` | ❌ | Bitta kurs |
+| GET | `/api/courses/:id/recommended` | ❌ | Tavsiya etilgan |
+| POST | `/api/courses/:id/rate` | ✅ | Baholash |
+| POST | `/api/courses` | ✅ Admin | Yaratish |
+| PUT | `/api/courses/:id` | ✅ Admin | Yangilash |
+| DELETE | `/api/courses/:id` | ✅ Admin | O'chirish |
+
+---
+
+### 4️⃣ VIDEOS — `/api/videos` (9 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/videos/course/:courseId` | ❌ | Kurs videolari |
+| GET | `/api/videos/:id` | ✅ + Obuna | Video + Telegram link |
+| POST | `/api/videos/link/:linkId/use` | ✅ | Linkni belgilash |
+| GET | `/api/videos/:id/questions` | ❌ | Q&A |
+| POST | `/api/videos/:id/questions` | ✅ | Savol berish |
+| POST | `/api/videos/:id/questions/:qId/answer` | ✅ Admin | Javob |
+| POST | `/api/videos` | ✅ Admin | Yaratish |
+| PUT | `/api/videos/:id` | ✅ Admin | Yangilash |
+| DELETE | `/api/videos/:id` | ✅ Admin | O'chirish |
+
+---
+
+### 5️⃣ XP TIZIMI — `/api/xp` (8 ta) ← SEN ISHLATASAN (Profil uchun)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| **GET** | **`/api/xp/stats`** | ✅ | **XP, level, streak, badges** |
+| **PUT** | **`/api/xp/profile`** | ✅ | **Bio, skills, avatar yangilash** |
+| POST | `/api/xp/video-watched/:videoId` | ✅ | +50 XP |
+| GET | `/api/xp/quiz/video/:videoId` | ✅ | Video quizi |
+| POST | `/api/xp/quiz/:quizId` | ✅ | Quiz yechish |
+| GET | `/api/xp/weekly-leaderboard` | ❌ | Haftalik TOP |
+| POST | `/api/xp/streak-freeze` | ✅ | Freeze ishlatish |
+| POST | `/api/xp/streak-freeze/add` | ✅ | Freeze qo'shish |
+
+**GET `/api/xp/stats`** — Profil sahifasi uchun
+```json
+// Javob (200):
+{
+  "success": true,
+  "data": {
+    "xp": 1240, "level": 2, "levelProgress": 24, "xpToNextLevel": 760,
+    "streak": 12, "lastActivityDate": "2026-03-17T10:00:00.000Z",
+    "badges": [{ "name": "First Video", "icon": "🎬", "earnedAt": "..." }],
+    "videosWatched": 42, "quizzesCompleted": 15,
+    "bio": "Python dasturchi. Backend va AI ishlab chiqaman.",
+    "skills": ["Python", "Django", "React"],
+    "avatar": "https://cloudinary.com/avatar.jpg"
+  }
+}
+```
+
+**PUT `/api/xp/profile`** — Bio va skills yangilash
+```json
+// So'rov body:
+{
+  "bio": "Python dasturchi. Backend va AI ishlab chiqaman.",
+  "skills": ["Python", "Django", "React"],
+  "avatar": "https://cloudinary.com/new-avatar.jpg"
+}
+// Javob: { "success": true, "data": { "bio": "...", "skills": [...], "avatar": "..." } }
+```
+
+---
+
+### 6️⃣ RANKING — `/api/ranking` (3 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/ranking/courses` | ❌ | Top kurslar |
+| GET | `/api/ranking/users` | ❌ | Top foydalanuvchilar |
+| GET | `/api/ranking/users/:userId/position` | ✅ | O'z pozitsiyasi |
+
+---
+
+### 7️⃣–1️⃣6️⃣ QOLGAN ENDPOINTLAR
+
+| Guruh | Endpoint | Soni |
+|-------|----------|------|
+| Projects | `/api/projects` | 6 ta |
+| Enrollments | `/api/enrollments` | 4 ta |
+| Wishlist | `/api/wishlist` | 3 ta |
+| Certificates | `/api/certificates` | 2 ta |
+| Sections | `/api/sections` | 5 ta |
+| Follow | `/api/follow` | 4 ta |
+| Challenges | `/api/challenges` | 3 ta |
+| Payments | `/api/payments` | 3 ta |
+| Admin | `/api/admin` | 5 ta |
+| Upload | `/api/upload` | 2 ta |
+| Health | `/health` | 1 ta |
+
+---
+
+### ❌ HTTP Status Kodlar
+
+| Kod | Ma'no | Sabab |
+|-----|-------|-------|
+| `200` | OK | Muvaffaqiyat |
+| `201` | Created | Yaratildi |
+| `400` | Bad Request | Noto'g'ri ma'lumot |
+| `401` | Unauthorized | Token yo'q/eskirgan |
+| `403` | Forbidden | Ruxsat yo'q |
+| `404` | Not Found | Topilmadi |
+| `429` | Too Many Requests | Rate limit — Auth: 10 req/15min |
+| `500` | Server Error | Server xatosi |
+
+### 🔄 JWT Token Oqimi
+
+```
+1. Register/Login → accessToken (15min) + refreshToken (7kun) olindi
+2. Har so'rovda: Authorization: Bearer {accessToken}
+3. 401 xatosi → axiosInstance refresh qiladi → /api/auth/refresh-token
+4. Yangi accessToken → so'rov qayta yuboriladi
+5. RefreshToken ham eskirsa → logout → /login sahifasiga
+```

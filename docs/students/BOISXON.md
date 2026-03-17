@@ -153,3 +153,165 @@ Agar asosiy vazifani tez tugatsan, quyidagilarni qo'shishingiz mumkin:
 - [ ] Animatsiya ishlaydi
 - [ ] Dizayn Figma bilan mos keladi
 - [ ] Responsive (mobil va desktop)
+
+---
+
+## 🌐 BACKEND API — TO'LIQ QO'LLANMA
+
+**Backend:** Node.js + Express.js | **Port:** 5000 | **Database:** MongoDB Atlas
+**Jami endpointlar: ~75 ta**
+
+> **404 sahifasi uchun backend API kerak emas** — bu sahifa client-side.
+> Lekin quyida butun backend haqida umumiy ma'lumot berilgan — jamoa bilan ishlashda kerak bo'ladi.
+
+### 🔗 Server URL'lari
+
+| Muhit | URL |
+|-------|-----|
+| Local (Development) | `http://localhost:5000` |
+| Production (Render) | `https://aidevixbackend.onrender.com` |
+
+---
+
+### 📖 Swagger UI — Interaktiv Hujjat
+
+```
+URL:      http://localhost:5000/api-docs
+Username: admin
+Password: admin123
+```
+
+**Swagger'da token kiritish:**
+1. `http://localhost:5000/api-docs` ni oching
+2. Yuqori o'ngda **"Authorize 🔓"** tugmasini bosing
+3. `Bearer eyJhbGciOiJ...` formatida token kiriting
+4. **"Authorize"** bosing — endi `🔒` belgili endpointlar ishlaydi
+
+---
+
+## 📋 BARCHA ENDPOINTLAR (~75 ta)
+
+### 1️⃣ AUTHENTICATION — `/api/auth` (5 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| POST | `/api/auth/register` | ❌ | Ro'yxatdan o'tish |
+| POST | `/api/auth/login` | ❌ | Tizimga kirish |
+| POST | `/api/auth/refresh-token` | ❌ | Token yangilash |
+| POST | `/api/auth/logout` | ✅ | Chiqish |
+| GET | `/api/auth/me` | ✅ | Mening profilim |
+
+**POST `/api/auth/login`** — Response:
+```json
+{
+  "success": true,
+  "data": {
+    "user": { "_id": "...", "username": "ahmadjon", "role": "user" },
+    "accessToken": "eyJ...", "refreshToken": "eyJ..."
+  }
+}
+```
+
+---
+
+### 2️⃣ SUBSCRIPTIONS — `/api/subscriptions` (3 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/subscriptions/status` | ✅ | Obuna holati |
+| POST | `/api/subscriptions/verify-instagram` | ✅ | Instagram |
+| POST | `/api/subscriptions/verify-telegram` | ✅ | Telegram |
+
+---
+
+### 3️⃣ COURSES — `/api/courses` (9 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/courses` | ❌ | Barcha kurslar |
+| GET | `/api/courses/top` | ❌ | Top kurslar |
+| GET | `/api/courses/categories` | ❌ | Kategoriyalar |
+| GET | `/api/courses/:id` | ❌ | Bitta kurs |
+| GET | `/api/courses/:id/recommended` | ❌ | Tavsiya etilgan |
+| POST | `/api/courses/:id/rate` | ✅ | Baholash |
+| POST | `/api/courses` | ✅ Admin | Yaratish |
+| PUT | `/api/courses/:id` | ✅ Admin | Yangilash |
+| DELETE | `/api/courses/:id` | ✅ Admin | O'chirish |
+
+---
+
+### 4️⃣ VIDEOS — `/api/videos` (9 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/videos/course/:courseId` | ❌ | Kurs videolari |
+| GET | `/api/videos/:id` | ✅ + Obuna | Video + Telegram link |
+| POST | `/api/videos/link/:linkId/use` | ✅ | Linkni belgilash |
+| GET | `/api/videos/:id/questions` | ❌ | Q&A |
+| POST | `/api/videos/:id/questions` | ✅ | Savol berish |
+| POST | `/api/videos/:id/questions/:qId/answer` | ✅ Admin | Javob |
+| POST | `/api/videos` | ✅ Admin | Yaratish |
+| PUT | `/api/videos/:id` | ✅ Admin | Yangilash |
+| DELETE | `/api/videos/:id` | ✅ Admin | O'chirish |
+
+---
+
+### 5️⃣ XP TIZIMI — `/api/xp` (8 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/xp/stats` | ✅ | XP, level, streak |
+| POST | `/api/xp/video-watched/:videoId` | ✅ | +50 XP |
+| GET | `/api/xp/quiz/video/:videoId` | ✅ | Video quizi |
+| POST | `/api/xp/quiz/:quizId` | ✅ | Quiz yechish |
+| PUT | `/api/xp/profile` | ✅ | Profil yangilash |
+| GET | `/api/xp/weekly-leaderboard` | ❌ | Haftalik TOP |
+| POST | `/api/xp/streak-freeze` | ✅ | Freeze ishlatish |
+| POST | `/api/xp/streak-freeze/add` | ✅ | Freeze qo'shish |
+
+---
+
+### 6️⃣ RANKING — `/api/ranking` (3 ta)
+
+| Method | URL | Auth | Vazifa |
+|--------|-----|------|--------|
+| GET | `/api/ranking/courses` | ❌ | Top kurslar |
+| GET | `/api/ranking/users` | ❌ | Top foydalanuvchilar |
+| GET | `/api/ranking/users/:userId/position` | ✅ | O'z pozitsiyasi |
+
+---
+
+### 7️⃣–1️⃣6️⃣ QOLGAN ENDPOINTLAR
+
+| Guruh | Endpoint | Soni |
+|-------|----------|------|
+| Projects | `/api/projects` | 6 ta |
+| Enrollments | `/api/enrollments` | 4 ta |
+| Wishlist | `/api/wishlist` | 3 ta |
+| Certificates | `/api/certificates` | 2 ta |
+| Sections | `/api/sections` | 5 ta |
+| Follow | `/api/follow` | 4 ta |
+| Challenges | `/api/challenges` | 3 ta |
+| Payments | `/api/payments` | 3 ta |
+| Admin | `/api/admin` | 5 ta |
+| Upload | `/api/upload` | 2 ta |
+| Health | `/health` | 1 ta |
+
+---
+
+### ❌ HTTP Status Kodlar
+
+| Kod | Ma'no | Sabab |
+|-----|-------|-------|
+| `200` | OK | Muvaffaqiyat |
+| `201` | Created | Yaratildi |
+| `400` | Bad Request | Noto'g'ri ma'lumot |
+| `401` | Unauthorized | Token yo'q/eskirgan |
+| `403` | Forbidden | Ruxsat yo'q |
+| `404` | Not Found | Topilmadi ← Sening sahifang shu holat uchun! |
+| `429` | Too Many Requests | Rate limit |
+| `500` | Server Error | Server xatosi |
+
+### 🛡️ Rate Limiting
+- **Umumiy API:** 200 so'rov / 15 daqiqa
+- **Auth endpoints:** 10 so'rov / 15 daqiqa
