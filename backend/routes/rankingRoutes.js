@@ -61,12 +61,26 @@ router.get('/courses', getTopCourses);
  *     description: |
  *       ## O'ZBEKCHA
  *       XP bo'yicha tartiblangan foydalanuvchilar reytingini qaytaradi.
- *       **Frontend'da ishlatish:** LeaderboardPage.jsx komponentida chaqiring.
+ *       Har bir foydalanuvchida **rankTitle** (GRANDMASTER, VICE-ADMIRAL...) ham qaytariladi.
+ *       **Frontend'da ishlatish:** `LeaderboardPage.jsx` komponentida chaqiring.
  *
- *       ### Misol:
+ *       ### Rank unvonlari (level asosida):
+ *       | Level | Unvon |
+ *       |-------|-------|
+ *       | 90+   | GRANDMASTER |
+ *       | 75-89 | VICE-ADMIRAL |
+ *       | 60-74 | COMMANDER |
+ *       | 45-59 | CAPTAIN |
+ *       | 30-44 | LIEUTENANT |
+ *       | 15-29 | SERGEANT |
+ *       | 5-14  | CORPORAL |
+ *       | 1-4   | RECRUIT |
+ *
+ *       ### Category filter (Figma tabs: JAVASCRIPT, REACT, PYTHON, UI/UX):
  *       ```javascript
- *       import { rankingApi } from '@api/rankingApi'
- *       const { data } = await rankingApi.getTopUsers({ page: 1, limit: 20 })
+ *       // JavaScript tab bosilganda:
+ *       const { data } = await rankingApi.getTopUsers({ category: 'javascript' })
+ *       // Skills array ichida "javascript" bo'lgan foydalanuvchilar filtrlandi
  *       ```
  *     tags: [Ranking]
  *     security: []
@@ -76,14 +90,49 @@ router.get('/courses', getTopCourses);
  *         schema:
  *           type: integer
  *           default: 20
+ *         description: Nechta foydalanuvchi qaytarish
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
  *           default: 1
+ *         description: Sahifa raqami
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [javascript, react, python, typescript, nodejs, html, css]
+ *         description: Skills bo'yicha filter (Figma leaderboard tabs uchun)
  *     responses:
  *       200:
  *         description: Top foydalanuvchilar ro'yxati
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 users:
+ *                   - rank: 1
+ *                     rankTitle: "GRANDMASTER"
+ *                     user:
+ *                       username: "jamshid_k"
+ *                       email: "jamshid@example.com"
+ *                     xp: 145200
+ *                     level: 99
+ *                     streak: 84
+ *                     quizzesCompleted: 450
+ *                     skills: ["javascript", "react"]
+ *                   - rank: 2
+ *                     rankTitle: "VICE-ADMIRAL"
+ *                     user:
+ *                       username: "malika_r"
+ *                     xp: 92450
+ *                     level: 89
+ *                 pagination:
+ *                   total: 150
+ *                   page: 1
+ *                   limit: 20
+ *                   pages: 8
  */
 router.get('/users', getTopUsers);
 

@@ -43,7 +43,7 @@ const getAllCourses = async (req, res) => {
     const total = await Course.countDocuments(filter);
 
     const courses = await Course.find(filter)
-      .populate('instructor', 'username email')
+      .populate('instructor', 'username email jobTitle position')
       .sort(sortOption)
       .skip(skip)
       .limit(parseInt(limit))
@@ -123,7 +123,7 @@ const getCategories = async (req, res) => {
 const getCourse = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id)
-      .populate('instructor', 'username email')
+      .populate('instructor', 'username email jobTitle position')
       .populate({
         path:   'videos',
         match:  { isActive: true },
@@ -139,6 +139,36 @@ const getCourse = async (req, res) => {
     Course.findByIdAndUpdate(req.params.id, { $inc: { viewCount: 1 } }).exec();
 
     res.json({ success: true, data: { course } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc  Tavsiya etilgan kurslar — xuddi shu kategoriyadan, eng yuqori reytingli
+ * @route GET /api/courses/:id/recommended?limit=4
+ * @access Public
+ */
+const getRecommendedCourses = async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id).select('category');
+    if (!course) {
+      return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
+    }
+
+    const limit = parseInt(req.query.limit) || 4;
+
+    const courses = await Course.find({
+      isActive: true,
+      category: course.category,
+      _id: { $ne: req.params.id },
+    })
+      .populate('instructor', 'username email jobTitle position')
+      .sort({ rating: -1, viewCount: -1 })
+      .limit(limit)
+      .select('-videos');
+
+    res.json({ success: true, data: { courses } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -240,6 +270,7 @@ module.exports = {
   getCourse,
   getTopCourses,
   getCategories,
+  getRecommendedCourses,
   createCourse,
   updateCourse,
   deleteCourse,

@@ -305,16 +305,18 @@ Format: \`Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\`
             },
             category: {
               type: 'string',
-              enum: ['html', 'css', 'javascript', 'tailwind', 'react', 'redux', 'nodejs', 'general'],
+              enum: ['html', 'css', 'javascript', 'react', 'typescript', 'nodejs', 'general'],
               example: 'react',
               description: 'Kurs kategoriyasi / Категория курса',
             },
             instructor: {
               type: 'object',
               properties: {
-                _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d0' },
+                _id:      { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d0' },
                 username: { type: 'string', example: 'aidevix_admin' },
-                email: { type: 'string', example: 'admin@aidevix.com' },
+                email:    { type: 'string', example: 'admin@aidevix.com' },
+                jobTitle: { type: 'string', example: 'Senior Python Developer', description: 'Instruktor kasbi / Должность инструктора' },
+                position: { type: 'string', example: 'Tech Lead @ Epam', description: 'Lavozim va ish joyi / Позиция и место работы' },
               },
               description: 'Kurs muallifi / Автор курса',
             },
