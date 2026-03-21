@@ -1,4 +1,7 @@
 require('dotenv').config();
+// DEBUG: show which env vars are available (remove after fix)
+console.log('🔍 ENV CHECK — MONGODB_URI:', process.env.MONGODB_URI ? '✅ found' : '❌ missing');
+console.log('🔍 ENV CHECK — PORT:', process.env.PORT);
 const express = require('express');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
