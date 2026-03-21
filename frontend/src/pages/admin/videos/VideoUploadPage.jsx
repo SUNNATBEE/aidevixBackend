@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getAllCourses, createVideo, getUploadCredentials, getVideoStatus } from '@api/adminApi'
+import { getAllCourses, createVideo, getUploadCredentials, getVideoStatus, linkVideoToBunny } from '@api/adminApi'
 
 const STEP = { INFO: 1, UPLOAD: 2, DONE: 3 }
 
@@ -18,12 +18,15 @@ export default function VideoUploadPage() {
   const [formErr,  setFormErr]  = useState(null)
 
   // Step 2: upload
-  const [videoId,   setVideoId]   = useState(null)
-  const [creds,     setCreds]     = useState(null)  // { uploadUrl, bunnyVideoId }
-  const [file,      setFile]      = useState(null)
-  const [progress,  setProgress]  = useState(0)
-  const [uploading, setUploading] = useState(false)
-  const [uploadErr, setUploadErr] = useState(null)
+  const [videoId,    setVideoId]    = useState(null)
+  const [creds,      setCreds]      = useState(null)  // { uploadUrl, bunnyVideoId }
+  const [uploadMode, setUploadMode] = useState('new') // 'new' | 'link'
+  const [file,       setFile]       = useState(null)
+  const [progress,   setProgress]   = useState(0)
+  const [uploading,  setUploading]  = useState(false)
+  const [uploadErr,  setUploadErr]  = useState(null)
+  const [linkId,     setLinkId]     = useState('')
+  const [linking,    setLinking]    = useState(false)
 
   // Step 3: processing
   const [status,    setStatus]    = useState(null)
@@ -70,7 +73,23 @@ export default function VideoUploadPage() {
     }
   }
 
-  // ── Step 2: Upload file directly to Bunny ──
+  // ── Step 2a: Link existing Bunny video ──
+  const handleLink = async () => {
+    if (!linkId.trim() || !videoId) return
+    setUploadErr(null)
+    setLinking(true)
+    try {
+      await linkVideoToBunny(videoId, linkId.trim())
+      setStep(STEP.DONE)
+      startPolling()
+    } catch (e) {
+      setUploadErr(e.response?.data?.message || 'Bog\'lashda xato yuz berdi')
+    } finally {
+      setLinking(false)
+    }
+  }
+
+  // ── Step 2b: Upload file directly to Bunny ──
   const handleUpload = async () => {
     if (!file || !creds) return
     setUploadErr(null)
@@ -216,62 +235,108 @@ export default function VideoUploadPage() {
           <div className="card-body p-5 space-y-5">
             <div>
               <p className="font-semibold mb-1">{form.title}</p>
-              <p className="text-xs text-base-content/40">Bunny Video ID: <code>{creds?.bunnyVideoId}</code></p>
+              <p className="text-xs text-base-content/40">Yangi Bunny slot ID: <code>{creds?.bunnyVideoId}</code></p>
+            </div>
+
+            {/* Tabs */}
+            <div className="tabs tabs-boxed bg-base-300">
+              <button
+                className={`tab flex-1 ${uploadMode === 'new' ? 'tab-active' : ''}`}
+                onClick={() => { setUploadMode('new'); setUploadErr(null) }}
+              >📁 Yangi fayl yuklash</button>
+              <button
+                className={`tab flex-1 ${uploadMode === 'link' ? 'tab-active' : ''}`}
+                onClick={() => { setUploadMode('link'); setUploadErr(null) }}
+              >🔗 Mavjud Bunny ID bog'lash</button>
             </div>
 
             {uploadErr && <div className="alert alert-error"><span>{uploadErr}</span></div>}
 
-            {/* Drop zone */}
-            <div
-              className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors
-                ${file ? 'border-primary bg-primary/5' : 'border-base-content/20 hover:border-primary/50'}`}
-              onClick={() => fileRef.current?.click()}
-            >
-              <input
-                ref={fileRef} type="file" accept="video/*" className="hidden"
-                onChange={e => setFile(e.target.files?.[0] || null)}
-              />
-              {file ? (
-                <div>
-                  <p className="text-2xl mb-2">🎬</p>
-                  <p className="font-medium text-sm">{file.name}</p>
-                  <p className="text-xs text-base-content/40 mt-1">
-                    {(file.size / 1024 / 1024).toFixed(1)} MB
-                  </p>
-                  <button
-                    onClick={e => { e.stopPropagation(); setFile(null) }}
-                    className="btn btn-ghost btn-xs mt-2 text-error"
-                  >Olib tashlash</button>
+            {/* ── Tab: Link existing Bunny video ── */}
+            {uploadMode === 'link' && (
+              <div className="space-y-4">
+                <div className="alert bg-base-300 border-0 text-sm">
+                  <span>Bunny.net dashboard dagi videoning <strong>Video ID</strong> sini kiriting (GUID formatida)</span>
                 </div>
-              ) : (
-                <div>
-                  <p className="text-4xl mb-3">📁</p>
-                  <p className="font-medium">Faylni tanlang yoki bu yerga tashlang</p>
-                  <p className="text-sm text-base-content/40 mt-1">MP4, MOV, AVI, MKV — maksimum 10 GB</p>
+                <div className="form-control">
+                  <label className="label py-1">
+                    <span className="label-text font-medium">Bunny Video ID (GUID)</span>
+                  </label>
+                  <input
+                    className="input input-bordered font-mono text-sm"
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    value={linkId}
+                    onChange={e => setLinkId(e.target.value)}
+                  />
                 </div>
-              )}
-            </div>
-
-            {/* Progress */}
-            {uploading && (
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Yuklanmoqda…</span>
-                  <span className="font-semibold">{progress}%</span>
-                </div>
-                <progress className="progress progress-primary w-full" value={progress} max="100" />
+                <button
+                  onClick={handleLink}
+                  disabled={!linkId.trim() || linking}
+                  className="btn btn-primary w-full"
+                >
+                  {linking
+                    ? <><span className="loading loading-spinner loading-sm" /> Bog'lanmoqda…</>
+                    : '🔗 Bunny videoni bog\'lash'}
+                </button>
               </div>
             )}
 
-            <button
-              onClick={handleUpload}
-              disabled={!file || uploading}
-              className="btn btn-primary w-full"
-            >
-              {uploading
-                ? <><span className="loading loading-spinner loading-sm" /> {progress}% yuklanmoqda</>
-                : 'Bunny.net ga yuklash'}
-            </button>
+            {/* ── Tab: Upload new file ── */}
+            {uploadMode === 'new' && (
+              <>
+                {/* Drop zone */}
+                <div
+                  className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors
+                    ${file ? 'border-primary bg-primary/5' : 'border-base-content/20 hover:border-primary/50'}`}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <input
+                    ref={fileRef} type="file" accept="video/*" className="hidden"
+                    onChange={e => setFile(e.target.files?.[0] || null)}
+                  />
+                  {file ? (
+                    <div>
+                      <p className="text-2xl mb-2">🎬</p>
+                      <p className="font-medium text-sm">{file.name}</p>
+                      <p className="text-xs text-base-content/40 mt-1">
+                        {(file.size / 1024 / 1024).toFixed(1)} MB
+                      </p>
+                      <button
+                        onClick={e => { e.stopPropagation(); setFile(null) }}
+                        className="btn btn-ghost btn-xs mt-2 text-error"
+                      >Olib tashlash</button>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-4xl mb-3">📁</p>
+                      <p className="font-medium">Faylni tanlang yoki bu yerga tashlang</p>
+                      <p className="text-sm text-base-content/40 mt-1">MP4, MOV, AVI, MKV — maksimum 10 GB</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Progress */}
+                {uploading && (
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Yuklanmoqda…</span>
+                      <span className="font-semibold">{progress}%</span>
+                    </div>
+                    <progress className="progress progress-primary w-full" value={progress} max="100" />
+                  </div>
+                )}
+
+                <button
+                  onClick={handleUpload}
+                  disabled={!file || uploading}
+                  className="btn btn-primary w-full"
+                >
+                  {uploading
+                    ? <><span className="loading loading-spinner loading-sm" /> {progress}% yuklanmoqda</>
+                    : 'Bunny.net ga yuklash'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
