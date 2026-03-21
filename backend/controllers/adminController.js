@@ -9,13 +9,9 @@ const Payment    = require('../models/Payment');
 const getDashboardStats = async (req, res) => {
   try {
     const [
-      totalUsers,
-      totalCourses,
-      totalVideos,
-      totalEnrollments,
-      completedEnrollments,
-      totalRevenue,
-      newUsersThisMonth,
+      totalUsers, totalCourses, totalVideos,
+      totalEnrollments, completedEnrollments,
+      totalRevenue, newUsersThisMonth,
     ] = await Promise.all([
       User.countDocuments({ isActive: true }),
       Course.countDocuments({ isActive: true }),
@@ -29,29 +25,38 @@ const getDashboardStats = async (req, res) => {
     res.json({
       success: true,
       data: {
-        users:          { total: totalUsers, newThisMonth: newUsersThisMonth },
-        courses:        { total: totalCourses },
-        videos:         { total: totalVideos },
-        enrollments:    { total: totalEnrollments, completed: completedEnrollments },
-        revenue:        { total: totalRevenue[0]?.total || 0, currency: 'UZS' },
+        users:       { total: totalUsers, newThisMonth: newUsersThisMonth },
+        courses:     { total: totalCourses },
+        videos:      { total: totalVideos },
+        enrollments: { total: totalEnrollments, completed: completedEnrollments },
+        revenue:     { total: totalRevenue[0]?.total || 0, currency: 'UZS' },
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Statistika olishda xato' });
   }
 };
 
-/** @desc  Top o'quvchilar (admin uchun) | @route GET /api/admin/top-students | @access Admin */
+/** @desc  Top o'quvchilar | @route GET /api/admin/top-students | @access Admin */
 const getTopStudents = async (req, res) => {
   try {
     const stats = await UserStats.find()
       .sort({ xp: -1 })
       .limit(10)
-      .populate('userId', 'username email createdAt');
+      .populate('userId', 'username email');
 
-    res.json({ success: true, data: { students: stats } });
+    // Flatten: frontend expects username, email, xp, level at top level
+    const students = stats.map(s => ({
+      _id:      s._id,
+      username: s.userId?.username,
+      email:    s.userId?.email,
+      xp:       s.xp,
+      level:    s.level,
+    }));
+
+    res.json({ success: true, data: { students } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Top o\'quvchilarni olishda xato' });
   }
 };
 
@@ -65,7 +70,7 @@ const getCoursesStats = async (req, res) => {
 
     res.json({ success: true, data: { courses } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Kurslar statistikasini olishda xato' });
   }
 };
 
@@ -73,34 +78,47 @@ const getCoursesStats = async (req, res) => {
 const getRecentPayments = async (req, res) => {
   try {
     const page  = parseInt(req.query.page)  || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
 
     const payments = await Payment.find()
-      .populate('userId', 'username email')
+      .populate('userId',   'username email')
       .populate('courseId', 'title price')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
 
+    // Rename userId→user, courseId→course for frontend
+    const data = payments.map(p => ({
+      _id:    p._id,
+      user:   p.userId,
+      course: p.courseId,
+      amount: p.amount,
+      status: p.status,
+      provider: p.provider,
+      createdAt: p.createdAt,
+    }));
+
     const total = await Payment.countDocuments();
-    res.json({ success: true, data: { payments, pagination: { total, page, limit } } });
+    res.json({ success: true, data: { payments: data, pagination: { total, page, limit } } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'To\'lovlarni olishda xato' });
   }
 };
 
 /** @desc  Foydalanuvchilar ro'yxati | @route GET /api/admin/users | @access Admin */
 const getUsers = async (req, res) => {
   try {
-    const page   = parseInt(req.query.page)   || 1;
-    const limit  = parseInt(req.query.limit)  || 20;
+    const page   = parseInt(req.query.page)  || 1;
+    const limit  = Math.min(parseInt(req.query.limit) || 20, 100);
     const search = req.query.search || '';
+    const role   = req.query.role   || '';
 
-    const filter = { isActive: true };
+    const filter = {};
     if (search) filter.$or = [
-      { username: { $regex: search, $options: 'i' } },
-      { email:    { $regex: search, $options: 'i' } },
+      { username: { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+      { email:    { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
     ];
+    if (role) filter.role = role;
 
     const [users, total] = await Promise.all([
       User.find(filter).select('-password -refreshToken').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
@@ -109,8 +127,39 @@ const getUsers = async (req, res) => {
 
     res.json({ success: true, data: { users, pagination: { total, page, limit } } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Foydalanuvchilarni olishda xato' });
   }
 };
 
-module.exports = { getDashboardStats, getTopStudents, getCoursesStats, getRecentPayments, getUsers };
+/** @desc  Foydalanuvchini tahrirlash | @route PUT /api/admin/users/:id | @access Admin */
+const updateUser = async (req, res) => {
+  try {
+    const allowed = ['role', 'isActive'];
+    const update  = {};
+    allowed.forEach(f => { if (req.body[f] !== undefined) update[f] = req.body[f]; });
+
+    const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password -refreshToken');
+    if (!user) return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
+
+    res.json({ success: true, data: { user } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Foydalanuvchini tahrirlashda xato' });
+  }
+};
+
+/** @desc  Foydalanuvchini o'chirish | @route DELETE /api/admin/users/:id | @access Admin */
+const deleteUser = async (req, res) => {
+  try {
+    if (req.params.id === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: 'O\'zingizni o\'chira olmaysiz' });
+    }
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
+
+    res.json({ success: true, message: 'Foydalanuvchi o\'chirildi' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Foydalanuvchini o\'chirishda xato' });
+  }
+};
+
+module.exports = { getDashboardStats, getTopStudents, getCoursesStats, getRecentPayments, getUsers, updateUser, deleteUser };

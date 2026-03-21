@@ -69,12 +69,12 @@ Real-time tekshiruv: har safar video ko'rganda obuna holati tekshiriladi.
     },
     servers: [
       {
-        url: 'http://localhost:5000',
-        description: '🖥️ Local Development Server (mahalliy server)',
+        url: 'https://aidevix-backend-production.up.railway.app',
+        description: '🚀 Production Server — Railway (ishchi server)',
       },
       {
-        url: 'https://aidevixbackend.onrender.com',
-        description: '🌐 Production Server — Render (ishchi server)',
+        url: 'http://localhost:5000',
+        description: '🖥️ Local Development Server (mahalliy server)',
       },
     ],
     tags: [
