@@ -31,6 +31,17 @@ const videoSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  // Bunny.net Stream integration
+  bunnyVideoId: {
+    type: String,
+    default: null,
+  },
+  // ready | processing | failed | pending
+  bunnyStatus: {
+    type: String,
+    enum: ['pending', 'processing', 'ready', 'failed'],
+    default: 'pending',
+  },
   // Ko'rishlar soni (statistika uchun)
   viewCount: {
     type: Number,

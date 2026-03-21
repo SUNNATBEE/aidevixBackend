@@ -1,6 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const { getCourseVideos, getVideo, useVideoLink, createVideo, updateVideo, deleteVideo, askQuestion, getVideoQuestions, answerQuestion } = require('../controllers/videoController');
+const {
+  getCourseVideos,
+  getVideo,
+  useVideoLink,
+  createVideo,
+  updateVideo,
+  deleteVideo,
+  askQuestion,
+  getVideoQuestions,
+  answerQuestion,
+  getUploadCredentialsForVideo,
+  checkVideoStatus,
+  linkToBunny,
+} = require('../controllers/videoController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { checkSubscriptions } = require('../middleware/subscriptionCheck');
 
@@ -855,6 +868,130 @@ router.post('/', authenticate, requireAdmin, createVideo);
  */
 router.put('/:id', authenticate, requireAdmin, updateVideo);
 router.delete('/:id', authenticate, requireAdmin, deleteVideo);
+
+// ════════════════════════════════════════════════════════════════
+// Bunny.net endpoints (Admin only)
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * @swagger
+ * /api/videos/{id}/upload-credentials:
+ *   get:
+ *     summary: 📤 Bunny.net upload ma'lumotlari (Admin)
+ *     description: |
+ *       Video faylni to'g'ridan-to'g'ri Bunny.net ga yuklash uchun kerakli
+ *       URL va API key qaytaradi. Admin frontend shu ma'lumot bilan PUT so'rov yuboradi.
+ *
+ *       ### Yuklash jarayoni:
+ *       ```javascript
+ *       // 1. Credentials oling
+ *       const { data } = await api.get(`/videos/${videoId}/upload-credentials`);
+ *
+ *       // 2. Video faylni to'g'ridan-to'g'ri Bunny ga yuklang
+ *       await axios.put(data.upload.uploadUrl, videoFile, {
+ *         headers: {
+ *           AccessKey: data.upload.headers.AccessKey,
+ *           'Content-Type': 'application/octet-stream',
+ *         },
+ *         onUploadProgress: (e) => setProgress(Math.round(e.loaded / e.total * 100)),
+ *       });
+ *
+ *       // 3. Holat tekshiring
+ *       await api.get(`/videos/${videoId}/status`);
+ *       ```
+ *     tags: [Admin Panel - Videos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Upload ma'lumotlari
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 videoId: "65f200000000000000000001"
+ *                 bunnyVideoId: "abc123-guid"
+ *                 uploadUrl: "https://video.bunnycdn.com/library/12345/videos/abc123-guid"
+ *                 method: "PUT"
+ *                 headers:
+ *                   AccessKey: "bunny-api-key"
+ *                   Content-Type: "application/octet-stream"
+ */
+router.get('/:id/upload-credentials', authenticate, requireAdmin, getUploadCredentialsForVideo);
+
+/**
+ * @swagger
+ * /api/videos/{id}/status:
+ *   get:
+ *     summary: 🔄 Video Bunny.net holati (Admin)
+ *     description: |
+ *       Video Bunny.net da qayta ishlash holati.
+ *       Upload qilingandan keyin Bunny video ni 360p/720p/1080p ga transcode qiladi.
+ *       `isReady: true` bo'lguncha kutish kerak.
+ *     tags: [Admin Panel - Videos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Video holati
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 videoId: "65f200000000000000000001"
+ *                 bunnyStatus: "ready"
+ *                 isReady: true
+ *                 duration: 900
+ */
+router.get('/:id/status', authenticate, requireAdmin, checkVideoStatus);
+
+/**
+ * @swagger
+ * /api/videos/{id}/link-bunny:
+ *   patch:
+ *     summary: 🔗 Mavjud videoni Bunny.net ga ulash (Admin)
+ *     description: |
+ *       Oldin yaratilgan video ga Bunny video ID ni ulash.
+ *       Bunny dashboard dan qo'lda upload qilgan videolar uchun.
+ *     tags: [Admin Panel - Videos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [bunnyVideoId]
+ *             properties:
+ *               bunnyVideoId:
+ *                 type: string
+ *                 example: "abc123-guid-from-bunny-dashboard"
+ *     responses:
+ *       200:
+ *         description: Ulandi
+ */
+router.patch('/:id/link-bunny', authenticate, requireAdmin, linkToBunny);
 
 /**
  * @swagger
