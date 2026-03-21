@@ -58,7 +58,7 @@ const { authenticate } = require('../middleware/auth');
  *       ### 💻 Использование во Frontend (React):
  *       ```javascript
  *       // src/api/authApi.js
- *       const response = await fetch('https://aidevixbackend.onrender.com/api/auth/register', {
+ *       const response = await fetch('https://aidevix-backend-production.up.railway.app/api/auth/register', {
  *         method: 'POST',
  *         headers: { 'Content-Type': 'application/json' },
  *         body: JSON.stringify({

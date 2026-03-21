@@ -1,0 +1,61 @@
+const {
+  checkInstagramSubscriptionRealTime,
+  checkTelegramSubscriptionRealTime,
+} = require('./socialVerification');
+
+/**
+ * Perform real-time subscription check for a user.
+ * Falls back to stored DB value for Instagram when INSTAGRAM_ACCESS_TOKEN not configured.
+ * @param {Object} user - Mongoose User document
+ * @returns {{ instagramSubscribed: boolean, telegramSubscribed: boolean, changed: boolean }}
+ */
+const performSubscriptionCheck = async (user) => {
+  let instagramSubscribed = false;
+  let telegramSubscribed = false;
+  let changed = false;
+
+  // Instagram: fall back to DB value when API token not configured
+  if (user.socialSubscriptions.instagram.username) {
+    if (process.env.INSTAGRAM_ACCESS_TOKEN) {
+      instagramSubscribed = await checkInstagramSubscriptionRealTime(
+        user.socialSubscriptions.instagram.username,
+        user._id
+      );
+    } else {
+      instagramSubscribed = user.socialSubscriptions.instagram.subscribed;
+    }
+
+    if (user.socialSubscriptions.instagram.subscribed !== instagramSubscribed) {
+      user.socialSubscriptions.instagram.subscribed = instagramSubscribed;
+      user.socialSubscriptions.instagram.verifiedAt = instagramSubscribed ? new Date() : null;
+      changed = true;
+    }
+  }
+
+  // Telegram: real-time check if telegramUserId available, else DB fallback
+  if (user.socialSubscriptions.telegram.username) {
+    const channelUsername = process.env.TELEGRAM_CHANNEL_USERNAME;
+    const telegramUserId = user.socialSubscriptions.telegram.telegramUserId || null;
+
+    if (telegramUserId && channelUsername) {
+      telegramSubscribed = await checkTelegramSubscriptionRealTime(
+        telegramUserId,
+        channelUsername
+      );
+    } else {
+      telegramSubscribed = user.socialSubscriptions.telegram.subscribed;
+    }
+
+    if (user.socialSubscriptions.telegram.subscribed !== telegramSubscribed) {
+      user.socialSubscriptions.telegram.subscribed = telegramSubscribed;
+      user.socialSubscriptions.telegram.verifiedAt = telegramSubscribed ? new Date() : null;
+      changed = true;
+    }
+  } else {
+    telegramSubscribed = user.socialSubscriptions.telegram.subscribed;
+  }
+
+  return { instagramSubscribed, telegramSubscribed, changed };
+};
+
+module.exports = { performSubscriptionCheck };

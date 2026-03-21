@@ -2,7 +2,16 @@ const Video = require('../models/Video');
 const Course = require('../models/Course');
 const VideoLink = require('../models/VideoLink');
 const VideoQuestion = require('../models/VideoQuestion');
-const { checkSubscriptions } = require('../middleware/subscriptionCheck');
+const { performSubscriptionCheck } = require('../utils/checkSubscriptions');
+const User = require('../models/User');
+const {
+  createBunnyVideo,
+  deleteBunnyVideo,
+  getBunnyVideoInfo,
+  generateSignedEmbedUrl,
+  getUploadCredentials,
+  parseBunnyStatus,
+} = require('../utils/bunny');
 
 // Get all videos for a course
 const getCourseVideos = async (req, res) => {
@@ -25,7 +34,6 @@ const getCourseVideos = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching videos.',
-      error: error.message,
     });
   }
 };
@@ -44,66 +52,46 @@ const getVideo = async (req, res) => {
       });
     }
 
-    // User subscription status is already checked by middleware
-    // But we do a final check here as well for extra security
-    const user = req.user;
-    const hasAllSubscriptions = user.hasAllSubscriptions();
-    
-    if (!hasAllSubscriptions) {
-      const missingSubscriptions = [];
-      if (!user.socialSubscriptions.instagram.subscribed) {
-        missingSubscriptions.push('Instagram');
-      }
-      if (!user.socialSubscriptions.telegram.subscribed) {
-        missingSubscriptions.push('Telegram');
-      }
+    // User subscription status is already verified by checkSubscriptions middleware
 
-      return res.status(403).json({
+    // Video Bunny.net da mavjudmi va tayyor holatdami?
+    if (!video.bunnyVideoId) {
+      return res.status(503).json({
         success: false,
-        message: `Siz obuna bekor qildingiz. Video ko'ra olmaysiz. Iltimos, ${missingSubscriptions.join(' va ')} ga qayta obuna bo'ling.`,
-        subscriptions: {
-          instagram: user.socialSubscriptions.instagram.subscribed,
-          telegram: user.socialSubscriptions.telegram.subscribed,
-        },
-        missingSubscriptions,
+        message: 'Video hali yuklanmagan. Iltimos, keyinroq urinib ko\'ring.',
       });
     }
 
-    // Check if user already has a video link
-    let videoLink = await VideoLink.findOne({
-      user: user._id,
-      video: video._id,
-      isUsed: false,
-    });
-
-    // If no link exists or all links are used, create a new one
-    if (!videoLink) {
-      // Generate Telegram private channel link
-      // In production, you would generate this based on your Telegram channel setup
-      const telegramLink = generateTelegramVideoLink(video._id, user._id);
-
-      videoLink = await VideoLink.create({
-        video: video._id,
-        user: user._id,
-        telegramLink,
+    if (video.bunnyStatus !== 'ready') {
+      return res.status(503).json({
+        success: false,
+        message: 'Video hali tayyorlanmoqda. Iltimos, bir oz kuting.',
+        bunnyStatus: video.bunnyStatus,
       });
     }
+
+    // 2 soatlik muddatli signed embed URL yaratish
+    const { embedUrl, expiresAt } = generateSignedEmbedUrl(video.bunnyVideoId);
+
+    // Ko'rishlar sonini oshirish (background)
+    Video.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }).exec();
 
     res.json({
       success: true,
       data: {
         video: {
-          id: video._id,
+          _id: video._id,
           title: video.title,
           description: video.description,
           duration: video.duration,
+          order: video.order,
+          thumbnail: video.thumbnail,
+          materials: video.materials,
           course: video.course,
         },
-        videoLink: {
-          id: videoLink._id,
-          telegramLink: videoLink.telegramLink,
-          isUsed: videoLink.isUsed,
-          expiresAt: videoLink.expiresAt,
+        player: {
+          embedUrl,
+          expiresAt,
         },
       },
     });
@@ -111,24 +99,10 @@ const getVideo = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching video.',
-      error: error.message,
     });
   }
 };
 
-// Generate Telegram video link
-const generateTelegramVideoLink = (videoId, userId) => {
-  // This should generate a unique one-time link to your Telegram private channel
-  // You can use a service like t.me/yourchannel?start=unique_token
-  // Or use Telegram Bot API to create invite links
-  
-  const uniqueToken = `${videoId}_${userId}_${Date.now()}`;
-  // Use private channel for video links (different from subscription channel)
-  const privateChannelUsername = process.env.TELEGRAM_PRIVATE_CHANNEL_USERNAME || process.env.TELEGRAM_CHANNEL_USERNAME || 'yourchannel';
-  
-  // Return a unique link that can be verified when accessed
-  return `https://t.me/${privateChannelUsername}?start=${Buffer.from(uniqueToken).toString('base64')}`;
-};
 
 // Use video link (mark as used when accessed)
 // This function checks subscription status in real-time before allowing access
@@ -170,57 +144,13 @@ const useVideoLink = async (req, res) => {
     }
 
     // IMPORTANT: Real-time subscription check before allowing video access
-    const User = require('../models/User');
-    const { 
-      checkInstagramSubscriptionRealTime, 
-      checkTelegramSubscriptionRealTime 
-    } = require('../utils/socialVerification');
-
     const user = await User.findById(req.user._id);
-    
-    // Real-time check Instagram subscription
-    let instagramSubscribed = false;
-    if (user.socialSubscriptions.instagram.username) {
-      instagramSubscribed = await checkInstagramSubscriptionRealTime(
-        user.socialSubscriptions.instagram.username,
-        user._id
-      );
-      
-      // Update if changed
-      if (user.socialSubscriptions.instagram.subscribed !== instagramSubscribed) {
-        user.socialSubscriptions.instagram.subscribed = instagramSubscribed;
-        user.socialSubscriptions.instagram.verifiedAt = instagramSubscribed ? new Date() : null;
-      }
+    const { instagramSubscribed, telegramSubscribed, changed } = await performSubscriptionCheck(user);
+
+    if (changed) {
+      await user.save();
     }
 
-    // Real-time check Telegram subscription
-    let telegramSubscribed = false;
-    if (user.socialSubscriptions.telegram.username) {
-      const channelUsername = process.env.TELEGRAM_CHANNEL_USERNAME;
-      const telegramUserId = user.socialSubscriptions.telegram.telegramUserId || null;
-      
-      if (telegramUserId && channelUsername) {
-        telegramSubscribed = await checkTelegramSubscriptionRealTime(
-          telegramUserId,
-          channelUsername
-        );
-      } else {
-        telegramSubscribed = user.socialSubscriptions.telegram.subscribed;
-      }
-      
-      // Update if changed
-      if (user.socialSubscriptions.telegram.subscribed !== telegramSubscribed) {
-        user.socialSubscriptions.telegram.subscribed = telegramSubscribed;
-        user.socialSubscriptions.telegram.verifiedAt = telegramSubscribed ? new Date() : null;
-      }
-    } else {
-      telegramSubscribed = user.socialSubscriptions.telegram.subscribed;
-    }
-
-    // Save subscription status changes
-    await user.save();
-
-    // If user unsubscribed, block video access
     if (!instagramSubscribed || !telegramSubscribed) {
       const missingSubscriptions = [];
       if (!instagramSubscribed) missingSubscriptions.push('Instagram');
@@ -253,12 +183,14 @@ const useVideoLink = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error using video link.',
-      error: error.message,
     });
   }
 };
 
 // Create video (Admin only)
+// 2-qadam:
+//   1. POST /api/videos       → video yaratiladi (DB + Bunny slot)
+//   2. GET  /api/videos/:id/upload-credentials → admin to'g'ridan-to'g'ri Bunny ga yuklaydi
 const createVideo = async (req, res) => {
   try {
     const { title, description, courseId, order, duration, thumbnail } = req.body;
@@ -278,6 +210,13 @@ const createVideo = async (req, res) => {
       });
     }
 
+    // Bunny Stream da video slot yaratish
+    let bunnyVideoId = null;
+    if (process.env.BUNNY_STREAM_API_KEY && process.env.BUNNY_LIBRARY_ID) {
+      const bunnyVideo = await createBunnyVideo(title);
+      bunnyVideoId = bunnyVideo.guid;
+    }
+
     const video = await Video.create({
       title,
       description,
@@ -285,24 +224,31 @@ const createVideo = async (req, res) => {
       order: order || 0,
       duration: duration || 0,
       thumbnail,
+      bunnyVideoId,
+      bunnyStatus: bunnyVideoId ? 'pending' : 'pending',
     });
 
-    // Add video to course
+    // Kursga video qo'shish
     course.videos.push(video._id);
     await course.save();
+
+    // Upload credentials ni darhol qaytaramiz (admin shu yerdan yuklaydi)
+    const uploadInfo = bunnyVideoId
+      ? getUploadCredentials(bunnyVideoId)
+      : null;
 
     res.status(201).json({
       success: true,
       message: 'Video created successfully.',
       data: {
         video,
+        upload: uploadInfo, // admin shu ma'lumot bilan Bunny ga yuklaydi
       },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Error creating video.',
-      error: error.message,
     });
   }
 };
@@ -343,7 +289,6 @@ const updateVideo = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error updating video.',
-      error: error.message,
     });
   }
 };
@@ -362,6 +307,15 @@ const deleteVideo = async (req, res) => {
       });
     }
 
+    // Bunny Stream dan ham o'chirish (xato bo'lsa ham davom etamiz)
+    if (video.bunnyVideoId) {
+      try {
+        await deleteBunnyVideo(video.bunnyVideoId);
+      } catch (bunnyErr) {
+        console.error('Bunny delete error:', bunnyErr.message);
+      }
+    }
+
     await video.deleteOne();
 
     res.json({
@@ -372,7 +326,6 @@ const deleteVideo = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error deleting video.',
-      error: error.message,
     });
   }
 };
@@ -412,7 +365,7 @@ const getVideoQuestions = async (req, res) => {
   try {
     const { id: videoId } = req.params;
     const page  = parseInt(req.query.page)  || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const skip  = (page - 1) * limit;
 
     const [questions, total] = await Promise.all([
@@ -463,6 +416,123 @@ const answerQuestion = async (req, res) => {
   }
 };
 
+// ─── Bunny.net specific endpoints ────────────────────────────────────────────
+
+// Upload credentials olish (Admin only)
+// Admin shu ma'lumot bilan video faylni to'g'ridan-to'g'ri Bunny ga yuklaydi
+const getUploadCredentialsForVideo = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const video = await Video.findById(id);
+    if (!video) {
+      return res.status(404).json({ success: false, message: 'Video not found.' });
+    }
+
+    if (!video.bunnyVideoId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bu video Bunny.net ga ulangan emas.',
+      });
+    }
+
+    const uploadInfo = getUploadCredentials(video.bunnyVideoId);
+
+    res.json({
+      success: true,
+      data: {
+        videoId: video._id,
+        bunnyVideoId: video.bunnyVideoId,
+        ...uploadInfo,
+        note: 'uploadUrl ga PUT so\'rov yuboring, body = video fayl binary, header = AccessKey',
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching upload credentials.' });
+  }
+};
+
+// Video holati tekshirish — Bunny processing tugadimi? (Admin only)
+const checkVideoStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const video = await Video.findById(id);
+    if (!video) {
+      return res.status(404).json({ success: false, message: 'Video not found.' });
+    }
+
+    if (!video.bunnyVideoId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bu video Bunny.net ga ulangan emas.',
+      });
+    }
+
+    const bunnyInfo = await getBunnyVideoInfo(video.bunnyVideoId);
+    const newStatus = parseBunnyStatus(bunnyInfo.status);
+
+    // DB ni yangilash (agar o'zgangan bo'lsa)
+    if (video.bunnyStatus !== newStatus) {
+      video.bunnyStatus = newStatus;
+      // Bunny dan haqiqiy davomiylikni olamiz
+      if (bunnyInfo.length) video.duration = bunnyInfo.length;
+      await video.save();
+    }
+
+    res.json({
+      success: true,
+      data: {
+        videoId: video._id,
+        bunnyStatus: newStatus,
+        isReady: newStatus === 'ready',
+        duration: bunnyInfo.length || video.duration,
+        bunnyRaw: {
+          status: bunnyInfo.status,
+          availableResolutions: bunnyInfo.availableResolutions,
+          encodeProgress: bunnyInfo.encodeProgress,
+        },
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error checking video status.' });
+  }
+};
+
+// Video ni Bunny ga qayta ulash (eski videolar uchun — Admin only)
+const linkToBunny = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bunnyVideoId } = req.body;
+
+    if (!bunnyVideoId) {
+      return res.status(400).json({ success: false, message: 'bunnyVideoId majburiy.' });
+    }
+
+    const video = await Video.findById(id);
+    if (!video) {
+      return res.status(404).json({ success: false, message: 'Video not found.' });
+    }
+
+    // Bunny da mavjudligini tekshirish
+    const bunnyInfo = await getBunnyVideoInfo(bunnyVideoId);
+    const status = parseBunnyStatus(bunnyInfo.status);
+
+    video.bunnyVideoId = bunnyVideoId;
+    video.bunnyStatus = status;
+    if (bunnyInfo.length) video.duration = bunnyInfo.length;
+    await video.save();
+
+    res.json({
+      success: true,
+      message: 'Video Bunny.net ga ulandi.',
+      data: { video },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error linking video to Bunny.' });
+  }
+};
+
 module.exports = {
   getCourseVideos,
   getVideo,
@@ -473,4 +543,7 @@ module.exports = {
   askQuestion,
   getVideoQuestions,
   answerQuestion,
+  getUploadCredentialsForVideo,
+  checkVideoStatus,
+  linkToBunny,
 };

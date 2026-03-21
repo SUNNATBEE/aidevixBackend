@@ -11,17 +11,33 @@ const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 // Initialize Express app
 const app = express();
 
+// Trust proxy — REQUIRED on Render/Railway (otherwise all IPs look the same → rate limit breaks)
+app.set('trust proxy', 1);
+
 // Connect to database (async - won't block server start)
 connectDB().catch(err => {
   console.error('Failed to connect to database on startup');
 });
 
-// CORS Configuration - Production ready
+// CORS Configuration
+const allowedOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || process.env.CORS_ORIGIN || '*',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    // Allow if explicitly listed or wildcard '*' configured
+    if (allowedOrigins.includes('*') || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
   credentials: true,
   optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 

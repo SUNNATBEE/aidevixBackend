@@ -24,9 +24,10 @@ const getAllCourses = async (req, res) => {
     if (level) filter.level = level;
     if (isFree !== undefined) filter.isFree = isFree === 'true';
     if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
-        { title:       { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
+        { title:       { $regex: escapedSearch, $options: 'i' } },
+        { description: { $regex: escapedSearch, $options: 'i' } },
       ];
     }
 

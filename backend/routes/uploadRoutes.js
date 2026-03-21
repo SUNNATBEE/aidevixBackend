@@ -51,7 +51,8 @@ router.post('/avatar', authenticate, uploadLimiter, uploadAvatar.single('avatar'
  * /api/upload/thumbnail/{courseId}:
  *   post:
  *     summary: 🖼️ Kurs thumbnail yuklash (Admin)
- *     description: Kurs uchun muqova rasm yuklash. Max: 5MB. 800x450 px ga crop qilinadi.
+ *     description: |
+ *       Kurs uchun muqova rasm yuklash. Max: 5MB. 800x450 px ga crop qilinadi.
  *     tags: [Upload]
  *     security:
  *       - bearerAuth: []
