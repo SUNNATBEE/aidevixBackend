@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Routes, Route, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import { selectUser } from '@store/slices/authSlice'
-import { logout } from '@store/slices/authSlice'
+import { selectUser, selectIsLoggedIn, login, logout } from '@store/slices/authSlice'
 
 import DashboardPage    from './DashboardPage'
 import CoursesPage      from './courses/CoursesPage'
@@ -56,15 +55,82 @@ const NAV = [
   { path: '/admin/users',   label: 'Foydalanuvchilar',   Icon: UsersIcon,     end: false },
 ]
 
+// ─── Admin Login Form ─────────────────────────────────────────────────────────
+function AdminLoginForm() {
+  const dispatch = useDispatch()
+  const [email,    setEmail]    = useState('')
+  const [password, setPassword] = useState('')
+  const [error,    setError]    = useState(null)
+  const [loading,  setLoading]  = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    const result = await dispatch(login({ email, password }))
+    if (login.rejected.match(result)) {
+      setError(result.payload || 'Login yoki parol xato')
+    }
+    setLoading(false)
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-base-100">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mx-auto mb-3">
+            <span className="text-primary-content font-bold text-xl">&lt;/&gt;</span>
+          </div>
+          <h1 className="text-2xl font-bold">Admin Panel</h1>
+          <p className="text-base-content/50 text-sm mt-1">Faqat adminlar kira oladi</p>
+        </div>
+        <div className="card bg-base-200 border border-base-300 shadow-lg">
+          <div className="card-body p-6 space-y-4">
+            {error && <div className="alert alert-error text-sm py-2"><span>{error}</span></div>}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="form-control">
+                <label className="label py-1"><span className="label-text">Email</span></label>
+                <input
+                  type="email" className="input input-bordered" required
+                  placeholder="admin@email.com"
+                  value={email} onChange={e => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="form-control">
+                <label className="label py-1"><span className="label-text">Parol</span></label>
+                <input
+                  type="password" className="input input-bordered" required
+                  placeholder="••••••••"
+                  value={password} onChange={e => setPassword(e.target.value)}
+                />
+              </div>
+              <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+                {loading ? <span className="loading loading-spinner loading-sm" /> : 'Kirish'}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false)
-  const user     = useSelector(selectUser)
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
+  const user      = useSelector(selectUser)
+  const isLoggedIn = useSelector(selectIsLoggedIn)
+  const dispatch  = useDispatch()
+  const navigate  = useNavigate()
 
   const handleLogout = async () => {
     await dispatch(logout())
-    navigate('/login')
+    navigate('/')
+  }
+
+  // Not logged in or not admin → show login form
+  if (!isLoggedIn || user?.role !== 'admin') {
+    return <AdminLoginForm />
   }
 
   return (

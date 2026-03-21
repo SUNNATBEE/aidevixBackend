@@ -7,7 +7,6 @@ import Navbar       from '@components/layout/Navbar'
 import Footer       from '@components/layout/Footer'
 import ScrollToTop  from '@components/layout/ScrollToTop'
 import ProtectedRoute from '@components/auth/ProtectedRoute'
-import AdminRoute     from '@components/auth/AdminRoute'
 import Loader       from '@components/common/Loader'
 
 // ── Public pages (lazy) ───────────────────────────────────────────────────────
@@ -60,9 +59,7 @@ export default function AppRouter() {
         <Routes>
 
           {/* ── Admin routes (own full-page layout, no Navbar/Footer) ── */}
-          <Route element={<AdminRoute />}>
-            <Route path="/admin/*" element={<AdminLayout />} />
-          </Route>
+          <Route path="/admin/*" element={<AdminLayout />} />
 
           {/* ── Public routes (Navbar + Footer) ── */}
           <Route element={<PublicLayout />}>
