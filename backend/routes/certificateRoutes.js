@@ -1,6 +1,6 @@
 const express = require('express');
 const router  = express.Router();
-const { getMyCertificates, verifyCertificate } = require('../controllers/certificateController');
+const { getMyCertificates, verifyCertificate, downloadCertificate } = require('../controllers/certificateController');
 const { authenticate } = require('../middleware/auth');
 
 /**
@@ -65,5 +65,31 @@ router.get('/my', authenticate, getMyCertificates);
  *         description: Sertifikat topilmadi
  */
 router.get('/verify/:code', verifyCertificate);
+
+/**
+ * @swagger
+ * /api/certificates/{code}/download:
+ *   get:
+ *     summary: 📥 PDF sertifikat yuklab olish
+ *     tags: [Certificates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: code
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: PDF yuklab olish havolasi
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 downloadUrl: "https://res.cloudinary.com/..."
+ */
+router.get('/:code/download', authenticate, downloadCertificate);
 
 module.exports = router;

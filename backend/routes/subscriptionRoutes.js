@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verifyInstagram, verifyTelegram, getSubscriptionStatus } = require('../controllers/subscriptionController');
+const { verifyInstagram, verifyTelegram, getSubscriptionStatus, setTelegramId, getRealtimeStatus, requestInstagramVerification } = require('../controllers/subscriptionController');
 const { authenticate } = require('../middleware/auth');
 
 // ════════════════════════════════════════════════════════════════
@@ -521,5 +521,8 @@ router.post('/verify-telegram', authenticate, verifyTelegram);
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/status', authenticate, getSubscriptionStatus);
+router.get('/realtime-status', authenticate, getRealtimeStatus);
+router.post('/set-telegram-id', authenticate, setTelegramId);
+router.post('/request-instagram-verification', authenticate, requestInstagramVerification);
 
 module.exports = router;

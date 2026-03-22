@@ -164,9 +164,41 @@ const checkTelegramSubscriptionRealTime = async (telegramUserId, channelUsername
   }
 };
 
+/**
+ * Telegram obunasini ikki kanal uchun tekshirish
+ * Xato bo'lsa false qaytaradi (exception otmaydi)
+ */
+const checkTelegramSubscription = async (telegramUserId) => {
+  if (!telegramUserId) return false;
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (!botToken) return false;
+
+    const channels = [
+      process.env.TELEGRAM_CHANNEL_USERNAME,
+      process.env.TELEGRAM_PRIVATE_CHANNEL_USERNAME,
+    ].filter(Boolean);
+
+    for (const channel of channels) {
+      const response = await axios.get(
+        `https://api.telegram.org/bot${botToken}/getChatMember`,
+        { params: { chat_id: `@${channel}`, user_id: telegramUserId } }
+      );
+      if (!response.data.ok) return false;
+      const status = response.data.result?.status;
+      if (!['member', 'administrator', 'creator'].includes(status)) return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Telegram check error:', err.message);
+    return false;
+  }
+};
+
 module.exports = {
   verifyInstagramSubscription,
   verifyTelegramSubscription,
   checkInstagramSubscriptionRealTime,
   checkTelegramSubscriptionRealTime,
+  checkTelegramSubscription,
 };

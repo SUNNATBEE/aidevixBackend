@@ -7,6 +7,7 @@ const {
   createVideo,
   updateVideo,
   deleteVideo,
+  searchVideos,
   askQuestion,
   getVideoQuestions,
   answerQuestion,
@@ -168,6 +169,52 @@ const { checkSubscriptions } = require('../middleware/subscriptionCheck');
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/course/:courseId', getCourseVideos);
+
+/**
+ * @swagger
+ * /api/videos/search:
+ *   get:
+ *     summary: 🔍 Video qidirish
+ *     tags: [Videos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Video nomi bo'yicha qidiruv
+ *       - in: query
+ *         name: courseId
+ *         schema:
+ *           type: string
+ *         description: Kurs ichida qidirish
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Videolar ro'yxati
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 videos: []
+ *                 pagination:
+ *                   total: 0
+ *                   page: 1
+ *                   limit: 20
+ *                   pages: 0
+ */
+router.get('/search', authenticate, searchVideos);
 
 // ════════════════════════════════════════════════════════════════
 // GET /api/videos/:id

@@ -47,8 +47,21 @@ const paymentSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  expiredAt: {
+    type: Date,
+    default: null,
+  },
+  providerData: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null,
+  },
 }, {
   timestamps: true,
 });
+
+paymentSchema.index({ userId: 1 });
+paymentSchema.index({ status: 1 });
+paymentSchema.index({ createdAt: -1 });
+paymentSchema.index({ providerTransactionId: 1 }, { sparse: true });
 
 module.exports = mongoose.model('Payment', paymentSchema);

@@ -38,4 +38,41 @@ const verifyCertificate = async (req, res) => {
   }
 };
 
-module.exports = { getMyCertificates, verifyCertificate };
+/** @desc  PDF yuklab olish | @route GET /api/certificates/:code/download | @access Private */
+const downloadCertificate = async (req, res) => {
+  try {
+    const cert = await Certificate.findOne({
+      certificateCode: req.params.code,
+      userId: req.user._id,
+    })
+      .populate('userId', 'username')
+      .populate('courseId', 'title');
+
+    if (!cert) return res.status(404).json({ success: false, message: 'Sertifikat topilmadi' });
+
+    // pdfUrl yo'q bo'lsa generate qilish
+    if (!cert.pdfUrl) {
+      try {
+        const { generateCertificatePDF, uploadCertificatePDF } = require('../utils/certificateGenerator');
+        const buffer = await generateCertificatePDF(
+          cert.recipientName || cert.userId?.username || 'O\'quvchi',
+          cert.courseName || cert.courseId?.title || 'Kurs',
+          cert.issuedAt || cert.createdAt,
+          cert.certificateCode,
+        );
+        const url = await uploadCertificatePDF(buffer, cert.certificateCode);
+        cert.pdfUrl = url;
+        await cert.save();
+      } catch (pdfErr) {
+        console.error('PDF generation error:', pdfErr.message);
+        return res.status(500).json({ success: false, message: 'PDF yaratishda xato' });
+      }
+    }
+
+    res.json({ success: true, data: { downloadUrl: cert.pdfUrl } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { getMyCertificates, verifyCertificate, downloadCertificate };

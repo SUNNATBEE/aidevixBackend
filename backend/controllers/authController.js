@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/jwt');
 const validator = require('validator');
+const { sendWelcomeEmail } = require('../utils/emailService');
 
 // Register new user
 const register = async (req, res) => {
@@ -55,6 +56,9 @@ const register = async (req, res) => {
     // Save refresh token
     user.refreshToken = refreshToken;
     await user.save();
+
+    // Welcome email yuborish (background'da, xato bo'lsa ham davom etadi)
+    sendWelcomeEmail(user.email, user.username).catch(() => {});
 
     res.status(201).json({
       success: true,

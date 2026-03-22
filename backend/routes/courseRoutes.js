@@ -6,6 +6,9 @@ const {
   getTopCourses,
   getCategories,
   getRecommendedCourses,
+  getUserRecommendedCourses,
+  getAutocomplete,
+  getFilterCounts,
   createCourse,
   updateCourse,
   deleteCourse,
@@ -391,9 +394,12 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/',            getAllCourses);
-router.get('/top',         getTopCourses);         // GET /api/courses/top
-router.get('/categories',  getCategories);          // GET /api/courses/categories
+router.get('/',                getAllCourses);
+router.get('/top',             getTopCourses);
+router.get('/categories',      getCategories);
+router.get('/recommended',     authenticate, getUserRecommendedCourses);
+router.get('/autocomplete',    getAutocomplete);
+router.get('/filter-counts',   getFilterCounts);
 router.post('/', authenticate, requireAdmin, createCourse);
 
 // ════════════════════════════════════════════════════════════════

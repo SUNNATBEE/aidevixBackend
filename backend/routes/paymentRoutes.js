@@ -1,8 +1,9 @@
 const express = require('express');
 const router  = express.Router();
-const { initiatePayment, paymentCallback, getMyPayments } = require('../controllers/paymentController');
+const { initiatePayment, paymentCallback, getMyPayments, getPaymentStatus, handlePayme, clickPrepare, clickComplete } = require('../controllers/paymentController');
 const { authenticate } = require('../middleware/auth');
 const { paymentLimiter } = require('../middleware/rateLimiter');
+const { verifyPaymeAuth, verifyClickSign } = require('../middleware/paymentVerification');
 
 /**
  * @swagger
@@ -92,5 +93,65 @@ router.post('/callback', paymentCallback);
  *                       title: "React.js Frontend Development"
  */
 router.get('/my', authenticate, getMyPayments);
+
+/**
+ * @swagger
+ * /api/payments/payme:
+ *   post:
+ *     summary: 🏦 Payme JSON-RPC webhook
+ *     description: Payme to'lov tizimidan kelgan webhook. CheckPerformTransaction, CreateTransaction, PerformTransaction, CancelTransaction metodlarini qo'llab-quvvatlaydi.
+ *     tags: [Payments]
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: JSON-RPC javob
+ */
+router.post('/payme', paymentLimiter, verifyPaymeAuth, handlePayme);
+
+/**
+ * @swagger
+ * /api/payments/click/prepare:
+ *   post:
+ *     summary: 💳 Click prepare
+ *     tags: [Payments]
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Prepare javob
+ */
+router.post('/click/prepare', paymentLimiter, verifyClickSign, clickPrepare);
+
+/**
+ * @swagger
+ * /api/payments/click/complete:
+ *   post:
+ *     summary: ✅ Click complete
+ *     tags: [Payments]
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Complete javob
+ */
+router.post('/click/complete', paymentLimiter, verifyClickSign, clickComplete);
+
+/**
+ * @swagger
+ * /api/payments/{id}/status:
+ *   get:
+ *     summary: 📊 To'lov holati
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: To'lov holati (pending, completed, expired, cancelled)
+ */
+router.get('/:id/status', authenticate, getPaymentStatus);
 
 module.exports = router;

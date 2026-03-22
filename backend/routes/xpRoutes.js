@@ -9,6 +9,8 @@ const {
   useStreakFreeze,
   addStreakFreeze,
   getWeeklyLeaderboard,
+  getXPHistory,
+  getStreakStatus,
 } = require('../controllers/xpController');
 const { authenticate } = require('../middleware/auth');
 
@@ -247,5 +249,33 @@ router.post('/streak-freeze', authenticate, useStreakFreeze);
  *         description: Streak freeze qo'shildi
  */
 router.post('/streak-freeze/add', authenticate, addStreakFreeze);
+
+/**
+ * @swagger
+ * /api/xp/history:
+ *   get:
+ *     summary: 📜 XP tarixi (so'nggi 50 ta)
+ *     tags: [XP]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: XP tranzaksiyalar tarixi
+ */
+router.get('/history', authenticate, getXPHistory);
+
+/**
+ * @swagger
+ * /api/xp/streak-status:
+ *   get:
+ *     summary: 🔥 Streak holati
+ *     tags: [XP]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Streak va qolgan vaqt
+ */
+router.get('/streak-status', authenticate, getStreakStatus);
 
 module.exports = router;

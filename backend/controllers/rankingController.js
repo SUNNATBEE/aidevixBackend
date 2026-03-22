@@ -141,4 +141,42 @@ const getUserPosition = async (req, res) => {
   }
 };
 
-module.exports = { getTopCourses, getTopUsers, getUserPosition };
+/**
+ * @desc  Haftalik leaderboard (weeklyXp bo'yicha)
+ * @route GET /api/ranking/weekly
+ * @access Private
+ */
+const getWeeklyLeaderboard = async (req, res) => {
+  try {
+    const top = await UserStats.find({ weeklyXp: { $gt: 0 } })
+      .sort({ weeklyXp: -1 })
+      .limit(10)
+      .populate('userId', 'username')
+      .lean();
+
+    const rankedUsers = top.map((u, i) => ({
+      rank: i + 1,
+      user: u.userId,
+      weeklyXp: u.weeklyXp || 0,
+      level: u.level,
+      streak: u.streak,
+    }));
+
+    // Joriy foydalanuvchi pozitsiyasi
+    let myRank = null;
+    let myWeeklyXp = 0;
+    if (req.user) {
+      const myStats = await UserStats.findOne({ userId: req.user.id }).lean();
+      if (myStats) {
+        myWeeklyXp = myStats.weeklyXp || 0;
+        myRank = await UserStats.countDocuments({ weeklyXp: { $gt: myWeeklyXp } }) + 1;
+      }
+    }
+
+    res.json({ success: true, data: { leaderboard: rankedUsers, myRank, myWeeklyXp } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { getTopCourses, getTopUsers, getUserPosition, getWeeklyLeaderboard };

@@ -8,5 +8,6 @@ const CourseRatingSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 CourseRatingSchema.index({ userId: 1, courseId: 1 }, { unique: true });
+CourseRatingSchema.index({ courseId: 1 });
 
 module.exports = mongoose.model('CourseRating', CourseRatingSchema);

@@ -1,6 +1,8 @@
 const Course = require('../models/Course');
 const Video  = require('../models/Video');
 const CourseRating = require('../models/CourseRating');
+const Enrollment = require('../models/Enrollment');
+const { getRecommendedCourses: getRecommendedByUser } = require('../utils/recommendationService');
 
 /**
  * @desc  Barcha kurslar — filter, qidiruv, pagination
@@ -318,12 +320,90 @@ const rateCourse = async (req, res) => {
   }
 };
 
+/**
+ * @desc  Foydalanuvchi uchun tavsiya etilgan kurslar (enrollment asosida)
+ * @route GET /api/courses/recommended
+ * @access Private
+ */
+const getUserRecommendedCourses = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 6;
+    const courses = await getRecommendedByUser(req.user._id, limit);
+    res.json({ success: true, data: { courses } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc  Kurs nomlarini autocomplete qidirish
+ * @route GET /api/courses/autocomplete?q=react
+ * @access Public
+ */
+const getAutocomplete = async (req, res) => {
+  try {
+    const { q = '' } = req.query;
+    if (!q.trim()) return res.json({ success: true, data: { suggestions: [] } });
+
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const suggestions = await Course.find({
+      isActive: true,
+      title: { $regex: escaped, $options: 'i' },
+    })
+      .select('_id title category')
+      .limit(5)
+      .lean();
+
+    res.json({ success: true, data: { suggestions } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc  Filter badge counters (frontend uchun)
+ * @route GET /api/courses/filter-counts
+ * @access Public
+ */
+const getFilterCounts = async (req, res) => {
+  try {
+    const [catAgg, levelAgg, freeCount, paidCount] = await Promise.all([
+      Course.aggregate([
+        { $match: { isActive: true } },
+        { $group: { _id: '$category', count: { $sum: 1 } } },
+      ]),
+      Course.aggregate([
+        { $match: { isActive: true } },
+        { $group: { _id: '$level', count: { $sum: 1 } } },
+      ]),
+      Course.countDocuments({ isActive: true, isFree: true }),
+      Course.countDocuments({ isActive: true, isFree: false }),
+    ]);
+
+    const categories = {};
+    catAgg.forEach((c) => { categories[c._id] = c.count; });
+
+    const levels = {};
+    levelAgg.forEach((l) => { levels[l._id] = l.count; });
+
+    res.json({
+      success: true,
+      data: { categories, levels, free: freeCount, paid: paidCount },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getAllCourses,
   getCourse,
   getTopCourses,
   getCategories,
   getRecommendedCourses,
+  getUserRecommendedCourses,
+  getAutocomplete,
+  getFilterCounts,
   createCourse,
   updateCourse,
   deleteCourse,

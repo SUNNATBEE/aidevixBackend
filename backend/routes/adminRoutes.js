@@ -3,6 +3,7 @@ const router  = express.Router();
 const {
   getDashboardStats, getTopStudents, getCoursesStats,
   getRecentPayments, getUsers, updateUser, deleteUser,
+  getInstagramVerifications, reviewInstagramVerification,
 } = require('../controllers/adminController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
@@ -245,5 +246,8 @@ router.put('/users/:id', authenticate, requireAdmin, updateUser);
  *         description: Foydalanuvchi topilmadi
  */
 router.delete('/users/:id', authenticate, requireAdmin, deleteUser);
+
+router.get('/instagram-verifications', authenticate, requireAdmin, getInstagramVerifications);
+router.put('/instagram-verifications/:id', authenticate, requireAdmin, reviewInstagramVerification);
 
 module.exports = router;

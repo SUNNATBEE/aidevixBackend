@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getTopCourses, getTopUsers, getUserPosition } = require('../controllers/rankingController');
+const { getTopCourses, getTopUsers, getUserPosition, getWeeklyLeaderboard } = require('../controllers/rankingController');
 const { authenticate } = require('../middleware/auth');
 
 /**
@@ -156,5 +156,19 @@ router.get('/users', getTopUsers);
  *         description: Foydalanuvchi pozitsiyasi
  */
 router.get('/users/:userId/position', authenticate, getUserPosition);
+
+/**
+ * @swagger
+ * /api/ranking/weekly:
+ *   get:
+ *     summary: 📅 Haftalik leaderboard (weeklyXp bo'yicha)
+ *     tags: [Ranking]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Haftalik TOP foydalanuvchilar va shaxsiy pozitsiya
+ */
+router.get('/weekly', authenticate, getWeeklyLeaderboard);
 
 module.exports = router;
