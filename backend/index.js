@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const mongoSanitize = require('express-mongo-sanitize');
+const { sanitize: mongoSanitizeValue } = require('express-mongo-sanitize');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
 const swaggerAdminSpec = require('./config/swaggerAdmin');
@@ -30,12 +30,17 @@ const allowedOrigins = (process.env.FRONTEND_URL || '')
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
+    // Allow requests with no origin (mobile apps, curl, Postman, direct navigation)
     if (!origin) return callback(null, true);
+    // Allow opaque origins (Telegram webview, file://, etc.)
+    if (origin === 'null') return callback(null, true);
     // Allow if explicitly listed or wildcard '*' configured
     if (allowedOrigins.includes('*') || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
+    // Allow Railway backend URL itself (Swagger UI "Try it out" feature)
+    const backendUrl = process.env.BACKEND_URL || 'https://aidevix-backend-production.up.railway.app';
+    if (origin === backendUrl) return callback(null, true);
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
@@ -55,8 +60,12 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// MongoDB injection sanitize
-app.use(mongoSanitize());
+// MongoDB injection sanitize — faqat body va params (Express 5 da req.query read-only getter)
+app.use((req, res, next) => {
+  if (req.body) mongoSanitizeValue(req.body);
+  if (req.params) mongoSanitizeValue(req.params);
+  next();
+});
 
 // Global API rate limiter
 app.use('/api/', apiLimiter);
