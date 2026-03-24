@@ -37,10 +37,13 @@ export default function AppRouter() {
     )
   }, [location.pathname])
 
+  const hideLayoutPaths = ['/login', '/register'];
+  const shouldHideLayout = hideLayoutPaths.includes(location.pathname);
+
   return (
     <>
       <ScrollToTop />
-      <Navbar />
+      {!shouldHideLayout && <Navbar />}
 
       <main id="page-wrapper" className="min-h-screen">
         <Suspense fallback={<Loader fullScreen />}>
@@ -69,7 +72,7 @@ export default function AppRouter() {
         </Suspense>
       </main>
 
-      <Footer />
+      {!shouldHideLayout && <Footer />}
     </>
   )
 }

@@ -71,7 +71,7 @@ export default function Navbar() {
             {/* ─── Desktop Nav Links ─── */}
             <ul className="hidden lg:flex items-center gap-1">
               {NAV_LINKS.map((link) => (
-                <li key={link.to}>
+                <li key={link.label}>
                   <NavLink
                     to={link.to}
                     className={({ isActive }) =>
@@ -164,7 +164,7 @@ export default function Navbar() {
           <div className="bg-[#0a0c14] px-4 py-4 space-y-1">
             {NAV_LINKS.map((link) => (
               <Link
-                key={link.to}
+                key={link.label}
                 to={link.to}
                 onClick={() => setMenuOpen(false)}
                 className="block px-3 py-2.5 text-gray-300 hover:text-white hover:bg-white/8 rounded-lg text-sm transition-colors"
