@@ -1,72 +1,221 @@
-// ============================================================
-// OQUVCHI  : ABDUVOHID
-// BRANCH   : feature/abduvohid-home
-// ROUTE    : /
-// ============================================================
-//
-// VAZIFA: Bosh sahifani yaratish
-//
-// Bu sahifada bo'lishi kerak:
-//
-//  1. HERO SECTION (min-h-screen, fullscreen)
-//     - Three.js 3D animatsiya orqa fon uchun (HeroScene.js — QUDRAT yozadi)
-//     - Gradient overlay
-//     - "Professional dasturlash platformasi" badge
-//     - Katta sarlavha: "Kod yozishni o'zbekcha o'rgan"
-//     - Subtitle matni
-//     - 2 ta CTA tugma: "Kurslarni ko'rish" + "Ro'yxatdan o'tish"
-//     - Statistika: 120+ Darslar | 5000+ Talabalar | 6 Kategoriya
-//     - Scroll indicator (pastga o'q)
-//     - GSAP animatsiyalar: animateHeroEntrance(), animateScrollIndicator()
-//
-//  2. KATEGORIYALAR SECTION
-//     - "Kategoriyalar" sarlavha
-//     - 6 ta karta: HTML, CSS, Tailwind, JS, React, Node.js
-//     - Har karta: katta emoji + nom
-//     - hover: scale-105 + glow effekt
-//     - Link: /courses?category=html
-//     - GSAP: animateCardsOnScroll() ScrollTrigger bilan
-//
-//  3. SO'NGGI KURSLAR SECTION
-//     - "So'nggi kurslar" sarlavha + "Barchasini ko'rish →" link
-//     - CourseFilter komponenti (kategoriya tabs)
-//     - CourseGrid komponenti (kurslar grid)
-//     - API: GET /api/courses?limit=8
-//     - useCourses() hook dan ma'lumot olish
-//
-//  4. TOP VIDEOLAR SECTION
-//     - "Eng ko'p ko'rilgan videolar" sarlavha
-//     - 2 ustunli grid (md:grid-cols-2)
-//     - VideoCard komponenti — 6 ta top video
-//     - "Barcha top videolarni ko'rish →" link
-//     - SkeletonCard yuklanayotganda
-//
-//  5. FOOTER CTA (ixtiyoriy)
-//     - "Bugun boshlang!" katta sarlavha
-//     - Gradient background
-//     - "Bepul ro'yxatdan o'tish" katta tugma
-//
-// HOOKS:
-//   useCourses() → { courses, loading, fetchAll, topCourses, fetchTop }
-//   useVideos()  → { topVideos, loading, fetchTop }
-//
-// ANIMATSIYALAR (animations/gsap/heroAnimations.js va cardAnimations.js):
-//   animateHeroEntrance({ badge, title, subtitle, btns, stats })
-//   animateScrollIndicator(scrollRef.current)
-//   animateStatsCounter(document.querySelectorAll('[data-target]'))
-//   animateCardsOnScroll('.category-card')
-//   animateSectionTitle(sectionTitleRef.current)
-//
-// THREE.JS:
-//   import { HeroScene } from '@animations/three/HeroScene'
-//   const scene = new HeroScene(canvasRef.current)
-//   scene.start()   — sahifa ochilganda
-//   scene.destroy() — komponent o'chirilganda (cleanup)
-//
-// FIGMA: "Aidevix Home Page" sahifasini qarang
-// ============================================================
+import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import 'swiper/css';
+
+import { useCourses } from '../hooks/useCourses';
+import { useVideos } from '../hooks/useVideos';
+import CourseCard from '../components/courses/CourseCard';
+import VideoCard from '../components/videos/VideoCard';
+import ProBanner from '../components/home/ProBanner';
+
+const categories = [
+  { name: 'Frontend', icon: '👨‍💻' },
+  { name: 'Backend', icon: '⚙️' },
+  { name: 'Python/AI', icon: '🤖' },
+  { name: 'Mobile', icon: '📱' },
+  { name: 'UI/UX', icon: '🎨' },
+  { name: 'GameDev', icon: '🎮' },
+];
 
 export default function HomePage() {
-  // TODO: ABDUVOHID bu sahifani to'liq yozadi
-  return null
+  const { topCourses, courses, loading: coursesLoading, fetchTop: fetchTopCourses } = useCourses();
+  const { topVideos, loading: videosLoading, fetchTop: fetchTopVideos } = useVideos();
+
+  useEffect(() => {
+    if (fetchTopCourses) fetchTopCourses({ limit: 8 });
+    if (fetchTopVideos) fetchTopVideos({ limit: 6 });
+  }, [fetchTopCourses, fetchTopVideos]);
+
+  const coursesData = courses?.data || courses || topCourses?.data || topCourses || [];
+  const videosData = topVideos?.data || topVideos || [];
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 font-sans selection:bg-purple-500/30">
+      {/* 1. HERO SECTION */}
+      <section className="bg-transparent text-white min-h-[85vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Glow effect for background */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-full max-w-3xl h-64 bg-purple-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+
+        <div className="max-w-5xl mx-auto text-center flex flex-col items-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-8 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-sm font-medium text-slate-300"
+          >
+            Professional dasturlash platformasi
+          </motion.div>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-8 leading-tight"
+          >
+            Kelajak kasbini <span className="text-purple-500">O'zbek tilida</span> o'rganing
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-lg md:text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed"
+          >
+            Eng talabgir dasturlash yo'nalishlarini noldan boshlab amaliy loyihalar orqali o'rganing va IT sohasiga birinchi qadamingizni qoying.
+          </motion.p>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="flex flex-col sm:flex-row justify-center gap-4 w-full sm:w-auto"
+          >
+            <Link to="/courses" className="btn bg-purple-600 hover:bg-purple-700 border-none text-white btn-lg rounded-full px-10 shadow-[0_0_20px_rgba(147,51,234,0.3)]">
+              Kurslarni ko'rish
+            </Link>
+            <Link to="/register" className="btn btn-outline border-slate-700 text-white hover:bg-white hover:text-black btn-lg rounded-full px-10">
+              Ro'yxatdan o'tish
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* 2. STATS SECTION */}
+      <section className="px-4 relative -mt-16 z-20 max-w-5xl mx-auto">
+        <div className="flex flex-col md:flex-row shadow-[0_4px_30px_rgba(0,0,0,0.5)] w-full bg-[#0f0f12] rounded-2xl border border-white/5 divide-y md:divide-y-0 md:divide-x divide-white/5">
+          <div className="flex-1 place-items-center py-8 text-center">
+            <div className="text-3xl font-bold text-white mb-2">15k+</div>
+            <div className="text-sm font-medium text-slate-400">Faol o'quvchilar</div>
+          </div>
+          <div className="flex-1 place-items-center py-8 text-center">
+            <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent mb-2">120+</div>
+            <div className="text-sm font-medium text-slate-400">Video darslar</div>
+          </div>
+          <div className="flex-1 place-items-center py-8 text-center">
+            <div className="text-3xl font-bold text-white mb-2">50+</div>
+            <div className="text-sm font-medium text-slate-400">Mentorlar</div>
+          </div>
+          <div className="flex-1 place-items-center py-8 text-center">
+            <div className="text-3xl font-bold text-orange-500 mb-2">4.9</div>
+            <div className="text-sm font-medium text-slate-400">Reyting</div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. CATEGORIES */}
+      <section className="py-24 px-4 bg-transparent mt-10">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-white mb-4">Yo'nalishlar</h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">O'zingizga ma'qul bo'lgan sohani tanlang</p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-4 lg:gap-6">
+            {categories.map((category, idx) => (
+              <motion.div 
+                whileHover={{ scale: 1.05, y: -5 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                key={idx} 
+                className="w-40 sm:w-48 lg:w-52"
+              >
+                <Link to={`/courses?category=${category.name.toLowerCase().replace('/', '-')}`} className="block h-full bg-gradient-to-b from-[#2a2a30] to-[#121215] rounded-2xl p-6 sm:p-8 border-t border-white/10 shadow-xl hover:shadow-purple-500/10 transition-shadow">
+                  <div className="flex flex-col items-center justify-center text-center h-full gap-4">
+                    <div className="text-5xl drop-shadow-lg">{category.icon}</div>
+                    <h3 className="text-sm sm:text-base font-bold text-slate-200">{category.name}</h3>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 4. COURSES SECTION */}
+      <section className="py-20 px-4 max-w-7xl mx-auto bg-transparent">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
+          <div>
+            <h2 className="text-3xl font-bold text-white mb-3 tracking-tight">Tavsiya etilgan kurslar</h2>
+            <p className="text-slate-400">Eng mashhur va sifatli darsliklar</p>
+          </div>
+          <Link to="/courses" className="text-sm text-slate-400 hover:text-white shrink-0 transition-colors">Barchasini ko'rish &rarr;</Link>
+        </div>
+        
+        {coursesLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <span className="loading loading-spinner loading-lg text-purple-500"></span>
+            <p className="mt-4 text-slate-400 font-medium">Kurslar yuklanmoqda...</p>
+          </div>
+        ) : (
+          <div className="courses-swiper-container -mx-4 px-4 sm:mx-0 sm:px-0">
+            <Swiper
+              spaceBetween={24}
+              slidesPerView={1}
+              breakpoints={{
+                640: { slidesPerView: 2 },
+                768: { slidesPerView: 3 },
+                1024: { slidesPerView: 4 },
+              }}
+              className="py-4 px-2"
+            >
+              {coursesData.length > 0 ? (
+                coursesData.map((course, index) => (
+                  <SwiperSlide key={course._id || index} className="pb-8 h-auto">
+                    <CourseCard course={course} index={index} />
+                  </SwiperSlide>
+                ))
+              ) : (
+                <div className="text-center py-12 text-slate-400 w-full bg-[#121215] rounded-2xl border border-white/5">Kurslar topilmadi</div>
+              )}
+            </Swiper>
+          </div>
+        )}
+      </section>
+
+      {/* PRO BANNER SECTION */}
+      <section className="py-12 px-4 max-w-7xl mx-auto bg-transparent">
+        <ProBanner />
+      </section>
+
+      {/* 5. VIDEOS SECTION */}
+      <section className="py-20 px-4 max-w-7xl mx-auto bg-transparent border-t border-white/5">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
+          <div>
+            <h2 className="text-3xl font-bold text-white mb-3">Eng ko'p ko'rilgan videolar</h2>
+            <p className="text-slate-400">Barcha kurslar ichidan eng ko'p e'tiborga tushgan darslar</p>
+          </div>
+          <Link to="/videos" className="text-sm text-slate-400 hover:text-white shrink-0 transition-colors">Barchasini ko'rish &rarr;</Link>
+        </div>
+
+        {videosLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <span className="loading loading-spinner loading-lg text-purple-500"></span>
+            <p className="mt-4 text-slate-400 font-medium">Videolar yuklanmoqda...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {videosData.length > 0 ? (
+              videosData.map((video, index) => (
+                <VideoCard key={video._id || index} video={video} index={index} />
+              ))
+            ) : (
+              <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 text-slate-400 bg-[#121215] rounded-2xl border border-white/5">Videolar topilmadi</div>
+            )}
+          </div>
+        )}
+      </section>
+      
+      {/* 6. FOOTER CTA */}
+      <section className="py-24 px-4 bg-[#0a0a0a] border-t border-white/5 text-center relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg h-64 bg-purple-600/10 blur-[150px] rounded-full pointer-events-none"></div>
+        <div className="max-w-3xl mx-auto relative z-10">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Bugun boshlang!</h2>
+          <p className="text-lg md:text-xl text-slate-400 mb-10">
+            Minglab o'quvchilar safiga qo'shiling va o'z yorqin kelajagingizni biz bilan quring.
+          </p>
+          <Link to="/register" className="btn btn-lg bg-white text-black hover:bg-slate-200 border-none rounded-full px-12 font-bold">
+            Bepul ro'yxatdan o'tish
+          </Link>
+        </div>
+      </section>
+    </div>
+  );
 }
