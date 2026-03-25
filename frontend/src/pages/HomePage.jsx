@@ -9,14 +9,16 @@ import { useVideos } from '../hooks/useVideos';
 import CourseCard from '../components/courses/CourseCard';
 import VideoCard from '../components/videos/VideoCard';
 import ProBanner from '../components/home/ProBanner';
+import { HiOutlineDesktopComputer, HiOutlineServer, HiOutlineDeviceMobile, HiOutlineDatabase } from 'react-icons/hi';
+import { SiPython, SiFigma } from 'react-icons/si';
 
 const categories = [
-  { name: 'Frontend', icon: '👨‍💻' },
-  { name: 'Backend', icon: '⚙️' },
-  { name: 'Python/AI', icon: '🤖' },
-  { name: 'Mobile', icon: '📱' },
-  { name: 'UI/UX', icon: '🎨' },
-  { name: 'GameDev', icon: '🎮' },
+  { name: 'Frontend', subtitle: "Web saytlar ko'rinishi", icon: <HiOutlineDesktopComputer className="w-8 h-8 text-white" />, path: 'frontend' },
+  { name: 'Backend', subtitle: "Server va mantiq", icon: <HiOutlineServer className="w-8 h-8 text-emerald-400" />, path: 'backend' },
+  { name: 'Python', subtitle: "AI va Telegram botlar", icon: <SiPython className="w-8 h-8 text-yellow-500" />, path: 'python' },
+  { name: 'Mobile', subtitle: "Android va iOS", icon: <HiOutlineDeviceMobile className="w-8 h-8 text-pink-400" />, path: 'mobile' },
+  { name: 'UI/UX', subtitle: "Dizayn va Prototip", icon: <SiFigma className="w-8 h-8 text-purple-400" />, path: 'ui-ux' },
+  { name: 'Ma\'lumotlar', subtitle: "SQL va Tahlil", icon: <HiOutlineDatabase className="w-8 h-8 text-blue-400" />, path: 'malumotlar' },
 ];
 
 export default function HomePage() {
@@ -103,25 +105,27 @@ export default function HomePage() {
       </section>
 
       {/* 3. CATEGORIES */}
-      <section className="py-24 px-4 bg-transparent mt-10">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+      <section className="py-24 bg-[#050505] mt-10">
+        <div className="w-full">
+          <div className="text-center mb-16 px-4">
             <h2 className="text-4xl font-bold text-white mb-4">Yo'nalishlar</h2>
             <p className="text-slate-400 max-w-2xl mx-auto">O'zingizga ma'qul bo'lgan sohani tanlang</p>
           </div>
-          <div className="flex flex-wrap justify-center gap-4 lg:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 px-4 max-w-7xl mx-auto">
             {categories.map((category, idx) => (
               <motion.div 
-                whileHover={{ scale: 1.05, y: -5 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
                 key={idx} 
-                className="w-40 sm:w-48 lg:w-52"
+                className="h-full"
               >
-                <Link to={`/courses?category=${category.name.toLowerCase().replace('/', '-')}`} className="block h-full bg-gradient-to-b from-[#2a2a30] to-[#121215] rounded-2xl p-6 sm:p-8 border-t border-white/10 shadow-xl hover:shadow-purple-500/10 transition-shadow">
-                  <div className="flex flex-col items-center justify-center text-center h-full gap-4">
-                    <div className="text-5xl drop-shadow-lg">{category.icon}</div>
-                    <h3 className="text-sm sm:text-base font-bold text-slate-200">{category.name}</h3>
+                <Link to={`/courses?category=${category.path}`} className="bg-[#0f1115] border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:bg-[#161920] transition-all duration-300 group h-full">
+                  <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    {category.icon}
                   </div>
+                  <h3 className="text-white font-bold text-lg mb-1">{category.name}</h3>
+                  <p className="text-slate-500 text-xs font-medium">{category.subtitle}</p>
                 </Link>
               </motion.div>
             ))}
