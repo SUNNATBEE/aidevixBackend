@@ -23,15 +23,15 @@ const categories = [
 
 export default function HomePage() {
   const { topCourses, courses, loading: coursesLoading, fetchTop: fetchTopCourses } = useCourses();
-  const { topVideos, loading: videosLoading, fetchTop: fetchTopVideos } = useVideos();
+  const { topVideos, loading: videosLoading, error: videosError, fetchTop: fetchTopVideos } = useVideos();
 
   useEffect(() => {
     if (fetchTopCourses) fetchTopCourses({ limit: 8 });
-    if (fetchTopVideos) fetchTopVideos({ limit: 6 });
+    if (fetchTopVideos) fetchTopVideos(6);
   }, [fetchTopCourses, fetchTopVideos]);
 
   const coursesData = courses?.data || courses || topCourses?.data || topCourses || [];
-  const videosData = topVideos?.data || topVideos || [];
+  const safeTopVideos = Array.isArray(topVideos) ? topVideos : [];
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-slate-200 font-sans selection:bg-purple-500/30">
@@ -181,23 +181,28 @@ export default function HomePage() {
 
       {/* 5. VIDEOS SECTION */}
       <section className="py-20 px-4 max-w-7xl mx-auto bg-transparent border-t border-white/5">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
-          <div>
-            <h2 className="text-3xl font-bold text-white mb-3">Eng ko'p ko'rilgan videolar</h2>
-            <p className="text-slate-400">Barcha kurslar ichidan eng ko'p e'tiborga tushgan darslar</p>
-          </div>
-          <Link to="/videos" className="text-sm text-slate-400 hover:text-white shrink-0 transition-colors">Barchasini ko'rish &rarr;</Link>
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-white mb-4">Top videolar</h2>
         </div>
 
         {videosLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <span className="loading loading-spinner loading-lg text-purple-500"></span>
-            <p className="mt-4 text-slate-400 font-medium">Videolar yuklanmoqda...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex flex-col gap-3">
+                <div className="skeleton h-48 w-full bg-slate-800/50 rounded-2xl"></div>
+                <div className="skeleton h-6 w-3/4 bg-slate-800/50"></div>
+                <div className="skeleton h-4 w-1/2 bg-slate-800/50"></div>
+              </div>
+            ))}
+          </div>
+        ) : videosError ? (
+          <div className="text-center py-12 text-red-500 bg-[#121215] rounded-2xl border border-red-500/20">
+            Videolarni yuklashda xatolik yuz berdi
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {videosData.length > 0 ? (
-              videosData.map((video, index) => (
+            {safeTopVideos.length > 0 ? (
+              safeTopVideos.map((video, index) => (
                 <VideoCard key={video._id || index} video={video} index={index} />
               ))
             ) : (
