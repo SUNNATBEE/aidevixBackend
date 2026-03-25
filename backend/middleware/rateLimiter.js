@@ -3,16 +3,16 @@ const rateLimit = require('express-rate-limit');
 // Umumiy API limit
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 daqiqa
-  max: 200,
+  max: 500,
   message: { success: false, message: 'Juda ko\'p so\'rov. 15 daqiqadan so\'ng qayta urinib ko\'ring.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Auth uchun qattiqroq limit
+// Auth uchun limit (register/login test qilish uchun kengaytirildi)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 50,
   message: { success: false, message: 'Juda ko\'p urinish. 15 daqiqadan so\'ng qayta urinib ko\'ring.' },
   standardHeaders: true,
   legacyHeaders: false,

@@ -208,7 +208,7 @@ const { status, loading, verifyTelegram, verifyInstagram } = useSubscription()
 | Muhit | URL |
 |-------|-----|
 | Local (Development) | `http://localhost:5000` |
-| Production (Render) | `https://aidevixbackend.onrender.com` |
+| Production (Railway) | `https://aidevix-backend-production.up.railway.app` |
 
 ---
 
@@ -216,8 +216,8 @@ const { status, loading, verifyTelegram, verifyInstagram } = useSubscription()
 
 ```
 URL:      http://localhost:5000/api-docs
-Username: admin
-Password: admin123
+Username: Aidevix
+Password: sunnatbee
 ```
 
 **Swagger'da token kiritish:**
@@ -342,7 +342,7 @@ Password: admin123
 | Method | URL | Auth | Vazifa |
 |--------|-----|------|--------|
 | GET | `/api/videos/course/:courseId` | ❌ | Kurs videolari |
-| GET | `/api/videos/:id` | ✅ + Obuna | Video + Telegram link |
+| GET | `/api/videos/:id` | ✅ + Obuna | Video + Bunny embed URL |
 | POST | `/api/videos/link/:linkId/use` | ✅ | Linkni belgilash |
 | GET | `/api/videos/:id/questions` | ❌ | Q&A |
 | POST | `/api/videos/:id/questions` | ✅ | Savol berish |
@@ -355,7 +355,7 @@ Password: admin123
 ```
 1. authenticate    → Token tekshiruvi
 2. checkSubscriptions → Instagram + Telegram obuna real-time tekshiruvi
-3. getVideo        → Video + Bir martalik Telegram link yaratish
+3. getVideo        → Video + Bunny embed URL yaratish
 ```
 
 ---

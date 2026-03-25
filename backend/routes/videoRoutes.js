@@ -1,6 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const { getCourseVideos, getVideo, useVideoLink, createVideo, updateVideo, deleteVideo, askQuestion, getVideoQuestions, answerQuestion } = require('../controllers/videoController');
+const {
+  getCourseVideos,
+  getVideo,
+  useVideoLink,
+  createVideo,
+  updateVideo,
+  deleteVideo,
+  askQuestion,
+  getVideoQuestions,
+  answerQuestion,
+  getUploadCredentialsForVideo,
+  checkVideoStatus,
+  linkToBunny,
+} = require('../controllers/videoController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { checkSubscriptions } = require('../middleware/subscriptionCheck');
 
@@ -163,81 +176,100 @@ router.get('/course/:courseId', getCourseVideos);
  * @swagger
  * /api/videos/{id}:
  *   get:
- *     summary: 🔒 Video ko'rish + Bir martalik Telegram link (Token + Obuna kerak!)
+ *     summary: 🔒 Video ko'rish — Bunny.net embed URL (Token + Telegram obuna kerak!)
  *     description: |
  *       ## 🇺🇿 O'ZBEKCHA
  *
- *       Video ma'lumotlarini va **bir martalik Telegram video linkini** qaytaradi.
+ *       Video ma'lumotlarini va **Bunny.net 2 soatlik imzolangan embed URL** qaytaradi.
  *       Bu eng muhim endpoint — videoni faqat shu orqali ko'rish mumkin.
+ *
+ *       > ⚠️ **O'ZGARISH (2026):** Ilgari Telegram bir martalik link qaytarardi.
+ *       > **Hozir** Bunny.net signed embed URL qaytariladi. Telegram link yo'q!
  *
  *       ### 🛡️ Himoya qatlamlari (3 ta):
  *       1. **authenticate** — JWT token tekshiruvi (login qilganmi?)
- *       2. **checkSubscriptions** — Real-time obuna tekshiruvi:
- *          - Instagram kanalga obunami? ← Telegram Bot API tekshiradi
- *          - Telegram kanalga obunami? ← Telegram Bot API tekshiradi
- *       3. **getVideo** — Video mavjudmi, link yaratiladi
+ *       2. **checkSubscriptions** — Real-time Telegram kanal obunasi tekshiruvi
+ *       3. **getVideo** — Video Bunny.net da tayyor holatdami? → embed URL yaratiladi
  *
  *       ### 📋 Qanday ishlaydi?
  *       1. `Authorization: Bearer TOKEN` tekshiriladi
- *       2. **Real-time**: Telegram Bot API orqali foydalanuvchi obunasi tekshiriladi
- *       3. Agar obunasi yo'q → `403` xatosi qaytariladi (qaysi obuna yo'qligi ko'rsatiladi)
- *       4. Video database'dan topiladi
- *       5. **Bir martalik Telegram link** yaratiladi va qaytariladi
- *       6. Bu linkni foydalanuvchi bir marta ishlatib video ko'radi
+ *       2. **Real-time**: Telegram Bot API orqali kanal obunasi tekshiriladi
+ *       3. Obunasi yo'q → `403` (qaysi obuna yo'qligi `missingSubscriptions` da ko'rsatiladi)
+ *       4. Video `bunnyStatus === 'ready'` emasmi? → `503` (hali tayyorlanmoqda)
+ *       5. **Bunny.net signed embed URL** yaratiladi (2 soat muddatli)
+ *       6. `video` + `player` ob'ekti qaytariladi
  *
- *       ### ⚡ Bir martalik link nima?
- *       - Har safar `/api/videos/:id` chaqirilganda **yangi link** yaratiladi
- *       - Link Telegram'ning private kanalidan video url
- *       - Link `isUsed: false` holda qaytariladi
- *       - Foydalanuvchi linkni bosganda `/api/videos/link/:id/use` chaqiriladi
- *       - Link `isUsed: true` bo'ladi va qayta ishlatib bo'lmaydi
+ *       ### 🎬 Bunny.net embed URL nima?
+ *       - Har safar `/api/videos/:id` chaqirilganda **yangi signed URL** yaratiladi
+ *       - URL 2 soat davomida amal qiladi (`player.expiresAt`)
+ *       - Muddati tugaganda foydalanuvchi sahifani yangilashi kerak
+ *       - Frontend bu URL ni `<iframe>` ichida ko'rsatadi
  *
- *       ### 💻 Frontend da qanday ishlatish:
+ *       ### 💻 Frontend da to'g'ri ishlatish:
  *       ```javascript
- *       // src/components/VideoPlayer.jsx
- *       const watchVideo = async (videoId) => {
- *         const token = localStorage.getItem('accessToken');
- *         const res = await fetch(`http://localhost:5000/api/videos/${videoId}`, {
- *           headers: { 'Authorization': `Bearer ${token}` }
- *         });
+ *       // src/pages/VideoPage.jsx
+ *       import axiosInstance from '@api/axiosInstance'
  *
- *         if (res.status === 403) {
- *           // Obuna yo'q — obuna sahifasiga yo'naltirish
- *           const err = await res.json();
- *           console.log('Kerak obunalar:', err.missingSubscriptions);
- *           navigate('/subscribe');
- *           return;
+ *       const loadVideo = async (videoId) => {
+ *         try {
+ *           const res = await axiosInstance.get(`/videos/${videoId}`)
+ *           const { video, player } = res.data.data
+ *
+ *           // player.embedUrl — iframe src uchun
+ *           // player.expiresAt — URL qachon eskiradi
+ *           return { video, player }
+ *         } catch (err) {
+ *           if (err.response?.status === 403) {
+ *             // Obuna yo'q — obuna sahifasiga yo'naltirish
+ *             const missing = err.response.data.missingSubscriptions
+ *             navigate('/subscription')
+ *           }
+ *           if (err.response?.status === 503) {
+ *             // Video hali Bunny.net da tayyorlanmoqda
+ *             showMessage('Video hali tayyor emas, kuting...')
+ *           }
  *         }
+ *       }
  *
- *         const data = await res.json();
- *         const { video, videoLink } = data.data;
+ *       // Video ko'rsatish — Bunny iframe:
+ *       <div style={{ position: 'relative', paddingTop: '56.25%' }}>
+ *         <iframe
+ *           src={player.embedUrl}
+ *           style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+ *           allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+ *           allowFullScreen
+ *         />
+ *       </div>
+ *       ```
  *
- *         // Telegram linkni ochish
- *         window.open(videoLink.telegramLink, '_blank');
- *
- *         // Linkni "ishlatilgan" deb belgilash
- *         await markLinkAsUsed(videoLink._id);
- *       };
+ *       ### ❌ ESKIRGAN — Ishlatma:
+ *       ```javascript
+ *       // ❌ Bunday qilma — telegramLink yo'q!
+ *       window.open(data.videoLink.telegramLink, '_blank')
  *       ```
  *
  *       ---
  *
  *       ## 🇷🇺 РУССКИЙ
  *
- *       Возвращает данные видео и **одноразовую ссылку на Telegram видео**.
+ *       Возвращает данные видео и **подписанный Bunny.net embed URL** (2 часа).
+ *
+ *       > ⚠️ **ИЗМЕНЕНИЕ (2026):** Раньше возвращалась одноразовая Telegram-ссылка.
+ *       > **Теперь** возвращается Bunny.net signed embed URL. Telegram-ссылки нет!
  *
  *       ### 🛡️ Три уровня защиты:
  *       1. **authenticate** — проверка JWT токена
- *       2. **checkSubscriptions** — проверка подписок в реальном времени (Instagram + Telegram)
- *       3. **getVideo** — получение видео и создание одноразовой ссылки
+ *       2. **checkSubscriptions** — проверка подписки на Telegram канал в реальном времени
+ *       3. **getVideo** — проверка готовности видео на Bunny.net → генерация embed URL
  *
  *       ### 📊 Status kodlar / Коды статусов:
  *       | Kod | Ma'no (O'z) | Значение (Рус) |
  *       |-----|------------|----------------|
- *       | 200 | ✅ Video + bir martalik link qaytarildi | ✅ Видео + одноразовая ссылка |
- *       | 401 | ❌ Token berilmagan yoki noto'g'ri | ❌ Токен не указан или неверный |
- *       | 403 | ❌ Obuna yo'q (Instagram/Telegram) | ❌ Нет подписки (Instagram/Telegram) |
+ *       | 200 | ✅ Video + Bunny embed URL qaytarildi | ✅ Видео + Bunny embed URL |
+ *       | 401 | ❌ Token berilmagan | ❌ Токен не указан |
+ *       | 403 | ❌ Telegram obunasi yo'q | ❌ Нет подписки на Telegram |
  *       | 404 | ❌ Video topilmadi | ❌ Видео не найдено |
+ *       | 503 | ❌ Video hali Bunny.net da tayyorlanmoqda | ❌ Видео ещё обрабатывается |
  *       | 500 | ❌ Server xatosi | ❌ Ошибка сервера |
  *     tags: [Videos]
  *     security:
@@ -249,10 +281,10 @@ router.get('/course/:courseId', getCourseVideos);
  *         schema:
  *           type: string
  *           example: "65f200000000000000000001"
- *         description: "Video ID si / ID видео"
+ *         description: "Video MongoDB ID si / MongoDB ID видео"
  *     responses:
  *       200:
- *         description: ✅ Video va bir martalik link / ✅ Видео и одноразовая ссылка
+ *         description: ✅ Video + Bunny.net embed URL (2 soat muddatli) / ✅ Видео + Bunny embed URL
  *         content:
  *           application/json:
  *             schema:
@@ -264,15 +296,19 @@ router.get('/course/:courseId', getCourseVideos);
  *                   _id: "65f200000000000000000001"
  *                   title: "1-dars: React nima va nima uchun kerak?"
  *                   description: "React haqida umumiy ma'lumot, Virtual DOM va komponent arxitekturasi."
- *                   course: "65f100000000000000000005"
- *                   order: 0
- *                   duration: 900
- *                   isActive: true
- *                 videoLink:
- *                   _id: "65f300000000000000000001"
- *                   telegramLink: "https://t.me/c/1234567890/42"
- *                   isUsed: false
- *                   expiresAt: "2026-03-12T10:00:00.000Z"
+ *                   course:
+ *                     _id: "65f100000000000000000005"
+ *                     title: "React.js kursi"
+ *                   order: 1
+ *                   duration: 3137
+ *                   thumbnail: "https://vz-abc.b-cdn.net/guid/thumbnail.jpg"
+ *                   materials:
+ *                     - name: "1-dars-materiallar.pdf"
+ *                       url: "https://res.cloudinary.com/aidevix/raw/upload/v1/docs/react1.pdf"
+ *                   viewCount: 142
+ *                 player:
+ *                   embedUrl: "https://iframe.mediadelivery.net/embed/123456/abc-def-ghi?token=SHA256TOKEN&expires=1774120000"
+ *                   expiresAt: "2026-03-22T20:00:00.000Z"
  *       401:
  *         description: ❌ Token kerak / ❌ Требуется токен
  *         content:
@@ -283,7 +319,7 @@ router.get('/course/:courseId', getCourseVideos);
  *               success: false
  *               message: "Access token is required."
  *       403:
- *         description: ❌ Obuna yo'q / ❌ Нет подписки
+ *         description: ❌ Telegram obunasi yo'q / ❌ Нет подписки на Telegram
  *         content:
  *           application/json:
  *             schema:
@@ -307,19 +343,10 @@ router.get('/course/:courseId', getCourseVideos);
  *                   success: false
  *                   message: "Siz obuna bekor qildingiz. Video ko'ra olmaysiz."
  *                   subscriptions:
- *                     instagram:
- *                       subscribed: true
- *                       username: "ahmadjon_dev"
  *                     telegram:
  *                       subscribed: false
  *                       username: "ahmadjon_dev"
  *                   missingSubscriptions: ["telegram"]
- *               ikkalasi_yoq:
- *                 summary: Ikki obuna ham yo'q / Обе подписки отсутствуют
- *                 value:
- *                   success: false
- *                   message: "Video ko'rish uchun obuna bo'ling."
- *                   missingSubscriptions: ["instagram", "telegram"]
  *       404:
  *         description: ❌ Video topilmadi / ❌ Видео не найдено
  *         content:
@@ -329,6 +356,24 @@ router.get('/course/:courseId', getCourseVideos);
  *             example:
  *               success: false
  *               message: "Video not found."
+ *       503:
+ *         description: ❌ Video hali Bunny.net da tayyorlanmoqda / ❌ Видео ещё обрабатывается на Bunny.net
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                 bunnyStatus:
+ *                   type: string
+ *             example:
+ *               success: false
+ *               message: "Video hali tayyorlanmoqda. Iltimos, bir oz kuting."
+ *               bunnyStatus: "processing"
  *       500:
  *         description: ❌ Server xatosi / ❌ Ошибка сервера
  *         content:
@@ -855,6 +900,130 @@ router.post('/', authenticate, requireAdmin, createVideo);
  */
 router.put('/:id', authenticate, requireAdmin, updateVideo);
 router.delete('/:id', authenticate, requireAdmin, deleteVideo);
+
+// ════════════════════════════════════════════════════════════════
+// Bunny.net endpoints (Admin only)
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * @swagger
+ * /api/videos/{id}/upload-credentials:
+ *   get:
+ *     summary: 📤 Bunny.net upload ma'lumotlari (Admin)
+ *     description: |
+ *       Video faylni to'g'ridan-to'g'ri Bunny.net ga yuklash uchun kerakli
+ *       URL va API key qaytaradi. Admin frontend shu ma'lumot bilan PUT so'rov yuboradi.
+ *
+ *       ### Yuklash jarayoni:
+ *       ```javascript
+ *       // 1. Credentials oling
+ *       const { data } = await api.get(`/videos/${videoId}/upload-credentials`);
+ *
+ *       // 2. Video faylni to'g'ridan-to'g'ri Bunny ga yuklang
+ *       await axios.put(data.upload.uploadUrl, videoFile, {
+ *         headers: {
+ *           AccessKey: data.upload.headers.AccessKey,
+ *           'Content-Type': 'application/octet-stream',
+ *         },
+ *         onUploadProgress: (e) => setProgress(Math.round(e.loaded / e.total * 100)),
+ *       });
+ *
+ *       // 3. Holat tekshiring
+ *       await api.get(`/videos/${videoId}/status`);
+ *       ```
+ *     tags: [Admin Panel - Videos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Upload ma'lumotlari
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 videoId: "65f200000000000000000001"
+ *                 bunnyVideoId: "abc123-guid"
+ *                 uploadUrl: "https://video.bunnycdn.com/library/12345/videos/abc123-guid"
+ *                 method: "PUT"
+ *                 headers:
+ *                   AccessKey: "bunny-api-key"
+ *                   Content-Type: "application/octet-stream"
+ */
+router.get('/:id/upload-credentials', authenticate, requireAdmin, getUploadCredentialsForVideo);
+
+/**
+ * @swagger
+ * /api/videos/{id}/status:
+ *   get:
+ *     summary: 🔄 Video Bunny.net holati (Admin)
+ *     description: |
+ *       Video Bunny.net da qayta ishlash holati.
+ *       Upload qilingandan keyin Bunny video ni 360p/720p/1080p ga transcode qiladi.
+ *       `isReady: true` bo'lguncha kutish kerak.
+ *     tags: [Admin Panel - Videos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Video holati
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 videoId: "65f200000000000000000001"
+ *                 bunnyStatus: "ready"
+ *                 isReady: true
+ *                 duration: 900
+ */
+router.get('/:id/status', authenticate, requireAdmin, checkVideoStatus);
+
+/**
+ * @swagger
+ * /api/videos/{id}/link-bunny:
+ *   patch:
+ *     summary: 🔗 Mavjud videoni Bunny.net ga ulash (Admin)
+ *     description: |
+ *       Oldin yaratilgan video ga Bunny video ID ni ulash.
+ *       Bunny dashboard dan qo'lda upload qilgan videolar uchun.
+ *     tags: [Admin Panel - Videos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [bunnyVideoId]
+ *             properties:
+ *               bunnyVideoId:
+ *                 type: string
+ *                 example: "abc123-guid-from-bunny-dashboard"
+ *     responses:
+ *       200:
+ *         description: Ulandi
+ */
+router.patch('/:id/link-bunny', authenticate, requireAdmin, linkToBunny);
 
 /**
  * @swagger

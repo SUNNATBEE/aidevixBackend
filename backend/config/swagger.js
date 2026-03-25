@@ -22,8 +22,13 @@ Bu dokumentatsiya orqali siz barcha endpointlarni brauzerda sinab ko'rishingiz m
 - **refreshToken** — 7 kun ishlaydi (accessToken yangilash uchun)
 
 ### 👁 Obuna talabi:
-Video ko'rish uchun Instagram + Telegram kanallariga obuna bo'lish MAJBURIY.
+Video ko'rish uchun **Telegram** kanaliga obuna bo'lish MAJBURIY.
 Real-time tekshiruv: har safar video ko'rganda obuna holati tekshiriladi.
+
+### 🎬 Video tizimi (Bunny.net):
+Videolar **Bunny.net Stream** orqali uzatiladi.
+\`GET /api/videos/:id\` → **2 soatlik imzolangan embed URL** qaytaradi.
+Frontend bu URL ni \`<iframe>\` ichida ko'rsatadi — Telegram link emas!
 
 ---
 
@@ -42,8 +47,13 @@ Real-time tekshiruv: har safar video ko'rganda obuna holati tekshiriladi.
 - **refreshToken** — живёт 7 дней (для обновления accessToken)
 
 ### 👁 Требование подписки:
-Для просмотра видео подписка на Instagram + Telegram ОБЯЗАТЕЛЬНА.
+Для просмотра видео подписка на **Telegram** ОБЯЗАТЕЛЬНА.
 Проверка в реальном времени: при каждом просмотре статус подписки проверяется.
+
+### 🎬 Видео система (Bunny.net):
+Видео стримятся через **Bunny.net Stream**.
+\`GET /api/videos/:id\` → возвращает **2-часовой подписанный embed URL**.
+Frontend показывает его в \`<iframe>\` — не через Telegram!
 
 ---
 
@@ -69,12 +79,12 @@ Real-time tekshiruv: har safar video ko'rganda obuna holati tekshiriladi.
     },
     servers: [
       {
-        url: 'http://localhost:5000',
-        description: '🖥️ Local Development Server (mahalliy server)',
+        url: 'https://aidevix-backend-production.up.railway.app',
+        description: '🚀 Production Server — Railway (ishchi server)',
       },
       {
-        url: 'https://aidevixbackend.onrender.com',
-        description: '🌐 Production Server — Render (ishchi server)',
+        url: 'http://localhost:5000',
+        description: '🖥️ Local Development Server (mahalliy server)',
       },
     ],
     tags: [
@@ -388,38 +398,106 @@ Format: \`Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\`
           description: 'Video to\'liq ma\'lumoti / Полная информация видео',
           properties: {
             _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d3' },
-            title: { type: 'string', example: '1-dars: HTML nima?' },
-            description: { type: 'string', example: 'HTML haqida umumiy ma\'lumot va tarix.' },
-            course: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d2', description: 'Kurs ID / ID курса' },
-            order: { type: 'number', example: 0 },
-            duration: { type: 'number', example: 1200 },
-            thumbnail: { type: 'string', example: 'https://example.com/thumb.jpg' },
-            isActive: { type: 'boolean', example: true },
+            title: { type: 'string', example: '1-dars: React nima?' },
+            description: { type: 'string', example: 'React asoslari haqida kirish darsi.' },
+            course: {
+              type: 'object',
+              description: 'Kurs ma\'lumotlari / Данные курса',
+              properties: {
+                _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d2' },
+                title: { type: 'string', example: 'React.js kursi' },
+              },
+            },
+            order: { type: 'number', example: 1, description: 'Video tartibi (1 dan boshlanadi) / Порядок видео' },
+            duration: { type: 'number', example: 3137, description: 'Davomiylik soniyalarda / Длительность в секундах' },
+            thumbnail: { type: 'string', example: 'https://vz-abc.b-cdn.net/guid/thumbnail.jpg', nullable: true },
+            materials: {
+              type: 'array',
+              description: 'Qo\'shimcha materiallar (PDF, ZIP va h.k.) / Дополнительные материалы',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: '1-dars-materiallar.pdf' },
+                  url: { type: 'string', example: 'https://res.cloudinary.com/aidevix/raw/upload/v1/docs/react1.pdf' },
+                },
+              },
+            },
+            viewCount: { type: 'number', example: 142, description: 'Ko\'rishlar soni / Количество просмотров' },
+            bunnyVideoId: {
+              type: 'string',
+              example: 'abc-def-ghi-123',
+              description: 'Bunny.net video GUID — admin upload qilgandan keyin to\'ldiriladi / Bunny.net GUID видео',
+            },
+            bunnyStatus: {
+              type: 'string',
+              enum: ['processing', 'ready', 'failed', 'unknown'],
+              example: 'ready',
+              description: 'Bunny.net video holati / Статус видео на Bunny.net: processing=tayyorlanmoqda, ready=tayyor, failed=xato',
+            },
+            isActive: { type: 'boolean', example: true, description: 'true=ko\'rinadi, false=yashirilgan / true=виден, false=скрыт' },
             createdAt: { type: 'string', format: 'date-time', example: '2026-01-05T08:00:00.000Z' },
           },
         },
 
-        // ─── VIDEO LINK ───────────────────────────────────────
+        // ─── BUNNY PLAYER (GET /videos/:id → player) ─────────
+        BunnyPlayer: {
+          type: 'object',
+          description: `
+**🇺🇿 Bunny.net video player ma'lumoti**
+
+\`GET /api/videos/:id\` muvaffaqiyatli bo'lganda \`player\` ob'ekti qaytariladi.
+Frontend bu \`embedUrl\` ni \`<iframe>\` ichida ko'rsatadi — Bunny.net o'zi video o'ynaydi.
+
+**2 soatlik muddatli URL** — har safar yangi URL yaratiladi.
+Muddati tugaganda yangi \`GET /api/videos/:id\` chaqirilishi kerak.
+
+**Frontend ishlatish:**
+\`\`\`jsx
+<iframe
+  src={player.embedUrl}
+  style={{ width: '100%', aspectRatio: '16/9' }}
+  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+/>
+\`\`\`
+
+---
+
+**🇷🇺 Данные видеоплеера Bunny.net**
+
+Объект \`player\` возвращается при успешном \`GET /api/videos/:id\`.
+Frontend показывает \`embedUrl\` через \`<iframe>\`.
+          `,
+          properties: {
+            embedUrl: {
+              type: 'string',
+              example: 'https://iframe.mediadelivery.net/embed/123456/abc-def-ghi?token=xyz&expires=1774120000',
+              description: '🎬 Bunny.net signed embed URL — 2 soat muddatli / 2-часовой подписанный URL',
+            },
+            expiresAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-03-22T20:00:00.000Z',
+              description: 'URL muddati tugash vaqti — shundan keyin yangi so\'rov kerak / Время истечения URL',
+            },
+          },
+        },
+
+        // ─── VIDEO LINK (eskirgan — legacy) ──────────────────
         VideoLink: {
           type: 'object',
-          description: 'Bir martalik video havolasi / Одноразовая ссылка на видео',
+          description: '⚠️ ESKIRGAN (legacy) — Endi ishlatilmaydi. \`BunnyPlayer\` dan foydalaning. / ⚠️ УСТАРЕЛО — Больше не используется. Используйте \`BunnyPlayer\`.',
           properties: {
             _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d4' },
-            telegramLink: {
-              type: 'string',
-              example: 'https://t.me/c/1234567890/42',
-              description: 'Telegram private channel video linki (BIR MARTA ishlatiladi!) / Ссылка на видео (используется ОДИН РАЗ!)',
-            },
             isUsed: {
               type: 'boolean',
               example: false,
-              description: 'false = hali ishlatilmagan, true = ishlatilgan / false = ещё не использована, true = использована',
+              description: 'Eski tizim uchun — hozir ishlatilmaydi / Для старой системы — сейчас не используется',
             },
             expiresAt: {
               type: 'string',
               format: 'date-time',
               example: '2026-03-12T10:00:00.000Z',
-              description: 'Link muddati tugashi / Срок действия ссылки',
             },
           },
         },
@@ -427,14 +505,33 @@ Format: \`Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\`
         // ─── VIDEO RESPONSE (GET /videos/:id) ─────────────────
         VideoResponse: {
           type: 'object',
-          description: 'Video + bir martalik link javobi / Ответ видео + одноразовая ссылка',
+          description: `
+**🇺🇿 \`GET /api/videos/:id\` javobi**
+
+Muvaffaqiyatli bo'lganda \`video\` va \`player\` qaytariladi.
+\`player.embedUrl\` — Bunny.net iframe uchun imzolangan URL (2 soat).
+
+**Frontend:**
+\`\`\`jsx
+const { video, player } = response.data.data
+// video — sarlavha, tavsif, davomiylik, materiallar
+// player.embedUrl — iframe src uchun
+\`\`\`
+
+---
+
+**🇷🇺 Ответ на \`GET /api/videos/:id\`**
+
+При успехе возвращает \`video\` и \`player\`.
+\`player.embedUrl\` — подписанный URL для Bunny.net iframe (2 часа).
+          `,
           properties: {
             success: { type: 'boolean', example: true },
             data: {
               type: 'object',
               properties: {
                 video: { $ref: '#/components/schemas/Video' },
-                videoLink: { $ref: '#/components/schemas/VideoLink' },
+                player: { $ref: '#/components/schemas/BunnyPlayer' },
               },
             },
           },

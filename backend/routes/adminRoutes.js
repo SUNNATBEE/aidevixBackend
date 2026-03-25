@@ -1,13 +1,16 @@
 const express = require('express');
 const router  = express.Router();
-const { getDashboardStats, getTopStudents, getCoursesStats, getRecentPayments, getUsers } = require('../controllers/adminController');
+const {
+  getDashboardStats, getTopStudents, getCoursesStats,
+  getRecentPayments, getUsers, updateUser, deleteUser,
+} = require('../controllers/adminController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
 /**
  * @swagger
  * tags:
  *   name: Admin
- *   description: 👑 Admin panel statistikasi
+ *   description: 👑 Admin panel — faqat adminlar uchun
  */
 
 /**
@@ -15,7 +18,7 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  * /api/admin/stats:
  *   get:
  *     summary: 📊 Dashboard statistikasi
- *     description: Jami foydalanuvchilar, kurslar, yozilishlar, daromad.
+ *     description: Jami foydalanuvchilar, kurslar, videolar, yozilishlar va daromad.
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -39,7 +42,11 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
  *                   completed: 1200
  *                 revenue:
  *                   total: 145000000
- *                   currency: "UZS"
+ *                   currency: UZS
+ *       401:
+ *         description: Token kerak
+ *       403:
+ *         description: Admin huquqi kerak
  */
 router.get('/stats', authenticate, requireAdmin, getDashboardStats);
 
@@ -54,6 +61,17 @@ router.get('/stats', authenticate, requireAdmin, getDashboardStats);
  *     responses:
  *       200:
  *         description: Top o'quvchilar
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 students:
+ *                   - _id: "65f1a2b3c4d5e6f7a8b9c0d1"
+ *                     username: "ahmadjon"
+ *                     email: "ahmadjon@gmail.com"
+ *                     xp: 8500
+ *                     level: 9
  */
 router.get('/top-students', authenticate, requireAdmin, getTopStudents);
 
@@ -62,7 +80,6 @@ router.get('/top-students', authenticate, requireAdmin, getTopStudents);
  * /api/admin/courses/stats:
  *   get:
  *     summary: 📚 Kurslar statistikasi
- *     description: Har bir kursning ko'rishlar soni, reytingi, o'quvchilar soni.
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -94,6 +111,25 @@ router.get('/courses/stats', authenticate, requireAdmin, getCoursesStats);
  *     responses:
  *       200:
  *         description: To'lovlar ro'yxati
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 payments:
+ *                   - _id: "65f1a2b3c4d5e6f7a8b9c0d5"
+ *                     user:
+ *                       username: "ahmadjon"
+ *                       email: "ahmadjon@gmail.com"
+ *                     course:
+ *                       title: "React.js Frontend"
+ *                       price: 349000
+ *                     amount: 349000
+ *                     status: completed
+ *                 pagination:
+ *                   total: 100
+ *                   page: 1
+ *                   limit: 20
  */
 router.get('/payments', authenticate, requireAdmin, getRecentPayments);
 
@@ -121,10 +157,93 @@ router.get('/payments', authenticate, requireAdmin, getRecentPayments);
  *         schema:
  *           type: string
  *         description: Username yoki email bo'yicha qidiruv
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [user, admin]
+ *         description: Rol bo'yicha filter
  *     responses:
  *       200:
  *         description: Foydalanuvchilar ro'yxati
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 users:
+ *                   - _id: "65f1a2b3c4d5e6f7a8b9c0d1"
+ *                     username: "ahmadjon"
+ *                     email: "ahmadjon@gmail.com"
+ *                     role: user
+ *                     isActive: true
+ *                 pagination:
+ *                   total: 1500
+ *                   page: 1
+ *                   limit: 20
  */
 router.get('/users', authenticate, requireAdmin, getUsers);
+
+/**
+ * @swagger
+ * /api/admin/users/{id}:
+ *   put:
+ *     summary: ✏️ Foydalanuvchini tahrirlash (rol, status)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Foydalanuvchi MongoDB ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [user, admin]
+ *               isActive:
+ *                 type: boolean
+ *           example:
+ *             role: admin
+ *     responses:
+ *       200:
+ *         description: Foydalanuvchi yangilandi
+ *       404:
+ *         description: Foydalanuvchi topilmadi
+ */
+router.put('/users/:id', authenticate, requireAdmin, updateUser);
+
+/**
+ * @swagger
+ * /api/admin/users/{id}:
+ *   delete:
+ *     summary: 🗑️ Foydalanuvchini o'chirish
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Foydalanuvchi MongoDB ID
+ *     responses:
+ *       200:
+ *         description: Foydalanuvchi o'chirildi
+ *       400:
+ *         description: O'zingizni o'chira olmaysiz
+ *       404:
+ *         description: Foydalanuvchi topilmadi
+ */
+router.delete('/users/:id', authenticate, requireAdmin, deleteUser);
 
 module.exports = router;

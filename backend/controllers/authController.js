@@ -61,9 +61,10 @@ const register = async (req, res) => {
       message: 'User registered successfully.',
       data: {
         user: {
-          id: user._id,
+          _id: user._id,
           username: user.username,
           email: user.email,
+          role: user.role,
           subscriptions: user.socialSubscriptions,
         },
         accessToken,
@@ -74,7 +75,6 @@ const register = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error registering user.',
-      error: error.message,
     });
   }
 };
@@ -132,9 +132,10 @@ const login = async (req, res) => {
       message: 'Login successful.',
       data: {
         user: {
-          id: user._id,
+          _id: user._id,
           username: user.username,
           email: user.email,
+          role: user.role,
           subscriptions: user.socialSubscriptions,
         },
         accessToken,
@@ -145,7 +146,6 @@ const login = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error logging in.',
-      error: error.message,
     });
   }
 };
@@ -196,7 +196,6 @@ const refreshToken = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error refreshing token.',
-      error: error.message,
     });
   }
 };
@@ -219,7 +218,6 @@ const logout = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error logging out.',
-      error: error.message,
     });
   }
 };
@@ -233,7 +231,7 @@ const getMe = async (req, res) => {
       success: true,
       data: {
         user: {
-          id: user._id,
+          _id: user._id,
           username: user.username,
           email: user.email,
           jobTitle: user.jobTitle,
@@ -247,7 +245,6 @@ const getMe = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching user data.',
-      error: error.message,
     });
   }
 };

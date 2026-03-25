@@ -7,7 +7,7 @@ import { RiCodeSSlashLine } from 'react-icons/ri'
 
 const NAV_LINKS = [
   { label: "Kurslar",      to: ROUTES.COURSES },
-  { label: "Yo'nalishlar", to: '/courses' },
+  { label: "Yo'nalishlar", to: ROUTES.COURSES },
   { label: "Hamjamiyat",   to: '/leaderboard' },
   { label: "Blog",         to: '/top' },
 ]

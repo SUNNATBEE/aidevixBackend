@@ -23,11 +23,18 @@ const swaggerAuth = (req, res, next) => {
   const [username, password] = credentials.split(':');
 
   // Environment variables'dan username va password olish
-  const validUsername = process.env.SWAGGER_USERNAME || 'admin';
-  const validPassword = process.env.SWAGGER_PASSWORD || 'admin123';
+  const validUsername = process.env.SWAGGER_USERNAME;
+  const validPassword = process.env.SWAGGER_PASSWORD;
+
+  if (process.env.NODE_ENV === 'production' && (!validUsername || !validPassword)) {
+    return res.status(503).send('Swagger auth not configured. Set SWAGGER_USERNAME and SWAGGER_PASSWORD.');
+  }
+
+  const effectiveUsername = validUsername || 'admin';
+  const effectivePassword = validPassword || 'admin123';
 
   // Tekshirish
-  if (username === validUsername && password === validPassword) {
+  if (username === effectiveUsername && password === effectivePassword) {
     return next();
   }
 

@@ -1,16 +1,15 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, Outlet, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import { gsap } from 'gsap'
-
-import Navbar from '@components/layout/Navbar'
-import Footer from '@components/layout/Footer'
-import ScrollToTop from '@components/layout/ScrollToTop'
-import ProtectedRoute from '@components/auth/ProtectedRoute'
-
-// Pages (lazy loaded for code splitting)
 import { lazy, Suspense } from 'react'
-import Loader from '@components/common/Loader'
 
+import Navbar       from '@components/layout/Navbar'
+import Footer       from '@components/layout/Footer'
+import ScrollToTop  from '@components/layout/ScrollToTop'
+import ProtectedRoute from '@components/auth/ProtectedRoute'
+import Loader       from '@components/common/Loader'
+
+// ── Public pages (lazy) ───────────────────────────────────────────────────────
 const HomePage          = lazy(() => import('@pages/HomePage'))
 const CoursesPage       = lazy(() => import('@pages/CoursesPage'))
 const CourseDetailPage  = lazy(() => import('@pages/CourseDetailPage'))
@@ -25,10 +24,13 @@ const LevelUpPage          = lazy(() => import('@pages/LevelUpPage'))           
 const VideoPlaygroundPage  = lazy(() => import('@pages/VideoPlaygroundPage'))   // ABDUVORIS
 const NotFoundPage         = lazy(() => import('@pages/NotFoundPage'))
 
-export default function AppRouter() {
+// ── Admin pages (lazy) ───────────────────────────────────────────────────────
+const AdminLayout = lazy(() => import('@pages/admin/AdminLayout'))
+
+// ── Public layout wrapper ─────────────────────────────────────────────────────
+function PublicLayout() {
   const location = useLocation()
 
-  // Page transition animation on route change
   useEffect(() => {
     gsap.fromTo(
       '#page-wrapper',
@@ -42,37 +44,61 @@ export default function AppRouter() {
 
   return (
     <>
+<<<<<<< HEAD
       <ScrollToTop />
       {!shouldHideLayout && <Navbar />}
 
+=======
+      <Navbar />
+>>>>>>> 40ad6af8bb7238466f31a16888ed51405a9ab650
       <main id="page-wrapper" className="min-h-screen">
-        <Suspense fallback={<Loader fullScreen />}>
-          <Routes>
-            {/* Public routes */}
+        <Outlet />
+      </main>
+<<<<<<< HEAD
+
+      {!shouldHideLayout && <Footer />}
+=======
+      <Footer />
+>>>>>>> 40ad6af8bb7238466f31a16888ed51405a9ab650
+    </>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+export default function AppRouter() {
+  return (
+    <>
+      <ScrollToTop />
+      <Suspense fallback={<Loader fullScreen />}>
+        <Routes>
+
+          {/* ── Admin routes (own full-page layout, no Navbar/Footer) ── */}
+          <Route path="/admin/*" element={<AdminLayout />} />
+
+          {/* ── Public routes (Navbar + Footer) ── */}
+          <Route element={<PublicLayout />}>
             <Route path="/"              element={<HomePage />} />
             <Route path="/courses"       element={<CoursesPage />} />
             <Route path="/courses/:id"   element={<CourseDetailPage />} />
             <Route path="/top"           element={<TopCoursesPage />} />   {/* NUMTON */}
-            <Route path="/leaderboard"  element={<LeaderboardPage />} />  {/* SUHROB */}
+            <Route path="/leaderboard"   element={<LeaderboardPage />} />  {/* SUHROB */}
             <Route path="/login"         element={<LoginPage />} />
             <Route path="/register"      element={<RegisterPage />} />
 
-            {/* Protected routes (login required) */}
+            {/* Protected (login required) */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/profile"            element={<ProfilePage />} />
-              <Route path="/subscription"       element={<SubscriptionPage />} />
+              <Route path="/profile"               element={<ProfilePage />} />
+              <Route path="/subscription"          element={<SubscriptionPage />} />
               <Route path="/videos/:id"              element={<VideoPage />} />           {/* ABDUVORIS */}
-              <Route path="/videos/:id/playground" element={<VideoPlaygroundPage />} />  {/* ABDUVORIS */}
-              <Route path="/level-up"               element={<LevelUpPage />} />          {/* SUHROB */}
+              <Route path="/videos/:id/playground"   element={<VideoPlaygroundPage />} />  {/* ABDUVORIS */}
+              <Route path="/level-up"                element={<LevelUpPage />} />          {/* SUHROB */}
             </Route>
 
-            {/* 404 */}
             <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
-      </main>
+          </Route>
 
-      {!shouldHideLayout && <Footer />}
+        </Routes>
+      </Suspense>
     </>
   )
 }
