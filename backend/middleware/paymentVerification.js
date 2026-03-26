@@ -29,19 +29,25 @@ function verifyPaymeAuth(req, res, next) {
  * Click SIGN string MD5 tekshiruvi
  */
 function verifyClickSign(req, res, next) {
-  const { click_trans_id, service_id, click_paydoc_id, merchant_trans_id, amount, action, sign_time, sign_string } = req.body;
+  const { click_trans_id, service_id, merchant_trans_id, merchant_prepare_id, amount, action, sign_time, sign_string } = req.body;
 
   if (!sign_string) {
     return res.status(400).json({ error: -1, error_note: 'SIGN CHECK FAILED!' });
   }
 
   const secretKey = process.env.CLICK_SECRET_KEY || '';
-  const expectedSign = crypto
-    .createHash('md5')
-    .update(`${click_trans_id}${service_id}${secretKey}${merchant_trans_id}${amount}${action}${sign_time}`)
-    .digest('hex');
+  // action=0 (prepare): no merchant_prepare_id in sign string
+  // action=1 (complete): merchant_prepare_id (our MongoDB _id) included in sign string
+  const signBase = Number(action) === 1
+    ? `${click_trans_id}${service_id}${secretKey}${merchant_trans_id}${merchant_prepare_id}${amount}${action}${sign_time}`
+    : `${click_trans_id}${service_id}${secretKey}${merchant_trans_id}${amount}${action}${sign_time}`;
 
-  if (sign_string !== expectedSign) {
+  const expectedSign = crypto.createHash('md5').update(signBase).digest('hex');
+
+  // Timing-safe comparison
+  const bufA = Buffer.alloc(32); bufA.write(sign_string || '');
+  const bufB = Buffer.alloc(32); bufB.write(expectedSign);
+  if (!crypto.timingSafeEqual(bufA, bufB)) {
     return res.status(400).json({ error: -1, error_note: 'SIGN CHECK FAILED!' });
   }
   next();

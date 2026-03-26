@@ -30,7 +30,7 @@ const paymentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'completed', 'failed', 'refunded', 'cancelled'],
+    enum: ['pending', 'completed', 'failed', 'refunded', 'cancelled', 'expired'],
     default: 'pending',
   },
   // To'lov provayderidan kelgan ID
@@ -51,10 +51,22 @@ const paymentSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  cancelledAt: {
+    type: Date,
+    default: null,
+  },
   providerData: {
     type: mongoose.Schema.Types.Mixed,
     default: null,
   },
+  // Payme millisecond timestamps (required for GetStatement)
+  paymeCreateTime:   { type: Number, default: null },
+  paymePerformTime:  { type: Number, default: null },
+  paymeCancelTime:   { type: Number, default: null },
+  paymeCancelReason: { type: Number, default: null },
+  // Click fields
+  clickTransId:  { type: String, default: null },
+  clickPaydocId: { type: String, default: null },
 }, {
   timestamps: true,
 });
@@ -63,5 +75,7 @@ paymentSchema.index({ userId: 1 });
 paymentSchema.index({ status: 1 });
 paymentSchema.index({ createdAt: -1 });
 paymentSchema.index({ providerTransactionId: 1 }, { sparse: true });
+paymentSchema.index({ userId: 1, courseId: 1 });
+paymentSchema.index({ clickTransId: 1 }, { sparse: true });
 
 module.exports = mongoose.model('Payment', paymentSchema);

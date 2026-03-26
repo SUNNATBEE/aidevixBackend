@@ -1,0 +1,64 @@
+# Build artifacts
+frontend/dist/
+frontend/build/
+frontend/.vite/
+**/.next/
+**/build/
+
+# Dependencies
+**/node_modules/
+
+# Environment files (secrets)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Git internals
+.git/
+
+# Lock files (auto-generated, large)
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+**/bun.lockb
+
+# Logs
+**/*.log
+**/logs/
+
+# Binary / media assets
+frontend/public/
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.svg
+**/*.ico
+**/*.woff
+**/*.woff2
+**/*.ttf
+**/*.eot
+**/*.pdf
+
+# Student docs (9 large MD files, rarely needed)
+docs/students/
+
+# Legacy / unused docs
+backend/OQUVCHILAR_UCHUN.md
+backend/DEPLOY.md
+render.yaml
+
+# Swagger JSDoc docs (extracted, very large, rarely need direct editing)
+backend/docs/swagger/
+
+# One-time utility scripts
+extract-swagger.js
+
+# Test fixtures (none currently, future-proof)
+**/__fixtures__/
+**/__mocks__/
+**/test-data/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
