@@ -39,31 +39,22 @@ function PublicLayout() {
     )
   }, [location.pathname])
 
-  const hideLayoutPaths = ['/login', '/register'];
-  const shouldHideLayout = hideLayoutPaths.includes(location.pathname);
+  const hideLayoutPaths = ['/login', '/register']
+  const shouldHideLayout = hideLayoutPaths.includes(location.pathname)
 
   return (
     <>
-<<<<<<< HEAD
       <ScrollToTop />
       {!shouldHideLayout && <Navbar />}
 
-=======
-      <Navbar />
->>>>>>> 40ad6af8bb7238466f31a16888ed51405a9ab650
       <main id="page-wrapper" className="min-h-screen">
         <Outlet />
       </main>
-<<<<<<< HEAD
 
       {!shouldHideLayout && <Footer />}
-=======
-      <Footer />
->>>>>>> 40ad6af8bb7238466f31a16888ed51405a9ab650
     </>
   )
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AppRouter() {
   return (
