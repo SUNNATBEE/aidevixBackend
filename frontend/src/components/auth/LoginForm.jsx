@@ -68,8 +68,7 @@ export default function LoginForm() {
           <label className="label pt-0 pb-0">
             <span className="label-text text-gray-300 font-medium text-sm">Parol</span>
           </label>
-          {/* User specifically requested that 'Parolni unutdingizmi?' redirects to register */}
-          <Link to="/register" className="text-indigo-400 text-xs hover:underline">
+          <Link to="/forgot-password" className="text-indigo-400 text-xs hover:underline">
             Parolni unutdingizmi?
           </Link>
         </div>

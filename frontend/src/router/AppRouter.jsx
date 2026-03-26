@@ -22,6 +22,8 @@ const TopCoursesPage       = lazy(() => import('@pages/TopCoursesPage'))
 const LeaderboardPage      = lazy(() => import('@pages/LeaderboardPage'))       // SUHROB
 const LevelUpPage          = lazy(() => import('@pages/LevelUpPage'))           // SUHROB
 const VideoPlaygroundPage  = lazy(() => import('@pages/VideoPlaygroundPage'))   // ABDUVORIS
+const ForgotPasswordPage   = lazy(() => import('@pages/ForgotPasswordPage'))
+const VerifyCodePage       = lazy(() => import('@pages/VerifyCodePage'))
 const NotFoundPage         = lazy(() => import('@pages/NotFoundPage'))
 
 // ── Admin pages (lazy) ───────────────────────────────────────────────────────
@@ -39,7 +41,7 @@ function PublicLayout() {
     )
   }, [location.pathname])
 
-  const hideLayoutPaths = ['/login', '/register']
+  const hideLayoutPaths = ['/login', '/register', '/forgot-password', '/verify-code']
   const shouldHideLayout = hideLayoutPaths.includes(location.pathname)
 
   return (
@@ -75,6 +77,8 @@ export default function AppRouter() {
             <Route path="/leaderboard"   element={<LeaderboardPage />} />  {/* SUHROB */}
             <Route path="/login"         element={<LoginPage />} />
             <Route path="/register"      element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/verify-code"   element={<VerifyCodePage />} />
 
             {/* Protected (login required) */}
             <Route element={<ProtectedRoute />}>
