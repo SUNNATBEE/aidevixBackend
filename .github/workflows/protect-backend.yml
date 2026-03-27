@@ -1,0 +1,60 @@
+name: 🛡️ Backend Himoyasi
+
+# O'quvchilar PR ochganda backend fayllarni o'zgartirgan bo'lsa FAIL bo'ladi
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-backend-changes:
+    runs-on: ubuntu-latest
+    name: 🔍 Backend fayllar tekshiruvi
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Backend fayllar o'zgarganmi tekshirish
+        run: |
+          # PR da o'zgargan fayllar ro'yxati
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+          echo "📋 O'zgargan fayllar:"
+          echo "$CHANGED_FILES"
+          echo ""
+
+          # Backend fayllar o'zgarganmi?
+          BACKEND_CHANGES=$(echo "$CHANGED_FILES" | grep -E "^backend/|^package\.json$|^railway\.toml$|^architecture\.md$|^\.github/|^\.claude/|^\.cursorrules$|^\.cursorignore$|^\.claudeignore$|^CLAUDE\.md$|^CLAUDE-details\.md$|^STUDENTS\.md$|^\.githooks/" || true)
+
+          if [ -n "$BACKEND_CHANGES" ]; then
+            echo ""
+            echo "════════════════════════════════════════════════════════"
+            echo "❌ XATO: Siz himoyalangan fayllarni o'zgartirgansiz!"
+            echo "════════════════════════════════════════════════════════"
+            echo ""
+            echo "O'zgartirilgan himoyalangan fayllar:"
+            echo "$BACKEND_CHANGES" | while read -r file; do
+              echo "  ❌ $file"
+            done
+            echo ""
+            echo "⚠️  O'quvchilar faqat frontend/ papkada ishlashi kerak."
+            echo "⚠️  Backend, root config, va himoya fayllarni o'zgartirmang!"
+            echo ""
+            echo "📋 Tuzatish:"
+            echo "  git checkout origin/main -- backend/ package.json railway.toml .github/ .claude/ .cursorrules .cursorignore .claudeignore .githooks/"
+            echo "  git commit -m 'revert: himoyalangan fayllar qaytarildi'"
+            echo "  git push"
+            echo ""
+            echo "📖 STUDENTS.md faylini o'qing!"
+            echo "════════════════════════════════════════════════════════"
+            exit 1
+          fi
+
+          echo "✅ Yaxshi! Faqat frontend fayllar o'zgargan."
+
+      - name: Frontend fayllar ro'yxati
+        if: success()
+        run: |
+          echo "📁 O'zgargan frontend fayllar:"
+          git diff --name-only origin/main...HEAD | grep "^frontend/" || echo "  (hech qanday frontend fayl o'zgarmagan)"

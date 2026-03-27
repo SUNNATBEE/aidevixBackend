@@ -17,6 +17,7 @@ const {
 } = require('../controllers/videoController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { checkSubscriptions } = require('../middleware/subscriptionCheck');
+const validateObjectId = require('../middleware/validateObjectId');
 
 // ════════════════════════════════════════════════════════════════
 // GET /api/videos/course/:courseId
@@ -28,7 +29,7 @@ router.get('/search', authenticate, searchVideos);
 // ════════════════════════════════════════════════════════════════
 // GET /api/videos/:id
 // ════════════════════════════════════════════════════════════════
-router.get('/:id', authenticate, checkSubscriptions, getVideo);
+router.get('/:id', validateObjectId(), authenticate, checkSubscriptions, getVideo);
 
 // ════════════════════════════════════════════════════════════════
 // POST /api/videos/link/:linkId/use
@@ -40,21 +41,21 @@ router.post('/link/:linkId/use', authenticate, useVideoLink);
 // ════════════════════════════════════════════════════════════════
 router.post('/', authenticate, requireAdmin, createVideo);
 
-router.put('/:id', authenticate, requireAdmin, updateVideo);
-router.delete('/:id', authenticate, requireAdmin, deleteVideo);
+router.put('/:id', validateObjectId(), authenticate, requireAdmin, updateVideo);
+router.delete('/:id', validateObjectId(), authenticate, requireAdmin, deleteVideo);
 
 // ════════════════════════════════════════════════════════════════
 // Bunny.net endpoints (Admin only)
 // ════════════════════════════════════════════════════════════════
 
-router.get('/:id/upload-credentials', authenticate, requireAdmin, getUploadCredentialsForVideo);
+router.get('/:id/upload-credentials', validateObjectId(), authenticate, requireAdmin, getUploadCredentialsForVideo);
 
-router.get('/:id/status', authenticate, requireAdmin, checkVideoStatus);
+router.get('/:id/status', validateObjectId(), authenticate, requireAdmin, checkVideoStatus);
 
-router.patch('/:id/link-bunny', authenticate, requireAdmin, linkToBunny);
+router.patch('/:id/link-bunny', validateObjectId(), authenticate, requireAdmin, linkToBunny);
 
-router.get('/:id/questions', getVideoQuestions);
-router.post('/:id/questions', authenticate, askQuestion);
+router.get('/:id/questions', validateObjectId(), getVideoQuestions);
+router.post('/:id/questions', validateObjectId(), authenticate, askQuestion);
 
 router.post('/:id/questions/:questionId/answer', authenticate, requireAdmin, answerQuestion);
 

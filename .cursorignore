@@ -1,0 +1,39 @@
+# ══════════════════════════════════════════════════════════════
+# CURSOR IGNORE — Backend fayllarni Cursor AI ko'rmasligi kerak
+# Bu fayl backend kodini Cursor kontekstidan yashiradi,
+# shuning uchun AI backend fayllarni o'zgartirishga urinnmaydi
+# ══════════════════════════════════════════════════════════════
+
+# ─── BACKEND (TO'LIQ YASHIRISH) ──────────────────────────────
+backend/
+!backend/API_DOCUMENTATION.md
+!backend/README.md
+
+# ─── Root konfiguratsiya ─────────────────────────────────────
+railway.toml
+architecture.md
+CLAUDE-details.md
+
+# ─── GitHub CI/CD ─────────────────────────────────────────────
+.github/
+
+# ─── Claude konfiguratsiya ────────────────────────────────────
+.claude/
+
+# ─── Dependencies ────────────────────────────────────────────
+**/node_modules/
+**/package-lock.json
+**/yarn.lock
+
+# ─── Build artifacts ─────────────────────────────────────────
+frontend/dist/
+frontend/build/
+**/build/
+
+# ─── Environment (secrets) ────────────────────────────────────
+**/.env
+**/.env.*
+!**/.env.example
+
+# ─── Git ──────────────────────────────────────────────────────
+.git/
