@@ -5,6 +5,7 @@
 // ╚══════════════════════════════════════════════════════════════╝
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { userApi } from '@api/userApi'
+import { updateUser } from './authSlice'
 
 export const fetchUserStats = createAsyncThunk(
   'userStats/fetchStats',
@@ -32,9 +33,12 @@ export const submitQuizThunk = createAsyncThunk(
 
 export const updateProfileThunk = createAsyncThunk(
   'userStats/updateProfile',
-  async (profileData, { rejectWithValue }) => {
+  async (profileData, { rejectWithValue, dispatch }) => {
     try {
       const { data } = await userApi.updateProfile(profileData)
+      if (data.data.user) {
+        dispatch(updateUser(data.data.user))
+      }
       return data.data
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Profil yangilanmadi')

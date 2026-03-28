@@ -108,7 +108,7 @@ export default function Navbar() {
                       </div>
                     )}
                     <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-                      {user?.username}
+                      {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.username}
                     </span>
                   </label>
                   <ul

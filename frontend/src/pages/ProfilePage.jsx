@@ -41,11 +41,22 @@ export default function ProfilePage() {
   
   // Form states based on image mapping
   const [formData, setFormData] = useState({
-    ism: user?.name || user?.username || "Ahmad",
-    familiya: "Ergashev",
-    kasb: "Frontend Dasturchi",
+    ism: user?.firstName || user?.name || user?.username || "Ahmad",
+    familiya: user?.lastName || "Ergashev",
+    kasb: user?.jobTitle || "Frontend Dasturchi",
     bio: bio || "Aidevix platformasida tahsil olyapman.",
   });
+
+  useEffect(() => {
+    if (user?.firstName || user?.lastName || user?.jobTitle) {
+      setFormData(prev => ({
+        ...prev,
+        ism: user.firstName || prev.ism,
+        familiya: user.lastName || prev.familiya,
+        kasb: user.jobTitle || prev.kasb,
+      }));
+    }
+  }, [user]);
 
   useEffect(() => {
     try {
@@ -77,15 +88,7 @@ export default function ProfilePage() {
     }
   }, [bio]);
 
-  // Lock body scroll when modal open (keeps modal centered to viewport)
-  useEffect(() => {
-    if (!editOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [editOpen]);
+  // Lock body scroll logic removed as per user request
 
   // ESC to close modal
   useEffect(() => {
@@ -139,7 +142,12 @@ export default function ProfilePage() {
     setFormData((prev) => ({ ...prev, ...editDraft }));
 
     // bio backendda ham yangilansin (avatar/skills ham shu endpointda)
-    updateProfile({ bio: editDraft.bio });
+    updateProfile({ 
+      bio: editDraft.bio,
+      ism: editDraft.ism,
+      familiya: editDraft.familiya,
+      kasb: editDraft.kasb
+    });
     toast.success("Profil ma'lumotlari saqlandi!");
     closeEdit();
   };
