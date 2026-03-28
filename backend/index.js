@@ -9,7 +9,6 @@ const swaggerAdminSpec = require('./config/swaggerAdmin');
 const swaggerAuth = require('./middleware/swaggerAuth');
 const connectDB = require('./config/database');
 const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
-const { startWeeklyReset } = require('./utils/weeklyReset');
 
 // Initialize Express app
 const app = express();
@@ -199,7 +198,6 @@ app.use('/api/challenges',   require('./routes/challengeRoutes'));
 app.use('/api/payments',     require('./routes/paymentRoutes'));
 app.use('/api/admin',        require('./routes/adminRoutes'));
 app.use('/api/upload',       require('./routes/uploadRoutes'));
-app.use('/api/telegram',     require('./routes/telegramRoutes'));
 
 // Health check route
 /**
@@ -312,8 +310,6 @@ app.listen(PORT, HOST, () => {
   if (process.env.NODE_ENV === 'production') {
     console.log(`✅ Production mode enabled`);
   }
-  // Haftalik XP reset ni ishga tushirish
-  startWeeklyReset();
 });
 
 module.exports = app;
