@@ -1,64 +1,64 @@
-# Build artifacts
-frontend/dist/
-frontend/build/
-frontend/.vite/
-**/.next/
-**/build/
+# 🚀 AI Context Optimization - Maximize Token Efficiency
 
-# Dependencies
+# Build, Cache & Coverage
 **/node_modules/
+**/dist/
+**/build/
+**/.next/
+**/.vite/
+**/.cache/
+**/coverage/
+**/*.map
+**/*.min.js
+**/*.min.css
 
-# Environment files (secrets)
-**/.env
-**/.env.*
-!**/.env.example
-
-# Git internals
-.git/
-
-# Lock files (auto-generated, large)
+# Lock files (Auto-generated, extremely token heavy)
 **/package-lock.json
 **/yarn.lock
 **/pnpm-lock.yaml
 **/bun.lockb
 
-# Logs
-**/*.log
-**/logs/
-
-# Binary / media assets
+# Media, Assets & Binaries
 frontend/public/
 **/*.png
 **/*.jpg
 **/*.jpeg
 **/*.gif
+**/*.webp
 **/*.svg
 **/*.ico
+**/*.pdf
+**/*.mp3
+**/*.mp4
 **/*.woff
 **/*.woff2
 **/*.ttf
 **/*.eot
-**/*.pdf
 
-# Student docs (9 large MD files, rarely needed)
+# Git & IDEs
+**/.git/
+**/.github/
+**/.vscode/
+**/.idea/
+**/.DS_Store
+**/Thumbs.db
+
+# Logs & Local Environments
+**/*.log
+**/logs/
+**/.env
+**/.env.local
+**/.env.development
+**/.env.production
+!**/.env.example
+
+# Specific Heavy/Redundant Docs
+backend/docs/swagger/
 docs/students/
-
-# Legacy / unused docs
 backend/OQUVCHILAR_UCHUN.md
 backend/DEPLOY.md
 render.yaml
-
-# Swagger JSDoc docs (extracted, very large, rarely need direct editing)
-backend/docs/swagger/
-
-# One-time utility scripts
 extract-swagger.js
-
-# Test fixtures (none currently, future-proof)
 **/__fixtures__/
 **/__mocks__/
 **/test-data/
-
-# OS artifacts
-.DS_Store
-Thumbs.db

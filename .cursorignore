@@ -1,39 +1,64 @@
-# ══════════════════════════════════════════════════════════════
-# CURSOR IGNORE — Backend fayllarni Cursor AI ko'rmasligi kerak
-# Bu fayl backend kodini Cursor kontekstidan yashiradi,
-# shuning uchun AI backend fayllarni o'zgartirishga urinnmaydi
-# ══════════════════════════════════════════════════════════════
+# 🚀 AI Context Optimization - Maximize Token Efficiency
 
-# ─── BACKEND (TO'LIQ YASHIRISH) ──────────────────────────────
-backend/
-!backend/API_DOCUMENTATION.md
-!backend/README.md
-
-# ─── Root konfiguratsiya ─────────────────────────────────────
-railway.toml
-architecture.md
-CLAUDE-details.md
-
-# ─── GitHub CI/CD ─────────────────────────────────────────────
-.github/
-
-# ─── Claude konfiguratsiya ────────────────────────────────────
-.claude/
-
-# ─── Dependencies ────────────────────────────────────────────
+# Build, Cache & Coverage
 **/node_modules/
+**/dist/
+**/build/
+**/.next/
+**/.vite/
+**/.cache/
+**/coverage/
+**/*.map
+**/*.min.js
+**/*.min.css
+
+# Lock files (Auto-generated, extremely token heavy)
 **/package-lock.json
 **/yarn.lock
+**/pnpm-lock.yaml
+**/bun.lockb
 
-# ─── Build artifacts ─────────────────────────────────────────
-frontend/dist/
-frontend/build/
-**/build/
+# Media, Assets & Binaries
+frontend/public/
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.svg
+**/*.ico
+**/*.pdf
+**/*.mp3
+**/*.mp4
+**/*.woff
+**/*.woff2
+**/*.ttf
+**/*.eot
 
-# ─── Environment (secrets) ────────────────────────────────────
+# Git & IDEs
+**/.git/
+**/.github/
+**/.vscode/
+**/.idea/
+**/.DS_Store
+**/Thumbs.db
+
+# Logs & Local Environments
+**/*.log
+**/logs/
 **/.env
-**/.env.*
+**/.env.local
+**/.env.development
+**/.env.production
 !**/.env.example
 
-# ─── Git ──────────────────────────────────────────────────────
-.git/
+# Specific Heavy/Redundant Docs
+backend/docs/swagger/
+docs/students/
+backend/OQUVCHILAR_UCHUN.md
+backend/DEPLOY.md
+render.yaml
+extract-swagger.js
+**/__fixtures__/
+**/__mocks__/
+**/test-data/
