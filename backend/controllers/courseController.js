@@ -2,7 +2,6 @@ const Course = require('../models/Course');
 const Video  = require('../models/Video');
 const CourseRating = require('../models/CourseRating');
 const Enrollment = require('../models/Enrollment');
-const { getRecommendedCourses: getRecommendedByUser } = require('../utils/recommendationService');
 
 /**
  * @desc  Barcha kurslar — filter, qidiruv, pagination
@@ -321,21 +320,6 @@ const rateCourse = async (req, res) => {
 };
 
 /**
- * @desc  Foydalanuvchi uchun tavsiya etilgan kurslar (enrollment asosida)
- * @route GET /api/courses/recommended
- * @access Private
- */
-const getUserRecommendedCourses = async (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 6;
-    const courses = await getRecommendedByUser(req.user._id, limit);
-    res.json({ success: true, data: { courses } });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/**
  * @desc  Kurs nomlarini autocomplete qidirish
  * @route GET /api/courses/autocomplete?q=react
  * @access Public
@@ -401,7 +385,6 @@ module.exports = {
   getTopCourses,
   getCategories,
   getRecommendedCourses,
-  getUserRecommendedCourses,
   getAutocomplete,
   getFilterCounts,
   createCourse,
