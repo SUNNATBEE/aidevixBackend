@@ -1,16 +1,10 @@
 const mongoose = require('mongoose');
 
-/**
- * MongoDB ObjectId format validatsiyasi middleware
- * @param {string} paramName - req.params dan tekshiriladigan kalit nomi (default: 'id')
- */
-function validateObjectId(paramName = 'id') {
-  return (req, res, next) => {
-    if (!mongoose.Types.ObjectId.isValid(req.params[paramName])) {
-      return res.status(400).json({ success: false, message: "Noto'g'ri ID format" });
+module.exports = function () {
+  return function (req, res, next) {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ message: 'Invalid ID format.' });
     }
     next();
   };
-}
-
-module.exports = validateObjectId;
+};

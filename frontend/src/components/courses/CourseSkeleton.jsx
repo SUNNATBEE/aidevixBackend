@@ -1,30 +1,20 @@
-// ============================================================
-// OQUVCHI  : DONIYOR
-// BRANCH   : feature/doniyor-courses
-// FAYL     : src/components/courses/CourseSkeleton.jsx
-// ============================================================
-//
-// VAZIFA: Kurs kartasi skeleton (yuklash holati) komponentini yaratish
-//
-// SKELETON TARKIBI:
-//
-//  - glass-card overflow-hidden animate-pulse
-//  - Yuqorida: h-44 bg-base-300 rounded-none (thumbnail o'rniga)
-//  - Tanada (p-4):
-//    - h-4 bg-base-300 w-3/4 rounded   (sarlavha)
-//    - h-3 bg-base-300 w-full rounded  (tavsif 1-qator)
-//    - h-3 bg-base-300 w-2/3 rounded   (tavsif 2-qator)
-//    - h-4 bg-base-300 w-24 rounded    (rating)
-//    - h-5 bg-base-300 w-12 rounded    (narx)
-//
-//  DaisyUI skeleton-base yoki bg-base-300 ishlatiladi
-//
-// ISHLATISH:
-//   <CourseSkeleton />              — bitta skeleton
-//   loading && Array.from({length:8}).map((_,i) => <CourseSkeleton key={i} />)
-// ============================================================
-
 export default function CourseSkeleton() {
-  // TODO: DONIYOR bu komponentni to'liq yozadi
-  return null
+  return (
+    <div className="rounded-2xl overflow-hidden bg-base-200 animate-pulse border border-base-content/5">
+      <div className="h-40 bg-base-300" />
+      <div className="p-4 space-y-3">
+        <div className="flex justify-between">
+          <div className="h-3 bg-base-300 rounded-full w-12" />
+          <div className="h-3 bg-base-300 rounded-full w-20" />
+        </div>
+        <div className="h-4 bg-base-300 rounded-lg w-4/5" />
+        <div className="h-3 bg-base-300 rounded-lg w-full" />
+        <div className="h-3 bg-base-300 rounded-lg w-2/3" />
+        <div className="flex justify-between items-center pt-2 border-t border-base-300">
+          <div className="h-3 bg-base-300 rounded-full w-16" />
+          <div className="h-4 bg-base-300 rounded-lg w-20" />
+        </div>
+      </div>
+    </div>
+  )
 }

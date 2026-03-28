@@ -46,12 +46,15 @@ const initialState = {
   topCourses:     [],
   current:        null,
   total:          0,
+  pages:          0,
   loading:        false,
   error:          null,
   filters: {
     category:     'all',
     search:       '',
     sort:         'newest',
+    level:        undefined,
+    minRating:    undefined,
     page:         1,
   },
 }
@@ -75,8 +78,14 @@ const courseSlice = createSlice({
       .addCase(fetchCourses.pending,  (state) => { state.loading = true; state.error = null })
       .addCase(fetchCourses.fulfilled, (state, action) => {
         state.loading = false
-        state.list    = action.payload.courses || action.payload
-        state.total   = action.payload.total || action.payload.length
+        const payload = action.payload
+        // append on page > 1, replace on page 1
+        const incoming = payload.courses || payload
+        state.list  = payload.pagination?.page > 1
+          ? [...state.list, ...incoming]
+          : incoming
+        state.total = payload.pagination?.total ?? payload.total ?? incoming.length
+        state.pages = payload.pagination?.pages ?? 0
       })
       .addCase(fetchCourses.rejected, (state, action) => {
         state.loading = false; state.error = action.payload
@@ -105,3 +114,5 @@ export const selectTopCourses = (state) => state.courses.topCourses
 export const selectCurrent    = (state) => state.courses.current
 export const selectFilters    = (state) => state.courses.filters
 export const selectCoursesLoading = (state) => state.courses.loading
+export const selectCoursesTotal   = (state) => state.courses.total
+export const selectCoursesPages   = (state) => state.courses.pages

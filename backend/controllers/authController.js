@@ -2,7 +2,6 @@ const User = require('../models/User');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/jwt');
 const validator = require('validator');
 const { sendWelcomeEmail } = require('../utils/emailService');
-
 // Register new user
 const register = async (req, res) => {
   try {
@@ -76,9 +75,12 @@ const register = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error('❌ REGISTER ERROR:', error.message);
+    console.error('❌ REGISTER STACK:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error registering user.',
+      ...(process.env.NODE_ENV !== 'production' && { debug: error.message }),
     });
   }
 };
