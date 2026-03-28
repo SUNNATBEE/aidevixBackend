@@ -75,9 +75,12 @@ const register = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error('❌ REGISTER ERROR:', error.message);
+    console.error('❌ REGISTER STACK:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error registering user.',
+      ...(process.env.NODE_ENV !== 'production' && { debug: error.message }),
     });
   }
 };
