@@ -9,7 +9,6 @@ const swaggerAdminSpec = require('./config/swaggerAdmin');
 const swaggerAuth = require('./middleware/swaggerAuth');
 const connectDB = require('./config/database');
 const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
-const { startWeeklyReset } = require('./utils/weeklyReset');
 
 // Initialize Express app
 const app = express();
@@ -312,8 +311,6 @@ app.listen(PORT, HOST, () => {
   if (process.env.NODE_ENV === 'production') {
     console.log(`✅ Production mode enabled`);
   }
-  // Haftalik XP reset ni ishga tushirish
-  startWeeklyReset();
 });
 
 module.exports = app;
