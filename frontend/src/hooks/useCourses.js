@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import {
   selectCourses, selectTopCourses, selectCurrent, selectFilters, selectCoursesLoading,
+  selectCoursesTotal, selectCoursesPages,
   fetchCourses, fetchCourseById, fetchTopCourses, setFilter, setPage, clearCurrent,
 } from '@store/slices/courseSlice'
 
@@ -15,6 +16,8 @@ export function useCourses() {
     current:    useSelector(selectCurrent),
     filters:    useSelector(selectFilters),
     loading:    useSelector(selectCoursesLoading),
+    total:      useSelector(selectCoursesTotal),
+    pages:      useSelector(selectCoursesPages),
 
     fetchAll:   (params) => dispatch(fetchCourses(params)),
     fetchById:  (id)     => dispatch(fetchCourseById(id)),
