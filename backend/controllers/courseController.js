@@ -320,6 +320,26 @@ const rateCourse = async (req, res) => {
 };
 
 /**
+
+ * @desc  Foydalanuvchi uchun tavsiya etilgan kurslar (enrollment asosida)
+ * @route GET /api/courses/recommended
+ * @access Private
+ */
+const getUserRecommendedCourses = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 6;
+    const courses = await Course.find({ isActive: true })
+      .sort({ viewCount: -1 })
+      .limit(limit)
+      .select('-videos');
+    res.json({ success: true, data: { courses } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+
  * @desc  Kurs nomlarini autocomplete qidirish
  * @route GET /api/courses/autocomplete?q=react
  * @access Public

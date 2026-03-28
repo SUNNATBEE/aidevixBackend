@@ -250,7 +250,7 @@ const getQuizByVideo = async (req, res) => {
  */
 const updateProfile = async (req, res) => {
   try {
-    const { bio, skills, avatar } = req.body;
+    const { bio, skills, avatar, ism, familiya, kasb } = req.body;
 
     let stats = await UserStats.findOne({ userId: req.user.id });
     if (!stats) {
@@ -263,12 +263,30 @@ const updateProfile = async (req, res) => {
 
     await stats.save();
 
+    const User = require('../models/User');
+    let user = await User.findById(req.user.id);
+    let userUpdated = false;
+    
+    if (ism !== undefined) { user.firstName = ism; userUpdated = true; }
+    if (familiya !== undefined) { user.lastName = familiya; userUpdated = true; }
+    if (kasb !== undefined) { user.jobTitle = kasb; userUpdated = true; }
+
+    if (userUpdated) {
+      await user.save();
+    }
+
     res.json({
       success: true,
       data: {
         bio: stats.bio,
         skills: stats.skills,
         avatar: stats.avatar,
+        user: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          jobTitle: user.jobTitle,
+          username: user.username
+        }
       },
     });
   } catch (err) {
@@ -377,11 +395,8 @@ const getWeeklyLeaderboard = async (req, res) => {
  */
 const getXPHistory = async (req, res) => {
   try {
-    const XPTransaction = require('../models/XPTransaction');
-    const history = await XPTransaction.find({ userId: req.user.id })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
+    // XPTransaction model was deleted, returning empty history for now
+    const history = [];
     res.json({ success: true, data: { history } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

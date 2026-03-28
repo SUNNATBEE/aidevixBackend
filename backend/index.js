@@ -198,7 +198,6 @@ app.use('/api/challenges',   require('./routes/challengeRoutes'));
 app.use('/api/payments',     require('./routes/paymentRoutes'));
 app.use('/api/admin',        require('./routes/adminRoutes'));
 app.use('/api/upload',       require('./routes/uploadRoutes'));
-app.use('/api/telegram',     require('./routes/telegramRoutes'));
 
 // Health check route
 /**
