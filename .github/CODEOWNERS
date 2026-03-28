@@ -1,0 +1,33 @@
+# ══════════════════════════════════════════════════════════════
+# CODEOWNERS — Qaysi papka kimga tegishli
+# O'quvchilar backend va himoya fayllarni o'zgartira olmaydi
+# (PR da SUNNATBEE dan review talab qilinadi)
+# ══════════════════════════════════════════════════════════════
+
+# ─── Backend — FAQAT O'qituvchi (Sunnatbek) ──────────────────
+/backend/                    @SUNNATBEE
+
+# ─── Root konfiguratsiya fayllar ──────────────────────────────
+/architecture.md             @SUNNATBEE
+/CLAUDE.md                   @SUNNATBEE
+/CLAUDE-details.md           @SUNNATBEE
+/STUDENTS.md                 @SUNNATBEE
+/package.json                @SUNNATBEE
+/railway.toml                @SUNNATBEE
+/.gitignore                  @SUNNATBEE
+
+# ─── AI tool konfiguratsiya (himoya) ─────────────────────────
+/.claudeignore               @SUNNATBEE
+/.cursorrules                @SUNNATBEE
+/.cursorignore               @SUNNATBEE
+
+# ─── CI/CD va Git hooklar ─────────────────────────────────────
+/.github/                    @SUNNATBEE
+/.claude/                    @SUNNATBEE
+/.githooks/                  @SUNNATBEE
+
+# ─── Frontend — O'quvchilar o'z papkalarida ishlaydi ─────────
+# (Branch protection orqali PR talab qilinadi)
+# O'quvchilar frontend CLAUDE.md ni ham o'zgartira olmaydi
+/frontend/CLAUDE.md          @SUNNATBEE
+/frontend/.claudeignore      @SUNNATBEE

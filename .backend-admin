@@ -1,0 +1,4 @@
+# Bu fayl O'QITUVCHI uchun — pre-commit hookni skip qiladi.
+# O'quvchilar bu faylni yaratmasin!
+# .gitignore da yashirilgan — faqat siz ko'rasiz.
+admin=true

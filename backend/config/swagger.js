@@ -116,6 +116,66 @@ Frontend показывает его в \`<iframe>\` — не через Telegra
         name: 'Admin Panel - Videos',
         description: '👑 Admin: Video boshqaruvi / Управление видео (только для администраторов)',
       },
+      {
+        name: 'XP & Gamification',
+        description: '🎮 XP tizimi, streak, badge, level / Система XP, серии, значки, уровни',
+      },
+      {
+        name: 'Enrollment',
+        description: '📚 Kursga yozilish va progress / Запись на курс и прогресс',
+      },
+      {
+        name: 'Payments',
+        description: '💳 To\'lov tizimi — Payme va Click / Система оплаты',
+      },
+      {
+        name: 'Certificates',
+        description: '🎓 Sertifikatlar — PDF yuklab olish va tekshirish / Сертификаты',
+      },
+      {
+        name: 'Ranking',
+        description: '🏆 Reyting — top kurslar, top foydalanuvchilar, haftalik / Рейтинги',
+      },
+      {
+        name: 'Projects',
+        description: '🏗️ Kurs loyihalari — amaliy mashqlar / Практические проекты курса',
+      },
+      {
+        name: 'Sections',
+        description: '📂 Kurs bo\'limlari — videolarni guruhlash / Секции курса',
+      },
+      {
+        name: 'Follow',
+        description: '👥 Foydalanuvchilar o\'rtasida obuna / Подписки между пользователями',
+      },
+      {
+        name: 'Wishlist',
+        description: '❤️ Saqlangan kurslar / Список желаний',
+      },
+      {
+        name: 'Challenges',
+        description: '🎯 Kunlik vazifalar / Ежедневные задания',
+      },
+      {
+        name: 'Upload',
+        description: '📸 Fayl yuklash (Cloudinary) / Загрузка файлов',
+      },
+      {
+        name: 'Telegram',
+        description: '🤖 Telegram bot webhook / Вебхук Telegram бота',
+      },
+      {
+        name: 'Admin Panel - Projects',
+        description: '👑 Admin: Loyiha boshqaruvi / Управление проектами',
+      },
+      {
+        name: 'Admin Panel - Sections',
+        description: '👑 Admin: Bo\'lim boshqaruvi / Управление секциями',
+      },
+      {
+        name: 'Admin Panel - Challenges',
+        description: '👑 Admin: Kunlik vazifalar boshqaruvi / Управление заданиями',
+      },
     ],
     components: {
       securitySchemes: {
@@ -537,6 +597,245 @@ const { video, player } = response.data.data
           },
         },
 
+        // ─── PAYMENT ─────────────────────────────────────────────
+        Payment: {
+          type: 'object',
+          description: 'To\'lov modeli / Модель оплаты',
+          properties: {
+            _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d5' },
+            userId: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d1' },
+            courseId: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d2' },
+                title: { type: 'string', example: 'React.js Frontend Development' },
+                thumbnail: { type: 'string', example: 'https://example.com/react.jpg' },
+              },
+            },
+            amount: { type: 'number', example: 349000, description: 'Narxi so\'mda / Сумма в сумах' },
+            currency: { type: 'string', example: 'UZS', default: 'UZS' },
+            provider: { type: 'string', enum: ['payme', 'click', 'manual'], example: 'payme' },
+            status: { type: 'string', enum: ['pending', 'completed', 'failed', 'refunded', 'cancelled', 'expired'], example: 'completed' },
+            paidAt: { type: 'string', format: 'date-time', example: '2026-03-17T10:00:00.000Z' },
+            createdAt: { type: 'string', format: 'date-time', example: '2026-03-17T09:55:00.000Z' },
+          },
+        },
+
+        // ─── ENROLLMENT ──────────────────────────────────────────
+        Enrollment: {
+          type: 'object',
+          description: 'Kursga yozilish / Запись на курс',
+          properties: {
+            _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d6' },
+            userId: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d1' },
+            courseId: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d2' },
+                title: { type: 'string', example: 'HTML Asoslari' },
+                thumbnail: { type: 'string', example: 'https://example.com/html.jpg' },
+                category: { type: 'string', example: 'html' },
+                level: { type: 'string', example: 'beginner' },
+                rating: { type: 'number', example: 4.8 },
+                price: { type: 'number', example: 99000 },
+                instructor: {
+                  type: 'object',
+                  properties: {
+                    username: { type: 'string', example: 'aidevix_admin' },
+                    jobTitle: { type: 'string', example: 'Senior Developer' },
+                  },
+                },
+              },
+            },
+            paymentStatus: { type: 'string', enum: ['free', 'pending', 'paid', 'refunded'], example: 'free' },
+            progressPercent: { type: 'number', example: 65, description: '0-100 foiz / 0-100 процентов' },
+            isCompleted: { type: 'boolean', example: false },
+            watchedVideos: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  videoId: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d3' },
+                  watchedAt: { type: 'string', format: 'date-time' },
+                  watchedSeconds: { type: 'number', example: 720 },
+                },
+              },
+            },
+            completedAt: { type: 'string', format: 'date-time', nullable: true },
+            createdAt: { type: 'string', format: 'date-time' },
+          },
+        },
+
+        // ─── CERTIFICATE ─────────────────────────────────────────
+        Certificate: {
+          type: 'object',
+          description: 'Sertifikat / Сертификат',
+          properties: {
+            _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d7' },
+            certificateCode: { type: 'string', example: 'A1B2C3D4E5F6G7H8', description: 'Unikal tekshiruv kodi / Уникальный код проверки' },
+            recipientName: { type: 'string', example: 'Jamshid K.' },
+            courseName: { type: 'string', example: 'React.js Frontend Development' },
+            courseId: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d2' },
+                title: { type: 'string', example: 'React.js Frontend Development' },
+                thumbnail: { type: 'string', example: 'https://example.com/react.jpg' },
+                category: { type: 'string', example: 'react' },
+              },
+            },
+            issuedAt: { type: 'string', format: 'date-time', example: '2026-03-17T10:00:00.000Z' },
+            pdfUrl: { type: 'string', example: 'https://res.cloudinary.com/aidevix/raw/upload/v1/certificates/A1B2C3D4.pdf', nullable: true },
+            isVerified: { type: 'boolean', example: true },
+          },
+        },
+
+        // ─── PROJECT ─────────────────────────────────────────────
+        Project: {
+          type: 'object',
+          description: 'Amaliy loyiha / Практический проект',
+          properties: {
+            _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d8' },
+            courseId: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d2' },
+            title: { type: 'string', example: 'Portfolio Sahifasi' },
+            description: { type: 'string', example: 'HTML va CSS bilan shaxsiy portfolio yarating' },
+            level: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'], example: 'beginner' },
+            order: { type: 'number', example: 0 },
+            technologies: { type: 'array', items: { type: 'string' }, example: ['HTML5', 'CSS3', 'JavaScript'] },
+            requirements: { type: 'array', items: { type: 'string' }, example: ['HTML asoslari darslarini ko\'ring'] },
+            tasks: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  order: { type: 'number', example: 0 },
+                  title: { type: 'string', example: 'index.html yarating' },
+                  description: { type: 'string', example: 'Asosiy HTML strukturasi' },
+                  hint: { type: 'string', example: '<!DOCTYPE html> bilan boshlang' },
+                  xpReward: { type: 'number', example: 60 },
+                },
+              },
+            },
+            estimatedTime: { type: 'number', example: 120, description: 'Daqiqalarda / В минутах' },
+            xpReward: { type: 'number', example: 300 },
+            isCompleted: { type: 'boolean', example: false, description: 'Faqat login bo\'lgan user uchun / Только для авторизованных' },
+            isActive: { type: 'boolean', example: true },
+          },
+        },
+
+        // ─── SECTION ─────────────────────────────────────────────
+        Section: {
+          type: 'object',
+          description: 'Kurs bo\'limi / Секция курса',
+          properties: {
+            _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d9' },
+            courseId: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d2' },
+            title: { type: 'string', example: '1-Bo\'lim: Python asoslari' },
+            description: { type: 'string', example: 'Asosiy tushunchalar' },
+            order: { type: 'number', example: 0 },
+            videos: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/VideoShort' },
+            },
+            isActive: { type: 'boolean', example: true },
+          },
+        },
+
+        // ─── DAILY CHALLENGE ─────────────────────────────────────
+        DailyChallenge: {
+          type: 'object',
+          description: 'Kunlik vazifa / Ежедневное задание',
+          properties: {
+            _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0e0' },
+            title: { type: 'string', example: '3 ta video ko\'r' },
+            description: { type: 'string', example: 'Bugun kamida 3 ta video ko\'ring' },
+            type: { type: 'string', enum: ['watch_video', 'complete_quiz', 'streak', 'enroll_course', 'rate_course'], example: 'watch_video' },
+            targetCount: { type: 'number', example: 3 },
+            xpReward: { type: 'number', example: 100 },
+            date: { type: 'string', example: '2026-03-26', description: 'YYYY-MM-DD formatda' },
+            isActive: { type: 'boolean', example: true },
+          },
+        },
+
+        // ─── CHALLENGE PROGRESS ──────────────────────────────────
+        ChallengeProgress: {
+          type: 'object',
+          description: 'Foydalanuvchi vazifa progressi / Прогресс задания',
+          properties: {
+            currentCount: { type: 'number', example: 2 },
+            isCompleted: { type: 'boolean', example: false },
+            completedAt: { type: 'string', format: 'date-time', nullable: true },
+            xpEarned: { type: 'number', example: 0 },
+          },
+        },
+
+        // ─── USER STATS ─────────────────────────────────────────
+        UserStats: {
+          type: 'object',
+          description: 'Foydalanuvchi statistikasi / Статистика пользователя',
+          properties: {
+            xp: { type: 'number', example: 4250 },
+            level: { type: 'number', example: 12 },
+            levelProgress: { type: 'number', example: 65, description: 'Keyingi levelgacha foiz / Процент до следующего уровня' },
+            streak: { type: 'number', example: 7, description: 'Ketma-ket faol kunlar / Дней подряд' },
+            weeklyXp: { type: 'number', example: 850 },
+            videosWatched: { type: 'number', example: 45 },
+            quizzesCompleted: { type: 'number', example: 12 },
+            badges: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: 'Birinchi video' },
+                  icon: { type: 'string', example: '🏆' },
+                  earnedAt: { type: 'string', format: 'date-time' },
+                },
+              },
+            },
+            bio: { type: 'string', example: 'Frontend developer | Aidevix student', nullable: true },
+            skills: { type: 'array', items: { type: 'string' }, example: ['javascript', 'react', 'css'] },
+            avatar: { type: 'string', example: 'https://res.cloudinary.com/aidevix/image/upload/v1/avatars/user123.jpg', nullable: true },
+            streakFreezes: { type: 'number', example: 3, description: 'Qolgan streak freeze soni (max 5)' },
+          },
+        },
+
+        // ─── RANKED USER ─────────────────────────────────────────
+        RankedUser: {
+          type: 'object',
+          description: 'Reyting foydalanuvchisi / Пользователь в рейтинге',
+          properties: {
+            rank: { type: 'number', example: 1 },
+            rankTitle: { type: 'string', enum: ['GRANDMASTER', 'VICE-ADMIRAL', 'COMMANDER', 'CAPTAIN', 'LIEUTENANT', 'SERGEANT', 'CORPORAL', 'RECRUIT'], example: 'GRANDMASTER' },
+            user: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d1' },
+                username: { type: 'string', example: 'jamshid_k' },
+                email: { type: 'string', example: 'jamshid@example.com' },
+              },
+            },
+            xp: { type: 'number', example: 145200 },
+            level: { type: 'number', example: 99 },
+            streak: { type: 'number', example: 84 },
+            badges: { type: 'array', items: { type: 'object' } },
+            videosWatched: { type: 'number', example: 450 },
+            quizzesCompleted: { type: 'number', example: 120 },
+            skills: { type: 'array', items: { type: 'string' }, example: ['javascript', 'react'] },
+          },
+        },
+
+        // ─── PAGINATION ──────────────────────────────────────────
+        Pagination: {
+          type: 'object',
+          description: 'Sahifalash ma\'lumotlari / Данные пагинации',
+          properties: {
+            total: { type: 'number', example: 150 },
+            page: { type: 'number', example: 1 },
+            limit: { type: 'number', example: 20 },
+            pages: { type: 'number', example: 8 },
+          },
+        },
+
         // ─── SUBSCRIPTION STATUS ──────────────────────────────
         SubscriptionStatus: {
           type: 'object',
@@ -560,7 +859,7 @@ const { video, player } = response.data.data
     },
     security: [{ bearerAuth: [] }],
   },
-  apis: ['./routes/*.js', './index.js'],
+  apis: ['./routes/*.js', './docs/swagger/*.js', './index.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(options);
