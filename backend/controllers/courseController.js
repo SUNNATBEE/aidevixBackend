@@ -2,7 +2,6 @@ const Course = require('../models/Course');
 const Video  = require('../models/Video');
 const CourseRating = require('../models/CourseRating');
 const Enrollment = require('../models/Enrollment');
-const { getRecommendedCourses: getRecommendedByUser } = require('../utils/recommendationService');
 
 /**
  * @desc  Barcha kurslar — filter, qidiruv, pagination
@@ -328,7 +327,10 @@ const rateCourse = async (req, res) => {
 const getUserRecommendedCourses = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 6;
-    const courses = await getRecommendedByUser(req.user._id, limit);
+    const courses = await Course.find({ isActive: true })
+      .sort({ viewCount: -1 })
+      .limit(limit)
+      .select('-videos');
     res.json({ success: true, data: { courses } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

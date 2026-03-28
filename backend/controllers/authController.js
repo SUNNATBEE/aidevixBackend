@@ -1,11 +1,7 @@
 const User = require('../models/User');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/jwt');
 const validator = require('validator');
-<<<<<<< HEAD
-=======
 const { sendWelcomeEmail } = require('../utils/emailService');
-
->>>>>>> 08f683caf9de6c8aac397097000b2efb79c7b6ae
 // Register new user
 const register = async (req, res) => {
   try {

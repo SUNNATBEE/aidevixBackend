@@ -1,7 +1,5 @@
 const User = require('../models/User');
 const { verifyInstagramSubscription, verifyTelegramSubscription, checkTelegramSubscription } = require('../utils/socialVerification');
-const InstagramVerification = require('../models/InstagramVerification');
-
 // Verify Instagram subscription
 const verifyInstagram = async (req, res) => {
   try {
@@ -152,27 +150,10 @@ const getRealtimeStatus = async (req, res) => {
   }
 };
 
-// Instagram tasdiqlash so'rovi yuborish
-const requestInstagramVerification = async (req, res) => {
-  try {
-    const { instagramUsername, screenshotUrl, verificationType = 'manual' } = req.body;
-    if (!instagramUsername) return res.status(400).json({ success: false, message: 'Instagram username kiritilmadi' });
-
-    const existing = await InstagramVerification.findOne({ userId: req.user._id, status: 'pending' });
-    if (existing) return res.status(400).json({ success: false, message: 'Sizning so\'rovingiz ko\'rib chiqilmoqda' });
-
-    await InstagramVerification.create({ userId: req.user._id, instagramUsername, screenshotUrl, verificationType });
-    res.json({ success: true, message: 'So\'rovingiz qabul qilindi, admin ko\'rib chiqadi' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Server xatosi' });
-  }
-};
-
 module.exports = {
   verifyInstagram,
   verifyTelegram,
   getSubscriptionStatus,
   setTelegramId,
   getRealtimeStatus,
-  requestInstagramVerification,
 };

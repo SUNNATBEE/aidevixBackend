@@ -395,11 +395,8 @@ const getWeeklyLeaderboard = async (req, res) => {
  */
 const getXPHistory = async (req, res) => {
   try {
-    const XPTransaction = require('../models/XPTransaction');
-    const history = await XPTransaction.find({ userId: req.user.id })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
+    // XPTransaction model was deleted, returning empty history for now
+    const history = [];
     res.json({ success: true, data: { history } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
