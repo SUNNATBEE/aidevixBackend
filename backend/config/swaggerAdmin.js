@@ -17,12 +17,12 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:5000',
-        description: 'Local Development Server',
+        url: 'https://aidevix-backend-production.up.railway.app',
+        description: '🚀 Production Server — Railway',
       },
       {
-        url: 'https://aidevixbackend.onrender.com',
-        description: 'Production Server (Render)',
+        url: 'http://localhost:5000',
+        description: '🖥️ Local Development Server',
       },
     ],
     components: {
@@ -69,7 +69,7 @@ const options = {
       },
     ],
   },
-  apis: ['./routes/*.js', './index.js'],
+  apis: ['./routes/*.js', './docs/swagger/*.js', './index.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(options);

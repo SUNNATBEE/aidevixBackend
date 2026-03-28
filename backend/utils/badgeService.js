@@ -12,12 +12,17 @@ const BADGE_RULES = [
   { name: 'Streak 7',          icon: '🔥', condition: (s) => s.streak >= 7           },
   { name: 'Streak 30',         icon: '💪', condition: (s) => s.streak >= 30          },
   { name: 'Streak 100',        icon: '⚡', condition: (s) => s.streak >= 100         },
+  { name: 'XP 500',            icon: '⭐', condition: (s) => s.xp >= 500             },
   { name: 'XP 1000',           icon: '⭐', condition: (s) => s.xp >= 1000            },
+  { name: 'XP 5000',           icon: '🌟', condition: (s) => s.xp >= 5000            },
   { name: 'XP 10000',          icon: '🌟', condition: (s) => s.xp >= 10000           },
   { name: 'XP 50000',          icon: '💎', condition: (s) => s.xp >= 50000           },
   { name: 'Level 10',          icon: '🎯', condition: (s) => s.level >= 10           },
   { name: 'Level 50',          icon: '🚀', condition: (s) => s.level >= 50           },
   { name: 'Level 99',          icon: '👑', condition: (s) => s.level >= 99           },
+  { name: 'Kurs tugallandi',   icon: '🎓', condition: (s) => (s.coursesCompleted || 0) >= 1 },
+  { name: 'Quiz ustasi',       icon: '🧠', condition: (s) => (s.highScoreQuizzes || 0) >= 10 },
+  { name: 'Mukammal natija',   icon: '💯', condition: (s) => (s.perfectScores || 0) >= 1   },
 ];
 
 /**

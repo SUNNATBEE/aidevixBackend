@@ -1,5 +1,6 @@
 const User = require('../models/User');
-const { verifyInstagramSubscription, verifyTelegramSubscription } = require('../utils/socialVerification');
+const { verifyInstagramSubscription, verifyTelegramSubscription, checkTelegramSubscription } = require('../utils/socialVerification');
+const InstagramVerification = require('../models/InstagramVerification');
 
 // Verify Instagram subscription
 const verifyInstagram = async (req, res) => {
@@ -119,8 +120,59 @@ const getSubscriptionStatus = async (req, res) => {
   }
 };
 
+// Telegram ID saqlash
+const setTelegramId = async (req, res) => {
+  try {
+    const { telegramUserId } = req.body;
+    if (!telegramUserId) return res.status(400).json({ success: false, message: 'Telegram ID kiritilmadi' });
+    await User.findByIdAndUpdate(req.user._id, { telegramUserId: String(telegramUserId) });
+    res.json({ success: true, message: 'Telegram ID saqlandi' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server xatosi' });
+  }
+};
+
+// Real-time obuna holati
+const getRealtimeStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const telegramId = user.telegramUserId || user.socialSubscriptions?.telegram?.telegramUserId;
+    const telegramOk = await checkTelegramSubscription(telegramId);
+    const instagramOk = user.socialSubscriptions?.instagram?.subscribed || false;
+    res.json({
+      success: true,
+      data: {
+        telegram: telegramOk,
+        instagram: instagramOk,
+        telegramUserId: telegramId || null,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server xatosi' });
+  }
+};
+
+// Instagram tasdiqlash so'rovi yuborish
+const requestInstagramVerification = async (req, res) => {
+  try {
+    const { instagramUsername, screenshotUrl, verificationType = 'manual' } = req.body;
+    if (!instagramUsername) return res.status(400).json({ success: false, message: 'Instagram username kiritilmadi' });
+
+    const existing = await InstagramVerification.findOne({ userId: req.user._id, status: 'pending' });
+    if (existing) return res.status(400).json({ success: false, message: 'Sizning so\'rovingiz ko\'rib chiqilmoqda' });
+
+    await InstagramVerification.create({ userId: req.user._id, instagramUsername, screenshotUrl, verificationType });
+    res.json({ success: true, message: 'So\'rovingiz qabul qilindi, admin ko\'rib chiqadi' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server xatosi' });
+  }
+};
+
 module.exports = {
   verifyInstagram,
   verifyTelegram,
   getSubscriptionStatus,
+  setTelegramId,
+  getRealtimeStatus,
+  requestInstagramVerification,
 };

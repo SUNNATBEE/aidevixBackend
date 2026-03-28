@@ -20,5 +20,6 @@ const followSchema = new mongoose.Schema({
 
 // Bir foydalanuvchi boshqasiga faqat bir marta obuna bo'lishi
 followSchema.index({ followerId: 1, followingId: 1 }, { unique: true });
+followSchema.index({ followingId: 1 });
 
 module.exports = mongoose.model('Follow', followSchema);

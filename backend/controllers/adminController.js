@@ -1,4 +1,5 @@
 const User       = require('../models/User');
+const InstagramVerification = require('../models/InstagramVerification');
 const Course     = require('../models/Course');
 const Video      = require('../models/Video');
 const UserStats  = require('../models/UserStats');
@@ -162,4 +163,48 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { getDashboardStats, getTopStudents, getCoursesStats, getRecentPayments, getUsers, updateUser, deleteUser };
+/** @desc  Instagram tasdiqlash so'rovlari | @route GET /api/admin/instagram-verifications | @access Admin */
+const getInstagramVerifications = async (req, res) => {
+  try {
+    const { status = 'pending' } = req.query;
+    const verifications = await InstagramVerification.find({ status })
+      .populate('userId', 'username email')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+    res.json({ success: true, data: { verifications } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Instagram so\'rovlarini olishda xato' });
+  }
+};
+
+/** @desc  Instagram tasdiqlashni ko'rib chiqish | @route PUT /api/admin/instagram-verifications/:id | @access Admin */
+const reviewInstagramVerification = async (req, res) => {
+  try {
+    const { status, adminNote } = req.body;
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Status: approved yoki rejected bo\'lishi kerak' });
+    }
+
+    const verification = await InstagramVerification.findByIdAndUpdate(
+      req.params.id,
+      { status, adminNote, reviewedBy: req.user._id, reviewedAt: new Date() },
+      { new: true }
+    );
+    if (!verification) return res.status(404).json({ success: false, message: 'So\'rov topilmadi' });
+
+    if (status === 'approved') {
+      await User.findByIdAndUpdate(verification.userId, {
+        'socialSubscriptions.instagram.subscribed': true,
+        'socialSubscriptions.instagram.username': verification.instagramUsername,
+        'socialSubscriptions.instagram.verifiedAt': new Date(),
+      });
+    }
+
+    res.json({ success: true, message: 'Yangilandi', data: { verification } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Ko\'rib chiqishda xato' });
+  }
+};
+
+module.exports = { getDashboardStats, getTopStudents, getCoursesStats, getRecentPayments, getUsers, updateUser, deleteUser, getInstagramVerifications, reviewInstagramVerification };

@@ -39,11 +39,22 @@ const certificateSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  // PDF sertifikat Cloudinary URL'i
+  pdfUrl: {
+    type: String,
+    default: null,
+  },
+  isVerified: {
+    type: Boolean,
+    default: true,
+  },
 }, {
   timestamps: true,
 });
 
 // Bir foydalanuvchi bitta kursdan bitta sertifikat
 certificateSchema.index({ userId: 1, courseId: 1 }, { unique: true });
+certificateSchema.index({ userId: 1 });
+// certificateCode allaqachon { unique: true } bilan schema fieldida index yaratilgan
 
 module.exports = mongoose.model('Certificate', certificateSchema);

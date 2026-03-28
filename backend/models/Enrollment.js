@@ -59,5 +59,8 @@ const enrollmentSchema = new mongoose.Schema({
 
 // Bir foydalanuvchi bitta kursga bir marta yozilishi
 enrollmentSchema.index({ userId: 1, courseId: 1 }, { unique: true });
+enrollmentSchema.index({ userId: 1 });
+enrollmentSchema.index({ courseId: 1 });
+enrollmentSchema.index({ isCompleted: 1 });
 
 module.exports = mongoose.model('Enrollment', enrollmentSchema);

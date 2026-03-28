@@ -533,6 +533,47 @@ const linkToBunny = async (req, res) => {
   }
 };
 
+// Search videos by title
+const searchVideos = async (req, res) => {
+  try {
+    const { q = '', courseId, page = 1, limit = 20 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const filter = { isActive: true };
+    if (q.trim()) {
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.title = { $regex: escaped, $options: 'i' };
+    }
+    if (courseId) filter.course = courseId;
+
+    const [videos, total] = await Promise.all([
+      Video.find(filter)
+        .select('title description order duration thumbnail course bunnyStatus')
+        .populate('course', 'title category')
+        .sort({ course: 1, order: 1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Video.countDocuments(filter),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        videos,
+        pagination: {
+          total,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          pages: Math.ceil(total / parseInt(limit)),
+        },
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getCourseVideos,
   getVideo,
@@ -540,6 +581,7 @@ module.exports = {
   createVideo,
   updateVideo,
   deleteVideo,
+  searchVideos,
   askQuestion,
   getVideoQuestions,
   answerQuestion,

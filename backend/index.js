@@ -1,12 +1,15 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const { sanitize: mongoSanitizeValue } = require('express-mongo-sanitize');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
 const swaggerAdminSpec = require('./config/swaggerAdmin');
 const swaggerAuth = require('./middleware/swaggerAuth');
 const connectDB = require('./config/database');
 const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
+const { startWeeklyReset } = require('./utils/weeklyReset');
 
 // Initialize Express app
 const app = express();
@@ -27,12 +30,17 @@ const allowedOrigins = (process.env.FRONTEND_URL || '')
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
+    // Allow requests with no origin (mobile apps, curl, Postman, direct navigation)
     if (!origin) return callback(null, true);
+    // Allow opaque origins (Telegram webview, file://, etc.)
+    if (origin === 'null') return callback(null, true);
     // Allow if explicitly listed or wildcard '*' configured
     if (allowedOrigins.includes('*') || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
+    // Allow Railway backend URL itself (Swagger UI "Try it out" feature)
+    const backendUrl = process.env.BACKEND_URL || 'https://aidevix-backend-production.up.railway.app';
+    if (origin === backendUrl) return callback(null, true);
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
@@ -41,10 +49,23 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // Swagger UI uchun o'chirilgan
+  crossOriginEmbedderPolicy: false,
+}));
+
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// MongoDB injection sanitize — faqat body va params (Express 5 da req.query read-only getter)
+app.use((req, res, next) => {
+  if (req.body) mongoSanitizeValue(req.body);
+  if (req.params) mongoSanitizeValue(req.params);
+  next();
+});
 
 // Global API rate limiter
 app.use('/api/', apiLimiter);
@@ -110,6 +131,7 @@ app.use('/api/challenges',   require('./routes/challengeRoutes'));
 app.use('/api/payments',     require('./routes/paymentRoutes'));
 app.use('/api/admin',        require('./routes/adminRoutes'));
 app.use('/api/upload',       require('./routes/uploadRoutes'));
+app.use('/api/telegram',     require('./routes/telegramRoutes'));
 
 // Health check route
 /**
@@ -196,7 +218,7 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || 'Internal server error',
+    message: process.env.NODE_ENV === 'production' ? 'Ichki server xatosi' : (err.message || 'Internal server error'),
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 });
@@ -212,6 +234,8 @@ app.listen(PORT, HOST, () => {
   if (process.env.NODE_ENV === 'production') {
     console.log(`✅ Production mode enabled`);
   }
+  // Haftalik XP reset ni ishga tushirish
+  startWeeklyReset();
 });
 
 module.exports = app;
