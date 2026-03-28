@@ -320,6 +320,7 @@ const rateCourse = async (req, res) => {
 };
 
 /**
+
  * @desc  Foydalanuvchi uchun tavsiya etilgan kurslar (enrollment asosida)
  * @route GET /api/courses/recommended
  * @access Private
@@ -338,6 +339,7 @@ const getUserRecommendedCourses = async (req, res) => {
 };
 
 /**
+
  * @desc  Kurs nomlarini autocomplete qidirish
  * @route GET /api/courses/autocomplete?q=react
  * @access Public
@@ -403,7 +405,6 @@ module.exports = {
   getTopCourses,
   getCategories,
   getRecommendedCourses,
-  getUserRecommendedCourses,
   getAutocomplete,
   getFilterCounts,
   createCourse,

@@ -19,4 +19,5 @@ router.post('/verify-telegram', authenticate, verifyTelegram);
 router.get('/status', authenticate, getSubscriptionStatus);
 router.get('/realtime-status', authenticate, getRealtimeStatus);
 router.post('/set-telegram-id', authenticate, setTelegramId);
+
 module.exports = router;

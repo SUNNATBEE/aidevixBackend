@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const { verifyInstagramSubscription, verifyTelegramSubscription, checkTelegramSubscription } = require('../utils/socialVerification');
+
 // Verify Instagram subscription
 const verifyInstagram = async (req, res) => {
   try {
