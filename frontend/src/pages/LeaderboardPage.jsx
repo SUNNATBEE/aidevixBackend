@@ -186,7 +186,6 @@ export default function LeaderboardPage() {
     fetchUsers(next, false)
   }
 
-  // API bo'sh bo'lsa mock
   const displayUsers = apiUsers.length > 0 ? apiUsers : (MOCK[activeTab] || MOCK.all)
   const podiumUsers  = displayUsers.slice(0, 3)
   const tableUsers   = displayUsers.slice(3)

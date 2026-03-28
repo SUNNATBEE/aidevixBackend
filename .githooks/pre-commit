@@ -1,0 +1,52 @@
+#!/bin/bash
+# ══════════════════════════════════════════════════════════════
+# PRE-COMMIT HOOK — Aidevix Ultimate Protection
+# ══════════════════════════════════════════════════════════════
+
+# O'qituvchi (admin) uchun skip
+if [ -f ".backend-admin" ]; then
+  exit 0
+fi
+
+# GIT_ALLOW_BACKEND=1 bilan commit qilish mumkin (o'qituvchi uchun)
+if [ "$GIT_ALLOW_BACKEND" = "1" ]; then
+  exit 0
+fi
+
+# Staged (commit qilinadigan) fayllarni tekshirish
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
+
+# Himoyalangan fayllar ro'yxati
+PROTECTED_PATTERN="^backend/|^package\.json$|^railway\.toml$|^architecture\.md$|^\.github/|^\.claude/|^\.cursorrules$|^\.cursorignore$|^\.claudeignore$|^CLAUDE\.md$|^CLAUDE-details\.md$|^STUDENTS\.md$|^PROMPT_RULES\.md$|^\.githooks/|^\.backend-admin$|^setup-protection\.sh$"
+
+BACKEND_CHANGES=$(echo "$STAGED_FILES" | grep -E "$PROTECTED_PATTERN" || true)
+
+if [ -n "$BACKEND_CHANGES" ]; then
+  echo ""
+  echo "════════════════════════════════════════════════════════════════"
+  echo "🚫 COMMIT BLOKLANDI! (Aidevix Protection)"
+  echo "════════════════════════════════════════════════════════════════"
+  echo ""
+  echo "❌ SIZ QUYIDAGI HIMOYALANGAN FAYLLARNI O'ZGARTIRGANSIZ:"
+  echo ""
+  echo "$BACKEND_CHANGES" | while read -r file; do
+    echo "   📍 $file"
+  done
+  echo ""
+  echo "⚠️  NIMA UCHUN BUNI O'ZGARTIRISH MUMKIN EMAS?"
+  echo "   1. Backend (Node.js/Express) loyihaning yuragi hisoblanadi."
+  echo "   2. Siz (O'quvchi) hozirda faqat Frontend (React) qismini o'rganishingiz shart."
+  echo "   3. Jamoaviy ishlashda backend qoidalari (API) o'zgarmas bo'lishi kerak."
+  echo "   4. Himoya qoidalarining o'zi ham xavfsizlik uchun qulflangan."
+  echo ""
+  echo "🛠️  QANDAY TOZALASH KERAK?"
+  echo "   Ushbu o'zgarishlarni bekor qiling va faqat frontend/src/ da ishlang:"
+  echo "   git checkout HEAD -- $BACKEND_CHANGES"
+  echo ""
+  echo "📖 Batafsil yo'riqnoma: STUDENTS.md"
+  echo "════════════════════════════════════════════════════════════════"
+  echo ""
+  exit 1
+fi
+
+exit 0

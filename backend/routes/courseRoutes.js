@@ -15,6 +15,7 @@ const {
   rateCourse,
 } = require('../controllers/courseController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
+const validateObjectId = require('../middleware/validateObjectId');
 
 // ════════════════════════════════════════════════════════════════
 // GET /api/courses  |  POST /api/courses
@@ -30,13 +31,13 @@ router.post('/', authenticate, requireAdmin, createCourse);
 // ════════════════════════════════════════════════════════════════
 // GET /api/courses/:id  |  PUT /api/courses/:id  |  DELETE /api/courses/:id
 // ════════════════════════════════════════════════════════════════
-router.get('/:id', getCourse);
+router.get('/:id', validateObjectId(), getCourse);
 
-router.get('/:id/recommended', getRecommendedCourses);
+router.get('/:id/recommended', validateObjectId(), getRecommendedCourses);
 
-router.put('/:id', authenticate, requireAdmin, updateCourse);
-router.delete('/:id', authenticate, requireAdmin, deleteCourse);
+router.put('/:id', validateObjectId(), authenticate, requireAdmin, updateCourse);
+router.delete('/:id', validateObjectId(), authenticate, requireAdmin, deleteCourse);
 
-router.post('/:id/rate', authenticate, rateCourse);
+router.post('/:id/rate', validateObjectId(), authenticate, rateCourse);
 
 module.exports = router;
