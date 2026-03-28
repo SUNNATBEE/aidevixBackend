@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '@hooks/useAuth'
+import { useUserStats } from '@hooks/useUserStats'
 import { ROUTES } from '@utils/constants'
 import { HiMenuAlt3, HiX } from 'react-icons/hi'
 import { RiCodeSSlashLine } from 'react-icons/ri'
@@ -14,6 +15,7 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const { user, isLoggedIn, logout } = useAuth()
+  const { avatar } = useUserStats()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -36,10 +38,11 @@ export default function Navbar() {
   const handleLogout = async () => {
     await logout()
     setMenuOpen(false)
-    navigate(ROUTES.HOME)
+    navigate(ROUTES.LOGIN, { replace: true })
   }
 
   const avatarLetter = user?.username?.[0]?.toUpperCase() ?? 'U'
+  const avatarSrc = avatar || user?.avatar || null
 
   return (
     <>
@@ -93,9 +96,17 @@ export default function Navbar() {
               {isLoggedIn ? (
                 <div className="dropdown dropdown-end">
                   <label tabIndex={0} className="flex items-center gap-2 cursor-pointer group">
-                    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-semibold group-hover:bg-indigo-500 transition-colors">
-                      {avatarLetter}
-                    </div>
+                    {avatarSrc ? (
+                      <img
+                        src={avatarSrc}
+                        alt="avatar"
+                        className="w-8 h-8 rounded-full object-cover border border-white/20"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-semibold group-hover:bg-indigo-500 transition-colors">
+                        {avatarLetter}
+                      </div>
+                    )}
                     <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
                       {user?.username}
                     </span>

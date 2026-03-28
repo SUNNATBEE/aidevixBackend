@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { createPortal } from 'react-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { selectUser } from '@store/slices/authSlice';
 import { useUserStats } from '@hooks/useUserStats';
 import { useSubscription } from '@hooks/useSubscription';
+import { fetchUserStats } from '@store/slices/userStatsSlice';
+import { uploadApi } from '@api/uploadApi';
+import { toast } from 'react-hot-toast';
 import { 
   FiEdit2, 
   FiMapPin, 
@@ -18,11 +23,21 @@ import {
 import { IoCameraOutline } from 'react-icons/io5';
 
 export default function ProfilePage() {
+  const dispatch = useDispatch();
   const user = useSelector(selectUser);
-  const { xp, level, badges, videosWatched, bio, skills, updateProfile } = useUserStats();
+  const { xp, level, badges, videosWatched, bio, skills, updateProfile, avatar } = useUserStats();
   const sub = useSubscription();
 
   const [activeTab, setActiveTab] = useState("Ma'lumotlar");
+
+  const avatarInputRef = useRef(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const LOCAL_PROFILE_KEY = 'aidevix_profile_local';
+  const [editOpen, setEditOpen] = useState(false);
+  const [editDraft, setEditDraft] = useState(null);
+  const [editInitial, setEditInitial] = useState(null);
   
   // Form states based on image mapping
   const [formData, setFormData] = useState({
@@ -32,10 +47,142 @@ export default function ProfilePage() {
     bio: bio || "Aidevix platformasida tahsil olyapman.",
   });
 
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LOCAL_PROFILE_KEY));
+      if (saved && typeof saved === 'object') {
+        setFormData((prev) => ({
+          ...prev,
+          ism: saved.ism ?? prev.ism,
+          familiya: saved.familiya ?? prev.familiya,
+          kasb: saved.kasb ?? prev.kasb,
+          bio: saved.bio ?? prev.bio,
+        }));
+      }
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // server bio kelganda, local saqlanmagan bo'lsa formga tushsin
+    try {
+      const saved = JSON.parse(localStorage.getItem(LOCAL_PROFILE_KEY));
+      if (saved?.bio === undefined && bio) {
+        setFormData((prev) => ({ ...prev, bio }));
+      }
+    } catch {
+      if (bio) setFormData((prev) => ({ ...prev, bio }));
+    }
+  }, [bio]);
+
+  // Lock body scroll when modal open (keeps modal centered to viewport)
+  useEffect(() => {
+    if (!editOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [editOpen]);
+
+  // ESC to close modal
+  useEffect(() => {
+    if (!editOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') closeEdit();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [editOpen]);
+
+  const openEdit = () => {
+    const snapshot = {
+      ism: formData.ism || '',
+      familiya: formData.familiya || '',
+      kasb: formData.kasb || '',
+      bio: formData.bio || '',
+    };
+    setEditInitial(snapshot);
+    setEditDraft(snapshot);
+    setEditOpen(true);
+  };
+
+  const closeEdit = () => {
+    setEditOpen(false);
+    setEditDraft(null);
+    setEditInitial(null);
+  };
+
+  const isEditDirty = !!(editDraft && editInitial && (
+    editDraft.ism !== editInitial.ism ||
+    editDraft.familiya !== editInitial.familiya ||
+    editDraft.kasb !== editInitial.kasb ||
+    editDraft.bio !== editInitial.bio
+  ));
+
   const handleSave = (e) => {
     e.preventDefault();
-    // API logic to update profile can be handled here via updateProfile hook
-    // updateProfile({ bio: formData.bio, skills: ... })
+    if (!editDraft) return;
+    try {
+      localStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify({
+        ism: editDraft.ism,
+        familiya: editDraft.familiya,
+        kasb: editDraft.kasb,
+        bio: editDraft.bio,
+      }));
+    } catch {
+      // ignore
+    }
+
+    setFormData((prev) => ({ ...prev, ...editDraft }));
+
+    // bio backendda ham yangilansin (avatar/skills ham shu endpointda)
+    updateProfile({ bio: editDraft.bio });
+    toast.success("Profil ma'lumotlari saqlandi!");
+    closeEdit();
+  };
+
+  const handleAvatarPick = () => {
+    if (avatarUploading) return;
+    avatarInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const MAX_BYTES = 2 * 1024 * 1024; // 2MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (file.size > MAX_BYTES) {
+      toast.error("Rasm hajmi 2MB dan oshmasligi kerak.");
+      return;
+    }
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Faqat JPG, PNG yoki WEBP formatdagi rasm yuklang.");
+      return;
+    }
+
+    // Oldindan ko'rish (UX uchun)
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    const nextPreview = URL.createObjectURL(file);
+    setAvatarPreview(nextPreview);
+
+    try {
+      setAvatarUploading(true);
+      await uploadApi.uploadAvatar(file);
+      toast.success("Avatar yangilandi!");
+      await dispatch(fetchUserStats()).unwrap().catch(() => {});
+      // Statedagi avatar kelgandan keyin preview o'chiramiz.
+      setAvatarPreview(null);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Avatar yuklashda xatolik yuz berdi.");
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
   };
 
   // Mock data for places without API equivalent immediately visible
@@ -61,15 +208,33 @@ export default function ProfilePage() {
               <div className="relative">
                 <div className="w-32 h-32 rounded-full border-[3px] border-indigo-500 p-1 flex items-center justify-center bg-[#131B31] overflow-hidden">
                   <img 
-                    src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username || 'User'}&background=131B31&color=fff&size=128`} 
+                    src={
+                      avatarPreview ||
+                      avatar ||
+                      user?.avatar ||
+                      `https://ui-avatars.com/api/?name=${user?.username || 'User'}&background=131B31&color=fff&size=128`
+                    }
                     alt="avatar" 
                     className="w-full h-full rounded-full object-cover"
                   />
                 </div>
                 {/* Camera Icon Badge */}
-                <button className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-indigo-500 hover:bg-indigo-400 transition-colors flex items-center justify-center border-[3px] border-[#0d1224] text-white cursor-pointer">
+                <button
+                  type="button"
+                  onClick={handleAvatarPick}
+                  disabled={avatarUploading}
+                  className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-indigo-500 hover:bg-indigo-400 transition-colors flex items-center justify-center border-[3px] border-[#0d1224] text-white cursor-pointer disabled:opacity-60"
+                >
                   <IoCameraOutline size={16} />
                 </button>
+
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
               </div>
 
               {/* Info */}
@@ -107,13 +272,135 @@ export default function ProfilePage() {
 
             {/* Edit Button */}
             <div className="mt-4 md:mt-2">
-              <button className="py-2.5 px-5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-full transition-all border border-white/10 flex items-center gap-2 text-sm font-medium">
+              <button
+                type="button"
+                onClick={openEdit}
+                className="py-2.5 px-5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-full transition-all border border-white/10 flex items-center gap-2 text-sm font-medium"
+              >
                 <FiEdit2 size={16} />
                 Profilni tahrirlash
               </button>
             </div>
           </div>
         </div>
+
+        {/* EDIT MODAL */}
+        <AnimatePresence>
+          {editOpen &&
+            createPortal(
+              <motion.div
+                className="fixed inset-0 z-[9999]"
+                aria-hidden="false"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+              >
+                {/* Backdrop (outside click closes) */}
+                <motion.button
+                  type="button"
+                  className="fixed inset-0 bg-[#0A0E1A]/95 backdrop-blur-md"
+                  aria-label="Close modal"
+                  onClick={closeEdit}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                />
+
+                {/* Modal content */}
+                <motion.div
+                  className="fixed left-1/2 top-1/2 z-[10000] w-[calc(100%-2rem)] max-w-[720px] -translate-x-1/2 -translate-y-1/2 bg-[#0d1224] border border-white/10 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+                  role="dialog"
+                  aria-modal="true"
+                  initial={{ opacity: 0, scale: 0.97, y: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.97, y: 8 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-6 sm:p-8">
+                    <div className="flex items-start justify-between gap-4 mb-6">
+                      <div>
+                        <h3 className="text-xl font-bold text-white">Profilni tahrirlash</h3>
+                        <p className="text-sm text-gray-400 mt-1">Ism, familiya, kasb va bio’ni yangilang.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={closeEdit}
+                        className="text-gray-400 hover:text-white"
+                        aria-label="Close"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSave} className="space-y-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-400 mb-2 px-1">Ism</label>
+                          <input
+                            type="text"
+                            value={editDraft?.ism ?? ''}
+                            onChange={(e) => setEditDraft((p) => ({ ...p, ism: e.target.value }))}
+                            className="w-full bg-[#131B31]/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-400 mb-2 px-1">Familiya</label>
+                          <input
+                            type="text"
+                            value={editDraft?.familiya ?? ''}
+                            onChange={(e) => setEditDraft((p) => ({ ...p, familiya: e.target.value }))}
+                            className="w-full bg-[#131B31]/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-400 mb-2 px-1">Kasbi / Mutaxassisligi</label>
+                        <input
+                          type="text"
+                          value={editDraft?.kasb ?? ''}
+                          onChange={(e) => setEditDraft((p) => ({ ...p, kasb: e.target.value }))}
+                          className="w-full bg-[#131B31]/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-400 mb-2 px-1">Bio</label>
+                        <textarea
+                          rows="4"
+                          value={editDraft?.bio ?? ''}
+                          onChange={(e) => setEditDraft((p) => ({ ...p, bio: e.target.value }))}
+                          className="w-full bg-[#131B31]/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50 resize-none"
+                          placeholder="O'zingiz haqingizda qisqacha..."
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-end gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={closeEdit}
+                          className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10 text-sm"
+                        >
+                          Bekor qilish
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={!isEditDirty}
+                          className="px-6 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Saqlash
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </motion.div>
+              </motion.div>,
+              document.body,
+            )
+          }
+        </AnimatePresence>
 
         {/* TABS */}
         <div className="flex border-b border-white/5 mb-8">
@@ -145,63 +432,39 @@ export default function ProfilePage() {
                   Shaxsiy ma'lumotlar
                 </h2>
                 
-                <form onSubmit={handleSave} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-2 px-1">Ism</label>
-                      <input 
-                        type="text" 
-                        value={formData.ism}
-                        onChange={(e) => setFormData({...formData, ism: e.target.value})}
-                        className="w-full bg-[#131B31]/50 border border-white/5 rounded-xl px-5 py-3.5 text-sm text-gray-300 focus:outline-none focus:border-indigo-500/50 transition-colors"
-                      />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="bg-[#131B31]/40 border border-white/5 rounded-xl px-5 py-4">
+                      <div className="text-[11px] font-bold text-gray-500 tracking-wider uppercase">Ism</div>
+                      <div className="text-sm text-gray-200 mt-1">{formData.ism || '-'}</div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-2 px-1">Familiya</label>
-                      <input 
-                        type="text" 
-                        value={formData.familiya}
-                        onChange={(e) => setFormData({...formData, familiya: e.target.value})}
-                        className="w-full bg-[#131B31]/50 border border-white/5 rounded-xl px-5 py-3.5 text-sm text-gray-300 focus:outline-none focus:border-indigo-500/50 transition-colors"
-                      />
+                    <div className="bg-[#131B31]/40 border border-white/5 rounded-xl px-5 py-4">
+                      <div className="text-[11px] font-bold text-gray-500 tracking-wider uppercase">Familiya</div>
+                      <div className="text-sm text-gray-200 mt-1">{formData.familiya || '-'}</div>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-2 px-1">Kasbi / Mutaxassisligi</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500">
-                        <FiBriefcase size={18} />
-                      </div>
-                      <input 
-                        type="text" 
-                        value={formData.kasb}
-                        onChange={(e) => setFormData({...formData, kasb: e.target.value})}
-                        className="w-full pl-12 pr-5 py-3.5 bg-[#131B31]/50 border border-white/5 rounded-xl text-sm text-gray-300 focus:outline-none focus:border-indigo-500/50 transition-colors"
-                      />
-                    </div>
+                  <div className="bg-[#131B31]/40 border border-white/5 rounded-xl px-5 py-4">
+                    <div className="text-[11px] font-bold text-gray-500 tracking-wider uppercase">Kasbi / Mutaxassisligi</div>
+                    <div className="text-sm text-gray-200 mt-1">{formData.kasb || '-'}</div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-2 px-1">Bio</label>
-                    <textarea 
-                      rows="4"
-                      value={formData.bio}
-                      onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                      className="w-full bg-[#131B31]/50 border border-white/5 rounded-xl px-5 py-4 text-sm text-gray-300 focus:outline-none focus:border-indigo-500/50 transition-colors placeholder-gray-600 resize-none leading-relaxed"
-                      placeholder="O'zingiz haqingizda qisqacha..."
-                    />
+                  <div className="bg-[#131B31]/40 border border-white/5 rounded-xl px-5 py-4">
+                    <div className="text-[11px] font-bold text-gray-500 tracking-wider uppercase">Bio</div>
+                    <div className="text-sm text-gray-200 mt-1 whitespace-pre-wrap">{formData.bio || '-'}</div>
                   </div>
 
-                  <div className="flex justify-end pt-2">
-                    <button 
-                      type="submit"
-                      className="px-8 py-3 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-xl transition-colors"
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={openEdit}
+                      className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-xl transition-all border border-white/10 flex items-center gap-2 text-sm font-medium"
                     >
-                      Saqlash
+                      <FiEdit2 size={16} />
+                      Tahrirlash
                     </button>
                   </div>
-                </form>
+                </div>
               </div>
 
               {/* Ko'nikmalar Card */}

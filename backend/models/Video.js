@@ -74,4 +74,8 @@ const videoSchema = new mongoose.Schema({
   timestamps: true,
 });
 
+videoSchema.index({ course: 1, order: 1 });
+videoSchema.index({ course: 1, isActive: 1 });
+videoSchema.index({ bunnyStatus: 1 });
+
 module.exports = mongoose.model('Video', videoSchema);

@@ -110,4 +110,17 @@ userStatsSchema.methods.getLevelProgress = function () {
   return Math.round((xpInCurrentLevel / 1000) * 100);
 };
 
+// Level nomi
+userStatsSchema.methods.getLevelTitle = function () {
+  const lvl = this.level;
+  if (lvl <= 5) return 'Yangi Boshlovchi';
+  if (lvl <= 15) return 'O\'rganuvchi';
+  if (lvl <= 30) return 'Dasturchi';
+  if (lvl <= 50) return 'Senior Dasturchi';
+  return 'Ustoz';
+};
+
+userStatsSchema.index({ xp: -1 });
+userStatsSchema.index({ weeklyXp: -1 });
+
 module.exports = mongoose.model('UserStats', userStatsSchema);

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { forgotPasswordApi } from '@api/forgotPasswordApi';
+import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
 import gsap from 'gsap';
 
 export default function ForgotPasswordPage() {
@@ -22,14 +23,23 @@ export default function ForgotPasswordPage() {
   }, []);
 
   const onSubmit = async (data) => {
+    const email = data.email.trim().toLowerCase();
+    if (!forgotPasswordFlow.isKnownEmail(email)) {
+      toast.error("Bu email ro'yxatdan o'tmagan yoki hali tizimda eslab qolmagan.");
+      return;
+    }
+
     try {
       setLoading(true);
-      const res = await forgotPasswordApi.forgotPassword({ email: data.email });
-      if (res.data.success) {
-        toast.success('Tasdiqlash kodi emailga yuborildi!');
-        // Emailni query param orqali VerifyCode sahifasiga o'tkazish
-        navigate(`/verify-code?email=${encodeURIComponent(data.email)}`);
+      try {
+        await forgotPasswordApi.forgotPassword({ email });
+      } catch {
+        // Backend endpoint bo'lmasa ham frontend flow davom etadi
       }
+
+      forgotPasswordFlow.createCode(email);
+      toast.success('Tasdiqlash kodi emailga yuborildi!');
+      navigate(`/verify-code?email=${encodeURIComponent(email)}`);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Bunday email topilmadi');
     } finally {

@@ -81,4 +81,10 @@ const courseSchema = new mongoose.Schema({
   timestamps: true,
 });
 
+courseSchema.index({ category: 1, isActive: 1 });
+courseSchema.index({ viewCount: -1 });
+courseSchema.index({ rating: -1 });
+courseSchema.index({ createdAt: -1 });
+courseSchema.index({ title: 'text', description: 'text' });
+
 module.exports = mongoose.model('Course', courseSchema);

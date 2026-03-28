@@ -6,6 +6,7 @@ import { register as registerUser, selectAuthLoading, selectAuthError, clearErro
 import { toast } from 'react-hot-toast';
 import { IoPersonOutline, IoMailOutline, IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from 'react-icons/io5';
 import { FiRefreshCcw } from 'react-icons/fi';
+import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
 
 export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -47,15 +48,19 @@ export default function RegisterForm() {
       return;
     }
 
+    const username = data.fullName.trim().replace(/\s+/g, '_').toLowerCase();
+    const email = data.email.trim().toLowerCase();
+
     const result = await dispatch(registerUser({
-      username: data.fullName,
-      email: data.email,
+      username,
+      email,
       password: data.password
     }));
 
     if (registerUser.fulfilled.match(result)) {
-      toast.success("Ro'yxatdan muvaffaqiyatli o'tdingiz!");
-      window.location.href = '/subscription';
+      forgotPasswordFlow.rememberEmail(email);
+      toast.success("Ro'yxatdan o'tdingiz. Endi login qiling.");
+      navigate('/login', { replace: true });
     }
   };
 
@@ -76,12 +81,18 @@ export default function RegisterForm() {
           </div>
           <input
             type="text"
-            {...register('fullName', { required: true })}
+            {...register('fullName', {
+              required: "To'liq ism majburiy",
+              minLength: { value: 3, message: "Kamida 3 ta belgi kiriting" },
+              maxLength: { value: 40, message: "Ko'pi bilan 40 ta belgi kiriting" },
+              validate: (v) => v.trim().length >= 3 || "To'liq ism juda qisqa"
+            })}
             autoComplete="name"
             className={`w-full pl-11 pr-4 py-3 bg-[#0A0E1A]/50 border ${errors.fullName ? 'border-red-500/50' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all`}
             placeholder="Ismingizni kiriting"
           />
         </div>
+        {errors.fullName && <span className="text-red-500 text-xs mt-1 block">{errors.fullName.message}</span>}
       </div>
 
       {/* Email */}
@@ -93,12 +104,19 @@ export default function RegisterForm() {
           </div>
           <input
             type="email"
-            {...register('email', { required: true, pattern: /^\S+@\S+$/i })}
+            {...register('email', {
+              required: 'Email manzil majburiy',
+              pattern: {
+                value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/,
+                message: "Email formati noto'g'ri"
+              }
+            })}
             autoComplete="username"
             className={`w-full pl-11 pr-4 py-3 bg-[#0A0E1A]/50 border ${errors.email ? 'border-red-500/50' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all`}
             placeholder="name@example.com"
           />
         </div>
+        {errors.email && <span className="text-red-500 text-xs mt-1 block">{errors.email.message}</span>}
       </div>
 
       {/* Parol */}
@@ -110,7 +128,16 @@ export default function RegisterForm() {
           </div>
           <input
             type={showPassword ? "text" : "password"}
-            {...register('password', { required: true, minLength: 6 })}
+            {...register('password', {
+              required: 'Parol majburiy',
+              minLength: { value: 8, message: "Kamida 8 ta belgi bo'lishi kerak" },
+              validate: {
+                hasUpper: v => /[A-Z]/.test(v) || "Kamida 1 ta katta harf kerak",
+                hasLower: v => /[a-z]/.test(v) || "Kamida 1 ta kichik harf kerak",
+                hasDigit: v => /\d/.test(v) || "Kamida 1 ta raqam kerak",
+                hasSpecial: v => /[^A-Za-z0-9]/.test(v) || "Kamida 1 ta maxsus belgi kerak"
+              }
+            })}
             autoComplete="new-password"
             className={`w-full pl-11 pr-12 py-3 bg-[#0A0E1A]/50 border ${errors.password ? 'border-red-500/50' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all`}
             placeholder="********"
@@ -123,6 +150,7 @@ export default function RegisterForm() {
             {showPassword ? <IoEyeOffOutline className="w-5 h-5" /> : <IoEyeOutline className="w-5 h-5" />}
           </button>
         </div>
+        {errors.password && <span className="text-red-500 text-xs mt-1 block">{errors.password.message}</span>}
         
         {/* Parol kiritilgandan keyin ko'rinadigan kuchlilik indikatori */}
         {password.length > 0 && (
@@ -150,7 +178,7 @@ export default function RegisterForm() {
           <input
             type={showConfirmPassword ? "text" : "password"}
             {...register('confirmPassword', { 
-              required: true,
+              required: "Parolni tasdiqlash majburiy",
               validate: value => value === password || "Parollar mos emas"
             })}
             autoComplete="new-password"
@@ -166,7 +194,7 @@ export default function RegisterForm() {
         <div className="flex items-center h-5 mt-1">
           <input
             type="checkbox"
-            {...register('terms', { required: true })}
+            {...register('terms', { required: "Shartlarni tasdiqlash majburiy" })}
             className="w-4 h-4 rounded border-white/20 bg-[#0A0E1A]/50 text-indigo-500 focus:ring-indigo-500/50 focus:ring-offset-0 transition-all cursor-pointer"
           />
         </div>
@@ -177,6 +205,7 @@ export default function RegisterForm() {
           Men <span className="text-indigo-400 hover:underline">Foydalanish shartlari</span> va <span className="text-indigo-400 hover:underline">Maxfiylik siyosati</span> bilan tanishib chiqdim va qabul qilaman.
         </label>
       </div>
+      {errors.terms && <span className="text-red-500 text-xs -mt-2 block">{errors.terms.message}</span>}
 
       <button
         type="submit"

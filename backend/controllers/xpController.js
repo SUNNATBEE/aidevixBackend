@@ -31,9 +31,11 @@ const getUserStats = async (req, res) => {
       data: {
         xp: stats.xp,
         level: stats.level,
+        levelTitle: stats.getLevelTitle(),
         levelProgress,
         xpToNextLevel: 1000 - (stats.xp % 1000),
         streak: stats.streak,
+        weeklyXp: stats.weeklyXp || 0,
         lastActivityDate: stats.lastActivityDate,
         badges: stats.badges,
         videosWatched: stats.videosWatched,
@@ -368,6 +370,51 @@ const getWeeklyLeaderboard = async (req, res) => {
   }
 };
 
+/**
+ * @desc  XP tarixi (so'nggi 50 ta)
+ * @route GET /api/xp/history
+ * @access Private
+ */
+const getXPHistory = async (req, res) => {
+  try {
+    const XPTransaction = require('../models/XPTransaction');
+    const history = await XPTransaction.find({ userId: req.user.id })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+    res.json({ success: true, data: { history } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * @desc  Streak holati va qolgan vaqt
+ * @route GET /api/xp/streak-status
+ * @access Private
+ */
+const getStreakStatus = async (req, res) => {
+  try {
+    const stats = await UserStats.findOne({ userId: req.user.id }).lean();
+    if (!stats) return res.json({ success: true, data: { streak: 0, atRisk: false, hoursRemaining: 24 } });
+
+    const lastActivity = stats.lastActivityDate ? new Date(stats.lastActivityDate) : null;
+    const hoursAgo = lastActivity ? (Date.now() - lastActivity.getTime()) / (1000 * 60 * 60) : 999;
+
+    res.json({
+      success: true,
+      data: {
+        streak: stats.streak || 0,
+        lastActivity: stats.lastActivityDate,
+        atRisk: hoursAgo > 20,
+        hoursRemaining: Math.max(0, Math.round(24 - hoursAgo)),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getUserStats,
   addVideoWatchXP,
@@ -377,4 +424,6 @@ module.exports = {
   useStreakFreeze,
   addStreakFreeze,
   getWeeklyLeaderboard,
+  getXPHistory,
+  getStreakStatus,
 };

@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import { login, selectAuthLoading, selectAuthError, clearError } from '@store/slices/authSlice';
-import { tokenStorage } from '@utils/tokenStorage';
+import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
 
 export default function LoginForm() {
   const [showPass, setShowPass] = useState(false);
@@ -27,8 +27,9 @@ export default function LoginForm() {
     }));
     
     if (login.fulfilled.match(result)) {
+      forgotPasswordFlow.rememberEmail(data.email);
       toast.success('Muvaffaqiyatli kirdingiz! Tokenlar saqlandi.');
-      window.location.href = '/';
+      navigate('/', { replace: true });
     }
   };
 

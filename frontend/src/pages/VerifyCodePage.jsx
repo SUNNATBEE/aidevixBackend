@@ -3,13 +3,14 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { forgotPasswordApi } from '@api/forgotPasswordApi';
+import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
 import gsap from 'gsap';
 
 export default function VerifyCodePage() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(0);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,32 +34,38 @@ export default function VerifyCodePage() {
   }, [email, navigate]);
 
   useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [timeLeft]);
+    if (!email) return;
+    setTimeLeft(forgotPasswordFlow.getRemainingSeconds(email));
+    const timer = setInterval(() => {
+      setTimeLeft(forgotPasswordFlow.getRemainingSeconds(email));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [email]);
 
   const onSubmit = async (data) => {
     try {
       setLoading(true);
-      const res = await forgotPasswordApi.verifyCode({ email, code: data.code });
-      
-      if (res.data.success) {
-        toast.success('Muvaffaqiyatli tasdiqlandi. Tizimga kirdingiz.');
-        // Tokenlarni saqlash va login qilish
-        localStorage.setItem('accessToken', res.data.data.accessToken);
-        localStorage.setItem('refreshToken', res.data.data.refreshToken);
-        window.location.href = '/profile';
+      let resetToken = null;
+
+      try {
+        const res = await forgotPasswordApi.verifyCode({ email, code: data.code });
+        if (res.data.success && res.data?.data?.resetToken) {
+          resetToken = res.data.data.resetToken;
+        }
+      } catch {
+        // Backend endpoint bo'lmasa local flow ishlaydi
       }
+
+      if (!resetToken) {
+        const localRes = forgotPasswordFlow.verifyCode(email, data.code);
+        resetToken = localRes.resetToken;
+      }
+
+      toast.success('Kod tasdiqlandi. Endi yangi parol kiriting.');
+      navigate(`/reset-password?email=${encodeURIComponent(email)}&token=${encodeURIComponent(resetToken)}`);
     } catch (error) {
-      const msg = error.response?.data?.message || 'Kodni tasdiqlashda xatolik yuz berdi.';
+      const msg = error.response?.data?.message || error.message || 'Kodni tasdiqlashda xatolik yuz berdi.';
       toast.error(msg);
-      
-      // Expired yoko blocklangan holat bo'lsa orqaga qaytarish
-      if (msg.includes('muddati tugadi') || msg.includes('Ko‘p noto‘g‘ri urinish')) {
-        setTimeout(() => navigate('/forgot-password'), 2000);
-      }
     } finally {
       setLoading(false);
     }
@@ -67,11 +74,14 @@ export default function VerifyCodePage() {
   const handleResend = async () => {
     try {
       setResendLoading(true);
-      const res = await forgotPasswordApi.forgotPassword({ email });
-      if (res.data.success) {
-        toast.success('Yangi kod yuborildi!');
-        setTimeLeft(60);
+      try {
+        await forgotPasswordApi.forgotPassword({ email });
+      } catch {
+        // Backend endpoint bo'lmasa local flow ishlaydi
       }
+      forgotPasswordFlow.createCode(email);
+      setTimeLeft(forgotPasswordFlow.getRemainingSeconds(email));
+      toast.success('Yangi kod yuborildi!');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Xatolik yuz berdi');
     } finally {

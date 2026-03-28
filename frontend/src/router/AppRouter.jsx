@@ -24,6 +24,7 @@ const LevelUpPage          = lazy(() => import('@pages/LevelUpPage'))           
 const VideoPlaygroundPage  = lazy(() => import('@pages/VideoPlaygroundPage'))   // ABDUVORIS
 const ForgotPasswordPage   = lazy(() => import('@pages/ForgotPasswordPage'))
 const VerifyCodePage       = lazy(() => import('@pages/VerifyCodePage'))
+const ResetPasswordPage    = lazy(() => import('@pages/ResetPasswordPage'))
 const NotFoundPage         = lazy(() => import('@pages/NotFoundPage'))
 
 // ── Admin pages (lazy) ───────────────────────────────────────────────────────
@@ -41,7 +42,7 @@ function PublicLayout() {
     )
   }, [location.pathname])
 
-  const hideLayoutPaths = ['/login', '/register', '/forgot-password', '/verify-code']
+  const hideLayoutPaths = ['/login', '/register', '/forgot-password', '/verify-code', '/reset-password']
   const shouldHideLayout = hideLayoutPaths.includes(location.pathname)
 
   return (
@@ -79,6 +80,7 @@ export default function AppRouter() {
             <Route path="/register"      element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/verify-code"   element={<VerifyCodePage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Protected (login required) */}
             <Route element={<ProtectedRoute />}>

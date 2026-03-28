@@ -6,4 +6,7 @@ export const forgotPasswordApi = {
 
   /** POST /auth/verify-code */
   verifyCode: (data) => api.post('/auth/verify-code', data),
+
+  /** POST /auth/reset-password */
+  resetPassword: (data) => api.post('/auth/reset-password', data),
 };
