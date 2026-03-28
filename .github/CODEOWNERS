@@ -1,33 +1,18 @@
-# ══════════════════════════════════════════════════════════════
-# CODEOWNERS — Qaysi papka kimga tegishli
-# O'quvchilar backend va himoya fayllarni o'zgartira olmaydi
-# (PR da SUNNATBEE dan review talab qilinadi)
-# ══════════════════════════════════════════════════════════════
+# 🛡️ Aidevix Loyihasi Uchun Xavfsizlik Qoidalari (CODEOWNERS)
+# Bu fayl Github tizimiga qaysi papkalar va fayllar faqat Boshqaruvchi
+# tomonidangina o'zgartirilishi mumkinligini aytadi.
 
-# ─── Backend — FAQAT O'qituvchi (Sunnatbek) ──────────────────
-/backend/                    @SUNNATBEE
+# 1. Butun boshli backend qismi va barcha Node.js kodlari:
+/backend/ @SUNNATBEE
 
-# ─── Root konfiguratsiya fayllar ──────────────────────────────
-/architecture.md             @SUNNATBEE
-/CLAUDE.md                   @SUNNATBEE
-/CLAUDE-details.md           @SUNNATBEE
-/STUDENTS.md                 @SUNNATBEE
-/package.json                @SUNNATBEE
-/railway.toml                @SUNNATBEE
-/.gitignore                  @SUNNATBEE
+# 2. Loyiha asosiy server va himoya konfiguratsiyalari:
+/.github/ @SUNNATBEE
+/render.yaml @SUNNATBEE
+/package.json @SUNNATBEE
+/.cursorrules @SUNNATBEE
+/.claudeignore @SUNNATBEE
+/.cursorignore @SUNNATBEE
+/PROMPT_RULES.md @SUNNATBEE
+/CLAUDE.md @SUNNATBEE
 
-# ─── AI tool konfiguratsiya (himoya) ─────────────────────────
-/.claudeignore               @SUNNATBEE
-/.cursorrules                @SUNNATBEE
-/.cursorignore               @SUNNATBEE
-
-# ─── CI/CD va Git hooklar ─────────────────────────────────────
-/.github/                    @SUNNATBEE
-/.claude/                    @SUNNATBEE
-/.githooks/                  @SUNNATBEE
-
-# ─── Frontend — O'quvchilar o'z papkalarida ishlaydi ─────────
-# (Branch protection orqali PR talab qilinadi)
-# O'quvchilar frontend CLAUDE.md ni ham o'zgartira olmaydi
-/frontend/CLAUDE.md          @SUNNATBEE
-/frontend/.claudeignore      @SUNNATBEE
+# Izoh: Frontend o'quvchilarga ruxsat berilgan (yuqoridagilardan tashqari har qanday hudud).
