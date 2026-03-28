@@ -12,7 +12,7 @@ export const rankingApi = {
    * @param {object} params - { limit?: number, category?: string }
    */
   getTopCourses: (params = {}) =>
-    axiosInstance.get('/api/ranking/courses', { params }),
+    axiosInstance.get('/ranking/courses', { params }),
 
   /**
    * SUHROB ishlatadi — LeaderboardPage.jsx
@@ -20,12 +20,12 @@ export const rankingApi = {
    * @param {object} params - { page?: number, limit?: number }
    */
   getTopUsers: (params = {}) =>
-    axiosInstance.get('/api/ranking/users', { params }),
+    axiosInstance.get('/ranking/users', { params }),
 
   /**
    * SUHROB ishlatadi — foydalanuvchi reyting pozitsiyasi
    * @param {string} userId
    */
   getUserPosition: (userId) =>
-    axiosInstance.get(`/api/ranking/users/${userId}/position`),
+    axiosInstance.get(`/ranking/users/${userId}/position`),
 }

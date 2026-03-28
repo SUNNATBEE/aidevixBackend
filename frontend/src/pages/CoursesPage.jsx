@@ -33,6 +33,8 @@ export default function CoursesPage() {
       category: filters.category !== 'all' ? filters.category : undefined,
       search:   debouncedSearch || undefined,
       sort:     filters.sort,
+      level:    filters.level || undefined,
+      minRating: filters.minRating || undefined,
       page:     filters.page,
       limit:    12,
     }
@@ -40,8 +42,9 @@ export default function CoursesPage() {
     const sp = {}
     if (params.category) sp.category = params.category
     if (params.search)   sp.search   = params.search
+    if (params.level)    sp.level    = params.level
     setSearchParams(sp, { replace: true })
-  }, [filters.category, filters.sort, filters.page, debouncedSearch])
+  }, [filters.category, filters.sort, filters.level, filters.minRating, filters.page, debouncedSearch])
 
   const clearSearch = useCallback(() => setSearch(''), [])
   const hasMore     = filters.page < pages

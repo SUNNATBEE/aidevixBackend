@@ -53,6 +53,8 @@ const initialState = {
     category:     'all',
     search:       '',
     sort:         'newest',
+    level:        undefined,
+    minRating:    undefined,
     page:         1,
   },
 }
