@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from 'react-query'
 import { Toaster } from 'react-hot-toast'
 
 import store from './store/index'
-import AppRouter from './router/AppRouter'
+import App from './App'
 import './styles/globals.css'
 import './styles/animations.css'
 
@@ -27,7 +27,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <AppRouter />
+          <App />
           <Toaster
             position="top-right"
             toastOptions={{

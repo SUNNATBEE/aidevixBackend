@@ -26,11 +26,11 @@ export default function HomePage() {
   const { topVideos, loading: videosLoading, error: videosError, fetchTop: fetchTopVideos } = useVideos();
 
   useEffect(() => {
-    if (fetchTopCourses) fetchTopCourses({ limit: 8 });
+    if (fetchTopCourses) fetchTopCourses(8);
     if (fetchTopVideos) fetchTopVideos(6);
   }, [fetchTopCourses, fetchTopVideos]);
 
-  const coursesData = courses?.data || courses || topCourses?.data || topCourses || [];
+  const coursesData = Array.isArray(topCourses) && topCourses.length > 0 ? topCourses : (Array.isArray(courses) ? courses : []);
   const safeTopVideos = Array.isArray(topVideos) ? topVideos : [];
 
   return (
