@@ -592,7 +592,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* Activity 2 */}
+                  {/* Activity 2 */}  
                   <div className="flex gap-4 relative z-10">
                     <div className="w-3 h-3 rounded-full bg-indigo-500 border border-[#0d1224] mt-1.5 shrink-0 opacity-50"></div>
                     <div>
