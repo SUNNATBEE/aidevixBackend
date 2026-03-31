@@ -109,6 +109,11 @@ const userSchema = new mongoose.Schema({
     default: null,
     select: false,
   },
+  // Avatar rasm URL
+  avatar: {
+    type: String,
+    default: null,
+  },
   lastLogin: {
     type: Date,
     default: null,
