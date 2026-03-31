@@ -2,17 +2,17 @@ const express = require('express');
 const router = express.Router();
 const { register, login, refreshToken, logout, getMe, forgotPassword, verifyCode, resetPassword } = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
-const { otpLimiter } = require('../middleware/rateLimiter');
+const { otpLimiter, authLimiter } = require('../middleware/rateLimiter');
 
 // ════════════════════════════════════════════════════════════════
 // POST /api/auth/register
 // ════════════════════════════════════════════════════════════════
-router.post('/register', register);
+router.post('/register', authLimiter, register);
 
 // ════════════════════════════════════════════════════════════════
 // POST /api/auth/login
 // ════════════════════════════════════════════════════════════════
-router.post('/login', login);
+router.post('/login', authLimiter, login);
 
 // ════════════════════════════════════════════════════════════════
 // POST /api/auth/refresh-token

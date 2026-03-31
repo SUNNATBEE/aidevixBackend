@@ -1,109 +1,104 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { HiLightningBolt, HiCheckCircle, HiArrowRight } from 'react-icons/hi';
 
-// react-icons/hi o'rniga xavfsiz inline SVG icon
-const CheckIcon = () => (
-  <svg className="w-6 h-6 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-export default function ProBanner() {
+const ProBanner = () => {
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.5 }}
-      className="bg-slate-950 rounded-[40px] p-8 md:p-16 border border-dashed border-blue-500/40 flex flex-col md:flex-row items-center justify-between gap-12 relative overflow-hidden"
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.8, ease: 'easeOut' }}
+      className="relative w-full rounded-[2rem] overflow-hidden"
     >
-      {/* LEFT SIDE */}
-      <div className="flex-1 relative z-10">
-        <div className="inline-block mb-4">
-          <span className="text-blue-500 font-bold tracking-wider text-sm uppercase">
-            PREMIUM A'ZOLIK
-          </span>
-        </div>
-        
-        <h2 className="text-white text-3xl md:text-5xl font-bold mb-8 leading-tight">
-          Cheklovsiz bilim olish imkoniyati
-        </h2>
-        
-        <ul className="space-y-4 mb-10">
-          <li className="flex items-center gap-3 text-slate-300 md:text-lg">
-            <CheckIcon />
-            <span>Barcha kurslarga cheksiz ruxsat</span>
-          </li>
-          <li className="flex items-center gap-3 text-slate-300 md:text-lg">
-            <CheckIcon />
-            <span>Yopiq vebinar va master-klasslar</span>
-          </li>
-          <li className="flex items-center gap-3 text-slate-300 md:text-lg">
-            <CheckIcon />
-            <span>Bitiruv sertifikati va karyera maslahatlari</span>
-          </li>
-        </ul>
-        
-        <button className="bg-white text-black font-bold rounded-full px-10 py-4 hover:bg-slate-200 transition-colors shadow-lg active:scale-95">
-          Pro ga o'tish
-        </button>
-      </div>
+      {/* Background with advanced gradient and patterns */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460]"></div>
       
-      {/* RIGHT SIDE (Visual Stack) */}
-      <div className="flex-1 relative w-full h-[280px] md:h-[350px] flex items-center justify-center mt-8 md:mt-0">
-        {/* Glow behind cards */}
-        <div className="absolute inset-0 bg-blue-600/30 blur-[80px] rounded-full"></div>
-        
-        {/* Card Stack Container */}
-        <div className="relative w-full max-w-[300px] aspect-[4/3]">
-          {/* Card 1 (Backmost Blur) */}
-          <motion.div 
-            initial={{ rotate: -15, scale: 0.8, x: -30, opacity: 0 }}
-            whileInView={{ rotate: -12, scale: 0.9, x: -25, opacity: 0.5 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="absolute inset-0 bg-blue-800/60 border border-blue-500/20 rounded-3xl backdrop-blur-md"
-          ></motion.div>
-          
-          {/* Card 2 (Middle Blur) */}
-          <motion.div 
-            initial={{ rotate: 5, scale: 0.85, x: 30, opacity: 0 }}
-            whileInView={{ rotate: 10, scale: 0.95, x: 25, opacity: 0.7 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="absolute inset-0 bg-blue-700/80 border border-blue-400/30 rounded-3xl backdrop-blur-sm"
-          ></motion.div>
-          
-          {/* Card 3 (Front Main) */}
-          <motion.div 
-            initial={{ y: 30, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            className="absolute inset-0 bg-[#0a0a0c] border border-blue-500/50 rounded-3xl shadow-[0_10px_40px_rgba(59,130,246,0.2)] flex flex-col p-8 justify-between z-10"
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-slate-400 text-sm font-medium mb-1">PRO PLAN</p>
-                <h3 className="text-white text-xl md:text-2xl font-bold">Aidevix Pro</h3>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
-                <span className="text-xl">🚀</span>
-              </div>
+      {/* Decorative Blur elements */}
+      <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-600/20 blur-[100px] rounded-full"></div>
+      <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-600/20 blur-[100px] rounded-full"></div>
+
+      <div className="relative z-10 p-8 sm:p-12 md:p-16 flex flex-col md:flex-row items-center justify-between gap-12 border border-white/5 backdrop-blur-[2px]">
+        {/* Content Side */}
+        <div className="flex-1 text-center md:text-left">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-semibold mb-6">
+            <HiLightningBolt className="w-4 h-4" />
+            <span>Aidevix Pro Imkoniyati</span>
+          </div>
+
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-6 leading-tight">
+            Dasturlash sirlarini <br /> 
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">
+              Cheksiz o'rganing
+            </span>
+          </h2>
+
+          <p className="text-slate-400 text-lg mb-10 max-w-xl leading-relaxed">
+            Pro obuna orqali barcha pullik kurslar, yopiq darslar va xalqaro darajadagi sertifikatlarga bir marta to'lov orqali ega bo'ling.
+          </p>
+
+          <ul className="space-y-4 mb-10 text-slate-300 font-medium">
+            <li className="flex items-center gap-3">
+              <HiCheckCircle className="w-6 h-6 text-emerald-500" />
+              <span>Barcha kurslarga to'liq kirish</span>
+            </li>
+            <li className="flex items-center gap-3">
+              <HiCheckCircle className="w-6 h-6 text-emerald-500" />
+              <span>Yopiq hamjamiyat (Community) a'zoligi</span>
+            </li>
+            <li className="flex items-center gap-3">
+              <HiCheckCircle className="w-6 h-6 text-emerald-500" />
+              <span>Mentorlar bilan bevosita aloqa</span>
+            </li>
+          </ul>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Link 
+              to="/subscription" 
+              className="btn btn-lg bg-white text-black hover:bg-slate-200 border-none rounded-2xl px-10 font-bold group"
+            >
+              Pro'ga o'tish
+              <HiArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link 
+              to="/courses" 
+              className="btn btn-lg btn-ghost text-white border-white/10 hover:bg-white/5 rounded-2xl px-10"
+            >
+              Batafsil ma'lumot
+            </Link>
+          </div>
+        </div>
+
+        {/* Visual Side / Card decoration */}
+        <div className="flex-1 w-full max-w-md hidden lg:block">
+          <div className="relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-[2.5rem] blur opacity-30"></div>
+            <div className="relative bg-[#0d1117] rounded-[2.5rem] p-8 border border-white/10 shadow-2xl">
+               <div className="space-y-6">
+                 {[1, 2, 3].map((item) => (
+                    <div key={item} className="flex gap-4 items-center">
+                      <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5">
+                        <div className="w-6 h-6 bg-slate-700/50 rounded-lg animate-pulse" />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 w-1/2 bg-slate-700/50 rounded-full animate-pulse" />
+                        <div className="h-2 w-3/4 bg-slate-800/50 rounded-full animate-pulse" />
+                      </div>
+                    </div>
+                 ))}
+                 <div className="pt-4 border-t border-white/5">
+                    <div className="h-10 w-full bg-purple-600/20 rounded-xl border border-purple-600/30 flex items-center justify-center text-purple-400 font-bold text-sm">
+                      ACTIVE ACCESS
+                    </div>
+                 </div>
+               </div>
             </div>
-            
-            <div>
-              <div className="flex items-end gap-1 mb-3">
-                <span className="text-white text-3xl md:text-4xl font-extrabold">$120</span>
-                <span className="text-slate-400 text-lg mb-1">/yil</span>
-              </div>
-              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-500 to-purple-500 w-[70%] h-full rounded-full"></div>
-              </div>
-            </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </motion.div>
   );
-}
+};
+
+export default ProBanner;
