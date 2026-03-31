@@ -36,4 +36,13 @@ const uploadLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-module.exports = { apiLimiter, authLimiter, paymentLimiter, uploadLimiter };
+// OTP (Forgot password / Verify code) limiter — to prevent brute force
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: { success: false, message: 'Juda ko\'p urinish. 15 daqiqadan so\'ng qayta urinib ko\'ring.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+module.exports = { apiLimiter, authLimiter, paymentLimiter, uploadLimiter, otpLimiter };

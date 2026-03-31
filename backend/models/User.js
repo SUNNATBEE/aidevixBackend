@@ -99,6 +99,20 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  resetPasswordCode: {
+    type: String,
+    default: null,
+    select: false,
+  },
+  resetPasswordExpire: {
+    type: Date,
+    default: null,
+    select: false,
+  },
+  lastLogin: {
+    type: Date,
+    default: null,
+  },
 }, {
   timestamps: true,
 });
