@@ -133,3 +133,20 @@ canvas {
 #page-wrapper {
   opacity: 1;
 }
+
+/* ─── Profile Modal Blur Effect ──────────────────────────────── */
+body.profile-modal-open #page-wrapper,
+body.profile-modal-open nav,
+body.profile-modal-open header,
+body.profile-modal-open footer {
+  filter: blur(8px);
+  transition: filter 0.3s ease-in-out;
+}
+
+body:not(.profile-modal-open) #page-wrapper,
+body:not(.profile-modal-open) nav,
+body:not(.profile-modal-open) header,
+body:not(.profile-modal-open) footer {
+  filter: blur(0);
+  transition: filter 0.3s ease-in-out;
+}

@@ -100,22 +100,41 @@ export default function ProfilePage() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [editOpen]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('profile-modal-open');
+    };
+  }, []);
+
+  // Debug log
+  useEffect(() => {
+    console.log('editOpen changed:', editOpen);
+  }, [editOpen]);
+
   const openEdit = () => {
+    console.log('openEdit called');
     const snapshot = {
       ism: formData.ism || '',
       familiya: formData.familiya || '',
       kasb: formData.kasb || '',
       bio: formData.bio || '',
     };
+    console.log('snapshot:', snapshot);
     setEditInitial(snapshot);
     setEditDraft(snapshot);
     setEditOpen(true);
+    console.log('editOpen set to true');
+    // Add blur class to body
+    document.body.classList.add('profile-modal-open');
   };
 
   const closeEdit = () => {
     setEditOpen(false);
     setEditDraft(null);
     setEditInitial(null);
+    // Remove blur class from body
+    document.body.classList.remove('profile-modal-open');
   };
 
   const isEditDirty = !!(editDraft && editInitial && (
@@ -293,39 +312,43 @@ export default function ProfilePage() {
         </div>
 
         {/* EDIT MODAL */}
+        {console.log('Rendering modal section, editOpen:', editOpen)}
         <AnimatePresence>
-          {editOpen &&
-            createPortal(
-              <motion.div
-                className="fixed inset-0 z-[9999]"
-                aria-hidden="false"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-              >
-                {/* Backdrop (outside click closes) */}
-                <motion.button
-                  type="button"
-                  className="fixed inset-0 bg-[#0A0E1A]/80 backdrop-blur-xl"
-                  aria-label="Close modal"
-                  onClick={closeEdit}
+          {editOpen && (
+            <>
+              {console.log('Modal should render now')}
+              {createPortal(
+                <motion.div
+                  className="fixed inset-0 z-[9999]"
+                  aria-hidden="false"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                />
-
-                {/* Modal content */}
-                <motion.div
-                  className="fixed left-1/2 top-1/2 z-[10000] w-[calc(100%-2rem)] max-w-[600px] -translate-x-1/2 -translate-y-1/2 bg-[#0d1224] border border-white/10 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
-                  role="dialog"
-                  aria-modal="true"
-                  initial={{ opacity: 0, scale: 0.97, y: 8 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.97, y: 8 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                  onClick={(e) => e.stopPropagation()}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
                 >
+                  {console.log('Modal portal rendering')}
+                  {/* Backdrop (outside click closes) */}
+                  <motion.button
+                    type="button"
+                    className="fixed inset-0 bg-[#0A0E1A]/80 backdrop-blur-xl"
+                    aria-label="Close modal"
+                    onClick={closeEdit}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  />
+
+                  {/* Modal content */}
+                  <motion.div
+                    className="fixed left-1/2 top-1/2 z-[10000] w-[calc(100%-2rem)] max-w-[600px] -translate-x-1/2 -translate-y-1/2 bg-[#0d1224] border border-white/10 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+                    role="dialog"
+                    aria-modal="true"
+                    initial={{ opacity: 0, scale: 0.97, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.97, y: 8 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                   <div className="p-6 sm:p-8">
                     <div className="flex items-start justify-between gap-4 mb-8">
                       <div>
@@ -408,9 +431,10 @@ export default function ProfilePage() {
                   </div>
                 </motion.div>
               </motion.div>,
-              document.body,
-            )
-          }
+              document.body
+            )}
+            </>
+          )}
         </AnimatePresence>
 
         {/* TABS */}

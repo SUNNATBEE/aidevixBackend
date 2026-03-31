@@ -1,8 +1,9 @@
 const User = require('../models/User');
 const UserStats = require('../models/UserStats');
-const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/jwt');
+const { generateAccessToken, generateRefreshToken, verifyRefreshToken, generateResetToken, verifyResetToken } = require('../utils/jwt');
 const validator = require('validator');
-const { sendWelcomeEmail } = require('../utils/emailService');
+const { sendWelcomeEmail, sendResetCodeEmail } = require('../utils/emailService');
+const crypto = require('crypto');
 // Register new user
 const register = async (req, res) => {
   try {
@@ -23,10 +24,22 @@ const register = async (req, res) => {
       });
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters long.',
+        message: 'Password must be at least 8 characters long.',
+      });
+    }
+
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+    if (!hasUpper || !hasLower || !hasNumber || !hasSpecial) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must contain uppercase, lowercase, number, and special character.',
       });
     }
 
@@ -44,9 +57,11 @@ const register = async (req, res) => {
 
     // Create new user
     const user = await User.create({
-      username,
-      email,
+      username: username.trim().toLowerCase(),
+      email: email.trim().toLowerCase(),
       password,
+      firstName: req.body.firstName || null,
+      lastName: req.body.lastName || null,
     });
 
     // Generate tokens
@@ -135,8 +150,9 @@ const login = async (req, res) => {
     const accessToken = generateAccessToken({ userId: user._id });
     const refreshToken = generateRefreshToken({ userId: user._id });
 
-    // Save refresh token
+    // Save refresh token and update last login
     user.refreshToken = refreshToken;
+    user.lastLogin = Date.now();
     await user.save();
 
     res.json({
@@ -194,14 +210,20 @@ const refreshToken = async (req, res) => {
       });
     }
 
-    // Generate new access token
+    // Generate new tokens (ROTATION)
     const accessToken = generateAccessToken({ userId: user._id });
+    const newRefreshToken = generateRefreshToken({ userId: user._id });
+
+    // Save new refresh token
+    user.refreshToken = newRefreshToken;
+    await user.save();
 
     res.json({
       success: true,
       message: 'Token refreshed successfully.',
       data: {
         accessToken,
+        refreshToken: newRefreshToken,
       },
     });
   } catch (error) {
@@ -261,10 +283,136 @@ const getMe = async (req, res) => {
   }
 };
 
+// ════════════════════════════════════════════════════════════════
+// FORGOT PASSWORD - Step 1: Send Code
+// ════════════════════════════════════════════════════════════════
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email kiritilishi shart' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Bu email bilan foydalanuvchi topilmadi' });
+    }
+
+    // Generate 6-digit code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Save to user (hashed is better, but code is short-lived)
+    user.resetPasswordCode = resetCode;
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save();
+
+    // Send email
+    await sendResetCodeEmail(user.email, user.username, resetCode);
+
+    res.json({
+      success: true,
+      message: 'Tiklash kodi emailingizga yuborildi',
+    });
+  } catch (error) {
+    console.error('FORGOT_PASSWORD_ERROR:', error);
+    res.status(500).json({ success: false, message: 'Serverda xatolik yuz berdi' });
+  }
+};
+
+// ════════════════════════════════════════════════════════════════
+// VERIFY CODE - Step 2: Check Code
+// ════════════════════════════════════════════════════════════════
+const verifyCode = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ success: false, message: 'Email va kod kiritilishi shart' });
+    }
+
+    const user = await User.findOne({ 
+      email, 
+      resetPasswordCode: code,
+      resetPasswordExpire: { $gt: Date.now() } 
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Kod noto\'g\'ri yoki muddati o\'tgan' });
+    }
+
+    // Generate a secure reset token to be used for the next step
+    const resetToken = generateResetToken({ email: user.email });
+
+    res.json({
+      success: true,
+      message: 'Kod tasdiqlandi',
+      data: {
+        resetToken,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Serverda xatolik yuz berdi' });
+  }
+};
+
+// ════════════════════════════════════════════════════════════════
+// RESET PASSWORD - Step 3: Change Password
+// ════════════════════════════════════════════════════════════════
+const resetPassword = async (req, res) => {
+  try {
+    const { email, code, resetToken, newPassword } = req.body;
+    
+    if (!newPassword) {
+      return res.status(400).json({ success: false, message: 'Yangi parolni kiriting' });
+    }
+
+    // Verify reset token if provided (Senior path)
+    if (resetToken) {
+      const decoded = verifyResetToken(resetToken);
+      if (!decoded || decoded.email !== email) {
+        return res.status(400).json({ success: false, message: 'Parolni tiklash tokeni yaroqsiz' });
+      }
+    } else if (code) {
+      // Fallback to code if token is not there (legacy path)
+      const userWithCode = await User.findOne({ 
+        email, 
+        resetPasswordCode: code,
+        resetPasswordExpire: { $gt: Date.now() } 
+      });
+      if (!userWithCode) {
+        return res.status(400).json({ success: false, message: 'Tasdiqlash kodi xato yoki muddati o\'tgan' });
+      }
+    } else {
+      return res.status(400).json({ success: false, message: 'Tasdiqlash kodi yoki tokeni shart' });
+    }
+
+    const user = await User.findOne({ email }).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
+    }
+
+    // Set new password
+    user.password = newPassword;
+    user.resetPasswordCode = null;
+    user.resetPasswordExpire = null;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Parol muvaffaqiyatli yangilandi. Endi yangi parol bilan kirishingiz mumkin.',
+    });
+  } catch (error) {
+    console.error('RESET_PASSWORD_ERROR:', error);
+    res.status(500).json({ success: false, message: 'Serverda xatolik yuz berdi' });
+  }
+};
+
 module.exports = {
   register,
   login,
   refreshToken,
   logout,
   getMe,
+  forgotPassword,
+  verifyCode,
+  resetPassword,
 };
