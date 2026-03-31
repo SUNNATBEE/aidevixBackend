@@ -43,12 +43,6 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (!forgotPasswordFlow.canReset(email, token)) {
-      toast.error('Reset sessiyasi yaroqsiz yoki muddati tugagan.');
-      navigate('/forgot-password');
-      return;
-    }
-
     if (cardRef.current) {
       gsap.fromTo(
         cardRef.current,
@@ -66,16 +60,15 @@ export default function ResetPasswordPage() {
 
     try {
       setLoading(true);
-      try {
-        await forgotPasswordApi.resetPassword({ email, token, newPassword: data.password });
-      } catch {
-        // Backend endpoint bo'lmasa local flow davom etadi
-      }
-      forgotPasswordFlow.completeReset(email, token);
+      await forgotPasswordApi.resetPassword({ 
+        email, 
+        resetToken: token, 
+        newPassword: data.password 
+      });
       toast.success("Parol muvaffaqiyatli yangilandi. Endi login qiling.");
       navigate('/login', { replace: true });
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message || 'Parolni yangilashda xatolik yuz berdi.');
+      toast.error(error.response?.data?.message || 'Parolni yangilashda xatolik yuz berdi.');
     } finally {
       setLoading(false);
     }
@@ -104,7 +97,10 @@ export default function ResetPasswordPage() {
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  {...register('password', { required: true, minLength: 6 })}
+                  {...register('password', { 
+                    required: 'Parol majburiy', 
+                    minLength: { value: 8, message: 'Kamida 8 ta belgi bo\'lishi kerak' } 
+                  })}
                   autoComplete="new-password"
                   className={`w-full pl-11 pr-12 py-3 bg-[#0A0E1A]/50 border ${errors.password ? 'border-red-500/50' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all`}
                   placeholder="********"
