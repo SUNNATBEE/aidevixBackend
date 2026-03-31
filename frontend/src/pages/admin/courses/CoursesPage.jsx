@@ -125,7 +125,7 @@ export default function CoursesPage() {
                           )}
                           <div>
                             <p className="font-medium text-sm leading-tight">{c.title}</p>
-                            {c.instructor && <p className="text-xs text-base-content/40">{c.instructor}</p>}
+                            {c.instructor && <p className="text-xs text-base-content/40">{typeof c.instructor === 'object' ? c.instructor.username : c.instructor}</p>}
                           </div>
                         </div>
                       </td>

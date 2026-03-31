@@ -48,19 +48,25 @@ export default function RegisterForm() {
       return;
     }
 
+    const nameParts = data.fullName.trim().split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+    
     const username = data.fullName.trim().replace(/\s+/g, '_').toLowerCase();
     const email = data.email.trim().toLowerCase();
 
     const result = await dispatch(registerUser({
       username,
       email,
-      password: data.password
+      password: data.password,
+      firstName,
+      lastName
     }));
 
     if (registerUser.fulfilled.match(result)) {
       forgotPasswordFlow.rememberEmail(email);
-      toast.success("Ro'yxatdan o'tdingiz. Endi login qiling.");
-      navigate('/login', { replace: true });
+      toast.success("Muvaffaqiyatli ro'yxatdan o'tdingiz!");
+      navigate('/', { replace: true });
     }
   };
 

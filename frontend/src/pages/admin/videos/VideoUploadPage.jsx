@@ -60,10 +60,12 @@ export default function VideoUploadPage() {
       }
       const res  = await createVideo(payload)
       const data = res.data.data
-      setVideoId(data._id)
+      const newVideoId = data?.video?._id || data?._id
+      if (!newVideoId) throw new Error('Video ID olinmadi')
+      setVideoId(newVideoId)
 
       // Fetch upload credentials
-      const credRes = await getUploadCredentials(data._id)
+      const credRes = await getUploadCredentials(newVideoId)
       setCreds(credRes.data.data)
       setStep(STEP.UPLOAD)
     } catch (e) {

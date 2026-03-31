@@ -24,20 +24,11 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data) => {
     const email = data.email.trim().toLowerCase();
-    if (!forgotPasswordFlow.isKnownEmail(email)) {
-      toast.error("Bu email ro'yxatdan o'tmagan yoki hali tizimda eslab qolmagan.");
-      return;
-    }
 
     try {
       setLoading(true);
-      try {
-        await forgotPasswordApi.forgotPassword({ email });
-      } catch {
-        // Backend endpoint bo'lmasa ham frontend flow davom etadi
-      }
-
-      forgotPasswordFlow.createCode(email);
+      await forgotPasswordApi.forgotPassword({ email });
+      forgotPasswordFlow.startTimer(email);
       toast.success('Tasdiqlash kodi emailga yuborildi!');
       navigate(`/verify-code?email=${encodeURIComponent(email)}`);
     } catch (error) {

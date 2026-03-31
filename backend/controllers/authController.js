@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const UserStats = require('../models/UserStats');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/jwt');
 const validator = require('validator');
 const { sendWelcomeEmail } = require('../utils/emailService');
@@ -56,6 +57,11 @@ const register = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
+    // UserStats yaratish (leaderboard/ranking uchun)
+    UserStats.create({ userId: user._id }).catch((err) => {
+      console.error('UserStats yaratishda xato:', err.message);
+    });
+
     // Welcome email yuborish (background'da, xato bo'lsa ham davom etadi)
     sendWelcomeEmail(user.email, user.username).catch(() => {});
 
@@ -75,9 +81,12 @@ const register = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error('❌ REGISTER ERROR:', error.message);
+    console.error('❌ REGISTER STACK:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error registering user.',
+      ...(process.env.NODE_ENV !== 'production' && { debug: error.message }),
     });
   }
 };
