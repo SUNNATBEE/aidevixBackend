@@ -10,7 +10,7 @@
 //
 //  1. ALLAQACHON TASDIQLANGAN (instagram.subscribed = true):
 //     - ✅ IoCheckmarkCircle (yashil, text-3xl)
-//     - "Instagram tasdiqlangan" matni
+//     - "Instagram tasdiqlangan" matni 
 //     - "@{instagram.username}" — text-zinc-400
 //     - glass-card border border-success/30
 //
