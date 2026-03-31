@@ -45,6 +45,7 @@ export default function RegisterForm() {
     }
 
     if (data.password !== data.confirmPassword) {
+      toast.error("Parollar mos kelmadi.");
       return;
     }
 
