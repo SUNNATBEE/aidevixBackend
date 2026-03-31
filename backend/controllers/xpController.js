@@ -251,10 +251,12 @@ const getQuizByVideo = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const { bio, skills, avatar, ism, familiya, kasb } = req.body;
+    const userId = req.user._id || req.user.id;
 
-    let stats = await UserStats.findOne({ userId: req.user.id });
+    // 1. UserStats ni yangilash
+    let stats = await UserStats.findOne({ userId });
     if (!stats) {
-      stats = await UserStats.create({ userId: req.user.id });
+      stats = await UserStats.create({ userId });
     }
 
     if (bio !== undefined) stats.bio = bio;
@@ -263,10 +265,15 @@ const updateProfile = async (req, res) => {
 
     await stats.save();
 
+    // 2. User modelini (ism, familiya, kasb) yangilash
     const User = require('../models/User');
-    let user = await User.findById(req.user.id);
-    let userUpdated = false;
+    const user = await User.findById(userId);
     
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
+    }
+
+    let userUpdated = false;
     if (ism !== undefined) { user.firstName = ism; userUpdated = true; }
     if (familiya !== undefined) { user.lastName = familiya; userUpdated = true; }
     if (kasb !== undefined) { user.jobTitle = kasb; userUpdated = true; }
@@ -275,22 +282,28 @@ const updateProfile = async (req, res) => {
       await user.save();
     }
 
+    // Yangilangan ma'lumotlarni qaytarish
     res.json({
       success: true,
+      message: 'Profil muvaffaqiyatli yangilandi',
       data: {
         bio: stats.bio,
         skills: stats.skills,
         avatar: stats.avatar,
         user: {
+          _id: user._id,
           firstName: user.firstName,
           lastName: user.lastName,
           jobTitle: user.jobTitle,
-          username: user.username
+          username: user.username,
+          email: user.email,
+          role: user.role,
         }
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('UPDATE_PROFILE_ERROR:', err);
+    res.status(500).json({ success: false, message: 'Profilni yangilashda xatolik: ' + err.message });
   }
 };
 

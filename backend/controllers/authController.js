@@ -55,30 +55,40 @@ const register = async (req, res) => {
       });
     }
 
-    // Create new user
+    // Create new user (safe handling of name fields)
     const user = await User.create({
-      username: username.trim().toLowerCase(),
-      email: email.trim().toLowerCase(),
+      username: (username || '').trim().toLowerCase(),
+      email: (email || '').trim().toLowerCase(),
       password,
       firstName: req.body.firstName || null,
       lastName: req.body.lastName || null,
     });
 
-    // Generate tokens
-    const accessToken = generateAccessToken({ userId: user._id });
-    const refreshToken = generateRefreshToken({ userId: user._id });
+    // Generate tokens (wrap in try to catch secret missing errors)
+    let accessToken, refreshToken;
+    try {
+      accessToken = generateAccessToken({ userId: user._id });
+      refreshToken = generateRefreshToken({ userId: user._id });
+    } catch (tokenErr) {
+      console.error('❌ TOKEN GENERATION FAILED:', tokenErr.message);
+      // Delete partially created user if token fails to prevent inconsistencies
+      await User.findByIdAndDelete(user._id);
+      throw new Error('Auth system configuration error. Please contact admin.');
+    }
 
     // Save refresh token
     user.refreshToken = refreshToken;
     await user.save();
 
-    // UserStats yaratish (leaderboard/ranking uchun)
+    // UserStats yaratish (background'da, xato bo'lsa ham davom etadi)
     UserStats.create({ userId: user._id }).catch((err) => {
       console.error('UserStats yaratishda xato:', err.message);
     });
 
     // Welcome email yuborish (background'da, xato bo'lsa ham davom etadi)
-    sendWelcomeEmail(user.email, user.username).catch(() => {});
+    sendWelcomeEmail(user.email, user.username).catch((err) => {
+      console.error('Welcome Email yuborilmadi:', err.message);
+    });
 
     res.status(201).json({
       success: true,
@@ -96,12 +106,12 @@ const register = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('❌ REGISTER ERROR:', error.message);
-    console.error('❌ REGISTER STACK:', error.stack);
+    console.error('❌ 500 REGISTER ERROR:', error); 
     res.status(500).json({
       success: false,
-      message: 'Error registering user.',
-      ...(process.env.NODE_ENV !== 'production' && { debug: error.message }),
+      message: process.env.NODE_ENV === 'production' 
+        ? 'Ro\'yxatdan o\'tishda kutilmagan xatolik yuz berdi. Iltimos, keyinroq urinib ko\'ring.' 
+        : `Server Error: ${error.message}`,
     });
   }
 };
