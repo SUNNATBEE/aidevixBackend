@@ -7,8 +7,8 @@ export const authApi = {
   /** POST /auth/login */
   login: (data) => api.post('/auth/login', data),
 
-  /** POST /auth/refresh */
-  refresh: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
+  /** POST /auth/refresh-token */
+  refresh: (refreshToken) => api.post('/auth/refresh-token', { refreshToken }),
 
   /** POST /auth/logout */
   logout: () => api.post('/auth/logout'),

@@ -1,0 +1,18 @@
+# 🛡️ Aidevix Loyihasi Uchun Xavfsizlik Qoidalari (CODEOWNERS)
+# Bu fayl Github tizimiga qaysi papkalar va fayllar faqat Boshqaruvchi
+# tomonidangina o'zgartirilishi mumkinligini aytadi.
+
+# 1. Butun boshli backend qismi va barcha Node.js kodlari:
+/backend/ @SUNNATBEE
+
+# 2. Loyiha asosiy server va himoya konfiguratsiyalari:
+/.github/ @SUNNATBEE
+/render.yaml @SUNNATBEE
+/package.json @SUNNATBEE
+/.cursorrules @SUNNATBEE
+/.claudeignore @SUNNATBEE
+/.cursorignore @SUNNATBEE
+/PROMPT_RULES.md @SUNNATBEE
+/CLAUDE.md @SUNNATBEE
+
+# Izoh: Frontend o'quvchilarga ruxsat berilgan (yuqoridagilardan tashqari har qanday hudud).

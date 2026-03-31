@@ -1,5 +1,17 @@
 # CLAUDE.md (frontend)
 
+## 🚫 MUHIM QOIDA — BACKEND GA TEGMA!
+
+**HECH QACHON `backend/` papkadagi fayllarni o'zgartirma, o'chirma, yaratma!**
+**HECH QACHON root darajadagi fayllarni o'zgartirma (package.json, railway.toml, .gitignore, architecture.md)!**
+
+Backend O'QITUVCHI tomonidan boshqariladi. Siz faqat `frontend/` papkada ishlaysiz.
+Agar backend API haqida savol bo'lsa — Swagger docs dan (`/api-docs`) foydalaning.
+
+⚠️ Bu qoidani buzgan har qanday o'zgartirish GitHub CI tomonidan **avtomatik rad etiladi**.
+
+---
+
 See root `CLAUDE.md` for full architecture. This file covers frontend-specific quick reference.
 
 ## Commands
@@ -38,6 +50,12 @@ src/
 
 ## Domain Pattern
 `src/api/<domain>Api.js` → `src/store/slices/<domain>Slice.js` → `src/hooks/use<Domain>.js` → component
+
+## API ishlatish
+- Backend URL: `https://aidevix-backend-production.up.railway.app` (production)
+- Lokal: `http://localhost:5000` (Vite proxy orqali `/api` → `:5000`)
+- **API larni O'ZGARTIRISH MUMKIN EMAS — faqat ishlatish mumkin**
+- Swagger docs: `/api-docs` (login: Aidevix / sunnatbee)
 
 ## Critical Notes
 - GSAP plugins registered in `App.jsx` before any animation module loads

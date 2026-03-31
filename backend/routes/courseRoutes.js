@@ -6,7 +6,6 @@ const {
   getTopCourses,
   getCategories,
   getRecommendedCourses,
-  getUserRecommendedCourses,
   getAutocomplete,
   getFilterCounts,
   createCourse,
@@ -22,7 +21,6 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
 router.get('/',                getAllCourses);
 router.get('/top',             getTopCourses);
 router.get('/categories',      getCategories);
-router.get('/recommended',     authenticate, getUserRecommendedCourses);
 router.get('/autocomplete',    getAutocomplete);
 router.get('/filter-counts',   getFilterCounts);
 router.post('/', authenticate, requireAdmin, createCourse);

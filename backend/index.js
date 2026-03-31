@@ -9,7 +9,6 @@ const swaggerAdminSpec = require('./config/swaggerAdmin');
 const swaggerAuth = require('./middleware/swaggerAuth');
 const connectDB = require('./config/database');
 const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
-const { startWeeklyReset } = require('./utils/weeklyReset');
 
 // Initialize Express app
 const app = express();
@@ -22,11 +21,40 @@ connectDB().catch(err => {
   console.error('Failed to connect to database on startup');
 });
 
-// CORS Configuration
+// ═══════════════════════════════════════════════════════════════════
+// CORS Configuration — BIRINCHI middleware bo'lishi SHART
+// ═══════════════════════════════════════════════════════════════════
 const allowedOrigins = (process.env.FRONTEND_URL || '')
   .split(',')
   .map(o => o.trim())
   .filter(Boolean);
+
+/**
+ * O'quvchilar turli IP manzillardan ishlashi mumkin (192.168.x.x, 10.x.x.x, 26.x.x.x, etc.)
+ * Bu funksiya private/local network IP larni avtomatik ruxsat beradi.
+ */
+function isPrivateNetworkOrigin(origin) {
+  try {
+    const url = new URL(origin);
+    const hostname = url.hostname;
+    // localhost
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true;
+    // Private network ranges: 10.x.x.x, 172.16-31.x.x, 192.168.x.x
+    const parts = hostname.split('.').map(Number);
+    if (parts.length === 4 && parts.every(p => !isNaN(p))) {
+      if (parts[0] === 10) return true;
+      if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+      if (parts[0] === 192 && parts[1] === 168) return true;
+      // Hamachi / VPN range (26.x.x.x — o'quvchilaringiz ishlatyapti)
+      if (parts[0] === 26) return true;
+      // Other common private/VPN ranges
+      if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true; // CGNAT
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -34,29 +62,62 @@ const corsOptions = {
     if (!origin) return callback(null, true);
     // Allow opaque origins (Telegram webview, file://, etc.)
     if (origin === 'null') return callback(null, true);
-    // Allow if explicitly listed or wildcard '*' configured
-    if (allowedOrigins.includes('*') || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
+    // Allow if wildcard '*' configured
+    if (allowedOrigins.includes('*')) return callback(null, true);
+    // Allow if explicitly listed
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    // Allow private/local network origins (o'quvchilar uchun)
+    if (isPrivateNetworkOrigin(origin)) return callback(null, true);
     // Allow Railway backend URL itself (Swagger UI "Try it out" feature)
     const backendUrl = process.env.BACKEND_URL || 'https://aidevix-backend-production.up.railway.app';
     if (origin === backendUrl) return callback(null, true);
+
+    // CORS reject — logga yozish (debug uchun)
+    console.warn(`⛔ CORS BLOCKED: origin="${origin}" — allowedOrigins:`, allowedOrigins);
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+  ],
+  exposedHeaders: [
+    'X-RateLimit-Limit',
+    'X-RateLimit-Remaining',
+    'X-RateLimit-Reset',
+  ],
+  maxAge: 86400, // Preflight cache 24 soat (brauzer qayta so'rov yubormaydi)
 };
 
-// Security middleware
+// ═══════════════════════════════════════════════════════════════════
+// MIDDLEWARE TARTIBI MUHIM! CORS → Helmet → Body parsers
+// ═══════════════════════════════════════════════════════════════════
+
+// 1️⃣ CORS — BIRINCHI bo'lishi kerak (preflight OPTIONS javob berish uchun)
+app.use(cors(corsOptions));
+
+// 2️⃣ Explicit preflight handler — barcha OPTIONS so'rovlarga 200 qaytarish
+//    Express 5 da '*' wildcard ishlamaydi, shuning uchun custom middleware ishlatamiz
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// 3️⃣ Helmet — Security headers (CORS dan KEYIN)
 app.use(helmet({
   contentSecurityPolicy: false, // Swagger UI uchun o'chirilgan
   crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // Cross-origin resurslarga ruxsat
 }));
 
-// Middleware
-app.use(cors(corsOptions));
+// 4️⃣ Body parsers
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -70,33 +131,40 @@ app.use((req, res, next) => {
 // Global API rate limiter
 app.use('/api/', apiLimiter);
 
-// Swagger UI Documentation (Parol bilan himoyalangan)
-app.use('/api-docs', swaggerAuth, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+// ═══════════════════════════════════════════════════════════════════
+// Swagger UI Documentation — ALOHIDA serve instansiyalar
+// swagger-ui-express 5.x + Express 5 da bitta swaggerUi.serve ni
+// ikki marta mount qilish conflict yaratadi. Har biriga alohida
+// serve middleware kerak.
+// ═══════════════════════════════════════════════════════════════════
+
+// API Docs — Parol bilan himoyalangan
+app.use('/api-docs', swaggerAuth, swaggerUi.serveFiles(swaggerSpec), swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'Aidevix API Documentation',
   customfavIcon: '/favicon.ico',
 }));
 
-// Swagger JSON endpoint (Parol bilan himoyalangan)
+// Swagger JSON endpoint
 app.get('/api-docs.json', swaggerAuth, (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });
 
-// Admin Panel Swagger UI Documentation (Parol bilan himoyalangan)
-app.use('/admin-docs', swaggerAuth, swaggerUi.serve, swaggerUi.setup(swaggerAdminSpec, {
+// Admin Panel Swagger UI — Alohida serve instance
+app.use('/admin-docs', swaggerAuth, swaggerUi.serveFiles(swaggerAdminSpec), swaggerUi.setup(swaggerAdminSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'Aidevix Admin Panel API',
   customfavIcon: '/favicon.ico',
 }));
 
-// Admin Panel Swagger JSON endpoint (Parol bilan himoyalangan)
+// Admin Panel Swagger JSON endpoint
 app.get('/admin-docs.json', swaggerAuth, (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerAdminSpec);
 });
 
-// Security headers
+// Security headers (qo'shimcha)
 app.use((req, res, next) => {
   // Remove X-Powered-By header
   res.removeHeader('X-Powered-By');
@@ -106,7 +174,6 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   
-  // CORS headers (already handled by cors middleware, but adding for clarity)
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
@@ -131,7 +198,6 @@ app.use('/api/challenges',   require('./routes/challengeRoutes'));
 app.use('/api/payments',     require('./routes/paymentRoutes'));
 app.use('/api/admin',        require('./routes/adminRoutes'));
 app.use('/api/upload',       require('./routes/uploadRoutes'));
-app.use('/api/telegram',     require('./routes/telegramRoutes'));
 
 // Health check route
 /**
@@ -213,8 +279,16 @@ app.use((req, res) => {
   });
 });
 
-// Error handler
+// Error handler — CORS headerlarini saqlab qolish uchun
 app.use((err, req, res, next) => {
+  // Agar CORS xatosi bo'lsa, aniq xato xabarini qaytarish
+  if (err.message && err.message.startsWith('CORS:')) {
+    return res.status(403).json({
+      success: false,
+      message: err.message,
+    });
+  }
+
   console.error(err.stack);
   res.status(err.status || 500).json({
     success: false,
@@ -231,11 +305,11 @@ app.listen(PORT, HOST, () => {
   console.log(`🚀 Server is running on ${HOST}:${PORT}`);
   console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 API Base URL: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
+  console.log(`🌍 CORS allowed origins: ${allowedOrigins.length > 0 ? allowedOrigins.join(', ') : '(all — no FRONTEND_URL set)'}`);
+  console.log(`🔒 Private network origins: auto-allowed (localhost, 192.168.x.x, 10.x.x.x, 26.x.x.x)`);
   if (process.env.NODE_ENV === 'production') {
     console.log(`✅ Production mode enabled`);
   }
-  // Haftalik XP reset ni ishga tushirish
-  startWeeklyReset();
 });
 
 module.exports = app;

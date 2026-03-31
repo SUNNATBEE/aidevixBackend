@@ -9,8 +9,6 @@ export const register = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const { data } = await authApi.register(credentials)
-      tokenStorage.setTokens(data.data.accessToken, data.data.refreshToken)
-      tokenStorage.setUser(data.data.user)
       return data.data
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Ro\'yxatdan o\'tishda xato')
@@ -77,6 +75,10 @@ const authSlice = createSlice({
   extraReducers: (builder) => {
     const pending   = (state) => { state.loading = true; state.error = null }
     const rejected  = (state, action) => { state.loading = false; state.error = action.payload }
+    const registerFulfilled = (state) => {
+      state.loading = false
+      state.isLoggedIn = false
+    }
     const fulfilled = (state, action) => {
       state.loading   = false
       state.user      = action.payload.user
@@ -85,7 +87,7 @@ const authSlice = createSlice({
 
     builder
       .addCase(register.pending,         pending)
-      .addCase(register.fulfilled,       fulfilled)
+      .addCase(register.fulfilled,       registerFulfilled)
       .addCase(register.rejected,        rejected)
 
       .addCase(login.pending,            pending)
