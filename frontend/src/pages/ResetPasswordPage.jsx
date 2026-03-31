@@ -46,12 +46,6 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (!forgotPasswordFlow.canReset(email, token)) {
-      toast.error('Reset sessiyasi yaroqsiz yoki muddati tugagan.');
-      navigate('/forgot-password');
-      return;
-    }
-
     if (cardRef.current) {
       gsap.fromTo(
         cardRef.current,
@@ -69,6 +63,7 @@ export default function ResetPasswordPage() {
 
     try {
       setLoading(true);
+<<<<<<< HEAD
       
       console.log('Updating password for email:', email);
       console.log('New password:', data.password);
@@ -109,6 +104,17 @@ export default function ResetPasswordPage() {
     } catch (error) {
       console.error('Reset password error:', error);
       toast.error(error.response?.data?.message || error.message || 'Parolni yangilashda xatolik yuz berdi.');
+=======
+      await forgotPasswordApi.resetPassword({ 
+        email, 
+        resetToken: token, 
+        newPassword: data.password 
+      });
+      toast.success("Parol muvaffaqiyatli yangilandi. Endi login qiling.");
+      navigate('/login', { replace: true });
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Parolni yangilashda xatolik yuz berdi.');
+>>>>>>> 5df24ed922f9e41cc283ac4f68110322226afa95
     } finally {
       setLoading(false);
     }
@@ -137,7 +143,10 @@ export default function ResetPasswordPage() {
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  {...register('password', { required: true, minLength: 6 })}
+                  {...register('password', { 
+                    required: 'Parol majburiy', 
+                    minLength: { value: 8, message: 'Kamida 8 ta belgi bo\'lishi kerak' } 
+                  })}
                   autoComplete="new-password"
                   className={`w-full pl-11 pr-12 py-3 bg-[#0A0E1A]/50 border ${errors.password ? 'border-red-500/50' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all`}
                   placeholder="********"

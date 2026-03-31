@@ -49,16 +49,15 @@ export default function VerifyCodePage() {
 
       try {
         const res = await forgotPasswordApi.verifyCode({ email, code: data.code });
-        if (res.data.success && res.data?.data?.resetToken) {
+        if (res.data.success) {
           resetToken = res.data.data.resetToken;
         }
-      } catch {
-        // Backend endpoint bo'lmasa local flow ishlaydi
+      } catch (error) {
+        throw error;
       }
 
       if (!resetToken) {
-        const localRes = forgotPasswordFlow.verifyCode(email, data.code);
-        resetToken = localRes.resetToken;
+        throw new Error('Serverdan reset token olinmadi.');
       }
 
       toast.success('Kod tasdiqlandi. Endi yangi parol kiriting.');
@@ -74,12 +73,8 @@ export default function VerifyCodePage() {
   const handleResend = async () => {
     try {
       setResendLoading(true);
-      try {
-        await forgotPasswordApi.forgotPassword({ email });
-      } catch {
-        // Backend endpoint bo'lmasa local flow ishlaydi
-      }
-      forgotPasswordFlow.createCode(email);
+      await forgotPasswordApi.forgotPassword({ email });
+      forgotPasswordFlow.startTimer(email);
       setTimeLeft(forgotPasswordFlow.getRemainingSeconds(email));
       toast.success('Yangi kod yuborildi!');
     } catch (error) {
@@ -99,7 +94,7 @@ export default function VerifyCodePage() {
           <div className="text-center mb-10">
             <h2 className="text-[1.75rem] font-bold text-white mb-3">Kodni tasdiqlash</h2>
             <p className="text-gray-400 text-[0.95rem] px-2 leading-relaxed">
-              <strong>{email}</strong> manziliga yuborilgan 4 xonali kodni kiriting.
+              <strong>{email}</strong> manziliga yuborilgan 6 xonali kodni kiriting.
             </p>
           </div>
 
@@ -111,15 +106,15 @@ export default function VerifyCodePage() {
               <div className="relative">
                 <input 
                   type="text" 
-                  maxLength={4}
-                  placeholder="0000" 
+                  maxLength={6}
+                  placeholder="000000" 
                   style={{ letterSpacing: '8px', textAlign: 'center' }}
                   className={`w-full bg-white text-gray-900 px-5 py-3.5 rounded-full outline-none focus:ring-2 focus:ring-primary transition-all text-xl font-bold ${errors.code ? 'ring-2 ring-error' : ''}`}
                   {...register('code', { 
                     required: 'Kodni kiritish majburiy',
                     pattern: {
-                      value: /^[0-9]{4}$/,
-                      message: 'Kod 4 xonali raqam bo\'lishi kerak'
+                      value: /^[0-9]{6}$/,
+                      message: 'Kod 6 xonali raqam bo\'lishi kerak'
                     }
                   })} 
                 />

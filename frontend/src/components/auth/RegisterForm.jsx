@@ -49,9 +49,14 @@ export default function RegisterForm() {
       return;
     }
 
+    const nameParts = data.fullName.trim().split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+    
     const username = data.fullName.trim().replace(/\s+/g, '_').toLowerCase();
     const email = data.email.trim().toLowerCase();
 
+<<<<<<< HEAD
     console.log('Registering user with email:', email);
     console.log('Registering user with password:', data.password);
 
@@ -83,6 +88,20 @@ export default function RegisterForm() {
         toast.error(error.message);
       }
       // Backend xatosi bo'lsa ham local auth ishlaydi
+=======
+    const result = await dispatch(registerUser({
+      username,
+      email,
+      password: data.password,
+      firstName,
+      lastName
+    }));
+
+    if (registerUser.fulfilled.match(result)) {
+      forgotPasswordFlow.rememberEmail(email);
+      toast.success("Muvaffaqiyatli ro'yxatdan o'tdingiz!");
+      navigate('/', { replace: true });
+>>>>>>> 5df24ed922f9e41cc283ac4f68110322226afa95
     }
   };
 

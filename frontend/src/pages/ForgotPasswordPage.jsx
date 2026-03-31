@@ -25,22 +25,20 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data) => {
     const email = data.email.trim().toLowerCase();
+<<<<<<< HEAD
     
     // Local auth bilan tekshirish
     if (!localAuth.userExists(email)) {
       toast.error("Bu email ro'yxatdan o'tmagan.");
       return;
     }
+=======
+>>>>>>> 5df24ed922f9e41cc283ac4f68110322226afa95
 
     try {
       setLoading(true);
-      try {
-        await forgotPasswordApi.forgotPassword({ email });
-      } catch {
-        // Backend endpoint bo'lmasa ham frontend flow davom etadi
-      }
-
-      forgotPasswordFlow.createCode(email);
+      await forgotPasswordApi.forgotPassword({ email });
+      forgotPasswordFlow.startTimer(email);
       toast.success('Tasdiqlash kodi emailga yuborildi!');
       navigate(`/verify-code?email=${encodeURIComponent(email)}`);
     } catch (error) {
