@@ -1,0 +1,172 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Variables ─────────────────────────────────────────── */
+:root {
+  --color-primary:  #6366f1;
+  --color-accent:   #8b5cf6;
+  --color-dark:     #0d0d0f;
+  --font-sans:      'Inter', system-ui, sans-serif;
+  --font-mono:      'JetBrains Mono', monospace;
+  --font-display:   'Plus Jakarta Sans', 'Inter', sans-serif;
+  --transition-base: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --border-radius:  12px;
+}
+
+/* ─── Base Reset ─────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #0d0d0f;
+  color: #f4f4f5;
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Typography ─────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+code, pre, kbd {
+  font-family: var(--font-mono);
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: #111113; }
+::-webkit-scrollbar-thumb  { background: #3f3f46; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+/* ─── Selection ──────────────────────────────────────────────── */
+::selection {
+  background: rgba(99, 102, 241, 0.3);
+  color: #f4f4f5;
+}
+
+/* ─── Focus Ring ─────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ─── Utility Classes ────────────────────────────────────────── */
+@layer components {
+  /* Glass morphism card */
+  .glass-card {
+    @apply bg-dark-card/80 backdrop-blur-md border border-dark-border rounded-2xl;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-400 via-accent-400 to-cyan-400 bg-clip-text text-transparent;
+  }
+
+  /* Neon glow button */
+  .btn-neon {
+    @apply btn btn-primary shadow-glow-sm hover:shadow-glow-md transition-all duration-300;
+  }
+
+  /* Category badge */
+  .category-badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
+           bg-primary-500/10 text-primary-400 border border-primary-500/20
+           hover:bg-primary-500/20 transition-colors cursor-pointer;
+  }
+
+  /* Section container */
+  .section-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Section title */
+  .section-title {
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold font-display;
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover;
+  }
+
+  /* Skeleton loader */
+  .skeleton-base {
+    @apply animate-pulse bg-dark-border rounded-xl;
+  }
+}
+
+/* ─── Three.js Canvas ────────────────────────────────────────── */
+canvas {
+  display: block;
+}
+
+#hero-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ─── GSAP will-change optimization ──────────────────────────── */
+.gsap-animated {
+  will-change: transform, opacity;
+}
+
+/* ─── Cursor Blur Trail ─────────────────────────────────────── */
+.cursor-trail {
+  position: fixed;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.06) 40%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transform: translate(-50%, -50%);
+  transition: left 0.12s ease-out, top 0.12s ease-out;
+  will-change: left, top;
+  mix-blend-mode: screen;
+}
+
+.cursor-dot {
+  position: fixed;
+  width: 6px;
+  height: 6px;
+  background: #818cf8;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  transition: left 0.04s linear, top 0.04s linear, transform 0.2s ease, opacity 0.2s ease;
+  will-change: left, top;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.8);
+}
+
+.cursor-ring {
+  position: fixed;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  transition: left 0.1s ease-out, top 0.1s ease-out, width 0.2s ease, height 0.2s ease, border-color 0.2s ease;
+  will-change: left, top;
+}
