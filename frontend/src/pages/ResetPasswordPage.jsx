@@ -6,6 +6,9 @@ import { IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from 'react-icons/
 import { FiRefreshCcw } from 'react-icons/fi';
 import { forgotPasswordApi } from '@api/forgotPasswordApi';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
+import { tokenStorage } from '@utils/tokenStorage';
+import { STORAGE_KEYS } from '@utils/constants';
+import { localAuth } from '@utils/localAuth';
 import gsap from 'gsap';
 
 export default function ResetPasswordPage() {
@@ -66,15 +69,45 @@ export default function ResetPasswordPage() {
 
     try {
       setLoading(true);
+      
+      console.log('Updating password for email:', email);
+      console.log('New password:', data.password);
+      
+      // Local auth da parolni yangilash
       try {
-        await forgotPasswordApi.resetPassword({ email, token, newPassword: data.password });
+        localAuth.updatePassword(email, data.password);
+        console.log('Password updated successfully in localAuth');
+      } catch (authError) {
+        console.error('LocalAuth error:', authError);
+        toast.error(authError.message);
+        setLoading(false);
+        return;
+      }
+      
+      let responseData = null;
+      try {
+        const res = await forgotPasswordApi.resetPassword({ email, token, newPassword: data.password });
+        responseData = res?.data?.data;
       } catch {
         // Backend endpoint bo'lmasa local flow davom etadi
       }
+
       forgotPasswordFlow.completeReset(email, token);
-      toast.success("Parol muvaffaqiyatli yangilandi. Endi login qiling.");
-      navigate('/login', { replace: true });
+
+      // Agar backend yangi tokenlar qaytarsa — ularni saqlash
+      if (responseData?.accessToken) {
+        tokenStorage.setTokens(responseData.accessToken, responseData.refreshToken);
+        if (responseData.user) tokenStorage.setUser(responseData.user);
+        toast.success('Parol yangilandi. Tokenlar saqlandi.');
+      } else {
+        // Backend token qaytarmasa — faqat parolni localStorage'ga yozib qo'yamiz
+        localStorage.setItem(STORAGE_KEYS.PENDING_PASSWORD, data.password);
+        toast.success('Parol muvaffaqiyatli yangilandi. Endi login qiling.');
+      }
+
+      navigate(`/login?email=${encodeURIComponent(email)}`, { replace: true });
     } catch (error) {
+      console.error('Reset password error:', error);
       toast.error(error.response?.data?.message || error.message || 'Parolni yangilashda xatolik yuz berdi.');
     } finally {
       setLoading(false);

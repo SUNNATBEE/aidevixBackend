@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 import { IoPersonOutline, IoMailOutline, IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from 'react-icons/io5';
 import { FiRefreshCcw } from 'react-icons/fi';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
+import { localAuth } from '@utils/localAuth';
 
 export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -51,16 +52,37 @@ export default function RegisterForm() {
     const username = data.fullName.trim().replace(/\s+/g, '_').toLowerCase();
     const email = data.email.trim().toLowerCase();
 
-    const result = await dispatch(registerUser({
-      username,
-      email,
-      password: data.password
-    }));
+    console.log('Registering user with email:', email);
+    console.log('Registering user with password:', data.password);
 
-    if (registerUser.fulfilled.match(result)) {
-      forgotPasswordFlow.rememberEmail(email);
-      toast.success("Ro'yxatdan o'tdingiz. Endi login qiling.");
-      navigate('/login', { replace: true });
+    try {
+      // Local auth ga saqlash
+      localAuth.registerUser(email, data.password);
+      console.log('User registered successfully in localAuth');
+      
+      // Backend ga ham yuborish (agar backend mavjud bo'lsa)
+      const result = await dispatch(registerUser({
+        username,
+        email,
+        password: data.password
+      }));
+
+      if (registerUser.fulfilled.match(result)) {
+        forgotPasswordFlow.rememberEmail(email);
+        toast.success("Ro'yxatdan o'tdingiz. Endi login qiling.");
+        navigate('/login', { replace: true });
+      } else {
+        // Backend xato bo'lsa ham local auth ishlaydi
+        forgotPasswordFlow.rememberEmail(email);
+        toast.success("Ro'yxatdan o'tdingiz. Endi login qiling.");
+        navigate('/login', { replace: true });
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      if (error.message === 'Bu email allaqachon ro\'yxatdan o\'tgan') {
+        toast.error(error.message);
+      }
+      // Backend xatosi bo'lsa ham local auth ishlaydi
     }
   };
 

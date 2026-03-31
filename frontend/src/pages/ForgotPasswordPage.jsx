@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { forgotPasswordApi } from '@api/forgotPasswordApi';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
+import { localAuth } from '@utils/localAuth';
 import gsap from 'gsap';
 
 export default function ForgotPasswordPage() {
@@ -24,8 +25,10 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data) => {
     const email = data.email.trim().toLowerCase();
-    if (!forgotPasswordFlow.isKnownEmail(email)) {
-      toast.error("Bu email ro'yxatdan o'tmagan yoki hali tizimda eslab qolmagan.");
+    
+    // Local auth bilan tekshirish
+    if (!localAuth.userExists(email)) {
+      toast.error("Bu email ro'yxatdan o'tmagan.");
       return;
     }
 

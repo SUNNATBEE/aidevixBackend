@@ -29,8 +29,10 @@ export const fetchCourseById = createAsyncThunk(
 
 export const fetchTopCourses = createAsyncThunk(
   'courses/fetchTop',
-  async (limit, { rejectWithValue }) => {
+  async (limitParam, { rejectWithValue }) => {
     try {
+      // Support both number and object { limit: N } params
+      const limit = typeof limitParam === 'object' ? limitParam?.limit : limitParam
       const { data } = await courseApi.getTop(limit)
       return data.data
     } catch (err) {

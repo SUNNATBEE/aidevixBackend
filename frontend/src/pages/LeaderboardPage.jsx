@@ -1,18 +1,15 @@
-// LeaderboardPage.jsx — SUHROB
 import { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { motion, AnimatePresence } from 'framer-motion'
-import axios from 'axios'
 import { HiBolt } from 'react-icons/hi2'
 import { FaTrophy } from 'react-icons/fa'
 
+import api from '@api/axiosInstance'
 import { useUserStats } from '@hooks/useUserStats'
 import { selectUser, selectIsLoggedIn } from '@store/slices/authSlice'
 import LeaderboardTable from '@components/leaderboard/LeaderboardTable'
 import LevelUpModal from '@components/leaderboard/LevelUpModal'
 
-// To'g'ridan-to'g'ri Railway API
-const API = 'https://aidevix-backend-production.up.railway.app/api'
 
 const TABS = [
   { key:'all',        label:'GLOBAL'     },
@@ -146,11 +143,11 @@ export default function LeaderboardPage() {
   const { xp, level, levelProgress, xpToNextLevel, streak, badges,
           justLeveledUp, newLevel, quizResult, dismissLevelUp } = useUserStats()
 
-  // API dan userlarni olish — to'g'ridan-to'g'ri Railway ga
+  // API dan userlarni olish — axiosInstance orqali
   const fetchUsers = async (page=1, replace=true) => {
     setLoading(true)
     try {
-      const { data } = await axios.get(`${API}/ranking/users`, {
+      const { data } = await api.get('/ranking/users', {
         params: { page, limit: 20 }
       })
       const list  = data?.data?.users || data?.users || []
@@ -169,10 +166,7 @@ export default function LeaderboardPage() {
   const fetchPosition = async () => {
     if (!isLoggedIn || !currentUser?._id) return
     try {
-      const token = localStorage.getItem('aidevix_access_token')
-      const { data } = await axios.get(`${API}/ranking/users/${currentUser._id}/position`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const { data } = await api.get(`/ranking/users/${currentUser._id}/position`)
       setUserPosition(data?.data?.position || data?.data || null)
     } catch {}
   }

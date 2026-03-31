@@ -307,7 +307,7 @@ export default function ProfilePage() {
                 {/* Backdrop (outside click closes) */}
                 <motion.button
                   type="button"
-                  className="fixed inset-0 bg-[#0A0E1A]/95 backdrop-blur-md"
+                  className="fixed inset-0 bg-[#0A0E1A]/80 backdrop-blur-xl"
                   aria-label="Close modal"
                   onClick={closeEdit}
                   initial={{ opacity: 0 }}
@@ -317,7 +317,7 @@ export default function ProfilePage() {
 
                 {/* Modal content */}
                 <motion.div
-                  className="fixed left-1/2 top-1/2 z-[10000] w-[calc(100%-2rem)] max-w-[720px] -translate-x-1/2 -translate-y-1/2 bg-[#0d1224] border border-white/10 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+                  className="fixed left-1/2 top-1/2 z-[10000] w-[calc(100%-2rem)] max-w-[600px] -translate-x-1/2 -translate-y-1/2 bg-[#0d1224] border border-white/10 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
                   role="dialog"
                   aria-modal="true"
                   initial={{ opacity: 0, scale: 0.97, y: 8 }}
@@ -327,76 +327,79 @@ export default function ProfilePage() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="p-6 sm:p-8">
-                    <div className="flex items-start justify-between gap-4 mb-6">
+                    <div className="flex items-start justify-between gap-4 mb-8">
                       <div>
-                        <h3 className="text-xl font-bold text-white">Profilni tahrirlash</h3>
-                        <p className="text-sm text-gray-400 mt-1">Ism, familiya, kasb va bio’ni yangilang.</p>
+                        <h3 className="text-2xl font-bold text-white">Profilni tahrirlash</h3>
+                        <p className="text-sm text-gray-400 mt-1.5">Shaxsiy ma'lumotlaringizni yangilang.</p>
                       </div>
                       <button
                         type="button"
                         onClick={closeEdit}
-                        className="text-gray-400 hover:text-white"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
                         aria-label="Close"
                       >
-                        ✕
+                        <span className="text-xl">✕</span>
                       </button>
                     </div>
 
-                    <form onSubmit={handleSave} className="space-y-5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-400 mb-2 px-1">Ism</label>
+                    <form onSubmit={handleSave} className="space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">Ism</label>
                           <input
                             type="text"
                             value={editDraft?.ism ?? ''}
                             onChange={(e) => setEditDraft((p) => ({ ...p, ism: e.target.value }))}
-                            className="w-full bg-[#131B31]/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50"
+                            className="w-full bg-[#131B31] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+                            placeholder="Ismingizni kiriting"
                           />
                         </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-400 mb-2 px-1">Familiya</label>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">Familiya</label>
                           <input
                             type="text"
                             value={editDraft?.familiya ?? ''}
                             onChange={(e) => setEditDraft((p) => ({ ...p, familiya: e.target.value }))}
-                            className="w-full bg-[#131B31]/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50"
+                            className="w-full bg-[#131B31] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+                            placeholder="Familiyangizni kiriting"
                           />
                         </div>
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-2 px-1">Kasbi / Mutaxassisligi</label>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">Kasbi / Mutaxassisligi</label>
                         <input
                           type="text"
                           value={editDraft?.kasb ?? ''}
                           onChange={(e) => setEditDraft((p) => ({ ...p, kasb: e.target.value }))}
-                          className="w-full bg-[#131B31]/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50"
+                          className="w-full bg-[#131B31] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+                          placeholder="Masalan: Frontend Dasturchi"
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-2 px-1">Bio</label>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">Bio</label>
                         <textarea
                           rows="4"
                           value={editDraft?.bio ?? ''}
                           onChange={(e) => setEditDraft((p) => ({ ...p, bio: e.target.value }))}
-                          className="w-full bg-[#131B31]/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50 resize-none"
+                          className="w-full bg-[#131B31] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all resize-none"
                           placeholder="O'zingiz haqingizda qisqacha..."
                         />
                       </div>
 
-                      <div className="flex items-center justify-end gap-3 pt-2">
+                      <div className="flex items-center justify-end gap-3 pt-4">
                         <button
                           type="button"
                           onClick={closeEdit}
-                          className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10 text-sm"
+                          className="px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10 text-sm font-medium transition-all"
                         >
                           Bekor qilish
                         </button>
                         <button
                           type="submit"
                           disabled={!isEditDirty}
-                          className="px-6 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-8 py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-500/30 text-white text-sm font-bold transition-all disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
                         >
                           Saqlash
                         </button>

@@ -1,35 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import { login, selectAuthLoading, selectAuthError, clearError } from '@store/slices/authSlice';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
+import { STORAGE_KEYS } from '@utils/constants';
+import { localAuth } from '@utils/localAuth';
 
 export default function LoginForm() {
   const [showPass, setShowPass] = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm();
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const loading = useSelector(selectAuthLoading);
   const authError = useSelector(selectAuthError);
+
+  // Parol yangilangandan keyin email va parolni avtomatik to'ldirish
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const emailFromUrl = params.get('email');
+    const pendingPassword = localStorage.getItem(STORAGE_KEYS.PENDING_PASSWORD);
+
+    if (emailFromUrl) {
+      setValue('email', emailFromUrl);
+    }
+    if (pendingPassword) {
+      setValue('password', pendingPassword);
+    }
+  }, [location.search, setValue]);
 
   const onSubmit = async (data) => {
     if (clearError) {
       dispatch(clearError());
     }
 
-    const result = await dispatch(login({
-      email: data.email,
-      password: data.password,
-    }));
-    
-    if (login.fulfilled.match(result)) {
-      forgotPasswordFlow.rememberEmail(data.email);
-      toast.success('Muvaffaqiyatli kirdingiz! Tokenlar saqlandi.');
-      navigate('/', { replace: true });
+    console.log('Login attempt with email:', data.email);
+    console.log('Login attempt with password:', data.password);
+
+    try {
+      // Avval local auth bilan tekshirish
+      console.log('Checking localAuth...');
+      const localUser = localAuth.loginUser(data.email, data.password);
+      console.log('LocalAuth success:', localUser);
+      
+      // Local auth muvaffaqiyatli bo'lsa backend ga ham yuborish
+      const result = await dispatch(login({
+        email: data.email,
+        password: data.password,
+      }));
+      
+      if (login.fulfilled.match(result)) {
+        forgotPasswordFlow.rememberEmail(data.email);
+        // Eski pending parolni o'chirish
+        localStorage.removeItem(STORAGE_KEYS.PENDING_PASSWORD);
+        toast.success('Muvaffaqiyatli kirdingiz! Tokenlar saqlandi.');
+        navigate('/', { replace: true });
+      }
+    } catch (error) {
+      // Local auth xatosi
+      console.error('Login error:', error);
+      toast.error(error.message || 'Login yoki parol xato');
     }
   };
 

@@ -14,6 +14,9 @@ export const courseApi = {
   /** GET /courses/categories - available categories */
   getCategories: () => api.get('/courses/categories'),
 
+  /** GET /courses/:id/recommended - similar courses */
+  getRecommended: (id, limit = 4) => api.get(`/courses/${id}/recommended`, { params: { limit } }),
+
   /** POST /courses (admin) */
   create: (data) => api.post('/courses', data),
 

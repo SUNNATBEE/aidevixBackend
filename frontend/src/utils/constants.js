@@ -39,10 +39,11 @@ export const MAX_RATING = 5
 
 // ─── Local Storage Keys ──────────────────────────────────────
 export const STORAGE_KEYS = {
-  ACCESS_TOKEN:  'aidevix_access_token',
-  REFRESH_TOKEN: 'aidevix_refresh_token',
-  USER:          'aidevix_user',
-  THEME:         'aidevix_theme',
+  ACCESS_TOKEN:     'aidevix_access_token',
+  REFRESH_TOKEN:    'aidevix_refresh_token',
+  USER:             'aidevix_user',
+  THEME:            'aidevix_theme',
+  PENDING_PASSWORD: 'aidevix_pending_password',
 }
 
 // ─── Route Paths ─────────────────────────────────────────────
