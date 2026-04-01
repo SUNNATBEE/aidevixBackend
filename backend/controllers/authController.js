@@ -107,6 +107,16 @@ const register = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ 500 REGISTER ERROR:', error); 
+    
+    // Mongoose validation xatolarini ushlash
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join('. '),
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: process.env.NODE_ENV === 'production' 
