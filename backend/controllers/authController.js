@@ -117,11 +117,10 @@ const register = async (req, res) => {
       });
     }
 
+    // DEBUG: Xatolikni o'zini qaytarib ko'ramiz (vaqtinchalik)
     res.status(500).json({
       success: false,
-      message: process.env.NODE_ENV === 'production' 
-        ? 'Ro\'yxatdan o\'tishda kutilmagan xatolik yuz berdi. Iltimos, keyinroq urinib ko\'ring.' 
-        : `Server Error: ${error.message}`,
+      message: `Server Error: ${error.message}`, 
     });
   }
 };
