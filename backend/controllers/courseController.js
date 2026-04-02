@@ -50,7 +50,8 @@ const getAllCourses = async (req, res) => {
       .sort(sortOption)
       .skip(skip)
       .limit(parseInt(limit))
-      .select('-videos');
+      .select('-videos')
+      .lean();
 
     res.json({
       success: true,
@@ -86,7 +87,8 @@ const getTopCourses = async (req, res) => {
       .populate('instructor', 'username email')
       .sort({ viewCount: -1, rating: -1 })
       .limit(limit)
-      .select('-videos');
+      .select('-videos')
+      .lean();
 
     res.json({ success: true, data: { courses } });
   } catch (error) {
@@ -132,7 +134,8 @@ const getCourse = async (req, res) => {
         match:  { isActive: true },
         select: 'title description order duration thumbnail',
         options: { sort: { order: 1 } },
-      });
+      })
+      .lean();
 
     if (!course || !course.isActive) {
       return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
@@ -169,7 +172,8 @@ const getRecommendedCourses = async (req, res) => {
       .populate('instructor', 'username email jobTitle position')
       .sort({ rating: -1, viewCount: -1 })
       .limit(limit)
-      .select('-videos');
+      .select('-videos')
+      .lean();
 
     res.json({ success: true, data: { courses } });
   } catch (error) {
