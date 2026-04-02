@@ -68,6 +68,8 @@ const corsOptions = {
     if (allowedOrigins.includes(origin)) return callback(null, true);
     // Allow private/local network origins (o'quvchilar uchun)
     if (isPrivateNetworkOrigin(origin)) return callback(null, true);
+    // Allow Vercel preview and production domains
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
     // Allow Railway backend URL itself (Swagger UI "Try it out" feature)
     const backendUrl = process.env.BACKEND_URL || 'https://aidevix-backend-production.up.railway.app';
     if (origin === backendUrl) return callback(null, true);
@@ -279,22 +281,20 @@ app.use((req, res) => {
   });
 });
 
-// Error handler — CORS headerlarini saqlab qolish uchun
-app.use((err, req, res, next) => {
-  // Agar CORS xatosi bo'lsa, aniq xato xabarini qaytarish
-  if (err.message && err.message.startsWith('CORS:')) {
-    return res.status(403).json({
-      success: false,
-      message: err.message,
-    });
-  }
+// Global error handler
+const errorHandler = require('./middleware/errorMiddleware');
+app.use(errorHandler);
 
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    success: false,
-    message: process.env.NODE_ENV === 'production' ? 'Ichki server xatosi' : (err.message || 'Internal server error'),
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-  });
+// Global process handlers for stability (Senior approach)
+process.on('unhandledRejection', (err, promise) => {
+  console.error(`💥 Unhandled Rejection at: ${promise}\nReason: ${err.message}`);
+  // In production, log this to a service like Sentry instead of crashing immediately.
+});
+
+process.on('uncaughtException', (err) => {
+  console.error(`💥 Uncaught Exception: ${err.message}`);
+  // If this happens, the app state might be corrupted - usually best to restart nicely
+  process.exit(1);
 });
 
 // Start server
