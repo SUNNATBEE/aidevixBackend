@@ -57,9 +57,6 @@ export default function RegisterForm() {
     const username = data.fullName.trim().replace(/\s+/g, '_').toLowerCase();
     const email = data.email.trim().toLowerCase();
 
-    console.log('Registering user with email:', email);
-    console.log('Registering user with password:', data.password);
-
     try {
       // Local auth ga saqlash
       localAuth.registerUser(email, data.password);

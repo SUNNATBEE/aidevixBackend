@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { selectUser } from '@store/slices/authSlice';
 import { useUserStats } from '@hooks/useUserStats';
@@ -8,13 +7,12 @@ import { useSubscription } from '@hooks/useSubscription';
 import { fetchUserStats, updateProfileThunk } from '@store/slices/userStatsSlice';
 import { uploadApi } from '@api/uploadApi';
 import { toast } from 'react-hot-toast';
-import { 
-  FiEdit2, 
-  FiMapPin, 
-  FiUser, 
-  FiBriefcase, 
-  FiInstagram, 
-  FiMail, 
+import {
+  FiEdit2,
+  FiUser,
+  FiBriefcase,
+  FiInstagram,
+  FiMail,
   FiCheckCircle,
   FiAward,
   FiZap,
@@ -35,7 +33,6 @@ export default function ProfilePage() {
   const [editOpen, setEditOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Form states initialized properly from Redux/Stats
   const [editDraft, setEditDraft] = useState({
     ism: '',
     familiya: '',
@@ -55,107 +52,17 @@ export default function ProfilePage() {
     }
   }, [editOpen, user, bio]);
 
-<<<<<<< HEAD
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(LOCAL_PROFILE_KEY));
-      if (saved && typeof saved === 'object') {
-        setFormData((prev) => ({
-          ...prev,
-          ism: saved.ism ?? prev.ism,
-          familiya: saved.familiya ?? prev.familiya,
-          kasb: saved.kasb ?? prev.kasb,
-          bio: saved.bio ?? prev.bio,
-        }));
-      }
-    } catch {
-      // ignore
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    // server bio kelganda, local saqlanmagan bo'lsa formga tushsin
-    try {
-      const saved = JSON.parse(localStorage.getItem(LOCAL_PROFILE_KEY));
-      if (saved?.bio === undefined && bio) {
-        setFormData((prev) => ({ ...prev, bio }));
-      }
-    } catch {
-      if (bio) setFormData((prev) => ({ ...prev, bio }));
-    }
-  }, [bio]);
-
-  // Lock body scroll logic removed as per user request
-
-  // ESC to close modal
-  useEffect(() => {
-    if (!editOpen) return;
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') closeEdit();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [editOpen]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      document.body.classList.remove('profile-modal-open');
-    };
-  }, []);
-
-  // Debug log
-  useEffect(() => {
-    console.log('editOpen changed:', editOpen);
-  }, [editOpen]);
-
-  const openEdit = () => {
-    console.log('openEdit called');
-    const snapshot = {
-      ism: formData.ism || '',
-      familiya: formData.familiya || '',
-      kasb: formData.kasb || '',
-      bio: formData.bio || '',
-    };
-    console.log('snapshot:', snapshot);
-    setEditInitial(snapshot);
-    setEditDraft(snapshot);
-    setEditOpen(true);
-    console.log('editOpen set to true');
-    // Add blur class to body
-    document.body.classList.add('profile-modal-open');
-  };
-
-  const closeEdit = () => {
-    setEditOpen(false);
-    setEditDraft(null);
-    setEditInitial(null);
-    // Remove blur class from body
-    document.body.classList.remove('profile-modal-open');
-  };
-
-  const isEditDirty = !!(editDraft && editInitial && (
-    editDraft.ism !== editInitial.ism ||
-    editDraft.familiya !== editInitial.familiya ||
-    editDraft.kasb !== editInitial.kasb ||
-    editDraft.bio !== editInitial.bio
-  ));
-
-  const handleSave = (e) => {
-=======
   const handleSave = async (e) => {
->>>>>>> 63c2744759b236bef1234cd5a367bf5ce02a3c15
     e.preventDefault();
     try {
       setIsSaving(true);
-      const result = await dispatch(updateProfileThunk({ 
+      await dispatch(updateProfileThunk({
         bio: editDraft.bio,
         ism: editDraft.ism,
         familiya: editDraft.familiya,
         kasb: editDraft.kasb
       })).unwrap();
-      
+
       toast.success("Profil muvaffaqiyatli yangilandi!");
       setEditOpen(false);
     } catch (err) {
@@ -194,26 +101,26 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#050507] text-slate-200 pt-28 pb-20 px-4 sm:px-6 lg:px-12 selection:bg-indigo-500/30">
       <div className="max-w-6xl mx-auto">
-        
+
         {/* --- HERO SECTION --- */}
         <div className="relative mb-12">
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 blur-3xl rounded-full -z-10 translate-y-[-20%]"></div>
-          
+
           <div className="relative bg-[#0d101a] border border-white/5 rounded-[2.5rem] p-8 md:p-12 shadow-2xl overflow-hidden">
             <div className="flex flex-col md:flex-row items-center gap-10">
-              
+
               {/* Avatar Section */}
               <div className="relative group">
                 <div className="w-40 h-40 rounded-full p-1 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
                   <div className="w-full h-full rounded-full bg-[#0d101a] p-1 overflow-hidden">
-                    <img 
+                    <img
                       src={avatarPreview || avatar || user?.avatar || `https://ui-avatars.com/api/?name=${user?.username || 'U'}&background=312e81&color=fff&size=200`}
-                      alt="Profile" 
+                      alt="Profile"
                       className="w-full h-full rounded-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                   </div>
                 </div>
-                
+
                 <button
                   onClick={() => avatarInputRef.current?.click()}
                   disabled={avatarUploading}
@@ -234,7 +141,7 @@ export default function ProfilePage() {
                     <FiCheckCircle size={12} /> Faol
                   </span>
                 </div>
-                
+
                 <p className="text-xl text-slate-400 font-medium mb-6">
                   {user?.jobTitle || "Dasturchi"}
                 </p>
@@ -243,7 +150,7 @@ export default function ProfilePage() {
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-slate-500 uppercase tracking-tighter">Daraja</span>
                     <span className="text-2xl font-black text-indigo-400 flex items-center gap-2">
-                       <FiZap size={20} className="fill-indigo-400" /> {level || 1}
+                      <FiZap size={20} className="fill-indigo-400" /> {level || 1}
                     </span>
                   </div>
                   <div className="w-px h-10 bg-white/5 hidden md:block"></div>
@@ -271,147 +178,15 @@ export default function ProfilePage() {
           </div>
         </div>
 
-<<<<<<< HEAD
-        {/* EDIT MODAL */}
-        {console.log('Rendering modal section, editOpen:', editOpen)}
-        <AnimatePresence>
-          {editOpen && (
-            <>
-              {console.log('Modal should render now')}
-              {createPortal(
-                <motion.div
-                  className="fixed inset-0 z-[9999]"
-                  aria-hidden="false"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.18, ease: 'easeOut' }}
-                >
-                  {console.log('Modal portal rendering')}
-                  {/* Backdrop (outside click closes) */}
-                  <motion.button
-                    type="button"
-                    className="fixed inset-0 bg-[#0A0E1A]/80 backdrop-blur-xl"
-                    aria-label="Close modal"
-                    onClick={closeEdit}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  />
-
-                  {/* Modal content */}
-                  <motion.div
-                    className="fixed left-1/2 top-1/2 z-[10000] w-[calc(100%-2rem)] max-w-[600px] -translate-x-1/2 -translate-y-1/2 bg-[#0d1224] border border-white/10 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
-                    role="dialog"
-                    aria-modal="true"
-                    initial={{ opacity: 0, scale: 0.97, y: 8 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.97, y: 8 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                  <div className="p-6 sm:p-8">
-                    <div className="flex items-start justify-between gap-4 mb-8">
-                      <div>
-                        <h3 className="text-2xl font-bold text-white">Profilni tahrirlash</h3>
-                        <p className="text-sm text-gray-400 mt-1.5">Shaxsiy ma'lumotlaringizni yangilang.</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={closeEdit}
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-                        aria-label="Close"
-                      >
-                        <span className="text-xl">✕</span>
-                      </button>
-                    </div>
-
-                    <form onSubmit={handleSave} className="space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">Ism</label>
-                          <input
-                            type="text"
-                            value={editDraft?.ism ?? ''}
-                            onChange={(e) => setEditDraft((p) => ({ ...p, ism: e.target.value }))}
-                            className="w-full bg-[#131B31] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
-                            placeholder="Ismingizni kiriting"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">Familiya</label>
-                          <input
-                            type="text"
-                            value={editDraft?.familiya ?? ''}
-                            onChange={(e) => setEditDraft((p) => ({ ...p, familiya: e.target.value }))}
-                            className="w-full bg-[#131B31] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
-                            placeholder="Familiyangizni kiriting"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">Kasbi / Mutaxassisligi</label>
-                        <input
-                          type="text"
-                          value={editDraft?.kasb ?? ''}
-                          onChange={(e) => setEditDraft((p) => ({ ...p, kasb: e.target.value }))}
-                          className="w-full bg-[#131B31] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
-                          placeholder="Masalan: Frontend Dasturchi"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">Bio</label>
-                        <textarea
-                          rows="4"
-                          value={editDraft?.bio ?? ''}
-                          onChange={(e) => setEditDraft((p) => ({ ...p, bio: e.target.value }))}
-                          className="w-full bg-[#131B31] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all resize-none"
-                          placeholder="O'zingiz haqingizda qisqacha..."
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-end gap-3 pt-4">
-                        <button
-                          type="button"
-                          onClick={closeEdit}
-                          className="px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10 text-sm font-medium transition-all"
-                        >
-                          Bekor qilish
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={!isEditDirty}
-                          className="px-8 py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-500/30 text-white text-sm font-bold transition-all disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
-                        >
-                          Saqlash
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </motion.div>
-              </motion.div>,
-              document.body
-            )}
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* TABS */}
-        <div className="flex border-b border-white/5 mb-8">
-          {["Ma'lumotlar", "Obunalar", "Faollik"].map(tab => (
-=======
         {/* --- TABS --- */}
         <div className="flex gap-2 mb-10 overflow-x-auto no-scrollbar pb-2">
           {["Ma'lumotlar", "Obunalar", "Yutuqlar"].map(tab => (
->>>>>>> 63c2744759b236bef1234cd5a367bf5ce02a3c15
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-8 py-3 rounded-2xl text-sm font-bold transition-all whitespace-nowrap ${
-                activeTab === tab 
-                  ? 'bg-indigo-600 text-white shadow-[0_4px_20px_rgba(79,70,229,0.3)]' 
+                activeTab === tab
+                  ? 'bg-indigo-600 text-white shadow-[0_4px_20px_rgba(79,70,229,0.3)]'
                   : 'bg-white/5 text-slate-500 hover:text-slate-300 border border-transparent hover:border-white/5'
               }`}
             >
@@ -436,7 +211,7 @@ export default function ProfilePage() {
                     <FiUser className="text-indigo-500" />
                     Profil Ma'lumotlari
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Ism</label>
@@ -448,15 +223,6 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-<<<<<<< HEAD
-                  {/* Activity 2 */}  
-                  <div className="flex gap-4 relative z-10">
-                    <div className="w-3 h-3 rounded-full bg-indigo-500 border border-[#0d1224] mt-1.5 shrink-0 opacity-50"></div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-400">Yangi sertifikat oldi</div>
-                      <div className="text-xs text-gray-500 mt-1">Kecha, 14:30</div>
-                    </div>
-=======
                   <div className="space-y-1 mb-8">
                     <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Kasbi</label>
                     <p className="text-lg font-bold text-white">{user?.jobTitle || 'Dasturchi'}</p>
@@ -467,7 +233,6 @@ export default function ProfilePage() {
                     <p className="text-slate-400 leading-relaxed italic">
                       "{bio || "Hali biografiya qo'shilmagan."}"
                     </p>
->>>>>>> 63c2744759b236bef1234cd5a367bf5ce02a3c15
                   </div>
                 </div>
 
@@ -516,14 +281,14 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden group">
-                   <div className="relative z-10">
-                      <h4 className="text-2xl font-black mb-2 italic">Aidevix Pro</h4>
-                      <p className="text-white/70 text-sm mb-6">Barcha kurslar va yopiq darslarga cheksiz kirish huquqiga ega bo'ling.</p>
-                      <button className="w-full py-3 bg-white text-indigo-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform">
-                        Upgrade Now
-                      </button>
-                   </div>
-                   <div className="absolute top-[-20%] right-[-20%] w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
+                  <div className="relative z-10">
+                    <h4 className="text-2xl font-black mb-2 italic">Aidevix Pro</h4>
+                    <p className="text-white/70 text-sm mb-6">Barcha kurslar va yopiq darslarga cheksiz kirish huquqiga ega bo'ling.</p>
+                    <button className="w-full py-3 bg-white text-indigo-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform">
+                      Upgrade Now
+                    </button>
+                  </div>
+                  <div className="absolute top-[-20%] right-[-20%] w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
                 </div>
               </div>
             </motion.div>
@@ -531,21 +296,21 @@ export default function ProfilePage() {
 
           {activeTab === "Obunalar" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-20 text-center bg-[#0d101a] border border-white/5 rounded-3xl text-slate-500 font-medium">
-               Obunalar moduli yaqin orada ishga tushadi...
+              Obunalar moduli yaqin orada ishga tushadi...
             </motion.div>
           )}
 
           {activeTab === "Yutuqlar" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-2 md:grid-cols-4 gap-6">
-               {badges?.length > 0 ? badges.map((badge, i) => (
-                  <div key={i} className="bg-[#0d101a] border border-white/5 p-6 rounded-3xl text-center">
-                    <div className="text-4xl mb-3">{badge.icon || '🏆'}</div>
-                    <h5 className="font-bold text-sm text-white">{badge.name}</h5>
-                    <p className="text-[10px] text-slate-500 mt-1 uppercase">{new Date(badge.earnedAt).toLocaleDateString()}</p>
-                  </div>
-               )) : (
-                 <div className="col-span-full py-20 text-center text-slate-500">Hech qanday yutuq topilmadi.</div>
-               )}
+              {badges?.length > 0 ? badges.map((badge, i) => (
+                <div key={i} className="bg-[#0d101a] border border-white/5 p-6 rounded-3xl text-center">
+                  <div className="text-4xl mb-3">{badge.icon || '🏆'}</div>
+                  <h5 className="font-bold text-sm text-white">{badge.name}</h5>
+                  <p className="text-[10px] text-slate-500 mt-1 uppercase">{new Date(badge.earnedAt).toLocaleDateString()}</p>
+                </div>
+              )) : (
+                <div className="col-span-full py-20 text-center text-slate-500">Hech qanday yutuq topilmadi.</div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -555,27 +320,26 @@ export default function ProfilePage() {
       <AnimatePresence>
         {editOpen && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setEditOpen(false)}
               className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             />
-            
+
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className="relative w-full max-w-2xl bg-[#0d101a] border border-white/10 rounded-[2.5rem] shadow-2xl p-8 sm:p-12 overflow-hidden"
             >
-              {/* Decoration */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-3xl -z-10"></div>
 
               <div className="flex items-center justify-between mb-10">
                 <h2 className="text-3xl font-black text-white italic">Profilni tahrirlash</h2>
                 <button onClick={() => setEditOpen(false)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-                   <FiX size={20} />
+                  <FiX size={20} />
                 </button>
               </div>
 
@@ -583,21 +347,21 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-500 uppercase px-1">Ism</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={editDraft.ism}
-                      onChange={(e) => setEditDraft({...editDraft, ism: e.target.value})}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium" 
+                      onChange={(e) => setEditDraft({ ...editDraft, ism: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium"
                       placeholder="Ismingizni kiriting"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-500 uppercase px-1">Familiya</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={editDraft.familiya}
-                      onChange={(e) => setEditDraft({...editDraft, familiya: e.target.value})}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium" 
+                      onChange={(e) => setEditDraft({ ...editDraft, familiya: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium"
                       placeholder="Familiyangizni kiriting"
                     />
                   </div>
@@ -605,36 +369,36 @@ export default function ProfilePage() {
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-500 uppercase px-1">Kasbingiz / Sohangiz</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={editDraft.kasb}
-                    onChange={(e) => setEditDraft({...editDraft, kasb: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium" 
+                    onChange={(e) => setEditDraft({ ...editDraft, kasb: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium"
                     placeholder="Masalan: Frontend Developer, UI/UX Designer..."
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-500 uppercase px-1">Qisqacha biografiya</label>
-                  <textarea 
-                    rows="4" 
+                  <textarea
+                    rows="4"
                     value={editDraft.bio}
-                    onChange={(e) => setEditDraft({...editDraft, bio: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium resize-none" 
+                    onChange={(e) => setEditDraft({ ...editDraft, bio: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium resize-none"
                     placeholder="O'zingiz haqingizda bir necha so'z..."
                   />
                 </div>
 
                 <div className="flex gap-4 pt-4">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setEditOpen(false)}
                     className="flex-1 py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-400 font-bold uppercase text-[10px] tracking-widest transition-all"
                   >
                     Bekor Qilish
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     disabled={isSaving}
                     className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50"
                   >

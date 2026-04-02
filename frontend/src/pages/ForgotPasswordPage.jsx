@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { forgotPasswordApi } from '@api/forgotPasswordApi';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
-import { localAuth } from '@utils/localAuth';
 import gsap from 'gsap';
 
 export default function ForgotPasswordPage() {
@@ -25,15 +24,6 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data) => {
     const email = data.email.trim().toLowerCase();
-<<<<<<< HEAD
-    
-    // Local auth bilan tekshirish
-    if (!localAuth.userExists(email)) {
-      toast.error("Bu email ro'yxatdan o'tmagan.");
-      return;
-    }
-=======
->>>>>>> 5df24ed922f9e41cc283ac4f68110322226afa95
 
     try {
       setLoading(true);
@@ -51,7 +41,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen bg-[#0A0E1A] text-white flex font-sans selection:bg-indigo-500/30">
       <div className="w-full flex flex-col justify-center items-center p-6 sm:p-12 relative bg-[#0A0E1A]">
-        <div 
+        <div
           ref={cardRef}
           className="w-full max-w-[420px] bg-[#0A0E1A] lg:bg-[#0d1224]/40 rounded-3xl border-0 lg:border lg:border-white/5 p-8 sm:p-10 opacity-0 shadow-2xl shadow-indigo-500/5"
         >
@@ -68,25 +58,25 @@ export default function ForgotPasswordPage() {
                 <span className="label-text text-gray-300 font-medium text-sm">Email</span>
               </label>
               <div className="relative">
-                <input 
-                  type="email" 
-                  placeholder="email@example.com" 
+                <input
+                  type="email"
+                  placeholder="email@example.com"
                   className={`w-full bg-white text-gray-900 px-5 py-3.5 rounded-full outline-none focus:ring-2 focus:ring-primary transition-all ${errors.email ? 'ring-2 ring-error' : ''}`}
-                  {...register('email', { 
+                  {...register('email', {
                     required: 'Email manzilini kiritish majburiy',
                     pattern: {
                       value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/,
                       message: 'Noto\'g\'ri email formati'
                     }
-                  })} 
+                  })}
                 />
               </div>
               {errors.email && <p className="text-error text-xs mt-1 ml-4">{errors.email.message}</p>}
             </div>
 
             <div className="pt-4">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
                 className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none w-full rounded-full normal-case text-base font-medium h-12 flex justify-center items-center text-white"
               >
@@ -104,7 +94,7 @@ export default function ForgotPasswordPage() {
               </Link>
             </div>
           </form>
-          
+
         </div>
       </div>
     </div>

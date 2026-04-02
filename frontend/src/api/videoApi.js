@@ -2,29 +2,29 @@ import api from './axiosInstance'
 
 export const videoApi = {
   /** GET /videos/course/:courseId - list videos of a course */
-  getByCourse: (courseId) => api.get(`/videos/course/${courseId}`),
+  getByCourse: (courseId) => api.get(`videos/course/${courseId}`),
 
   /** GET /videos/:id - get video + one-time Telegram link (auth + subscription required) */
-  getById: (id) => api.get(`/videos/${id}`),
+  getById: (id) => api.get(`videos/${id}`),
 
   /** POST /videos/link/:linkId/use - mark one-time link as used */
-  useLink: (linkId) => api.post(`/videos/link/${linkId}/use`),
+  useLink: (linkId) => api.post(`videos/link/${linkId}/use`),
 
   /** GET /videos/top - most watched videos */
-  getTop: (limit = 8) => api.get('/videos/top', { params: { limit } }),
+  getTop: (limit = 8) => api.get('videos/top', { params: { limit } }),
 
   /** POST /videos/:id/rate - rate a video (1-5 stars) */
-  rate: (id, rating) => api.post(`/videos/${id}/rate`, { rating }),
+  rate: (id, rating) => api.post(`videos/${id}/rate`, { rating }),
 
   /** GET /videos/:id/rating - get video rating stats */
-  getRating: (id) => api.get(`/videos/${id}/rating`),
+  getRating: (id) => api.get(`videos/${id}/rating`),
 
   /** POST /videos (admin) */
-  create: (data) => api.post('/videos', data),
+  create: (data) => api.post('videos', data),
 
   /** PUT /videos/:id (admin) */
-  update: (id, data) => api.put(`/videos/${id}`, data),
+  update: (id, data) => api.put(`videos/${id}`, data),
 
   /** DELETE /videos/:id (admin) */
-  delete: (id) => api.delete(`/videos/${id}`),
+  delete: (id) => api.delete(`videos/${id}`),
 }

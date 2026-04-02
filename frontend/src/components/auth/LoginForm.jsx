@@ -38,30 +38,35 @@ export default function LoginForm() {
       dispatch(clearError());
     }
 
-    console.log('Login attempt with email:', data.email);
-    console.log('Login attempt with password:', data.password);
+    // localAuth tekshirish (xato bo'lsa ham davom etadi)
+    try {
+      localAuth.loginUser(data.email, data.password);
+    } catch {
+      // User local cache da yo'q — backend dan tekshiriladi
+    }
 
     try {
-      // Avval local auth bilan tekshirish
-      console.log('Checking localAuth...');
-      const localUser = localAuth.loginUser(data.email, data.password);
-      console.log('LocalAuth success:', localUser);
-      
-      // Local auth muvaffaqiyatli bo'lsa backend ga ham yuborish
       const result = await dispatch(login({
         email: data.email,
         password: data.password,
       }));
-      
+
       if (login.fulfilled.match(result)) {
+        // localAuth cache ni yangilash (keyingi tekshiruv uchun)
+        try {
+          if (!localAuth.userExists(data.email)) {
+            localAuth.registerUser(data.email, data.password);
+          }
+        } catch { /* ignore */ }
+
         forgotPasswordFlow.rememberEmail(data.email);
-        // Eski pending parolni o'chirish
         localStorage.removeItem(STORAGE_KEYS.PENDING_PASSWORD);
-        toast.success('Muvaffaqiyatli kirdingiz! Tokenlar saqlandi.');
+        toast.success('Muvaffaqiyatli kirdingiz!');
         navigate('/', { replace: true });
+      } else if (login.rejected.match(result)) {
+        toast.error(result.payload || 'Login yoki parol xato');
       }
     } catch (error) {
-      // Local auth xatosi
       console.error('Login error:', error);
       toast.error(error.message || 'Login yoki parol xato');
     }

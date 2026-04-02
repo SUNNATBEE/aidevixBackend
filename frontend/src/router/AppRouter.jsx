@@ -31,6 +31,7 @@ const NotFoundPage         = lazy(() => import('@pages/NotFoundPage'))
 const AdminLayout = lazy(() => import('@pages/admin/AdminLayout'))
 
 // ── Public layout wrapper ─────────────────────────────────────────────────────
+
 function PublicLayout() {
   const location = useLocation()
 

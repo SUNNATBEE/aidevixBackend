@@ -107,11 +107,20 @@ const register = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ 500 REGISTER ERROR:', error); 
+    
+    // Mongoose validation xatolarini ushlash
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join('. '),
+      });
+    }
+
+    // DEBUG: Xatolikni o'zini qaytarib ko'ramiz (vaqtinchalik)
     res.status(500).json({
       success: false,
-      message: process.env.NODE_ENV === 'production' 
-        ? 'Ro\'yxatdan o\'tishda kutilmagan xatolik yuz berdi. Iltimos, keyinroq urinib ko\'ring.' 
-        : `Server Error: ${error.message}`,
+      message: `Server Error: ${error.message}`, 
     });
   }
 };

@@ -6,9 +6,8 @@ import { IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from 'react-icons/
 import { FiRefreshCcw } from 'react-icons/fi';
 import { forgotPasswordApi } from '@api/forgotPasswordApi';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
-import { tokenStorage } from '@utils/tokenStorage';
-import { STORAGE_KEYS } from '@utils/constants';
 import { localAuth } from '@utils/localAuth';
+import { STORAGE_KEYS } from '@utils/constants';
 import gsap from 'gsap';
 
 export default function ResetPasswordPage() {
@@ -63,58 +62,26 @@ export default function ResetPasswordPage() {
 
     try {
       setLoading(true);
-<<<<<<< HEAD
-      
-      console.log('Updating password for email:', email);
-      console.log('New password:', data.password);
-      
-      // Local auth da parolni yangilash
+
+      await forgotPasswordApi.resetPassword({
+        email,
+        resetToken: token,
+        newPassword: data.password,
+      });
+
+      // localAuth cache ni yangilash
       try {
         localAuth.updatePassword(email, data.password);
-        console.log('Password updated successfully in localAuth');
-      } catch (authError) {
-        console.error('LocalAuth error:', authError);
-        toast.error(authError.message);
-        setLoading(false);
-        return;
-      }
-      
-      let responseData = null;
-      try {
-        const res = await forgotPasswordApi.resetPassword({ email, token, newPassword: data.password });
-        responseData = res?.data?.data;
-      } catch {
-        // Backend endpoint bo'lmasa local flow davom etadi
-      }
+      } catch { /* ignore */ }
 
-      forgotPasswordFlow.completeReset(email, token);
+      // Login sahifasida parolni avtomatik to'ldirish uchun
+      localStorage.setItem(STORAGE_KEYS.PENDING_PASSWORD, data.password);
 
-      // Agar backend yangi tokenlar qaytarsa — ularni saqlash
-      if (responseData?.accessToken) {
-        tokenStorage.setTokens(responseData.accessToken, responseData.refreshToken);
-        if (responseData.user) tokenStorage.setUser(responseData.user);
-        toast.success('Parol yangilandi. Tokenlar saqlandi.');
-      } else {
-        // Backend token qaytarmasa — faqat parolni localStorage'ga yozib qo'yamiz
-        localStorage.setItem(STORAGE_KEYS.PENDING_PASSWORD, data.password);
-        toast.success('Parol muvaffaqiyatli yangilandi. Endi login qiling.');
-      }
-
+      forgotPasswordFlow.clear();
+      toast.success('Parol muvaffaqiyatli yangilandi. Endi login qiling.');
       navigate(`/login?email=${encodeURIComponent(email)}`, { replace: true });
     } catch (error) {
-      console.error('Reset password error:', error);
-      toast.error(error.response?.data?.message || error.message || 'Parolni yangilashda xatolik yuz berdi.');
-=======
-      await forgotPasswordApi.resetPassword({ 
-        email, 
-        resetToken: token, 
-        newPassword: data.password 
-      });
-      toast.success("Parol muvaffaqiyatli yangilandi. Endi login qiling.");
-      navigate('/login', { replace: true });
-    } catch (error) {
       toast.error(error.response?.data?.message || 'Parolni yangilashda xatolik yuz berdi.');
->>>>>>> 5df24ed922f9e41cc283ac4f68110322226afa95
     } finally {
       setLoading(false);
     }
@@ -143,9 +110,9 @@ export default function ResetPasswordPage() {
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  {...register('password', { 
-                    required: 'Parol majburiy', 
-                    minLength: { value: 8, message: 'Kamida 8 ta belgi bo\'lishi kerak' } 
+                  {...register('password', {
+                    required: 'Parol majburiy',
+                    minLength: { value: 8, message: 'Kamida 8 ta belgi bo\'lishi kerak' }
                   })}
                   autoComplete="new-password"
                   className={`w-full pl-11 pr-12 py-3 bg-[#0A0E1A]/50 border ${errors.password ? 'border-red-500/50' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all`}
@@ -207,7 +174,7 @@ export default function ResetPasswordPage() {
               disabled={loading}
               className="w-full mt-6 py-3.5 bg-indigo-500 hover:bg-indigo-600 focus:bg-indigo-600 text-white font-medium rounded-xl transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] hover:shadow-[0_0_25px_rgba(99,102,241,0.4)] active:scale-[0.98] flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Yangilanmoqda...' : "Parolni yangilash"}
+              {loading ? 'Yangilanmoqda...' : 'Parolni yangilash'}
             </button>
 
             <div className="text-center pt-4">
