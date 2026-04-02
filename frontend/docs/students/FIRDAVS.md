@@ -11,7 +11,7 @@ feature/firdavs-auth
 ```
 > ⚠️ **DIQQAT:** Hech qachon `main` branchga to'g'ridan-to'g'ri kod yozma!
 > Faqat o'z branchingda ishlash kerak.
-
+  w
 ```bash
 # GitHub'dan clone qilish
 git clone https://github.com/[repo-link]/AidevixBackend.git
