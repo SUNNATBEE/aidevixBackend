@@ -29,9 +29,25 @@ const verifyRefreshToken = (token) => {
   }
 };
 
+const generateResetToken = (payload) => {
+  return jwt.sign(payload, ACCESS_TOKEN_SECRET, {
+    expiresIn: '15m',
+  });
+};
+
+const verifyResetToken = (token) => {
+  try {
+    return jwt.verify(token, ACCESS_TOKEN_SECRET);
+  } catch (error) {
+    return null;
+  }
+};
+
 module.exports = {
   generateAccessToken,
   generateRefreshToken,
+  generateResetToken,
   verifyAccessToken,
   verifyRefreshToken,
+  verifyResetToken,
 };
