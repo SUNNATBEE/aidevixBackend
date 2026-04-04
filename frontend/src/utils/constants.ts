@@ -1,5 +1,5 @@
 // ─── API ─────────────────────────────────────────────────────
-const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api'
+const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://aidevix-backend-production.up.railway.app/api'
 export const API_BASE_URL = base.endsWith('/') ? base : `${base}/`
 
 // ─── Course Categories ────────────────────────────────────────

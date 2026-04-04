@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -22,6 +22,21 @@ const categories = [
 ];
 
 export default function HomeClient({ initialCourses = [], initialVideos = [] }) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Show a dark background or simple skeleton during hydration
+  if (!isMounted) {
+    return (
+       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+          <div className="w-20 h-20 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin"></div>
+       </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-slate-200 font-sans selection:bg-purple-500/30">
       {/* 1. HERO SECTION */}
@@ -94,7 +109,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
           <div className="text-center mb-20">
              <span className="text-purple-500 font-bold tracking-[0.3em] uppercase text-xs mb-4 block">Yo'nalishlar</span>
             <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Sohangizni tanlang</h2>
-            <p className="text-slate-500 max-w-xl mx-auto text-lg font-medium">Barcha darajalar uchun optimallashtirilgan o'quv dasturlari</p>
+            <p className="text-slate-500 max-w-xl mx-auto text-lg font-medium">Barcha darajalar uchun optimallashtirilgan o'quv darsliklari</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {categories.map((category, idx) => (
