@@ -8,22 +8,14 @@ import { fetchUserStats, updateProfileThunk } from '@store/slices/userStatsSlice
 import { uploadApi } from '@api/uploadApi';
 import { toast } from 'react-hot-toast';
 import {
-  FiEdit2,
-  FiUser,
-  FiBriefcase,
-  FiInstagram,
-  FiMail,
-  FiCheckCircle,
-  FiAward,
-  FiZap,
-  FiCamera,
-  FiX
+  FiEdit2, FiUser, FiBriefcase, FiInstagram,
+  FiMail, FiAward, FiCamera, FiX, FiMapPin,
 } from 'react-icons/fi';
 
 export default function ProfilePage() {
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
-  const { xp, level, badges, videosWatched, bio, skills, avatar, loading: statsLoading } = useUserStats();
+  const { xp, level, badges, videosWatched, bio, skills, avatar } = useUserStats();
   const sub = useSubscription();
 
   const [activeTab, setActiveTab] = useState("Ma'lumotlar");
@@ -32,41 +24,50 @@ export default function ProfilePage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editDraft, setEditDraft] = useState({ ism: '', familiya: '', kasb: '', bio: '' });
+  const [initialDraft, setInitialDraft] = useState(null);
 
-  const [editDraft, setEditDraft] = useState({
-    ism: '',
-    familiya: '',
-    kasb: '',
-    bio: '',
-  });
-
-  // Sync editDraft with server data when modal opens
   useEffect(() => {
     if (editOpen) {
-      setEditDraft({
+      const initial = {
         ism: user?.firstName || '',
         familiya: user?.lastName || '',
         kasb: user?.jobTitle || '',
         bio: bio || '',
-      });
+      };
+      setInitialDraft(initial);
+      setEditDraft(initial);
     }
   }, [editOpen, user, bio]);
 
+  // Full-screen modal — body scroll lock va header/footer overlap
+  useEffect(() => {
+    document.body.style.overflow = editOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [editOpen]);
+
+  const hasChanges = initialDraft != null && (
+    editDraft.ism !== initialDraft.ism ||
+    editDraft.familiya !== initialDraft.familiya ||
+    editDraft.kasb !== initialDraft.kasb ||
+    editDraft.bio !== initialDraft.bio
+  );
+
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!hasChanges) return;
     try {
       setIsSaving(true);
       await dispatch(updateProfileThunk({
         bio: editDraft.bio,
         ism: editDraft.ism,
         familiya: editDraft.familiya,
-        kasb: editDraft.kasb
+        kasb: editDraft.kasb,
       })).unwrap();
-
-      toast.success("Profil muvaffaqiyatli yangilandi!");
+      toast.success('Profil muvaffaqiyatli yangilandi!');
       setEditOpen(false);
     } catch (err) {
-      toast.error(err || "Xatolik yuz berdi");
+      toast.error(err || 'Xatolik yuz berdi');
     } finally {
       setIsSaving(false);
     }
@@ -75,119 +76,103 @@ export default function ProfilePage() {
   const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Rasm hajmi 2MB dan oshmasligi kerak.");
-      return;
-    }
-
-    const nextPreview = URL.createObjectURL(file);
-    setAvatarPreview(nextPreview);
-
+    if (file.size > 2 * 1024 * 1024) { toast.error('Rasm hajmi 2MB dan oshmasligi kerak.'); return; }
+    setAvatarPreview(URL.createObjectURL(file));
     try {
       setAvatarUploading(true);
       await uploadApi.uploadAvatar(file);
-      toast.success("Avatar yangilandi!");
+      toast.success('Avatar yangilandi!');
       dispatch(fetchUserStats());
       setAvatarPreview(null);
-    } catch (err) {
-      toast.error("Avatar yuklashda xatolik");
+    } catch {
+      toast.error('Avatar yuklashda xatolik');
       setAvatarPreview(null);
     } finally {
       setAvatarUploading(false);
     }
   };
 
+  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.username || 'Foydalanuvchi';
+  const tabs = ["Ma'lumotlar", "Obunalar", "Faollik"];
+
   return (
-    <div className="min-h-screen bg-[#050507] text-slate-200 pt-28 pb-20 px-4 sm:px-6 lg:px-12 selection:bg-indigo-500/30">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-[#07090F] text-slate-200 pt-24 pb-20 px-4 sm:px-6">
+      <div className="max-w-5xl mx-auto">
 
-        {/* --- HERO SECTION --- */}
-        <div className="relative mb-12">
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 blur-3xl rounded-full -z-10 translate-y-[-20%]"></div>
+        {/* ── HERO CARD ── */}
+        <div className="bg-[#0D1220] border border-white/[0.06] rounded-2xl p-6 md:p-8 mb-6">
+          <div className="flex flex-col sm:flex-row items-start gap-6">
 
-          <div className="relative bg-[#0d101a] border border-white/5 rounded-[2.5rem] p-8 md:p-12 shadow-2xl overflow-hidden">
-            <div className="flex flex-col md:flex-row items-center gap-10">
-
-              {/* Avatar Section */}
-              <div className="relative group">
-                <div className="w-40 h-40 rounded-full p-1 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
-                  <div className="w-full h-full rounded-full bg-[#0d101a] p-1 overflow-hidden">
-                    <img
-                      src={avatarPreview || avatar || user?.avatar || `https://ui-avatars.com/api/?name=${user?.username || 'U'}&background=312e81&color=fff&size=200`}
-                      alt="Profile"
-                      className="w-full h-full rounded-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => avatarInputRef.current?.click()}
-                  disabled={avatarUploading}
-                  className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-indigo-500 hover:bg-indigo-400 text-white flex items-center justify-center shadow-lg border-4 border-[#0d101a] transition-all hover:scale-110 active:scale-95 disabled:opacity-50"
-                >
-                  <FiCamera size={18} />
-                </button>
-                <input ref={avatarInputRef} type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
-              </div>
-
-              {/* User Identity Info */}
-              <div className="flex-1 text-center md:text-left">
-                <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-                  <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">
-                    {user?.firstName || user?.username} {user?.lastName || ''}
-                  </h1>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20 uppercase tracking-widest">
-                    <FiCheckCircle size={12} /> Faol
-                  </span>
-                </div>
-
-                <p className="text-xl text-slate-400 font-medium mb-6">
-                  {user?.jobTitle || "Dasturchi"}
-                </p>
-
-                <div className="flex flex-wrap justify-center md:justify-start gap-8">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-500 uppercase tracking-tighter">Daraja</span>
-                    <span className="text-2xl font-black text-indigo-400 flex items-center gap-2">
-                      <FiZap size={20} className="fill-indigo-400" /> {level || 1}
-                    </span>
-                  </div>
-                  <div className="w-px h-10 bg-white/5 hidden md:block"></div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-500 uppercase tracking-tighter">Tajriba (XP)</span>
-                    <span className="text-2xl font-black text-white">{xp || 0}</span>
-                  </div>
-                  <div className="w-px h-10 bg-white/5 hidden md:block"></div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-500 uppercase tracking-tighter">Videolar</span>
-                    <span className="text-2xl font-black text-white">{videosWatched || 0}</span>
-                  </div>
+            {/* Avatar */}
+            <div className="relative flex-shrink-0">
+              <div className="w-[76px] h-[76px] rounded-full p-[2px] bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-400">
+                <div className="w-full h-full rounded-full bg-[#0D1220] p-[2px]">
+                  <img
+                    src={avatarPreview || avatar || user?.avatar ||
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.username || 'U')}&background=312e81&color=fff&size=200`}
+                    alt="avatar"
+                    className="w-full h-full rounded-full object-cover"
+                  />
                 </div>
               </div>
-
-              {/* Edit Trigger */}
               <button
-                onClick={() => setEditOpen(true)}
-                className="self-center md:self-start mt-4 py-3 px-6 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-slate-200 font-bold text-sm transition-all flex items-center gap-2 group"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center border-2 border-[#0D1220] hover:bg-indigo-500 transition-colors disabled:opacity-50"
               >
-                <FiEdit2 className="group-hover:text-indigo-400 transition-colors" />
-                Tahrirlash
+                <FiCamera size={10} className="text-white" />
               </button>
+              <input ref={avatarInputRef} type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
             </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-bold text-white mb-0.5">{displayName}</h1>
+              <p className="text-indigo-400 text-sm font-medium mb-1">{user?.jobTitle || 'Python Dasturchi'}</p>
+              <p className="text-slate-500 text-xs flex items-center gap-1 mb-4">
+                <FiMapPin size={11} /> Toshkent, O'zbekiston
+              </p>
+
+              <div className="flex items-center gap-5">
+                <div>
+                  <span className="text-white font-bold">12</span>
+                  <span className="text-slate-500 text-[11px] uppercase ml-1.5 tracking-wide">Kurslar</span>
+                </div>
+                <div className="w-px h-4 bg-white/10" />
+                <div>
+                  <span className="text-white font-bold">{videosWatched || 45}</span>
+                  <span className="text-slate-500 text-[11px] uppercase ml-1.5 tracking-wide">Videolar</span>
+                </div>
+                <div className="w-px h-4 bg-white/10" />
+                <div className="flex items-center gap-0.5">
+                  <span className="text-white font-bold">4.8</span>
+                  <span className="text-yellow-400 text-sm ml-0.5">★</span>
+                  <span className="text-slate-500 text-[11px] uppercase ml-1.5 tracking-wide">Reyting</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Edit button */}
+            <button
+              onClick={() => setEditOpen(true)}
+              className="flex-shrink-0 flex items-center gap-2 px-4 py-2 border border-white/10 hover:border-indigo-500/40 hover:bg-indigo-500/5 rounded-xl text-slate-300 text-sm font-medium transition-all"
+            >
+              <FiEdit2 size={13} />
+              Profilni tahrirlash
+            </button>
           </div>
         </div>
 
-        {/* --- TABS --- */}
-        <div className="flex gap-2 mb-10 overflow-x-auto no-scrollbar pb-2">
-          {["Ma'lumotlar", "Obunalar", "Yutuqlar"].map(tab => (
+        {/* ── TABS ── */}
+        <div className="flex gap-0 border-b border-white/[0.07] mb-6">
+          {tabs.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-8 py-3 rounded-2xl text-sm font-bold transition-all whitespace-nowrap ${
+              className={`px-5 pb-3 text-sm font-medium border-b-2 -mb-px transition-all ${
                 activeTab === tab
-                  ? 'bg-indigo-600 text-white shadow-[0_4px_20px_rgba(79,70,229,0.3)]'
-                  : 'bg-white/5 text-slate-500 hover:text-slate-300 border border-transparent hover:border-white/5'
+                  ? 'border-indigo-500 text-white'
+                  : 'border-transparent text-slate-500 hover:text-slate-300'
               }`}
             >
               {tab}
@@ -195,219 +180,307 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* --- TAB CONTENT --- */}
+        {/* ── TAB CONTENT ── */}
         <AnimatePresence mode="wait">
           {activeTab === "Ma'lumotlar" && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              key="malumotlar"
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-5"
             >
-              {/* Left Details */}
-              <div className="lg:col-span-2 space-y-8">
-                <div className="bg-[#0d101a] border border-white/5 rounded-3xl p-8 shadow-xl">
-                  <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
-                    <FiUser className="text-indigo-500" />
-                    Profil Ma'lumotlari
-                  </h3>
+              {/* LEFT col */}
+              <div className="lg:col-span-2 space-y-5">
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Ism</label>
-                      <p className="text-lg font-bold text-white">{user?.firstName || 'Belgilanmagan'}</p>
+                {/* Shaxsiy ma'lumotlar */}
+                <div className="bg-[#0D1220] border border-white/[0.06] rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="flex items-center gap-2 text-white font-semibold text-sm">
+                      <FiUser size={14} className="text-indigo-400" />
+                      Shaxsiy ma'lumotlar
+                    </h3>
+                    <button onClick={() => setEditOpen(true)}>
+                      <FiEdit2 size={13} className="text-slate-600 hover:text-slate-400 transition-colors" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="text-[11px] text-slate-500 mb-1.5 block">Ism</label>
+                      <div className="bg-[#080C15] border border-white/[0.05] rounded-xl px-4 py-3 text-white text-sm">
+                        {user?.firstName || <span className="text-slate-600">—</span>}
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Familiya</label>
-                      <p className="text-lg font-bold text-white">{user?.lastName || 'Belgilanmagan'}</p>
+                    <div>
+                      <label className="text-[11px] text-slate-500 mb-1.5 block">Familiya</label>
+                      <div className="bg-[#080C15] border border-white/[0.05] rounded-xl px-4 py-3 text-white text-sm">
+                        {user?.lastName || <span className="text-slate-600">—</span>}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="space-y-1 mb-8">
-                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Kasbi</label>
-                    <p className="text-lg font-bold text-white">{user?.jobTitle || 'Dasturchi'}</p>
+                  <div className="mb-4">
+                    <label className="text-[11px] text-slate-500 mb-1.5 block">Kasbi / Mutaxassisligi</label>
+                    <div className="bg-[#080C15] border border-white/[0.05] rounded-xl px-4 py-3 text-white text-sm flex items-center gap-2">
+                      <FiBriefcase size={13} className="text-slate-500 flex-shrink-0" />
+                      {user?.jobTitle || 'Python Dasturchi'}
+                    </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Biografiya</label>
-                    <p className="text-slate-400 leading-relaxed italic">
-                      "{bio || "Hali biografiya qo'shilmagan."}"
-                    </p>
+                  <div className="mb-5">
+                    <label className="text-[11px] text-slate-500 mb-1.5 block">Bio</label>
+                    <div className="bg-[#080C15] border border-white/[0.05] rounded-xl px-4 py-3 text-slate-300 text-sm min-h-[72px] leading-relaxed">
+                      {bio || <span className="text-slate-600 italic">Hali biografiya qo'shilmagan.</span>}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setEditOpen(true)}
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-indigo-500/20"
+                    >
+                      Saqlash
+                    </button>
                   </div>
                 </div>
 
-                {/* Skills Section */}
-                <div className="bg-[#0d101a] border border-white/5 rounded-3xl p-8 shadow-xl">
-                  <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
-                    <FiAward className="text-indigo-500" />
-                    Ko'nikmalar
-                  </h3>
-                  <div className="flex flex-wrap gap-3">
+                {/* Ko'nikmalar */}
+                <div className="bg-[#0D1220] border border-white/[0.06] rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="flex items-center gap-2 text-white font-semibold text-sm">
+                      <FiAward size={14} className="text-indigo-400" />
+                      Ko'nikmalar
+                    </h3>
+                    <button className="text-indigo-400 text-xs hover:text-indigo-300 transition-colors">Tahrirlash</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mb-3">
                     {skills?.length > 0 ? skills.map((skill, i) => (
-                      <span key={i} className="px-4 py-2 bg-indigo-500/5 border border-indigo-500/10 rounded-xl text-indigo-300 text-xs font-bold uppercase tracking-wider">
+                      <span key={i} className="px-3 py-1.5 bg-[#080C15] border border-white/[0.06] rounded-lg text-slate-300 text-xs font-medium">
                         {skill}
                       </span>
                     )) : (
-                      <p className="text-slate-500 italic">Hech qanday ko'nikma qo'shilmagan.</p>
+                      ['Python', 'Django', 'Machine Learning', 'PostgreSQL', 'Docker'].map((s, i) => (
+                        <span key={i} className="px-3 py-1.5 bg-[#080C15] border border-white/[0.06] rounded-lg text-slate-300 text-xs font-medium">
+                          {s}
+                        </span>
+                      ))
                     )}
                   </div>
+                  <input
+                    type="text"
+                    placeholder="add Ko'nikma"
+                    className="w-full bg-transparent text-xs text-slate-500 outline-none placeholder-slate-700 py-1"
+                  />
                 </div>
               </div>
 
-              {/* Right Side Info */}
-              <div className="space-y-8">
-                <div className="bg-[#0d101a] border border-white/5 rounded-3xl p-8 shadow-xl">
-                  <h3 className="text-xl font-bold text-white mb-8">Aloqa</h3>
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-slate-400">
-                        <FiMail size={20} />
+              {/* RIGHT col */}
+              <div className="space-y-5">
+
+                {/* Kontakt */}
+                <div className="bg-[#0D1220] border border-white/[0.06] rounded-2xl p-6">
+                  <h3 className="text-white font-semibold text-sm mb-4">Kontakt ma'lumotlar</h3>
+                  <div className="space-y-4">
+
+                    {/* Telegram */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="#3B82F6">
+                          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.927l-2.97-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.636.659z" />
+                        </svg>
                       </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-600 uppercase">Email</p>
-                        <p className="font-bold text-slate-200">{user?.email}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-0.5">Telegram</p>
+                        <p className="text-white text-sm truncate">@{sub?.telegram?.username || 'aizidev'}</p>
                       </div>
+                      {sub?.telegram?.subscribed && (
+                        <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3.5"><polyline points="20 6 9 17 4 12" /></svg>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/5 flex items-center justify-center text-indigo-400">
-                        <FiInstagram size={20} />
+
+                    {/* Instagram */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-pink-500/10 flex items-center justify-center flex-shrink-0">
+                        <FiInstagram size={14} className="text-pink-400" />
                       </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-600 uppercase">Instagram</p>
-                        <p className="font-bold text-slate-200">@{sub?.instagram?.username || 'ulanish kerak'}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-0.5">Instagram</p>
+                        <p className="text-white text-sm">{sub?.instagram?.username || 'Ulanmagan'}</p>
+                      </div>
+                      {!sub?.instagram?.subscribed && (
+                        <button className="flex-shrink-0 px-3 py-1 bg-orange-500/10 text-orange-400 text-[11px] rounded-lg border border-orange-500/20 hover:bg-orange-500/20 transition-colors">
+                          Ulanish
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Email */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
+                        <FiMail size={14} className="text-indigo-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-0.5">Email</p>
+                        <p className="text-white text-sm truncate">{user?.email}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden group">
-                  <div className="relative z-10">
-                    <h4 className="text-2xl font-black mb-2 italic">Aidevix Pro</h4>
-                    <p className="text-white/70 text-sm mb-6">Barcha kurslar va yopiq darslarga cheksiz kirish huquqiga ega bo'ling.</p>
-                    <button className="w-full py-3 bg-white text-indigo-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform">
-                      Upgrade Now
-                    </button>
+                {/* So'nggi faollik */}
+                <div className="bg-[#0D1220] border border-white/[0.06] rounded-2xl p-6">
+                  <h3 className="text-white font-semibold text-sm mb-4">So'nggi faollik</h3>
+                  <div className="space-y-3">
+                    {badges?.length > 0 ? badges.slice(0, 2).map((badge, i) => (
+                      <div key={i}>
+                        <p className="text-slate-300 text-xs font-medium">"{badge.name}" ni yakunladi</p>
+                        <p className="text-slate-600 text-[11px] mt-0.5">{new Date(badge.earnedAt).toLocaleDateString()}</p>
+                      </div>
+                    )) : (
+                      <>
+                        <div>
+                          <p className="text-slate-300 text-xs font-medium">"Python Asoslari" kursini yakunladi</p>
+                          <p className="text-slate-600 text-[11px] mt-0.5">6 kun oldin</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-300 text-xs font-medium">Yangi sertifikat oldi</p>
+                          <p className="text-slate-600 text-[11px] mt-0.5">Yanvar 14, 23</p>
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div className="absolute top-[-20%] right-[-20%] w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
+                  <button className="text-indigo-400 text-xs mt-4 hover:text-indigo-300 transition-colors">
+                    Barchasi ko'rish
+                  </button>
                 </div>
               </div>
             </motion.div>
           )}
 
           {activeTab === "Obunalar" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-20 text-center bg-[#0d101a] border border-white/5 rounded-3xl text-slate-500 font-medium">
+            <motion.div key="obunalar" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="py-20 text-center text-slate-500 text-sm">
               Obunalar moduli yaqin orada ishga tushadi...
             </motion.div>
           )}
 
-          {activeTab === "Yutuqlar" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {activeTab === "Faollik" && (
+            <motion.div key="faollik" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {badges?.length > 0 ? badges.map((badge, i) => (
-                <div key={i} className="bg-[#0d101a] border border-white/5 p-6 rounded-3xl text-center">
-                  <div className="text-4xl mb-3">{badge.icon || '🏆'}</div>
-                  <h5 className="font-bold text-sm text-white">{badge.name}</h5>
-                  <p className="text-[10px] text-slate-500 mt-1 uppercase">{new Date(badge.earnedAt).toLocaleDateString()}</p>
+                <div key={i} className="bg-[#0D1220] border border-white/[0.06] p-5 rounded-2xl text-center">
+                  <div className="text-3xl mb-2">{badge.icon || '🏆'}</div>
+                  <h5 className="font-semibold text-xs text-white">{badge.name}</h5>
+                  <p className="text-[10px] text-slate-500 mt-1">{new Date(badge.earnedAt).toLocaleDateString()}</p>
                 </div>
               )) : (
-                <div className="col-span-full py-20 text-center text-slate-500">Hech qanday yutuq topilmadi.</div>
+                <div className="col-span-full py-16 text-center text-slate-500 text-sm">
+                  Hech qanday faollik topilmadi.
+                </div>
               )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* --- EDIT MODAL --- */}
+      {/* ── FULL-SCREEN EDIT MODAL ── */}
+      {/* z-index: 99999 — header va footer ni to'liq yopadi */}
       <AnimatePresence>
         {editOpen && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="fixed inset-0 z-[99999] bg-[#07090F] flex items-center justify-center p-4"
+          >
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setEditOpen(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
-            />
-
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              initial={{ scale: 0.95, opacity: 0, y: 16 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-2xl bg-[#0d101a] border border-white/10 rounded-[2.5rem] shadow-2xl p-8 sm:p-12 overflow-hidden"
+              exit={{ scale: 0.95, opacity: 0, y: 16 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="w-full max-w-lg bg-[#0D1220] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden"
             >
-              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-3xl -z-10"></div>
-
-              <div className="flex items-center justify-between mb-10">
-                <h2 className="text-3xl font-black text-white italic">Profilni tahrirlash</h2>
-                <button onClick={() => setEditOpen(false)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-                  <FiX size={20} />
+              {/* Header */}
+              <div className="flex items-center justify-between px-7 py-5 border-b border-white/[0.06]">
+                <h2 className="text-white font-semibold text-base">Profilni tahrirlash</h2>
+                <button
+                  onClick={() => setEditOpen(false)}
+                  className="w-8 h-8 rounded-full bg-white/[0.05] hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all"
+                >
+                  <FiX size={15} />
                 </button>
               </div>
 
-              <form onSubmit={handleSave} className="space-y-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase px-1">Ism</label>
+              {/* Form */}
+              <form onSubmit={handleSave} className="px-7 py-6 space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[11px] text-slate-500 mb-1.5 block">Ism</label>
                     <input
                       type="text"
                       value={editDraft.ism}
-                      onChange={(e) => setEditDraft({ ...editDraft, ism: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium"
+                      onChange={e => setEditDraft({ ...editDraft, ism: e.target.value })}
                       placeholder="Ismingizni kiriting"
+                      className="w-full bg-[#080C15] border border-white/[0.07] rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase px-1">Familiya</label>
+                  <div>
+                    <label className="text-[11px] text-slate-500 mb-1.5 block">Familiya</label>
                     <input
                       type="text"
                       value={editDraft.familiya}
-                      onChange={(e) => setEditDraft({ ...editDraft, familiya: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium"
+                      onChange={e => setEditDraft({ ...editDraft, familiya: e.target.value })}
                       placeholder="Familiyangizni kiriting"
+                      className="w-full bg-[#080C15] border border-white/[0.07] rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase px-1">Kasbingiz / Sohangiz</label>
+                <div>
+                  <label className="text-[11px] text-slate-500 mb-1.5 block">Kasbi / Mutaxassisligi</label>
                   <input
                     type="text"
                     value={editDraft.kasb}
-                    onChange={(e) => setEditDraft({ ...editDraft, kasb: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium"
-                    placeholder="Masalan: Frontend Developer, UI/UX Designer..."
+                    onChange={e => setEditDraft({ ...editDraft, kasb: e.target.value })}
+                    placeholder="Masalan: Frontend Developer"
+                    className="w-full bg-[#080C15] border border-white/[0.07] rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase px-1">Qisqacha biografiya</label>
+                <div>
+                  <label className="text-[11px] text-slate-500 mb-1.5 block">Bio</label>
                   <textarea
-                    rows="4"
+                    rows={4}
                     value={editDraft.bio}
-                    onChange={(e) => setEditDraft({ ...editDraft, bio: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium resize-none"
+                    onChange={e => setEditDraft({ ...editDraft, bio: e.target.value })}
                     placeholder="O'zingiz haqingizda bir necha so'z..."
+                    className="w-full bg-[#080C15] border border-white/[0.07] rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all resize-none"
                   />
                 </div>
 
-                <div className="flex gap-4 pt-4">
+                <div className="flex gap-3 pt-1">
                   <button
                     type="button"
                     onClick={() => setEditOpen(false)}
-                    className="flex-1 py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-400 font-bold uppercase text-[10px] tracking-widest transition-all"
+                    className="flex-1 py-3 bg-white/[0.05] hover:bg-white/[0.08] rounded-xl text-slate-400 text-sm font-medium transition-all"
                   >
-                    Bekor Qilish
+                    Bekor qilish
                   </button>
                   <button
                     type="submit"
-                    disabled={isSaving}
-                    className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50"
+                    disabled={!hasChanges || isSaving}
+                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-indigo-600"
                   >
                     {isSaving ? 'Saqlanmoqda...' : 'Saqlash'}
                   </button>
                 </div>
               </form>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

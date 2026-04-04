@@ -7,7 +7,6 @@ import { toast } from 'react-hot-toast';
 import { login, selectAuthLoading, selectAuthError, clearError } from '@store/slices/authSlice';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
 import { STORAGE_KEYS } from '@utils/constants';
-import { localAuth } from '@utils/localAuth';
 
 export default function LoginForm() {
   const [showPass, setShowPass] = useState(false);
@@ -38,13 +37,6 @@ export default function LoginForm() {
       dispatch(clearError());
     }
 
-    // localAuth tekshirish (xato bo'lsa ham davom etadi)
-    try {
-      localAuth.loginUser(data.email, data.password);
-    } catch {
-      // User local cache da yo'q — backend dan tekshiriladi
-    }
-
     try {
       const result = await dispatch(login({
         email: data.email,
@@ -52,13 +44,6 @@ export default function LoginForm() {
       }));
 
       if (login.fulfilled.match(result)) {
-        // localAuth cache ni yangilash (keyingi tekshiruv uchun)
-        try {
-          if (!localAuth.userExists(data.email)) {
-            localAuth.registerUser(data.email, data.password);
-          }
-        } catch { /* ignore */ }
-
         forgotPasswordFlow.rememberEmail(data.email);
         localStorage.removeItem(STORAGE_KEYS.PENDING_PASSWORD);
         toast.success('Muvaffaqiyatli kirdingiz!');
