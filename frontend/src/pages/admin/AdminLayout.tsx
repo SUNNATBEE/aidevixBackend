@@ -47,24 +47,45 @@ function AdminLoginForm() {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    const result = await dispatch(login({ email, password }))
-    if (login.rejected.match(result)) {
-      setError(result.payload as string || 'Login yoki parol xato')
+    try {
+      const result = await dispatch(login({ email, password }))
+      if (login.rejected.match(result)) {
+        setError(result.payload as string || 'Login yoki parol xato')
+      }
+    } catch (err: any) {
+      setError('Login jarayonida xatolik yuz berdi')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-100">
-      <div className="w-full max-w-sm">
-        <div className="card bg-base-200 border border-base-300 shadow-lg">
-          <div className="card-body p-6 space-y-4 text-white">
-            <h1 className="text-xl font-bold text-center">Admin Login</h1>
-            {error && <div className="alert alert-error text-sm py-2"><span>{error}</span></div>}
+      <div className="w-full max-w-sm px-4">
+        <div className="card bg-base-200 border border-base-300 shadow-xl overflow-hidden rounded-3xl">
+          <div className="card-body p-8 space-y-6 text-white">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-primary/20">
+                <span className="text-primary font-black text-2xl">A</span>
+              </div>
+              <h1 className="text-2xl font-bold">Admin Panel</h1>
+              <p className="text-white/40 text-sm mt-1">Xush kelibsiz, admin</p>
+            </div>
+            
+            {error && <div className="alert alert-error text-xs py-3 rounded-xl"><span>{error}</span></div>}
+            
             <form onSubmit={handleSubmit} className="space-y-4">
-              <input type="email" className="input input-bordered w-full bg-white text-black" required placeholder="Admin Email" value={email} onChange={e => setEmail(e.target.value)} />
-              <input type="password" className="input input-bordered w-full bg-white text-black" required placeholder="Parol" value={password} onChange={e => setPassword(e.target.value)} />
-              <button type="submit" className="btn btn-primary w-full" disabled={loading}>Kirish</button>
+              <div className="form-control">
+                <label className="label py-1"><span className="label-text text-white/60 text-xs">EMAIL</span></label>
+                <input type="email" className="input input-bordered w-full bg-white/5 border-white/10 text-white rounded-xl focus:border-primary" required placeholder="admin@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+              </div>
+              <div className="form-control">
+                <label className="label py-1"><span className="label-text text-white/60 text-xs">PAROL</span></label>
+                <input type="password" className="input input-bordered w-full bg-white/5 border-white/10 text-white rounded-xl focus:border-primary" required placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
+              </div>
+              <button type="submit" className="btn btn-primary w-full h-12 rounded-xl normal-case font-bold mt-2" disabled={loading}>
+                {loading ? <span className="loading loading-spinner"></span> : 'Tizimga kirish'}
+              </button>
             </form>
           </div>
         </div>
@@ -94,23 +115,50 @@ export default function AdminLayout({ children }: { children?: React.ReactNode }
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-base-100">
-      <aside className="w-64 bg-base-200 border-r border-base-300 flex flex-col">
-          <div className="p-4 border-b border-base-300 font-bold text-primary">Aidevix Admin</div>
-          <nav className="flex-1 p-2 space-y-1">
+    <div className="flex h-screen overflow-hidden bg-base-100 font-sans">
+      <aside className="w-64 bg-base-200 border-r border-base-300 flex flex-col shrink-0">
+          <div className="p-6 border-b border-base-300">
+             <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-primary rounded-lg"></div>
+                <span className="font-black text-xl tracking-tight text-white">Aidevix</span>
+             </div>
+             <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest mt-1">Management Console</p>
+          </div>
+          <nav className="flex-1 p-3 space-y-1">
             {NAV.map(n => (
-              <button key={n.path} onClick={() => router.push(n.path)} className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-base-300 transition-colors">
+              <button 
+                key={n.path} 
+                onClick={() => router.push(n.path)} 
+                className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all text-sm font-medium
+                  ${router.pathname === n.path ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/50 hover:bg-white/5 hover:text-white'}`}
+              >
                 <n.Icon /> {n.label}
               </button>
             ))}
           </nav>
-          <button onClick={handleLogout} className="p-4 border-t border-base-300 text-error flex items-center gap-2 hover:bg-error/10">
-            <LogoutIcon /> Chiqish
-          </button>
+          <div className="p-4 border-t border-base-300">
+            <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-error hover:bg-error/10 transition-colors text-sm font-medium">
+              <LogoutIcon /> Chiqish
+            </button>
+          </div>
       </aside>
-      <main className="flex-1 overflow-y-auto bg-base-100 p-6">
-          {children || <DashboardPage />}
-      </main>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="h-20 border-b border-base-300 flex items-center px-8 bg-base-200/50 backdrop-blur-xl">
+           <h2 className="font-bold text-white uppercase tracking-widest text-xs">Admin Dashboard</h2>
+           <div className="ml-auto flex items-center gap-4">
+              <div className="text-right">
+                 <p className="text-xs font-bold text-white">{user?.username || 'Admin'}</p>
+                 <p className="text-[10px] text-white/40 uppercase tracking-tighter">Superadmin</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center font-bold text-primary">
+                 {user?.username?.[0]?.toUpperCase() || 'A'}
+              </div>
+           </div>
+        </header>
+        <main className="flex-1 overflow-y-auto bg-base-100 p-8">
+            {children || <DashboardPage />}
+        </main>
+      </div>
     </div>
   )
 }
