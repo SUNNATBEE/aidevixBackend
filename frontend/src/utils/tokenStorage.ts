@@ -1,22 +1,32 @@
 import { STORAGE_KEYS } from './constants'
 
+const isBrowser = typeof window !== 'undefined'
+
 export const tokenStorage = {
-  getAccess:    ()      => localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN),
-  getRefresh:   ()      => localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN),
-  setAccess:    (token) => localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token),
-  setRefresh:   (token) => localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token),
-  setTokens:    (access, refresh) => {
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, access)
-    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refresh)
+  getAccess:    ()      => isBrowser ? localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) : null,
+  getRefresh:   ()      => isBrowser ? localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN) : null,
+  setAccess:    (token: string) => isBrowser && localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token),
+  setRefresh:   (token: string) => isBrowser && localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token),
+  setTokens:    (access: string, refresh: string) => {
+    if (isBrowser) {
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, access)
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refresh)
+    }
   },
   clearTokens:  () => {
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN)
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
-    localStorage.removeItem(STORAGE_KEYS.USER)
+    if (isBrowser) {
+      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN)
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
+      localStorage.removeItem(STORAGE_KEYS.USER)
+    }
   },
   getUser:      ()     => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.USER)) }
+    if (!isBrowser) return null
+    try { 
+      const user = localStorage.getItem(STORAGE_KEYS.USER)
+      return user ? JSON.parse(user) : null 
+    }
     catch { return null }
   },
-  setUser:      (user) => localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user)),
+  setUser:      (user: any) => isBrowser && localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user)),
 }

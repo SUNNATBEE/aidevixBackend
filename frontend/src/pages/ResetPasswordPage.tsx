@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from 'react-icons/io5';
 import { FiRefreshCcw } from 'react-icons/fi';
 import { forgotPasswordApi } from '@api/forgotPasswordApi';
-import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
 import gsap from 'gsap';
 
 export default function ResetPasswordPage() {
@@ -14,17 +13,15 @@ export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const navigate = useRouter();
-  const pathname = usePathname();
+  const [email, setEmail] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  
+  const router = useRouter();
   const cardRef = useRef(null);
-
-  const queryParams = new URLSearchParams(location.search);
-  const email = queryParams.get('email')?.trim().toLowerCase();
-  const token = queryParams.get('token');
 
   const password = watch('password', '');
 
-  const getPasswordStrength = (pass) => {
+  const getPasswordStrength = (pass: string) => {
     let strength = 0;
     if (pass.length > 5) strength += 1;
     if (pass.length > 8) strength += 1;
@@ -39,9 +36,17 @@ export default function ResetPasswordPage() {
   const strengthPercentage = password.length === 0 ? 0 : Math.min((strength / 5) * 100, 100);
 
   useEffect(() => {
-    if (!email || !token) {
-      router.push('/forgot-password');
-      return;
+    if (typeof window !== 'undefined') {
+      const queryParams = new URLSearchParams(window.location.search);
+      const emailParam = queryParams.get('email')?.trim().toLowerCase();
+      const tokenParam = queryParams.get('token');
+
+      if (emailParam && tokenParam) {
+        setEmail(emailParam);
+        setToken(tokenParam);
+      } else {
+        router.push('/forgot-password');
+      }
     }
 
     if (cardRef.current) {
@@ -51,9 +56,10 @@ export default function ResetPasswordPage() {
         { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }
       );
     }
-  }, [email, token, navigate]);
+  }, [router]);
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: any) => {
+    if (!email || !token) return;
     if (data.password !== data.confirmPassword) {
       toast.error('Parollar mos emas.');
       return;
@@ -67,13 +73,15 @@ export default function ResetPasswordPage() {
         newPassword: data.password 
       });
       toast.success("Parol muvaffaqiyatli yangilandi. Endi login qiling.");
-      router.push('/login', { replace: true });
-    } catch (error) {
+      router.push('/login');
+    } catch (error: any) {
       toast.error(error.response?.data?.message || 'Parolni yangilashda xatolik yuz berdi.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (!email || !token) return null;
 
   return (
     <div className="min-h-screen bg-[#0A0E1A] text-white flex font-sans selection:bg-indigo-500/30">
@@ -154,7 +162,7 @@ export default function ResetPasswordPage() {
                   {showConfirmPassword ? <IoEyeOffOutline className="w-5 h-5" /> : <IoEyeOutline className="w-5 h-5" />}
                 </button>
               </div>
-              {errors.confirmPassword && <span className="text-red-500 text-xs mt-1 block">Parollar mos emas</span>}
+              {errors.confirmPassword && <span className="text-red-500 text-xs mt-1 block">{(errors.confirmPassword as any).message || 'Parollar mos emas'}</span>}
             </div>
 
             <button
@@ -166,7 +174,7 @@ export default function ResetPasswordPage() {
             </button>
 
             <div className="text-center pt-4">
-              <Link href="/login" className="text-gray-400 hover:text-white hover:underline text-sm font-medium transition-colors">
+              <Link href="/login" university-tag="back-to-login" className="text-gray-400 hover:text-white hover:underline text-sm font-medium transition-colors">
                 ← Login sahifasiga qaytish
               </Link>
             </div>

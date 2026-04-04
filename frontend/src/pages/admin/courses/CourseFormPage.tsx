@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/router';
 import { getCourseById, createCourse, updateCourse } from '@api/adminApi'
 import { CATEGORIES } from '@utils/constants'
 
@@ -17,18 +17,19 @@ const EMPTY = {
 }
 
 export default function CourseFormPage() {
-  const { id }    = useParams()
-  const navigate = useRouter()
-  const isEdit    = Boolean(id)
+  const router = useRouter()
+  const { id } = router.query
+  const isEdit = Boolean(id)
 
   const [form,    setForm]    = useState(EMPTY)
   const [loading, setLoading] = useState(isEdit)
   const [saving,  setSaving]  = useState(false)
-  const [error,   setError]   = useState(null)
+  const [error,   setError]   = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isEdit) return
-    getCourseById(id)
+    if (!isEdit || !id) return
+    setLoading(true)
+    getCourseById(id as string)
       .then(res => {
         const c = res.data.data
         setForm({
@@ -49,9 +50,9 @@ export default function CourseFormPage() {
       .finally(() => setLoading(false))
   }, [id, isEdit])
 
-  const set = (field) => (e) => setForm(p => ({ ...p, [field]: e.target.value }))
+  const set = (field: string) => (e: any) => setForm(p => ({ ...p, [field]: e.target.value }))
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
     setError(null)
@@ -63,14 +64,14 @@ export default function CourseFormPage() {
         prerequisites: form.prerequisites.split('\n').map(s => s.trim()).filter(Boolean),
         outcomes:      form.outcomes.split('\n').map(s => s.trim()).filter(Boolean),
       }
-      if (isEdit) {
-        await updateCourse(id, payload)
+      if (isEdit && id) {
+        await updateCourse(id as string, payload)
       } else {
         await createCourse(payload)
       }
       router.push('/admin/courses')
-    } catch (e) {
-      setError(e.response?.data?.message || 'Xato yuz berdi')
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Xato yuz berdi')
     } finally {
       setSaving(false)
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { IoSearch, IoClose, IoOptions } from 'react-icons/io5'
@@ -8,7 +8,7 @@ import { useCourses } from '@hooks/useCourses'
 import CourseGrid from '@components/courses/CourseGrid'
 import CourseFilter from '@components/courses/CourseFilter'
 
-function useDebounce(value, delay) {
+function useDebounce(value: any, delay: number) {
   const [d, setD] = useState(value)
   useEffect(() => {
     const t = setTimeout(() => setD(value), delay)
@@ -17,7 +17,7 @@ function useDebounce(value, delay) {
   return d
 }
 
-export default function CoursesPage() {
+function CoursesContent() {
   const searchParams = useSearchParams()
   const [search, setSearch]             = useState(searchParams.get('search') || '')
   const [showFilter, setShowFilter]     = useState(false)
@@ -82,7 +82,6 @@ export default function CoursesPage() {
           transition={{ duration: 0.4, delay: 0.08 }}
           className="flex gap-2 mb-4"
         >
-          {/* Search */}
           <div className="relative flex-1">
             <IoSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/35 text-sm pointer-events-none" />
             <input
@@ -107,7 +106,6 @@ export default function CoursesPage() {
             </AnimatePresence>
           </div>
 
-          {/* Filter toggle — mobile only */}
           <button
             onClick={() => setShowFilter(v => !v)}
             className={
@@ -122,13 +120,10 @@ export default function CoursesPage() {
           </button>
         </motion.div>
 
-        {/* ── Filter panel ── */}
-        {/* Desktop: always visible */}
         <div className="hidden lg:block mb-6">
           <CourseFilter />
         </div>
 
-        {/* Mobile: toggle */}
         <AnimatePresence>
           {showFilter && (
             <motion.div
@@ -146,7 +141,6 @@ export default function CoursesPage() {
           )}
         </AnimatePresence>
 
-        {/* ── Grid ── */}
         <CourseGrid
           courses={courses}
           loading={loading && filters.page === 1}
@@ -157,7 +151,6 @@ export default function CoursesPage() {
           }
         />
 
-        {/* Loading more */}
         {loading && filters.page > 1 && (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 mt-4">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -166,7 +159,6 @@ export default function CoursesPage() {
           </div>
         )}
 
-        {/* Load more */}
         {!loading && hasMore && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -182,7 +174,6 @@ export default function CoursesPage() {
           </motion.div>
         )}
 
-        {/* End */}
         {!loading && !hasMore && courses.length > 0 && (
           <p className="text-center text-xs text-base-content/25 mt-8">
             Barcha {total} ta kurs ko'rsatildi
@@ -190,5 +181,13 @@ export default function CoursesPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function CoursesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-base-100 flex items-center justify-center"><span className="loading loading-spinner loading-lg"></span></div>}>
+      <CoursesContent />
+    </Suspense>
   )
 }

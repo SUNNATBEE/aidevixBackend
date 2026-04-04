@@ -16,7 +16,7 @@ export default function NotFound() {
            <h1 className="text-[10rem] sm:text-[14rem] font-black text-white leading-none opacity-5 italic select-none">404</h1>
            <div className="absolute inset-0 flex flex-col items-center justify-center">
               <div className="w-20 h-20 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4 shadow-2xl shadow-indigo-500/10">
-                 <Io SearchOutline size={40} className="text-indigo-400" />
+                 <IoSearchOutline size={40} className="text-indigo-400" />
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Sahifa topilmadi</h2>
               <p className="text-gray-400 max-w-xs mx-auto text-sm leading-relaxed">

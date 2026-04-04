@@ -59,7 +59,9 @@ api.interceptors.response.use(
         tokenStorage.clearTokens()
         refreshQueue.forEach((cb) => cb.reject(refreshError))
         refreshQueue = []
-        window.location.href = '/login'
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login'
+        }
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

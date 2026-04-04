@@ -1,7 +1,6 @@
 'use client';
 
-// LevelUpPage.jsx — SUHROB
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUserStats } from '@hooks/useUserStats'
 import LevelUpModal from '@components/leaderboard/LevelUpModal'
@@ -11,19 +10,30 @@ const LEVEL_NAMES = {
   15: 'Bilimdon', 20: 'Ekspert', 25: 'Mantiq Ustasi',
   30: 'Grandmaster', 35: 'Ustoz', 40: 'Afsonaviy', 50: 'Immortal',
 }
-const getLevelName = (lvl) => {
+
+const getLevelName = (lvl: number) => {
   if (!lvl) return 'Yangi Boshlovchi'
   const keys = Object.keys(LEVEL_NAMES).map(Number).sort((a, b) => b - a)
-  return LEVEL_NAMES[keys.find((k) => lvl >= k)] || 'Yangi Boshlovchi'
+  const found = keys.find((k) => lvl >= k)
+  return found ? LEVEL_NAMES[found as keyof typeof LEVEL_NAMES] : 'Yangi Boshlovchi'
 }
 
 export default function LevelUpPage() {
   const router = useRouter()
   const { xp, newLevel, justLeveledUp, quizResult, dismissLevelUp } = useUserStats()
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    if (!justLeveledUp) router.replace('/leaderboard')
-  }, [justLeveledUp, router])
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (isMounted && !justLeveledUp) {
+      router.replace('/leaderboard')
+    }
+  }, [justLeveledUp, router, isMounted])
+
+  if (!isMounted) return null
 
   const handleClose = () => {
     dismissLevelUp()

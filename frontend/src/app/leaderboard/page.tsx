@@ -12,7 +12,6 @@ import { selectUser, selectIsLoggedIn } from '@store/slices/authSlice'
 import LeaderboardTable from '@components/leaderboard/LeaderboardTable'
 import LevelUpModal from '@components/leaderboard/LevelUpModal'
 
-
 const TABS = [
   { key:'all',        label:'GLOBAL'     },
   { key:'javascript', label:'JAVASCRIPT' },
@@ -33,16 +32,17 @@ const LEVEL_NAMES = {
   15:'Bilimdon',20:'Ekspert',25:'Mantiq Ustasi',
   30:'Grandmaster',35:'Ustoz',40:'Afsonaviy',50:'Immortal',
 }
-const getLevelName = (lvl) => {
+
+const getLevelName = (lvl: number) => {
   if (!lvl) return 'Yangi Boshlovchi'
   const keys = Object.keys(LEVEL_NAMES).map(Number).sort((a,b)=>b-a)
-  return LEVEL_NAMES[keys.find(k=>lvl>=k)] || 'Yangi Boshlovchi'
+  const found = keys.find(k=>lvl>=k)
+  return found ? LEVEL_NAMES[found as keyof typeof LEVEL_NAMES] : 'Yangi Boshlovchi'
 }
 const getInitials = (name='') =>
   name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)
 
-// Mock — API bo'sh bo'lganda
-const MOCK = {
+const MOCK: any = {
   all:[
     {rank:1,xp:145200,level:99,streak:84,badges:['🏆'],user:{_id:'m1',username:'Jamshid K.'}},
     {rank:2,xp:92450, level:80,streak:42,badges:['🥈'],user:{_id:'m2',username:'Malika R.'}},
@@ -52,42 +52,17 @@ const MOCK = {
     {rank:6,xp:69800, level:74,streak:10,badges:[],    user:{_id:'m6',username:'Javlon D.'}},
     {rank:7,xp:64200, level:71,streak:8, badges:[],    user:{_id:'m7',username:'Nodira S.'}},
   ],
-  javascript:[
-    {rank:1,xp:98000,level:70,streak:50,badges:['🏆'],user:{_id:'j1',username:'Bobur A.'}},
-    {rank:2,xp:87000,level:65,streak:30,badges:['🥈'],user:{_id:'j2',username:'Zafar T.'}},
-    {rank:3,xp:76000,level:60,streak:20,badges:['🥉'],user:{_id:'j3',username:'Kamola N.'}},
-    {rank:4,xp:65000,level:55,streak:15,badges:[],    user:{_id:'j4',username:'Sherzod M.'}},
-    {rank:5,xp:54000,level:50,streak:10,badges:[],    user:{_id:'j5',username:'Dilnoza R.'}},
-  ],
-  react:[
-    {rank:1,xp:112000,level:85,streak:60,badges:['🏆'],user:{_id:'r1',username:'Akbar Y.'}},
-    {rank:2,xp:95000, level:75,streak:40,badges:['🥈'],user:{_id:'r2',username:'Feruza K.'}},
-    {rank:3,xp:83000, level:68,streak:25,badges:['🥉'],user:{_id:'r3',username:'Ulugbek S.'}},
-    {rank:4,xp:71000, level:60,streak:18,badges:[],    user:{_id:'r4',username:'Mohira T.'}},
-  ],
-  python:[
-    {rank:1,xp:105000,level:80,streak:55,badges:['🏆'],user:{_id:'p1',username:'Sardor B.'}},
-    {rank:2,xp:88000, level:70,streak:35,badges:['🥈'],user:{_id:'p2',username:'Nilufar A.'}},
-    {rank:3,xp:74000, level:62,streak:22,badges:['🥉'],user:{_id:'p3',username:'Jasur M.'}},
-    {rank:4,xp:62000, level:55,streak:12,badges:[],    user:{_id:'p4',username:'Barno X.'}},
-  ],
-  'ui/ux':[
-    {rank:1,xp:91000,level:72,streak:45,badges:['🏆'],user:{_id:'u1',username:'Otabek R.'}},
-    {rank:2,xp:79000,level:63,streak:28,badges:['🥈'],user:{_id:'u2',username:'Gulnora S.'}},
-    {rank:3,xp:67000,level:55,streak:18,badges:['🥉'],user:{_id:'u3',username:'Farhod N.'}},
-    {rank:4,xp:55000,level:48,streak:10,badges:[],    user:{_id:'u4',username:'Zulfiya M.'}},
-  ],
 }
 
-// ── Podium Card ──────────────────────────────────────────────
-function PodiumCard({ user, rank }) {
+function PodiumCard({ user, rank }: { user: any, rank: number }) {
   if (!user) return null
   const username = user.user?.username || user.username || 'Foydalanuvchi'
-  const s = {
+  const sList: any = {
     1:{ wrap:'order-2 z-10 scale-110', card:'border-yellow-500/60 bg-[#1c1500]', shadow:'0 0 40px rgba(234,179,8,0.25)', badge:'bg-yellow-500', ab:'border-yellow-500', sz:'w-[72px] h-[72px]' },
     2:{ wrap:'order-1', card:'border-gray-500/30 bg-[#111318]', shadow:'none', badge:'bg-gray-400', ab:'border-gray-400/60', sz:'w-14 h-14' },
     3:{ wrap:'order-3', card:'border-amber-600/30 bg-[#130e00]', shadow:'none', badge:'bg-amber-600', ab:'border-amber-600/50', sz:'w-14 h-14' },
-  }[rank]
+  }
+  const s = sList[rank] || sList[1]
 
   return (
     <motion.div
@@ -130,14 +105,14 @@ function PodiumCard({ user, rank }) {
   )
 }
 
-// ── Main Page ────────────────────────────────────────────────
 export default function LeaderboardPage() {
   const [activeTab, setActiveTab]       = useState('all')
   const [pageNum, setPageNum]           = useState(1)
   const [apiUsers, setApiUsers]         = useState([])
   const [loading, setLoading]           = useState(true)
-  const [pagination, setPagination]     = useState(null)
-  const [userPosition, setUserPosition] = useState(null)
+  const [pagination, setPagination]     = useState<any>(null)
+  const [userPosition, setUserPosition] = useState<any>(null)
+  const [isMounted, setIsMounted]       = useState(false)
 
   const isLoggedIn  = useSelector(selectIsLoggedIn)
   const currentUser = useSelector(selectUser)
@@ -145,7 +120,6 @@ export default function LeaderboardPage() {
   const { xp, level, levelProgress, xpToNextLevel, streak, badges,
           justLeveledUp, newLevel, quizResult, dismissLevelUp } = useUserStats()
 
-  // API dan userlarni olish — axiosInstance orqali
   const fetchUsers = async (page=1, replace=true) => {
     setLoading(true)
     try {
@@ -155,16 +129,15 @@ export default function LeaderboardPage() {
       const list  = data?.data?.users || data?.users || []
       const pages = data?.data?.pagination || data?.pagination || {}
       if (replace) setApiUsers(list)
-      else setApiUsers(prev => [...prev, ...list])
+      else setApiUsers((prev: any) => [...prev, ...list])
       setPagination(pages)
-    } catch (e) {
+    } catch (e: any) {
       console.error('Ranking API xato:', e.message)
     } finally {
       setLoading(false)
     }
   }
 
-  // User pozitsiyasi
   const fetchPosition = async () => {
     if (!isLoggedIn || !currentUser?._id) return
     try {
@@ -173,14 +146,14 @@ export default function LeaderboardPage() {
     } catch {}
   }
 
-  useEffect(() => { fetchUsers(1, true) }, [])
-  useEffect(() => { fetchPosition() }, [isLoggedIn, currentUser?._id])
+  useEffect(() => { 
+    setIsMounted(true)
+    fetchUsers(1, true) 
+  }, [])
 
-  const handleLoadMore = () => {
-    const next = pageNum + 1
-    setPageNum(next)
-    fetchUsers(next, false)
-  }
+  useEffect(() => { if (isMounted) fetchPosition() }, [isLoggedIn, currentUser?._id, isMounted])
+
+  if (!isMounted) return <div className="min-h-screen bg-base-100 flex items-center justify-center"><span className="loading loading-spinner loading-lg"></span></div>
 
   const displayUsers = apiUsers.length > 0 ? apiUsers : (MOCK[activeTab] || MOCK.all)
   const podiumUsers  = displayUsers.slice(0, 3)
@@ -205,7 +178,6 @@ export default function LeaderboardPage() {
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
 
-        {/* User banner */}
         {isLoggedIn && (
           <motion.div
             initial={{opacity:0,y:-16}} animate={{opacity:1,y:0}}
@@ -256,17 +228,12 @@ export default function LeaderboardPage() {
           </motion.div>
         )}
 
-        {/* Title */}
         <motion.h1 initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} className="text-4xl font-black tracking-tight mb-5">
           GLOBAL <span className="text-primary">AUTHORITY</span>
         </motion.h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* LEFT */}
           <div className="lg:col-span-2 space-y-5">
-
-            {/* Tabs */}
             <div className="flex gap-2 flex-wrap">
               {TABS.map(tab => (
                 <button
@@ -283,7 +250,6 @@ export default function LeaderboardPage() {
               ))}
             </div>
 
-            {/* Podium */}
             <AnimatePresence mode="wait">
               {loading ? (
                 <div className="flex justify-center items-end gap-4 py-8">
@@ -304,7 +270,6 @@ export default function LeaderboardPage() {
               )}
             </AnimatePresence>
 
-            {/* Table */}
             <AnimatePresence mode="wait">
               {loading ? (
                 <div className="space-y-2">
@@ -317,10 +282,9 @@ export default function LeaderboardPage() {
               )}
             </AnimatePresence>
 
-            {/* Load more */}
             {pagination && pageNum < (pagination.totalPages||pagination.pages||1) && (
               <div className="text-center py-4">
-                <button onClick={handleLoadMore} disabled={loading} className="btn btn-outline btn-sm px-10 gap-2 font-bold tracking-wider">
+                <button onClick={() => { setPageNum(p => p+1); fetchUsers(pageNum+1, false) }} disabled={loading} className="btn btn-outline btn-sm px-10 gap-2 font-bold tracking-wider">
                   {loading && <span className="loading loading-spinner loading-xs" />}
                   + YANA YUKLASH
                 </button>
@@ -328,7 +292,6 @@ export default function LeaderboardPage() {
             )}
           </div>
 
-          {/* RIGHT */}
           <div className="space-y-4">
             <motion.div
               initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} transition={{delay:0.2}}
@@ -372,7 +335,6 @@ export default function LeaderboardPage() {
               </div>
             </motion.div>
           </div>
-
         </div>
       </div>
     </div>
