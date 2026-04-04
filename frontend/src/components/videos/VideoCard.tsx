@@ -1,6 +1,5 @@
-'use client';
-
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSelector } from 'react-redux';
 import { IoPlay, IoTime, IoEye, IoLockClosed, IoStar } from 'react-icons/io5';
 import { selectIsLoggedIn } from '@/store/slices/authSlice';
@@ -42,10 +41,12 @@ export default function VideoCard({ video, index = 0 }: VideoProps) {
       {/* 1. Thumbnail / Order */}
       <div className="relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-white/5 border border-white/5">
         {video.thumbnail ? (
-          <img
+          <Image
             src={video.thumbnail}
             alt={video.title}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            fill
+            className="object-cover group-hover:scale-110 transition-transform duration-500"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-purple-600/10">

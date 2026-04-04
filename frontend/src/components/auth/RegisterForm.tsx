@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
@@ -13,7 +15,7 @@ export default function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
-  const navigate = useRouter();
+  const router = useRouter();
   const dispatch = useDispatch();
   const loading = useSelector(selectAuthLoading);
   const authError = useSelector(selectAuthError);
@@ -21,7 +23,7 @@ export default function RegisterForm() {
   const password = watch('password', '');
 
   // Parol mustahkamligini hisoblash
-  const getPasswordStrength = (pass) => {
+  const getPasswordStrength = (pass: string) => {
     let strength = 0;
     if (pass.length > 5) strength += 1;
     if (pass.length > 8) strength += 1;
@@ -35,7 +37,7 @@ export default function RegisterForm() {
   const isWeak = strength < 3;
   const strengthPercentage = password.length === 0 ? 0 : Math.min((strength / 5) * 100, 100);
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: any) => {
     if (clearError) dispatch(clearError());
 
     // Shartlarni qabul qilganini tekshirish
@@ -56,7 +58,7 @@ export default function RegisterForm() {
     const username = data.fullName.trim().replace(/\s+/g, '_').toLowerCase();
     const email = data.email.trim().toLowerCase();
 
-    const result = await dispatch(registerUser({
+    const result = await (dispatch as any)(registerUser({
       username,
       email,
       password: data.password,
@@ -67,7 +69,7 @@ export default function RegisterForm() {
     if (registerUser.fulfilled.match(result)) {
       forgotPasswordFlow.rememberEmail(email);
       toast.success("Muvaffaqiyatli ro'yxatdan o'tdingiz!");
-      router.push('/', { replace: true });
+      router.push('/');
     }
   };
 
@@ -99,7 +101,7 @@ export default function RegisterForm() {
             placeholder="Ismingizni kiriting"
           />
         </div>
-        {errors.fullName && <span className="text-red-500 text-xs mt-1 block">{errors.fullName.message}</span>}
+        {errors.fullName && <span className="text-red-500 text-xs mt-1 block">{(errors.fullName as any).message}</span>}
       </div>
 
       {/* Email */}
@@ -123,7 +125,7 @@ export default function RegisterForm() {
             placeholder="name@example.com"
           />
         </div>
-        {errors.email && <span className="text-red-500 text-xs mt-1 block">{errors.email.message}</span>}
+        {errors.email && <span className="text-red-500 text-xs mt-1 block">{(errors.email as any).message}</span>}
       </div>
 
       {/* Parol */}
@@ -157,7 +159,7 @@ export default function RegisterForm() {
             {showPassword ? <IoEyeOffOutline className="w-5 h-5" /> : <IoEyeOutline className="w-5 h-5" />}
           </button>
         </div>
-        {errors.password && <span className="text-red-500 text-xs mt-1 block">{errors.password.message}</span>}
+        {errors.password && <span className="text-red-500 text-xs mt-1 block">{(errors.password as any).message}</span>}
         
         {/* Parol kiritilgandan keyin ko'rinadigan kuchlilik indikatori */}
         {password.length > 0 && (
@@ -193,7 +195,7 @@ export default function RegisterForm() {
             placeholder="********"
           />
         </div>
-        {errors.confirmPassword && <span className="text-red-500 text-xs mt-1 block">Parollar mos emas</span>}
+        {errors.confirmPassword && <span className="text-red-500 text-xs mt-1 block">{(errors.confirmPassword as any).message || "Parollar mos emas"}</span>}
       </div>
 
       {/* Shartlar Checkbox */}
@@ -207,12 +209,12 @@ export default function RegisterForm() {
         </div>
         <label className="text-sm text-gray-400 leading-relaxed cursor-pointer" onClick={() => {
           const checkbox = document.querySelector('input[name="terms"]');
-          if (checkbox) checkbox.click();
+          if (checkbox) (checkbox as any).click();
         }}>
           Men <span className="text-indigo-400 hover:underline">Foydalanish shartlari</span> va <span className="text-indigo-400 hover:underline">Maxfiylik siyosati</span> bilan tanishib chiqdim va qabul qilaman.
         </label>
       </div>
-      {errors.terms && <span className="text-red-500 text-xs -mt-2 block">{errors.terms.message}</span>}
+      {errors.terms && <span className="text-red-500 text-xs -mt-2 block">{(errors.terms as any).message}</span>}
 
       <button
         type="submit"

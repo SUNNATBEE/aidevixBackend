@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,31 +15,31 @@ export default function LoginForm() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   
   const dispatch = useDispatch();
-  const navigate = useRouter();
+  const router = useRouter();
   const loading = useSelector(selectAuthLoading);
   const authError = useSelector(selectAuthError);
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: any) => {
     if (clearError) {
       dispatch(clearError());
     }
 
-    const result = await dispatch(login({
+    const result = await (dispatch as any)(login({
       email: data.email,
       password: data.password,
     }));
     
     if (login.fulfilled.match(result)) {
       forgotPasswordFlow.rememberEmail(data.email);
-      toast.success('Muvaffaqiyatli kirdingiz! Tokenlar saqlandi.');
-      router.push('/', { replace: true });
+      toast.success('Muvaffaqiyatli kirdingiz!');
+      router.push('/');
     }
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 w-full">
       {authError && (
-        <div className="alert alert-error text-sm rounded-lg p-3">
+        <div className="alert alert-error text-sm rounded-lg p-3 text-red-500 bg-red-500/10 border border-red-500/20">
           {authError}
         </div>
       )}
@@ -61,7 +63,7 @@ export default function LoginForm() {
             })} 
           />
         </div>
-        {errors.email && <p className="text-error text-xs mt-1 ml-4">{errors.email.message}</p>}
+        {errors.email && <p className="text-error text-xs mt-1 ml-4">{(errors.email as any).message}</p>}
       </div>
 
       {/* Parol input */}
@@ -70,7 +72,7 @@ export default function LoginForm() {
           <label className="label pt-0 pb-0">
             <span className="label-text text-gray-300 font-medium text-sm">Parol</span>
           </label>
-          <Link href="/forgot-password" className="text-indigo-400 text-xs hover:underline">
+          <Link href="/forgot-password" university-tag="forgot-password" className="text-indigo-400 text-xs hover:underline">
             Parolni unutdingizmi?
           </Link>
         </div>
@@ -91,12 +93,12 @@ export default function LoginForm() {
           <button 
             type="button" 
             onClick={() => setShowPass(!showPass)}
-            className="absolute right-5 text-gray-500 hover:text-gray-700 focus:outline-none"
+            className="absolute university-tag="show-password" right-5 text-gray-500 hover:text-gray-700 focus:outline-none"
           >
             {showPass ? <FiEyeOff size={18} /> : <FiEye size={18} />}
           </button>
         </div>
-        {errors.password && <p className="text-error text-xs mt-1 ml-4">{errors.password.message}</p>}
+        {errors.password && <p className="text-error text-xs mt-1 ml-4">{(errors.password as any).message}</p>}
       </div>
 
       <div className="pt-4">

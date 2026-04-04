@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -10,7 +12,7 @@ import gsap from 'gsap';
 export default function ForgotPasswordPage() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const [loading, setLoading] = useState(false);
-  const navigate = useRouter();
+  const router = useRouter();
   const cardRef = useRef(null);
 
   useEffect(() => {
@@ -23,7 +25,7 @@ export default function ForgotPasswordPage() {
     }
   }, []);
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: any) => {
     const email = data.email.trim().toLowerCase();
 
     try {
@@ -32,7 +34,7 @@ export default function ForgotPasswordPage() {
       forgotPasswordFlow.startTimer(email);
       toast.success('Tasdiqlash kodi emailga yuborildi!');
       router.push(`/verify-code?email=${encodeURIComponent(email)}`);
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.response?.data?.message || 'Bunday email topilmadi');
     } finally {
       setLoading(false);
@@ -49,7 +51,7 @@ export default function ForgotPasswordPage() {
           <div className="text-center mb-10">
             <h2 className="text-[1.75rem] font-bold text-white mb-3">Parolni tiklash</h2>
             <p className="text-gray-400 text-[0.95rem] px-2 leading-relaxed">
-              Royxatdan o'tgan email manzilingizni kiriting va biz sizga tasdiqlash kodini yuboramiz.
+              Ro&apos;yxatdan o&apos;tgan email manzilingizni kiriting va biz sizga tasdiqlash kodini yuboramiz.
             </p>
           </div>
 
@@ -72,7 +74,7 @@ export default function ForgotPasswordPage() {
                   })} 
                 />
               </div>
-              {errors.email && <p className="text-error text-xs mt-1 ml-4">{errors.email.message}</p>}
+              {errors.email && <p className="text-error text-xs mt-1 ml-4">{(errors.email as any).message}</p>}
             </div>
 
             <div className="pt-4">

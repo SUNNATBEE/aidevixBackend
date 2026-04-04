@@ -37,9 +37,11 @@ async function getTopVideos() {
 }
 
 export default async function HomePage() {
-  // Fetch data on server for SEO power
-  const initialCourses = await getTopCourses();
-  const initialVideos = await getTopVideos();
+  // Fetch data on server in parallel for maximum performance
+  const [initialCourses, initialVideos] = await Promise.all([
+    getTopCourses(),
+    getTopVideos()
+  ]);
 
   return (
     <HomeClient 
