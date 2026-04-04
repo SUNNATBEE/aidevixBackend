@@ -43,6 +43,7 @@ Desktop.ini
 dist/
 build/
 out/
+.next/
 
 # Debug
 .cursor/

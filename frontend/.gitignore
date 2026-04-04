@@ -9,3 +9,4 @@ Thumbs.db
 .cache/
 .vercel
 .env*.local
+.next/
