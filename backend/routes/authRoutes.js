@@ -1,39 +1,28 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, refreshToken, logout, getMe, forgotPassword, verifyCode, resetPassword } = require('../controllers/authController');
+const { 
+  register, 
+  login, 
+  refreshToken, 
+  logout, 
+  getMe, 
+  forgotPassword, 
+  verifyCode, 
+  resetPassword 
+} = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
-const { otpLimiter } = require('../middleware/rateLimiter');
+const { otpLimiter, authLimiter } = require('../middleware/rateLimiter');
 
-// ════════════════════════════════════════════════════════════════
-// POST /api/auth/register
-// ════════════════════════════════════════════════════════════════
-router.post('/register', register);
-
-// ════════════════════════════════════════════════════════════════
-// POST /api/auth/login
-// ════════════════════════════════════════════════════════════════
-router.post('/login', login);
-
-// ════════════════════════════════════════════════════════════════
-// POST /api/auth/refresh-token
-// ════════════════════════════════════════════════════════════════
+// Public
+router.post('/register', authLimiter, register);
+router.post('/login', authLimiter, login);
 router.post('/refresh-token', refreshToken);
-
-// ════════════════════════════════════════════════════════════════
-// FORGOT PASSWORD FLOW
-// ════════════════════════════════════════════════════════════════
 router.post('/forgot-password', otpLimiter, forgotPassword);
 router.post('/verify-code', otpLimiter, verifyCode);
 router.post('/reset-password', resetPassword);
 
-// ════════════════════════════════════════════════════════════════
-// POST /api/auth/logout
-// ════════════════════════════════════════════════════════════════
+// Private
 router.post('/logout', authenticate, logout);
-
-// ════════════════════════════════════════════════════════════════
-// GET /api/auth/me
-// ════════════════════════════════════════════════════════════════
 router.get('/me', authenticate, getMe);
 
 module.exports = router;

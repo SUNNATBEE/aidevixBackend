@@ -126,7 +126,7 @@ const COURSES = [
           { order: 1, title: 'Flexbox navigatsiya', description: 'Logo + Links + Button bir qatorda', hint: 'display: flex; justify-content: space-between', xpReward: 80 },
           { order: 2, title: 'Grid kurs kartalar', description: '3 ustunli kurs kartalar', hint: 'display: grid; grid-template-columns: repeat(3, 1fr)', xpReward: 80 },
           { order: 3, title: 'Media query qo\'shing', description: 'Mobil uchun 1 ustunli ko\'rinish', hint: '@media (max-width: 768px)', xpReward: 80 },
-          { order: 4, title: 'Hover animatsiyalar', description: 'Kartalar hover'da ko\'tarilsin', hint: 'transition: transform 0.3s; transform: translateY(-5px)', xpReward: 80 },
+          { order: 4, title: 'Hover animatsiyalar', description: 'Kartalar hover\'da ko\'tarilsin', hint: 'transition: transform 0.3s; transform: translateY(-5px)', xpReward: 80 },
         ],
       },
       {
@@ -141,7 +141,7 @@ const COURSES = [
         tasks: [
           { order: 0, title: 'Glass morphism karta', description: 'backdrop-filter: blur() bilan shisha effekt', hint: 'background: rgba(255,255,255,0.1); backdrop-filter: blur(10px)', xpReward: 60 },
           { order: 1, title: 'Input stillar', description: 'Fokusda border-color o\'zgarsin', hint: 'input:focus { outline: none; border-color: #6366f1; }', xpReward: 60 },
-          { order: 2, title: 'Gradient button', description: 'Hover'da gradient o\'zgarsin', hint: 'background: linear-gradient(); transition: all 0.3s', xpReward: 60 },
+          { order: 2, title: 'Gradient button', description: 'Hover\'da gradient o\'zgarsin', hint: 'background: linear-gradient(); transition: all 0.3s', xpReward: 60 },
         ],
       },
     ],
@@ -317,7 +317,7 @@ const COURSES = [
         tasks: [
           { order: 0, title: 'Loyiha strukturasini yozing', description: 'pages/, components/, hooks/, api/ papkalarni yarating', hint: 'Har bir sahifa uchun alohida fayl', xpReward: 100 },
           { order: 1, title: 'Maqolalar ro\'yxati (Home page)', description: 'JSONPlaceholder API dan maqolalar oling', hint: 'useEffect + axios.get("https://jsonplaceholder.typicode.com/posts")', xpReward: 150 },
-          { order: 2, title: 'Maqola detail sahifasi', description: 'useParams() bilan id olip maqola ko\'rsating', hint: 'useParams(); axios.get(`/posts/${id}`)', xpReward: 150 },
+          { order: 2, title: 'Maqola detail sahifasi', description: 'useParams() bilan id olib maqola ko\'rsating', hint: 'useParams(); axios.get(`/posts/${id}`)', xpReward: 150 },
           { order: 3, title: 'Qidiruv funksiyasi', description: 'Sarlavha bo\'yicha real-time filterlash', hint: 'useState + filter() method', xpReward: 100 },
           { order: 4, title: 'Loading va Error states', description: 'Yuklanayotganda skeleton, xatoda error UI', hint: 'isLoading, isError state bilan shartli render', xpReward: 100 },
         ],

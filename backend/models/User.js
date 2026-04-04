@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
     unique: true,
     trim: true,
     minlength: [3, 'Username must be at least 3 characters'],
-    maxlength: [30, 'Username cannot exceed 30 characters'],
+    maxlength: [50, 'Username cannot exceed 50 characters'],
   },
   firstName: {
     type: String,
@@ -108,6 +108,11 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null,
     select: false,
+  },
+  // Avatar rasm URL
+  avatar: {
+    type: String,
+    default: null,
   },
   lastLogin: {
     type: Date,

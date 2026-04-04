@@ -7,7 +7,7 @@ export const uploadApi = {
 
     // axiosInstance default Content-Type: application/json bo'lgani uchun,
     // multipart/form-data uchun axios o'zi to'g'ri boundary qo'shadi.
-    return axiosInstance.post('/upload/avatar', formData, {
+    return axiosInstance.post('upload/avatar', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
