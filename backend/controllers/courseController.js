@@ -335,7 +335,8 @@ const getUserRecommendedCourses = async (req, res) => {
     const courses = await Course.find({ isActive: true })
       .sort({ viewCount: -1 })
       .limit(limit)
-      .select('-videos');
+      .select('-videos')
+      .lean();
     res.json({ success: true, data: { courses } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

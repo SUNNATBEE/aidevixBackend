@@ -574,9 +574,39 @@ const searchVideos = async (req, res) => {
   }
 };
 
+/**
+ * Get top viewed videos
+ * GET /api/videos/top?limit=10
+ */
+const getTopVideos = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    
+    const videos = await Video.find({ isActive: true })
+      .sort({ viewCount: -1 })
+      .limit(limit)
+      .populate('course', 'title category');
+
+    res.json({
+      success: true,
+      data: {
+        videos,
+        count: videos.length
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching top videos.',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getCourseVideos,
   getVideo,
+  getTopVideos,
   useVideoLink,
   createVideo,
   updateVideo,

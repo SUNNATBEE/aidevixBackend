@@ -1,7 +1,11 @@
-# 🔐 FIRDAVS — Login | Register | User Profile
+# 🔐 FIRDAVS — Login | Register | User Profile (Next.js + TypeScript)
+
+> [!IMPORTANT]
+> **DIQQAT:** Loyiha **Next.js 14 (App Router)** ga o'tkazildi. Davom etishdan oldin [Next.js Migratsiya Qo'llanmasini](../MIGRATION_GUIDE.md) to'liq o'qib chiqing.
+
 
 ## 📋 Vazifa Qisqacha
-Sen **Login**, **Register** va **User Profile** sahifalarini yasaysan.
+Sen **Login**, **Register** va **User Profile** sahifalarini **Next.js App Router** va **TypeScript** yordamida yasaysan.
 
 ---
 
@@ -10,14 +14,10 @@ Sen **Login**, **Register** va **User Profile** sahifalarini yasaysan.
 feature/firdavs-auth
 ```
 > ⚠️ **DIQQAT:** Hech qachon `main` branchga to'g'ridan-to'g'ri kod yozma!
-> Faqat o'z branchingda ishlash kerak.
 
 ```bash
-# GitHub'dan clone qilish
 git clone https://github.com/[repo-link]/AidevixBackend.git
 cd AidevixBackend
-
-# O'z branchingni yaratish
 git checkout -b feature/firdavs-auth
 
 # Ishni saqlab push qilish
@@ -28,36 +28,158 @@ git push origin feature/firdavs-auth
 
 ---
 
-## 📁 Sening Fayllaring (faqat shu fayllarni o'zgartir)
+## ⚡ Nega Next.js + TypeScript?
+
+### Next.js (React o'rniga)
+| React (CSR) | Next.js (SSR/SSG) |
+|-------------|-------------------|
+| Brauzer bo'sh HTML oladi, keyin JS yuklab render qiladi | Server tayyor HTML yuboradi — **SEO 10x yaxshi** |
+| Bitta `index.html` — Google bot sahifani tushunmaydi | Har sahifa alohida HTML — Google **har sahifani indekslaydi** |
+| `react-router-dom` kerak | Fayl tizimi = routing (`/app/login/page.tsx` = `/login`) |
+| `useEffect` da API chaqirish kerak | Server Component'da **to'g'ridan-to'g'ri `fetch`** — tezroq |
+
+### TypeScript (JavaScript o'rniga)
+| JavaScript | TypeScript |
+|-----------|------------|
+| Xatolar faqat **brauzerda** ko'rinadi (runtime) | Xatolar **yozish paytida** ko'rinadi (compile-time) |
+| `user.nmae` — brauzerda `undefined` | `user.nmae` — **IDE qizil chiziq chiqaradi** |
+| API javobini `console.log` qilib ko'rish kerak | Tip yozsang, `.` bosib **barcha pollar ko'rinadi** |
+
+---
+
+## 📁 Sening Fayllaring (Next.js App Router)
 
 ```
-frontend/src/
-├── pages/
-│   ├── LoginPage.jsx           ← Sen yozasan
-│   ├── RegisterPage.jsx        ← Sen yozasan
-│   └── ProfilePage.jsx         ← Sen yozasan
+frontend/
+├── app/
+│   ├── login/
+│   │   └── page.tsx              ← Sen yozasan (Login sahifasi)
+│   ├── register/
+│   │   └── page.tsx              ← Sen yozasan (Register sahifasi)
+│   ├── profile/
+│   │   └── page.tsx              ← Sen yozasan (Profile sahifasi)
+│   └── layout.tsx                ← Root layout (allaqachon bor)
 │
 ├── components/
 │   └── auth/
-│       ├── LoginForm.jsx        ← Sen yozasan
-│       └── RegisterForm.jsx     ← Sen yozasan
+│       ├── LoginForm.tsx          ← Sen yozasan
+│       └── RegisterForm.tsx       ← Sen yozasan
 │
-├── store/slices/
-│   └── authSlice.js             ← Allaqachon yozilgan, faqat o'qib tush
+├── types/
+│   ├── auth.ts                    ← Tayyor turlar (pastda berilgan)
+│   └── api.ts                     ← API javoblari turlari
 │
-├── hooks/
-│   └── useAuth.js               ← Allaqachon yozilgan, faqat o'qib tush
+├── lib/
+│   ├── api/
+│   │   ├── axiosInstance.ts       ← Allaqachon yozilgan
+│   │   ├── authApi.ts             ← Allaqachon yozilgan
+│   │   └── userApi.ts             ← updateProfile() ni ishlatasan
+│   └── hooks/
+│       └── useAuth.ts             ← Allaqachon yozilgan
 │
-└── api/
-    ├── authApi.js               ← Allaqachon yozilgan
-    └── userApi.js               ← updateProfile() ni ishlatasan
+└── store/slices/
+    └── authSlice.ts               ← Allaqachon yozilgan
+```
+
+> **Muhim farq:** Next.js da `pages/` emas, `app/` papka ishlatiladi (App Router).
+> Har sahifa `page.tsx` deb nomlanadi. Papka nomi = URL manzili.
+> Masalan: `app/login/page.tsx` → brauzerda `/login`
+
+---
+
+## 🔑 TypeScript Turlari (Types)
+
+Quyidagi turlarni `types/auth.ts` fayliga yozing. Ular **backenddan keladigan har qanday javob** uchun tayyor qolib:
+
+```typescript
+// types/auth.ts
+
+/** Foydalanuvchi obyekti — backenddan keladi */
+export interface User {
+  _id: string;
+  username: string;
+  email: string;
+  role: 'user' | 'admin';       // faqat ikki xil qiymat bo'lishi mumkin
+  isActive: boolean;
+  firstName?: string;            // ? = ixtiyoriy (bo'lmasligi mumkin)
+  lastName?: string;
+  subscriptions: {
+    instagram: {
+      subscribed: boolean;
+      username: string | null;
+      verifiedAt?: string;
+    };
+    telegram: {
+      subscribed: boolean;
+      username: string | null;
+      telegramUserId?: string;
+      verifiedAt?: string;
+    };
+  };
+  createdAt: string;
+}
+
+/** Login/Register javob turi */
+export interface AuthResponse {
+  success: boolean;
+  message?: string;
+  data: {
+    user: User;
+    accessToken: string;
+    refreshToken: string;
+  };
+}
+
+/** Register uchun form turi */
+export interface RegisterFormData {
+  username: string;
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+/** Login uchun form turi */
+export interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+/** XP statistika — profil sahifasi uchun */
+export interface UserStats {
+  xp: number;
+  level: number;
+  levelProgress: number;
+  xpToNextLevel: number;
+  streak: number;
+  lastActivityDate: string;
+  badges: Badge[];
+  videosWatched: number;
+  quizzesCompleted: number;
+  bio: string | null;
+  skills: string[];
+  avatar: string | null;
+  streakFreezes: number;
+}
+
+export interface Badge {
+  name: string;
+  icon: string;
+  earnedAt: string;
+}
+
+/** Umumiy API xato javobi */
+export interface ApiError {
+  success: false;
+  message: string;
+}
 ```
 
 ---
 
 ## 🎨 Dizayn (Figma)
 
-### Login Page
+### Login Page (`/login`)
 - Dark background (space navy: `#0A0E1A`)
 - Chap: 3D particle sahna (Qudrat yasaydi — siz faqat joy qoldirasiz)
 - O'ng: Login forma
@@ -67,7 +189,7 @@ frontend/src/
   - "Parolni unutdingizmi?" link
   - "Ro'yxatdan o'tish" link
 
-### Register Page
+### Register Page (`/register`)
 - Bosqichlar ro'yxati (Stepper) — `1. Asosiy`, `2. Ijtimoiy`, `3. Parol`
 - Asosiy qism:
   - Ism, Familiya inputlar
@@ -78,7 +200,7 @@ frontend/src/
   - Instagram username input
 - "Ro'yxatdan o'tish →" tugmasi
 
-### Profile Page
+### Profile Page (`/profile`)
 - Navbar'da: Profil, Kurslar, Quvestlar
 - Chap panel:
   - Avatar + "Online" badge
@@ -97,10 +219,29 @@ frontend/src/
 
 ---
 
-## 🔑 JWT va localStorage — Tushuntirish
+## 🔑 JWT va Token — Next.js da qanday ishlaydi?
 
-### Nima bu JWT?
-JWT (JSON Web Token) — bu server foydalanuvchiga bergan **maxsus raqamli kalit**. Uni klient `localStorage`da saqlaydi va har so'rovda serverga yuboradi.
+### React'dagi eski usul (localStorage):
+```javascript
+// ❌ Eski — React'da localStorage ishlatardik
+localStorage.setItem('accessToken', 'eyJ...')
+```
+
+### Next.js dagi yangi usul (Cookies):
+```typescript
+// ✅ Yangi — Next.js da cookies ishlatamiz (SSR ishlashi uchun)
+// Server Component'larda localStorage mavjud EMAS, faqat cookies ishlaydi.
+
+// Login qilgandan keyin token saqlash:
+import Cookies from 'js-cookie'
+
+const handleLogin = async (data: LoginFormData) => {
+  const res = await authApi.login(data)
+  // Token cookie ga saqlash — server ham o'qiy oladi
+  Cookies.set('accessToken', res.data.accessToken, { expires: 1/96 })  // 15 daqiqa
+  Cookies.set('refreshToken', res.data.refreshToken, { expires: 7 })   // 7 kun
+}
+```
 
 ### Token turlari:
 | Token | Muddati | Vazifasi |
@@ -108,27 +249,148 @@ JWT (JSON Web Token) — bu server foydalanuvchiga bergan **maxsus raqamli kalit
 | `accessToken` | 15 daqiqa | API so'rovlar uchun (Authorization header) |
 | `refreshToken` | 7 kun | Yangi accessToken olish uchun |
 
-### localStorage da qanday saqlanadi?
-```javascript
-// Bu kod authSlice.js da allaqachon yozilgan:
-localStorage.setItem('accessToken', 'eyJhbGci...')
-localStorage.setItem('refreshToken', 'eyJhbGci...')
-localStorage.setItem('user', JSON.stringify({ id, username, email, role }))
-```
-
-### Har so'rovda token qanday yuboriladi?
-```javascript
-// axiosInstance.js da interceptor bor (allaqachon yozilgan):
-// Har so'rovga avtomatik qo'shiladi:
-headers: { Authorization: `Bearer ${accessToken}` }
-```
-
 ### Token eskirsa nima bo'ladi?
 1. Server `401 Unauthorized` qaytaradi
-2. `axiosInstance.js` interceptor bu xatoni ushlaydi
+2. `axiosInstance.ts` interceptor bu xatoni ushlaydi
 3. `refreshToken` yordamida yangi `accessToken` oladi
 4. So'rovni qayta yuboradi
-5. Agar `refreshToken` ham eskirsa → logout qilinadi
+5. Agar `refreshToken` ham eskirsa → logout → `/login` ga redirect
+
+---
+
+## 📝 Kod Misollari (Next.js + TypeScript)
+
+### Login sahifasi (`app/login/page.tsx`):
+```tsx
+'use client'   // ← Bu client component ekanini bildiradi
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'       // next/router EMAS!
+import { useForm } from 'react-hook-form'
+import { toast } from 'react-hot-toast'
+import { FiEye, FiEyeOff, FiMail, FiLock } from 'react-icons/fi'
+import { motion } from 'framer-motion'
+import Link from 'next/link'                       // react-router Link EMAS!
+import type { LoginFormData, AuthResponse } from '@/types/auth'
+
+export default function LoginPage() {
+  const router = useRouter()
+  const [showPassword, setShowPassword] = useState<boolean>(false)
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormData>()
+
+  const onSubmit = async (formData: LoginFormData): Promise<void> => {
+    try {
+      const res: AuthResponse = await authApi.login(formData)
+      // Token saqlash (cookie yoki store)
+      toast.success('Muvaffaqiyatli kirdingiz!')
+      router.push('/')   // navigate() EMAS, router.push() ishlatiladi
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } }
+      toast.error(error.response?.data?.message || 'Xatolik yuz berdi')
+    }
+  }
+
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-[#0A0E1A]">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="card bg-base-200 w-full max-w-md p-8"
+      >
+        <h1 className="text-2xl font-bold text-center mb-6">Tizimga Kirish</h1>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Email */}
+          <div className="form-control">
+            <label className="label"><span className="label-text">Email</span></label>
+            <div className="relative">
+              <FiMail className="absolute left-3 top-3 text-base-content/50" />
+              <input
+                type="email"
+                className="input input-bordered w-full pl-10"
+                placeholder="email@example.com"
+                {...register('email', {
+                  required: 'Email kiriting',
+                  pattern: { value: /^\S+@\S+$/i, message: 'Email noto\'g\'ri' }
+                })}
+              />
+            </div>
+            {errors.email && <p className="text-error text-sm mt-1">{errors.email.message}</p>}
+          </div>
+
+          {/* Password */}
+          <div className="form-control">
+            <label className="label"><span className="label-text">Parol</span></label>
+            <div className="relative">
+              <FiLock className="absolute left-3 top-3 text-base-content/50" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="input input-bordered w-full pl-10 pr-10"
+                placeholder="••••••••"
+                {...register('password', { required: 'Parol kiriting' })}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-base-content/50"
+              >
+                {showPassword ? <FiEyeOff /> : <FiEye />}
+              </button>
+            </div>
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="btn btn-primary w-full"
+          >
+            {isSubmitting ? <span className="loading loading-spinner" /> : 'Kirish →'}
+          </button>
+        </form>
+
+        <div className="text-center mt-4 space-y-2">
+          <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+            Parolni unutdingizmi?
+          </Link>
+          <p className="text-sm">
+            Hisobingiz yo'qmi?{' '}
+            <Link href="/register" className="text-primary font-bold hover:underline">
+              Ro'yxatdan o'tish
+            </Link>
+          </p>
+        </div>
+      </motion.div>
+    </main>
+  )
+}
+```
+
+> **Muhim farqlar (React vs Next.js):**
+> - `navigate('/login')` → `router.push('/login')`
+> - `import { Link } from 'react-router-dom'` → `import Link from 'next/link'`
+> - `<Link to="/login">` → `<Link href="/login">`
+> - `useNavigate()` → `useRouter()` (`next/navigation` dan)
+> - Fayl nomi `.jsx` → `.tsx`
+> - Har bir client-side component tepasiga `'use client'` yozish **SHART**
+
+---
+
+## 🛠️ Texnologiyalar
+
+```bash
+# Next.js loyihada o'rnatilgan:
+next                 # Framework (SSR, routing, bundler)
+typescript           # Tip xavfsizlik
+react-hook-form      # Forma validation
+react-hot-toast      # Xato/muvaffaqiyat xabarlari
+framer-motion        # Animatsiyalar
+react-icons          # Ikonkalar (FiEye, FiEyeOff, FiMail, ...)
+js-cookie            # Cookie bilan ishlash (token saqlash)
+
+# O'CHIRILADIGAN (React uchun edi, Next.js da kerak emas):
+# react-router-dom   ← Next.js o'zida routing bor
+```
 
 ---
 
@@ -136,8 +398,8 @@ headers: { Authorization: `Bearer ${accessToken}` }
 
 ### Swagger UI
 - **URL:** `http://localhost:5000/api-docs`
-- **Username:** `admin`
-- **Password:** `admin123`
+- **Username:** `Aidevix`
+- **Password:** `sunnatbee`
 
 ### Sen ishlatadigan endpointlar:
 
@@ -146,105 +408,30 @@ headers: { Authorization: `Bearer ${accessToken}` }
 | `/api/auth/register` | POST | ❌ Yo'q | Ro'yxatdan o'tish |
 | `/api/auth/login` | POST | ❌ Yo'q | Kirish |
 | `/api/auth/logout` | POST | ✅ Bearer | Chiqish |
-| `/api/auth/refresh` | POST | ❌ Yo'q | Token yangilash |
+| `/api/auth/refresh-token` | POST | ❌ Yo'q | Token yangilash |
 | `/api/auth/me` | GET | ✅ Bearer | Profil ma'lumotlari |
 | `/api/xp/stats` | GET | ✅ Bearer | XP, level, streak |
 | `/api/xp/profile` | PUT | ✅ Bearer | Bio, skills yangilash |
 
-### Misol — Register:
-```javascript
-import { authApi } from '@api/authApi'
+### Misol — Register (TypeScript bilan):
+```typescript
+import { authApi } from '@/lib/api/authApi'
+import type { RegisterFormData, AuthResponse } from '@/types/auth'
 
-const handleRegister = async (formData) => {
+const handleRegister = async (formData: RegisterFormData): Promise<void> => {
   try {
-    const { data } = await authApi.register({
+    const { data }: { data: AuthResponse } = await authApi.register({
       username: formData.username,
       email: formData.email,
       password: formData.password,
     })
-    // data.data.accessToken, data.data.refreshToken, data.data.user
-  } catch (err) {
-    console.error(err.response.data.message)
+    // data.data.accessToken — tip bilan himoyalangan
+    // data.data.user.role — faqat 'user' | 'admin'
+  } catch (err: unknown) {
+    const error = err as { response?: { data?: ApiError } }
+    console.error(error.response?.data?.message)
   }
 }
-```
-
-### Misol — Login:
-```javascript
-import { useDispatch } from 'react-redux'
-import { login } from '@store/slices/authSlice'
-
-const dispatch = useDispatch()
-
-const handleLogin = async (formData) => {
-  const result = await dispatch(login({
-    email: formData.email,
-    password: formData.password,
-  }))
-  if (login.fulfilled.match(result)) {
-    navigate('/') // Bosh sahifaga yo'naltirish
-  }
-}
-```
-
----
-
-## 🛠️ Texnologiyalar
-
-```bash
-# Allaqachon o'rnatilgan:
-react-hook-form    # Forma validation
-react-hot-toast    # Xato/muvaffaqiyat xabarlari
-react-router-dom   # navigate() uchun
-framer-motion      # Animatsiyalar
-react-icons        # Ikonkalar (FiEye, FiEyeOff, FiMail, ...)
-@reduxjs/toolkit   # Redux state
-```
-
-### Ishlatish misoli:
-```javascript
-import { useForm } from 'react-hook-form'
-import { toast } from 'react-hot-toast'
-import { FiEye, FiEyeOff, FiMail, FiLock } from 'react-icons/fi'
-import { motion } from 'framer-motion'
-```
-
----
-
-## 🎨 Tailwind + DaisyUI Komponentlar
-
-```jsx
-{/* Input */}
-<input className="input input-bordered w-full bg-base-200" />
-
-{/* Button */}
-<button className="btn btn-primary w-full">Kirish →</button>
-
-{/* Error xabar */}
-<p className="text-error text-sm mt-1">{errors.email?.message}</p>
-
-{/* Avatar */}
-<div className="avatar">
-  <div className="w-24 rounded-full ring ring-primary">
-    <img src={user.avatar} />
-  </div>
-</div>
-
-{/* Badge */}
-<span className="badge badge-primary">Level 12</span>
-```
-
----
-
-## 📊 Redux State Ishlatish
-
-```javascript
-import { useSelector, useDispatch } from 'react-redux'
-import { selectUser, selectIsLoggedIn, selectAuthLoading } from '@store/slices/authSlice'
-
-const user = useSelector(selectUser)
-const isLoggedIn = useSelector(selectIsLoggedIn)
-const loading = useSelector(selectAuthLoading)
 ```
 
 ---
@@ -253,282 +440,16 @@ const loading = useSelector(selectAuthLoading)
 - [ ] Login sahifasi ishlaydi (email/parol bilan kirish)
 - [ ] Register sahifasi ishlaydi (yangi user yaratiladi)
 - [ ] Xato xabarlari ko'rsatiladi (noto'g'ri parol va h.k.)
-- [ ] Token `localStorage`da saqlanadi
+- [ ] Token **cookie** da saqlanadi (localStorage EMAS)
 - [ ] Profile sahifasi foydalanuvchi ma'lumotlarini ko'rsatadi
 - [ ] Bio va skills yangilanadi
+- [ ] Barcha fayl nomlari `.tsx` yoki `.ts` (`.jsx` EMAS)
+- [ ] Har qanday `any` tip ishlatilmagan (strict TypeScript)
+- [ ] `'use client'` faqat kerakli komponentlarda yozilgan
 - [ ] Dizayn Figma bilan mos keladi
 - [ ] `main` branchga kod yozilmagan
 
 ---
 
 > 💡 **Maslahat:** Swagger UI da endpointlarni sinab ko'r, so'ng frontend'da ishlatgin.
-
----
-
-## 🌐 BACKEND API — TO'LIQ QO'LLANMA
-
-**Backend:** Node.js + Express.js | **Port:** 5000 | **Database:** MongoDB Atlas
-**Jami endpointlar: ~75 ta**
-
-### 🔗 Server URL'lari
-
-| Muhit | URL |
-|-------|-----|
-| Local (Development) | `http://localhost:5000` |
-| Production (Railway) | `https://aidevix-backend-production.up.railway.app` |
-
----
-
-### 📖 Swagger UI — Interaktiv Hujjat
-
-```
-URL:      http://localhost:5000/api-docs
-Username: Aidevix
-Password: sunnatbee
-```
-
-**Swagger'da token kiritish:**
-1. `http://localhost:5000/api-docs` ni oching
-2. Yuqori o'ngda **"Authorize 🔓"** tugmasini bosing
-3. `Bearer eyJhbGciOiJ...` formatida token kiriting
-4. **"Authorize"** bosing — endi `🔒` belgili endpointlar ishlaydi
-
-> **Swagger'da token qanday olish?**
-> Authentication → POST `/api/auth/login` → Execute → `accessToken` ni ko'chir → Authorize
-
----
-
-## 📋 BARCHA ENDPOINTLAR (~75 ta)
-
-### 1️⃣ AUTHENTICATION — `/api/auth` (5 ta) ← SEN ISHLATASAN
-
-| Method | URL | Auth | Vazifa |
-|--------|-----|------|--------|
-| **POST** | **`/api/auth/register`** | ❌ | **Ro'yxatdan o'tish** |
-| **POST** | **`/api/auth/login`** | ❌ | **Tizimga kirish** |
-| **POST** | **`/api/auth/refresh-token`** | ❌ | **AccessToken yangilash** |
-| **POST** | **`/api/auth/logout`** | ✅ | **Tizimdan chiqish** |
-| **GET** | **`/api/auth/me`** | ✅ | **Mening profilim** |
-
-**POST `/api/auth/register`** — Yangi foydalanuvchi
-```json
-// So'rov body:
-{ "username": "ahmadjon", "email": "ahmadjon@gmail.com", "password": "secret123" }
-
-// Muvaffaqiyatli javob (201):
-{
-  "success": true,
-  "message": "User registered successfully.",
-  "data": {
-    "user": {
-      "_id": "65f1a2b3c4d5e6f7a8b9c0d1",
-      "username": "ahmadjon",
-      "email": "ahmadjon@gmail.com",
-      "role": "user",
-      "isActive": true,
-      "subscriptions": {
-        "instagram": { "subscribed": false, "username": null },
-        "telegram": { "subscribed": false, "username": null }
-      }
-    },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
-}
-
-// Xato javoblar:
-// 400: { "success": false, "message": "User with this email already exists." }
-// 400: { "success": false, "message": "Please provide username, email, and password." }
-```
-
-**POST `/api/auth/login`** — Tizimga kirish
-```json
-// So'rov body:
-{ "email": "ahmadjon@gmail.com", "password": "secret123" }
-
-// Muvaffaqiyatli javob (200):
-{
-  "success": true,
-  "message": "Login successful.",
-  "data": {
-    "user": {
-      "_id": "65f1...", "username": "ahmadjon", "email": "ahmadjon@gmail.com",
-      "role": "user",
-      "subscriptions": {
-        "instagram": { "subscribed": true, "username": "ahmadjon_ig" },
-        "telegram": { "subscribed": true, "telegramUserId": "987654321" }
-      }
-    },
-    "accessToken": "eyJ...",
-    "refreshToken": "eyJ..."
-  }
-}
-
-// Xato javoblar:
-// 401: { "success": false, "message": "Invalid email or password." }
-// 403: { "success": false, "message": "Account is deactivated." }
-```
-
-**POST `/api/auth/refresh-token`** — Token yangilash
-```json
-// So'rov: { "refreshToken": "eyJ..." }
-// Javob: { "success": true, "data": { "accessToken": "eyJ...yangi token..." } }
-// ⚠️ AccessToken 15 daqiqada eskiradi, keyin shu endpoint chaqiriladi
-```
-
-**GET `/api/auth/me`** — Mening profilim (Token kerak)
-```json
-// Javob (200):
-{
-  "success": true,
-  "data": {
-    "user": {
-      "_id": "65f1...", "username": "ahmadjon", "email": "ahmadjon@gmail.com",
-      "role": "user", "isActive": true,
-      "subscriptions": {
-        "instagram": { "subscribed": true, "username": "ahmadjon_ig", "verifiedAt": "2026-03-10T08:00:00.000Z" },
-        "telegram": { "subscribed": true, "telegramUserId": "987654321", "verifiedAt": "2026-03-10T08:05:00.000Z" }
-      },
-      "createdAt": "2026-01-15T08:30:00.000Z"
-    }
-  }
-}
-```
-
----
-
-### 2️⃣ SUBSCRIPTIONS — `/api/subscriptions` (3 ta)
-
-| Method | URL | Auth | Vazifa |
-|--------|-----|------|--------|
-| GET | `/api/subscriptions/status` | ✅ | Obuna holati |
-| POST | `/api/subscriptions/verify-instagram` | ✅ | Instagram |
-| POST | `/api/subscriptions/verify-telegram` | ✅ | Telegram |
-
----
-
-### 3️⃣ COURSES — `/api/courses` (9 ta)
-
-| Method | URL | Auth | Vazifa |
-|--------|-----|------|--------|
-| GET | `/api/courses` | ❌ | Barcha kurslar |
-| GET | `/api/courses/top` | ❌ | Top kurslar |
-| GET | `/api/courses/categories` | ❌ | Kategoriyalar |
-| GET | `/api/courses/:id` | ❌ | Bitta kurs |
-| GET | `/api/courses/:id/recommended` | ❌ | Tavsiya etilgan |
-| POST | `/api/courses/:id/rate` | ✅ | Baholash |
-| POST | `/api/courses` | ✅ Admin | Yaratish |
-| PUT | `/api/courses/:id` | ✅ Admin | Yangilash |
-| DELETE | `/api/courses/:id` | ✅ Admin | O'chirish |
-
----
-
-### 4️⃣ VIDEOS — `/api/videos` (9 ta)
-
-| Method | URL | Auth | Vazifa |
-|--------|-----|------|--------|
-| GET | `/api/videos/course/:courseId` | ❌ | Kurs videolari |
-| GET | `/api/videos/:id` | ✅ + Obuna | Video + Bunny embed URL |
-| POST | `/api/videos/link/:linkId/use` | ✅ | Linkni belgilash |
-| GET | `/api/videos/:id/questions` | ❌ | Q&A |
-| POST | `/api/videos/:id/questions` | ✅ | Savol berish |
-| POST | `/api/videos/:id/questions/:qId/answer` | ✅ Admin | Javob |
-| POST | `/api/videos` | ✅ Admin | Yaratish |
-| PUT | `/api/videos/:id` | ✅ Admin | Yangilash |
-| DELETE | `/api/videos/:id` | ✅ Admin | O'chirish |
-
----
-
-### 5️⃣ XP TIZIMI — `/api/xp` (8 ta) ← SEN ISHLATASAN (Profil uchun)
-
-| Method | URL | Auth | Vazifa |
-|--------|-----|------|--------|
-| **GET** | **`/api/xp/stats`** | ✅ | **XP, level, streak, badges** |
-| **PUT** | **`/api/xp/profile`** | ✅ | **Bio, skills, avatar yangilash** |
-| POST | `/api/xp/video-watched/:videoId` | ✅ | +50 XP |
-| GET | `/api/xp/quiz/video/:videoId` | ✅ | Video quizi |
-| POST | `/api/xp/quiz/:quizId` | ✅ | Quiz yechish |
-| GET | `/api/xp/weekly-leaderboard` | ❌ | Haftalik TOP |
-| POST | `/api/xp/streak-freeze` | ✅ | Freeze ishlatish |
-| POST | `/api/xp/streak-freeze/add` | ✅ | Freeze qo'shish |
-
-**GET `/api/xp/stats`** — Profil sahifasi uchun
-```json
-// Javob (200):
-{
-  "success": true,
-  "data": {
-    "xp": 1240, "level": 2, "levelProgress": 24, "xpToNextLevel": 760,
-    "streak": 12, "lastActivityDate": "2026-03-17T10:00:00.000Z",
-    "badges": [{ "name": "First Video", "icon": "🎬", "earnedAt": "..." }],
-    "videosWatched": 42, "quizzesCompleted": 15,
-    "bio": "Python dasturchi. Backend va AI ishlab chiqaman.",
-    "skills": ["Python", "Django", "React"],
-    "avatar": "https://cloudinary.com/avatar.jpg"
-  }
-}
-```
-
-**PUT `/api/xp/profile`** — Bio va skills yangilash
-```json
-// So'rov body:
-{
-  "bio": "Python dasturchi. Backend va AI ishlab chiqaman.",
-  "skills": ["Python", "Django", "React"],
-  "avatar": "https://cloudinary.com/new-avatar.jpg"
-}
-// Javob: { "success": true, "data": { "bio": "...", "skills": [...], "avatar": "..." } }
-```
-
----
-
-### 6️⃣ RANKING — `/api/ranking` (3 ta)
-
-| Method | URL | Auth | Vazifa |
-|--------|-----|------|--------|
-| GET | `/api/ranking/courses` | ❌ | Top kurslar |
-| GET | `/api/ranking/users` | ❌ | Top foydalanuvchilar |
-| GET | `/api/ranking/users/:userId/position` | ✅ | O'z pozitsiyasi |
-
----
-
-### 7️⃣–1️⃣6️⃣ QOLGAN ENDPOINTLAR
-
-| Guruh | Endpoint | Soni |
-|-------|----------|------|
-| Projects | `/api/projects` | 6 ta |
-| Enrollments | `/api/enrollments` | 4 ta |
-| Wishlist | `/api/wishlist` | 3 ta |
-| Certificates | `/api/certificates` | 2 ta |
-| Sections | `/api/sections` | 5 ta |
-| Follow | `/api/follow` | 4 ta |
-| Challenges | `/api/challenges` | 3 ta |
-| Payments | `/api/payments` | 3 ta |
-| Admin | `/api/admin` | 5 ta |
-| Upload | `/api/upload` | 2 ta |
-| Health | `/health` | 1 ta |
-
----
-
-### ❌ HTTP Status Kodlar
-
-| Kod | Ma'no | Sabab |
-|-----|-------|-------|
-| `200` | OK | Muvaffaqiyat |
-| `201` | Created | Yaratildi |
-| `400` | Bad Request | Noto'g'ri ma'lumot |
-| `401` | Unauthorized | Token yo'q/eskirgan |
-| `403` | Forbidden | Ruxsat yo'q |
-| `404` | Not Found | Topilmadi |
-| `429` | Too Many Requests | Rate limit — Auth: 10 req/15min |
-| `500` | Server Error | Server xatosi |
-
-### 🔄 JWT Token Oqimi
-
-```
-1. Register/Login → accessToken (15min) + refreshToken (7kun) olindi
-2. Har so'rovda: Authorization: Bearer {accessToken}
-3. 401 xatosi → axiosInstance refresh qiladi → /api/auth/refresh-token
-4. Yangi accessToken → so'rov qayta yuboriladi
-5. RefreshToken ham eskirsa → logout → /login sahifasiga
-```
+> TypeScript tiplarini yozish qiyin tuyulsa — Swagger JSON javobidan nusxa olib, `types/` ga yasagin.

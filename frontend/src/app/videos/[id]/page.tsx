@@ -1,0 +1,131 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { IoPlay, IoTime, IoEye, IoLockClosed, IoArrowBack, IoCodeSlash, IoStar } from 'react-icons/io5';
+import { useVideos } from '@hooks/useVideos';
+import { formatDuration } from '@utils/formatDuration';
+import { ROUTES } from '@utils/constants';
+
+export default function VideoPage() {
+  const { id }: { id: string } = useParams();
+  const router = useRouter();
+  const { current: video, videoLink, loading, error, fetchById } = useVideos();
+  const [modalOpen, setModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (id) fetchById(id);
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0A0E1A] flex items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+      </div>
+    );
+  }
+
+  if (error || !video) {
+    return (
+      <div className="min-h-screen bg-[#0A0E1A] flex flex-col items-center justify-center p-6 text-center">
+        <h2 className="text-2xl font-bold text-white mb-4">Video topilmadi</h2>
+        <Link href="/courses" className="btn btn-primary rounded-full px-8">Kurslarga qaytish</Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0A0E1A] text-white pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Orqaga tugma */}
+        <button 
+          onClick={() => router.back()} 
+          className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8 group"
+        >
+          <IoArrowBack className="group-hover:-translate-x-1 transition-transform" />
+          <span>Orqaga</span>
+        </button>
+
+        {/* Video Header Section */}
+        <div className="bg-[#0d1224]/60 border border-white/5 rounded-3xl p-6 sm:p-10 mb-10 shadow-2xl">
+          <div className="flex flex-wrap gap-3 mb-6">
+            <span className="badge badge-primary badge-outline font-bold text-[10px] uppercase tracking-widest px-3">
+              Kurs: {video.course?.title || 'Dars'}
+            </span>
+          </div>
+
+          <h1 className="text-3xl sm:text-4xl font-black text-white mb-4 leading-tight">
+            {video.title}
+          </h1>
+
+          <p className="text-gray-400 text-lg leading-relaxed mb-8 max-w-2xl">
+            {video.description || "Ushbu dars haqida hozircha tavsif qo'shilmagan."}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-6 pt-6 border-t border-white/5">
+            <div className="flex items-center gap-2 text-gray-400">
+              <IoTime className="text-indigo-400" />
+              <span className="text-sm font-medium">{formatDuration(video.duration)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <IoEye className="text-indigo-400" />
+              <span className="text-sm font-medium">{video.views?.toLocaleString() || 0} marta ko'rilgan</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <IoStar className="text-yellow-400" />
+              <span className="text-sm font-medium">{video.rating?.average?.toFixed(1) || '0.0'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Video Player Section (Placeholder for now) */}
+        <div className="bg-black/40 border border-white/5 rounded-[2.5rem] overflow-hidden aspect-video flex flex-col items-center justify-center relative group">
+          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 via-transparent to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+          
+          <div className="w-24 h-24 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mb-6 shadow-2xl group-hover:scale-110 transition-transform duration-500">
+             <div className="w-16 h-16 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40">
+                <IoPlay size={32} className="ml-1" />
+             </div>
+          </div>
+          
+          <h2 className="text-2xl font-bold text-white mb-2">Video Telegram&apos;da joylashgan</h2>
+          <p className="text-gray-400 text-center px-8 max-w-md mb-8">
+            Ushbu darsni ko&apos;rish uchun quyidagi tugmani bosing va biz taqdim etgan havola orqali videoga o&apos;ting.
+          </p>
+
+          {videoLink ? (
+             <a 
+               href={videoLink.telegramLink} 
+               target="_blank" 
+               rel="noopener noreferrer"
+               className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-10 h-14 font-bold text-lg shadow-xl shadow-indigo-500/20"
+             >
+               ▶ Videoni ko&apos;rish
+             </a>
+          ) : (
+             <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-8 py-4 rounded-2xl">
+                <span className="loading loading-spinner loading-sm text-indigo-400"></span>
+                <span className="text-sm text-gray-300 font-medium tracking-wide">Havola yuklanmoqda...</span>
+             </div>
+          )}
+        </div>
+
+        {/* Playground Redirect */}
+        <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 p-8 bg-indigo-500/5 border border-indigo-500/10 rounded-3xl">
+          <div>
+            <h3 className="text-xl font-bold text-white mb-1">Amaliyot bilan o&apos;rganing</h3>
+            <p className="text-gray-400 text-sm">Playground orqali yozilgan kodlarni sinab ko&apos;ring.</p>
+          </div>
+          <Link 
+            href={`/videos/${id}/playground`} 
+            className="btn bg-white/5 hover:bg-white/10 text-white border-white/10 rounded-2xl normal-case gap-2 px-8 h-12"
+          >
+            <IoCodeSlash />
+            Playground&apos;da o&apos;rganish →
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

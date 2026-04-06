@@ -1,7 +1,11 @@
-# 🎮 SUHROB — Top User Leaderboard + Level Up Page
+# 🎮 SUHROB — Top User Leaderboard + Level Up Page (Next.js + TypeScript)
+
+> [!IMPORTANT]
+> **DIQQAT:** Loyiha **Next.js 14 (App Router)** ga o'tkazildi. Davom etishdan oldin [Next.js Migratsiya Qo'llanmasini](../MIGRATION_GUIDE.md) to'liq o'qib chiqing.
+
 
 ## 📋 Vazifa Qisqacha
-Sen **global foydalanuvchilar reytingini** (XP bo'yicha) va **Level UP celebration sahifasini** yasaysan. Foydalanuvchilar video ko'rish (+50 XP) va quiz yechish (+10-100 XP) orqali ball to'playdi.
+Sen **global foydalanuvchilar reytingini** (XP bo'yicha) va **Level UP celebration sahifasini** **Next.js App Router** va **TypeScript** yordamida yasaysan.
 
 ---
 
@@ -18,31 +22,154 @@ git push origin feature/suhrob-leaderboard
 
 ---
 
-## 📁 Sening Fayllaring
+## ⚡ Nega Next.js + TypeScript?
+
+### Next.js afzalliklari (sening vazifangda):
+| Muammo (React) | Yechim (Next.js) |
+|----------------|------------------|
+| Leaderboard sahifasi Google'da **indekslanmaydi** | SSR bilan Google bot **tayyor HTML** ko'radi |
+| `useEffect` da API chaqirib, loading ko'rsatasan | **Server Component**'da `fetch` — sahifa tayyor keladi |
+| `react-router-dom` bilan routing | `app/leaderboard/page.tsx` = `/leaderboard` (fayl = yo'l) |
+| `import { useNavigate } from 'react-router-dom'` | `import { useRouter } from 'next/navigation'` |
+
+### TypeScript afzalliklari (sening vazifangda):
+| Muammo (JavaScript) | Yechim (TypeScript) |
+|---------------------|---------------------|
+| `user.xp` nima turi? `number` mi? `string` mi? | `xp: number` — **aniq belgilangan** |
+| `users.map(u => u.nmae)` — typo brauzerda ko'rinadi | IDE **yozish paytida** xato ko'rsatadi |
+| `badges` massiv ichida nima bor aniq emas | `Badge[]` turi bor — `.` bosib ko'rasan |
+
+---
+
+## 📁 Sening Fayllaring (Next.js App Router)
 
 ```
-frontend/src/
-├── pages/
-│   ├── LeaderboardPage.jsx              ← Sen yozasan
-│   └── LevelUpPage.jsx                  ← Sen yozasan
+frontend/
+├── app/
+│   ├── leaderboard/
+│   │   └── page.tsx                    ← Sen yozasan (Leaderboard sahifasi)
+│   └── level-up/
+│       └── page.tsx                    ← Sen yozasan (Level Up sahifasi)
 │
 ├── components/
 │   └── leaderboard/
-│       ├── LeaderboardTable.jsx          ← Sen yozasan
-│       ├── LevelUpModal.jsx              ← Sen yozasan
-│       └── UserXPCard.jsx               ← Sen yozasan (yangi fayl)
+│       ├── LeaderboardTable.tsx         ← Sen yozasan
+│       ├── LevelUpModal.tsx            ← Sen yozasan
+│       ├── UserXPCard.tsx              ← Sen yozasan
+│       └── Podium.tsx                  ← Sen yozasan
 │
-├── hooks/
-│   ├── useRanking.js                     ← useTopUsers() ishlatasan
-│   └── useUserStats.js                   ← Allaqachon yozilgan
+├── types/
+│   ├── ranking.ts                      ← Tayyor turlar (pastda berilgan)
+│   └── xp.ts                          ← XP turlari
 │
-├── store/slices/
-│   ├── rankingSlice.js                   ← Allaqachon yozilgan
-│   └── userStatsSlice.js                 ← Allaqachon yozilgan
+├── lib/
+│   ├── api/
+│   │   ├── rankingApi.ts               ← Allaqachon yozilgan
+│   │   └── userApi.ts                  ← Allaqachon yozilgan
+│   └── hooks/
+│       ├── useRanking.ts               ← useTopUsers() ishlatasan
+│       └── useUserStats.ts             ← Allaqachon yozilgan
 │
-└── api/
-    ├── rankingApi.js                     ← Allaqachon yozilgan
-    └── userApi.js                        ← Allaqachon yozilgan
+└── store/slices/
+    ├── rankingSlice.ts                  ← Allaqachon yozilgan
+    └── userStatsSlice.ts                ← Allaqachon yozilgan
+```
+
+> **Esda tuting:** `.jsx` → `.tsx`, `.js` → `.ts` bo'ldi.
+> Next.js da `pages/LeaderboardPage.jsx` emas → `app/leaderboard/page.tsx`
+
+---
+
+## 🔑 TypeScript Turlari (Types)
+
+```typescript
+// types/ranking.ts
+
+/** Leaderboard'dagi bitta foydalanuvchi */
+export interface RankedUser {
+  _id: string;
+  username: string;
+  avatar: string | null;
+  xp: number;
+  level: number;
+  streak: number;
+  badges: string[];
+  rank: number;
+}
+
+/** Foydalanuvchining o'z pozitsiyasi */
+export interface UserPosition {
+  rank: number;
+  totalUsers: number;
+  percentile: number;    // Top N% (masalan: 11 = "Top 11%")
+  xp: number;
+  level: number;
+}
+
+/** Sahifalash (Pagination) */
+export interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+/** Leaderboard API javobi */
+export interface LeaderboardResponse {
+  success: boolean;
+  data: {
+    users: RankedUser[];
+    pagination: Pagination;
+  };
+}
+
+/** Pozitsiya API javobi */
+export interface PositionResponse {
+  success: boolean;
+  data: {
+    position: UserPosition;
+  };
+}
+```
+
+```typescript
+// types/xp.ts
+
+export interface Badge {
+  id: string;
+  name: string;
+  icon: string;
+  earnedAt: string;
+}
+
+/** XP statistikasi */
+export interface UserStats {
+  userId: string;
+  xp: number;
+  level: number;
+  xpToNextLevel: number;
+  streak: number;
+  streakFreezes: number;
+  videosWatched: number;
+  quizzesCompleted: number;
+  badges: Badge[];
+  bio: string | null;
+  skills: string[];
+  avatar: string | null;
+}
+
+/** XP Engine — qancha XP beriladi */
+export interface XPSource {
+  label: string;
+  xp: string;
+  icon: string;
+}
+
+/** Level UP triggeri */
+export interface LevelUpEvent {
+  newLevel: number;
+  leveledUp: boolean;
+}
 ```
 
 ---
@@ -89,100 +216,83 @@ frontend/src/
 ---
 
 ### 2-Sahifa: LevelUpPage (`/level-up`)
-
-```
-┌─────────────────────────────────────────┐
-│         ✨ confetti animatsiya ✨         │
-│                                          │
-│              25                          │
-│           Tabriklaymiz!                  │
-│   Siz N-unvoniga erishdingiz: "Mantiq    │
-│   Ustasi"                                │
-│                                          │
-│  Joriy XP: 12,500    Savollar: +450      │
-│  Daraja:    +3       Savollar: 50        │
-│                                          │
-│  ┌─────────────────────────────────┐    │
-│  │ JavaScript Master               │    │
-│  │ 5 Javascript kursini tugatdi    │    │
-│  └─────────────────────────────────┘    │
-│                                          │
-│       [Davom etish →]                    │
-│       [Ulashish/Telegram]               │
-└─────────────────────────────────────────┘
-```
+Confetti + animatsiya bilan darajaga erishganlik sahifasi.
 
 ---
 
-## 🔌 API Endpointlar
+## 📝 Kod Misollari (Next.js + TypeScript)
 
-### Swagger UI
-- **URL:** `http://localhost:5000/api-docs`
-- **Username:** `admin`
-- **Password:** `admin123`
+### Leaderboard sahifasi (`app/leaderboard/page.tsx`):
+```tsx
+'use client'
 
-### Sen ishlatadigan endpointlar:
+import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+import type { RankedUser, UserPosition, Pagination } from '@/types/ranking'
+import type { UserStats, XPSource } from '@/types/xp'
+import UserXPCard from '@/components/leaderboard/UserXPCard'
+import Podium from '@/components/leaderboard/Podium'
+import LeaderboardTable from '@/components/leaderboard/LeaderboardTable'
 
-| Endpoint | Method | Auth | Vazifa |
-|----------|--------|------|--------|
-| `/api/ranking/users` | GET | ❌ Yo'q | Top foydalanuvchilar |
-| `/api/ranking/users?page=1&limit=20` | GET | ❌ Yo'q | Sahifalash bilan |
-| `/api/ranking/users/:userId/position` | GET | ✅ Bearer | O'z pozitsiyasi |
-| `/api/xp/stats` | GET | ✅ Bearer | XP, level, streak |
-| `/api/xp/quiz/:quizId` | POST | ✅ Bearer | Quiz yechish |
-| `/api/xp/quiz/video/:videoId` | GET | ✅ Bearer | Video quizini olish |
+// XP Engine ma'lumotlari — tip bilan himoyalangan
+const XP_SOURCES: XPSource[] = [
+  { label: 'Video Ko\'rish', xp: '+50 XP', icon: '🎬' },
+  { label: 'Quizlar', xp: '+100 XP', icon: '📝' },
+  { label: 'Amaliy Mashq', xp: '+150 XP', icon: '💻' },
+  { label: 'Challenge', xp: '+500 XP', icon: '🚀' },
+]
 
-### Misol — Leaderboard yuklanishi:
-```javascript
-import { useTopUsers } from '@hooks/useRanking'
-import { useUserStats } from '@hooks/useUserStats'
+export default function LeaderboardPage() {
+  const [users, setUsers] = useState<RankedUser[]>([])
+  const [pagination, setPagination] = useState<Pagination | null>(null)
+  const [position, setPosition] = useState<UserPosition | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
 
-const LeaderboardPage = () => {
-  const { users, loading, pagination, loadMore } = useTopUsers({ page: 1, limit: 20 })
-  const { xp, level, streak } = useUserStats()
+  // ... fetch logic
 
   return (
-    <div>
-      {/* User o'z reytingini ko'radi */}
-      <UserXPCard xp={xp} level={level} streak={streak} />
+    <main className="container mx-auto px-6 py-8">
+      {/* Foydalanuvchi o'z reytingi */}
+      {position && <UserXPCard position={position} />}
 
-      {/* Podium */}
+      {/* Podium — Top 3 */}
       <Podium top3={users.slice(0, 3)} />
 
-      {/* Jadval */}
+      {/* Jadval — #4 dan */}
       <LeaderboardTable users={users.slice(3)} />
 
-      {/* Ko'proq */}
-      <button onClick={() => loadMore(pagination.page + 1)}>+ Yana yuklash</button>
-    </div>
+      {/* Ko'proq yuklash */}
+      {pagination && pagination.page < pagination.totalPages && (
+        <button
+          onClick={() => loadMore(pagination.page + 1)}
+          className="btn btn-primary btn-outline mt-6 mx-auto block"
+        >
+          + Yana yuklash
+        </button>
+      )}
+    </main>
   )
 }
 ```
 
----
+### LevelUp Modal (`components/leaderboard/LevelUpModal.tsx`):
+```tsx
+'use client'
 
-## 🛠️ Texnologiyalar
-
-```bash
-# Allaqachon o'rnatilgan:
-framer-motion      # Animatsiyalar
-react-icons        # FaCrown, FaMedal, FaTrophy, FaFire
-
-# QO'SHISH KERAK:
-npm install react-confetti canvas-confetti
-```
-
-### Level UP animatsiya:
-```javascript
+import { FC } from 'react'
 import Confetti from 'react-confetti'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const LevelUpPage = () => {
-  const { justLeveledUp, newLevel, dismissLevelUp } = useUserStats()
+interface LevelUpModalProps {
+  isVisible: boolean;
+  newLevel: number;
+  onDismiss: () => void;
+}
 
+const LevelUpModal: FC<LevelUpModalProps> = ({ isVisible, newLevel, onDismiss }) => {
   return (
     <AnimatePresence>
-      {justLeveledUp && (
+      {isVisible && (
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -200,7 +310,7 @@ const LevelUpPage = () => {
               {newLevel}
             </motion.div>
             <h2 className="text-2xl font-bold mt-4">Tabriklaymiz!</h2>
-            <button onClick={dismissLevelUp} className="btn btn-primary mt-6 w-full">
+            <button onClick={onDismiss} className="btn btn-primary mt-6 w-full">
               Davom etish →
             </button>
           </div>
@@ -209,52 +319,73 @@ const LevelUpPage = () => {
     </AnimatePresence>
   )
 }
+
+export default LevelUpModal
+```
+
+> **Muhim farqlar (React vs Next.js):**
+> - `const LevelUpModal = ({ props }) =>` → `const LevelUpModal: FC<Props> = ({ props }) =>`
+> - Props'lar uchun **interface** yozish **SHART** (TypeScript)
+> - `useNavigate()` dan foydalanmang → `useRouter()` (`next/navigation`)
+> - `<Link to="/">` → `<Link href="/">`
+> - Fayl nomlari `.tsx` bo'lishi kerak
+
+---
+
+## 🛠️ Texnologiyalar
+
+```bash
+# Next.js da o'rnatilgan:
+next                   # Framework
+typescript             # Tip xavfsizlik
+framer-motion          # Animatsiyalar
+react-icons            # FaCrown, FaMedal, FaTrophy, FaFire
+
+# QO'SHISH KERAK:
+npm install react-confetti
+
+# O'CHIRILADIGAN:
+# react-router-dom    ← Next.js da kerak emas
 ```
 
 ---
 
-## 🎨 Tailwind + DaisyUI
+## 🔌 API Endpointlar
 
-```jsx
-{/* Foydalanuvchi reytingi banner */}
-<div className="card bg-gradient-to-r from-primary/20 to-secondary/20 border border-primary/30">
-  <div className="card-body">
-    <div className="flex justify-between items-center">
-      <div>
-        <p className="text-sm opacity-60">SIZNING REYTINGINGIZ</p>
-        <p className="text-3xl font-black">42-o'RIN</p>
-        <p className="text-sm opacity-60">O'rin: 1642 | Top 11%</p>
-      </div>
-      <div className="text-right">
-        <p className="font-bold text-primary">{xp.toLocaleString()} XP</p>
-        <p>🔥 {streak} kun streak</p>
-      </div>
-    </div>
-    <progress
-      className="progress progress-primary w-full"
-      value={xp % 1000}
-      max={1000}
-    />
-  </div>
-</div>
+### Swagger UI
+- **URL:** `http://localhost:5000/api-docs`
+- **Username:** `Aidevix`
+- **Password:** `sunnatbee`
 
-{/* XP Engine */}
-<div className="card bg-base-200">
-  <div className="card-body">
-    <h3 className="card-title text-sm">⚡ XP ENGINE</h3>
-    {[
-      { label: 'Video Ko\'rish', xp: '+50 XP', icon: '🎬' },
-      { label: 'Quizlar', xp: '+100 XP', icon: '📝' },
-      { label: 'Amaliy Mashq', xp: '+150 XP', icon: '💻' },
-      { label: 'Challenge', xp: '+500 XP', icon: '🚀' },
-    ].map(item => (
-      <div key={item.label} className="flex justify-between text-sm py-1">
-        <span>{item.icon} {item.label}</span>
-        <span className="text-success font-bold">{item.xp}</span>
-      </div>
-    ))}
-  </div>
-</div>
+### Sen ishlatadigan endpointlar:
+
+| Endpoint | Method | Auth | Vazifa |
+|----------|--------|------|--------|
+| `/api/ranking/users` | GET | ❌ Yo'q | Top foydalanuvchilar |
+| `/api/ranking/users?page=1&limit=20` | GET | ❌ Yo'q | Sahifalash bilan |
+| `/api/ranking/users/:userId/position` | GET | ✅ Bearer | O'z pozitsiyasi |
+| `/api/xp/stats` | GET | ✅ Bearer | XP, level, streak |
+| `/api/xp/quiz/:quizId` | POST | ✅ Bearer | Quiz yechish |
+| `/api/xp/quiz/video/:videoId` | GET | ✅ Bearer | Video quizini olish |
+
+---
+
+## 🎮 XP Tizimi — To'liq Hisoblash
+
+```
+1000 XP = 1 Level
+Level = Math.floor(xp / 1000) + 1
+
+XP manbalari:
+  +50 XP  → Video ko'rish
+  +10–100 XP → Quiz yechish
+  +150 XP → Amaliy mashq
+  +500 XP → Challenge
+
+TypeScript da progress hisoblash:
+  const currentLevelXP: number = xp % 1000            // 234
+  const progressPercent: number = (currentLevelXP / 1000) * 100  // 23.4%
+  const xpToNextLevel: number = 1000 - currentLevelXP  // 766
 ```
 
 ---
@@ -266,305 +397,9 @@ const LevelUpPage = () => {
 - [ ] XP Engine widget ko'rsatiladi
 - [ ] Kategoriya tabs ishlaydi (GLOBAL, JS, React, ...)
 - [ ] "Ko'proq yuklash" pagination ishlaydi
-- [ ] Level UP sahifasi/modali chiqadi
+- [ ] Level UP modali chiqadi
 - [ ] Confetti animatsiya ishlaydi
-- [ ] Level UP'dan keyin "Davom etish" tugmasi ishlaydi
+- [ ] Barcha fayl nomlari `.tsx` / `.ts`
+- [ ] Har qanday `any` tip ishlatilmagan
+- [ ] Props uchun interface yozilgan
 - [ ] Dizayn Figma bilan mos keladi
-
----
-
-## 🌐 BACKEND API — TO'LIQ QO'LLANMA
-
-**Backend:** Node.js + Express.js | **Port:** 5000 | **Database:** MongoDB Atlas
-**Jami endpointlar: ~75 ta**
-
-### 🔗 Server URL'lari
-
-| Muhit | URL |
-|-------|-----|
-| Local (Development) | `http://localhost:5000` |
-| Production (Railway) | `https://aidevix-backend-production.up.railway.app` |
-
----
-
-### 📖 Swagger UI — Interaktiv Hujjat
-
-```
-URL:      http://localhost:5000/api-docs
-Username: Aidevix
-Password: sunnatbee
-```
-
-**Swagger'da token kiritish:**
-1. `http://localhost:5000/api-docs` ni oching
-2. Yuqori o'ngda **"Authorize 🔓"** tugmasini bosing
-3. `Bearer eyJhbGciOiJ...` formatida token kiriting
-4. **"Authorize"** bosing — endi `🔒` belgili endpointlar ishlaydi
-
-> **Token qanday olish?** Authentication → POST `/api/auth/login` → Execute → Response'dan `accessToken` ni ko'chiring
-
----
-
-## 📋 BARCHA ENDPOINTLAR (~75 ta)
-
-### 1️⃣ AUTHENTICATION — `/api/auth` (5 ta)
-
-| Method | URL | Auth | Vazifa |
-|--------|-----|------|--------|
-| POST | `/api/auth/register` | ❌ | Ro'yxatdan o'tish |
-| POST | `/api/auth/login` | ❌ | Tizimga kirish |
-| POST | `/api/auth/refresh-token` | ❌ | Token yangilash |
-| POST | `/api/auth/logout` | ✅ | Chiqish |
-| GET | `/api/auth/me` | ✅ | Mening profilim |
-
----
-
-### 2️⃣ SUBSCRIPTIONS — `/api/subscriptions` (3 ta)
-
-| Method | URL | Auth | Vazifa |
-|--------|-----|------|--------|
-| GET | `/api/subscriptions/status` | ✅ | Obuna holati |
-| POST | `/api/subscriptions/verify-instagram` | ✅ | Instagram tasdiqlash |
-| POST | `/api/subscriptions/verify-telegram` | ✅ | Telegram tasdiqlash |
-
----
-
-### 3️⃣ COURSES — `/api/courses` (9 ta)
-
-| Method | URL | Auth | Vazifa |
-|--------|-----|------|--------|
-| GET | `/api/courses` | ❌ | Barcha kurslar |
-| GET | `/api/courses/top` | ❌ | Top kurslar |
-| GET | `/api/courses/categories` | ❌ | Kategoriyalar |
-| GET | `/api/courses/:id` | ❌ | Bitta kurs |
-| GET | `/api/courses/:id/recommended` | ❌ | Tavsiya etilgan |
-| POST | `/api/courses/:id/rate` | ✅ | Baholash |
-| POST | `/api/courses` | ✅ Admin | Yaratish |
-| PUT | `/api/courses/:id` | ✅ Admin | Yangilash |
-| DELETE | `/api/courses/:id` | ✅ Admin | O'chirish |
-
----
-
-### 4️⃣ VIDEOS — `/api/videos` (9 ta)
-
-| Method | URL | Auth | Vazifa |
-|--------|-----|------|--------|
-| GET | `/api/videos/course/:courseId` | ❌ | Kurs videolari |
-| GET | `/api/videos/:id` | ✅ + Obuna | Video + Bunny embed URL |
-| POST | `/api/videos/link/:linkId/use` | ✅ | Linkni belgilash |
-| GET | `/api/videos/:id/questions` | ❌ | Q&A |
-| POST | `/api/videos/:id/questions` | ✅ | Savol berish |
-| POST | `/api/videos/:id/questions/:qId/answer` | ✅ Admin | Javob |
-| POST | `/api/videos` | ✅ Admin | Yaratish |
-| PUT | `/api/videos/:id` | ✅ Admin | Yangilash |
-| DELETE | `/api/videos/:id` | ✅ Admin | O'chirish |
-
----
-
-### 5️⃣ XP TIZIMI — `/api/xp` (8 ta) ← SEN ISHLATASAN
-
-| Method | URL | Auth | Vazifa |
-|--------|-----|------|--------|
-| **GET** | **`/api/xp/stats`** | ✅ | **XP, level, streak, badges** |
-| POST | `/api/xp/video-watched/:videoId` | ✅ | +50 XP |
-| **GET** | **`/api/xp/quiz/video/:videoId`** | ✅ | **Video quizini olish** |
-| **POST** | **`/api/xp/quiz/:quizId`** | ✅ | **Quiz yechish (+XP)** |
-| PUT | `/api/xp/profile` | ✅ | Profil yangilash |
-| GET | `/api/xp/weekly-leaderboard` | ❌ | Haftalik TOP |
-| POST | `/api/xp/streak-freeze` | ✅ | Freeze ishlatish |
-| POST | `/api/xp/streak-freeze/add` | ✅ | Freeze qo'shish |
-
-**GET `/api/xp/stats`** — Foydalanuvchi XP statistikasi:
-```json
-{
-  "success": true,
-  "data": {
-    "stats": {
-      "userId": "64f1a2b3c4d5e6f7g8h9i0j1",
-      "xp": 4234,
-      "level": 4,
-      "xpToNextLevel": 766,
-      "streak": 3,
-      "streakFreezes": 1,
-      "videosWatched": 47,
-      "quizzesCompleted": 23,
-      "badges": [
-        { "id": "first_video", "name": "Birinchi Video", "icon": "🎬", "earnedAt": "2026-03-01" },
-        { "id": "week_streak", "name": "7 Kunlik Streak", "icon": "🔥", "earnedAt": "2026-03-07" }
-      ],
-      "bio": "React developer",
-      "skills": ["JavaScript", "React", "Node.js"],
-      "avatar": "https://res.cloudinary.com/aidevix/avatars/user123.jpg"
-    }
-  }
-}
-// xp = 4234, level = 4 (1000 XP = 1 Level)
-// xpToNextLevel = 5000 - 4234 = 766 XP qoldi
-// streak = ketma-ket faol kunlar
-```
-
----
-
-### 6️⃣ RANKING — `/api/ranking` (3 ta) ← SEN ISHLATASAN
-
-| Method | URL | Auth | Vazifa |
-|--------|-----|------|--------|
-| GET | `/api/ranking/courses` | ❌ | Top kurslar |
-| **GET** | **`/api/ranking/users`** | ❌ | **Top foydalanuvchilar (XP bo'yicha)** |
-| **GET** | **`/api/ranking/users/:userId/position`** | ✅ | **O'z pozitsiyasi** |
-
-**GET `/api/ranking/users`** — Leaderboard ro'yxati:
-```json
-{
-  "success": true,
-  "data": {
-    "users": [
-      {
-        "_id": "64f1a2b3c4d5e6f7g8h9i0j1",
-        "username": "jamshidk",
-        "avatar": "https://res.cloudinary.com/aidevix/avatars/jamshid.jpg",
-        "xp": 145269,
-        "level": 145,
-        "streak": 62,
-        "badges": ["grandmaster", "week_streak", "quiz_master"],
-        "rank": 1
-      },
-      {
-        "_id": "64f1a2b3c4d5e6f7g8h9i0j2",
-        "username": "malikar",
-        "xp": 98540,
-        "level": 98,
-        "streak": 31,
-        "rank": 2
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 1642,
-      "totalPages": 83
-    }
-  }
-}
-```
-
-**GET `/api/ranking/users?page=2&limit=20`** — Sahifalash:
-```json
-{
-  "success": true,
-  "data": {
-    "users": [ /* 21-40 o'rinlar */ ],
-    "pagination": { "page": 2, "limit": 20, "total": 1642 }
-  }
-}
-```
-
-**GET `/api/ranking/users/:userId/position`** — O'z pozitsiyasi:
-```json
-{
-  "success": true,
-  "data": {
-    "position": {
-      "rank": 42,
-      "totalUsers": 1642,
-      "percentile": 11,
-      "xp": 4234,
-      "level": 4
-    }
-  }
-}
-// rank: 42 → "42-o'RIN"
-// percentile: 11 → "Top 11%"
-```
-
-**useTopUsers hook qanday ishlaydi:**
-```javascript
-import { useTopUsers } from '@hooks/useRanking'
-import { useUserStats } from '@hooks/useUserStats'
-
-const LeaderboardPage = () => {
-  const { users, loading, pagination, loadMore } = useTopUsers({ page: 1, limit: 20 })
-  const { xp, level, streak, badges } = useUserStats()
-
-  // users[0], users[1], users[2] → Podium (Top 3)
-  // users.slice(3) → Jadval (#4 dan pastga)
-  // pagination.total → "1,642 o'quvchi"
-
-  const handleLoadMore = () => loadMore(pagination.page + 1)
-}
-```
-
----
-
-### 7️⃣–1️⃣6️⃣ QOLGAN ENDPOINTLAR
-
-| Guruh | Endpoint | Soni |
-|-------|----------|------|
-| Projects | `/api/projects` | 6 ta |
-| Enrollments | `/api/enrollments` | 4 ta |
-| Wishlist | `/api/wishlist` | 3 ta |
-| Certificates | `/api/certificates` | 2 ta |
-| Sections | `/api/sections` | 5 ta |
-| Follow | `/api/follow` | 4 ta |
-| Challenges | `/api/challenges` | 3 ta |
-| Payments | `/api/payments` | 3 ta |
-| Admin | `/api/admin` | 5 ta |
-| Upload | `/api/upload` | 2 ta |
-| Health | `/health` | 1 ta |
-
----
-
-### ❌ HTTP Status Kodlar
-
-| Kod | Ma'no | Sabab |
-|-----|-------|-------|
-| `200` | OK | Muvaffaqiyat |
-| `201` | Created | Yaratildi |
-| `400` | Bad Request | Noto'g'ri ma'lumot |
-| `401` | Unauthorized | Token yo'q/eskirgan |
-| `403` | Forbidden | Ruxsat yo'q |
-| `404` | Not Found | Topilmadi |
-| `429` | Too Many Requests | Rate limit (200 req/15min) |
-| `500` | Server Error | Server xatosi |
-
-### 🎮 XP Tizimi — To'liq Hisoblash
-
-```
-1000 XP = 1 Level
-Level = Math.floor(xp / 1000) + 1
-
-XP manbalari:
-  +50 XP  → Video ko'rish (POST /api/xp/video-watched/:videoId)
-  +10–100 XP → Quiz yechish (POST /api/xp/quiz/:quizId)
-  +150 XP → Amaliy mashq
-  +500 XP → Challenge
-
-XP progress:
-  xp = 4234 → Level 4
-  currentLevelXP = 4234 % 1000 = 234
-  progressBar = 234 / 1000 = 23.4%
-  xpToNextLevel = 1000 - 234 = 766
-
-Streak:
-  Har kuni login qilsa streak oshadi
-  1 kun o'tkazib yuborsa streak sıfırlanadi
-  streakFreeze ishlatilsa saqlangan bo'ladi
-```
-
-### 🏆 Leaderboard To'liq Oqimi
-
-```
-1. LeaderboardPage ochiladi
-2. GET /api/ranking/users?page=1&limit=20 → Top 20 yuklanadi
-3. GET /api/xp/stats (agar login) → O'z XP/level/streak
-4. GET /api/ranking/users/:userId/position → O'z o'rni
-
-5. "Ko'proq yuklash" bosiladi
-   → GET /api/ranking/users?page=2&limit=20
-   → users massivga qo'shiladi (concat)
-
-6. Level UP trigger:
-   → Yangi video ko'riladi → POST /api/xp/video-watched/:videoId
-   → Response: { newLevel: 5, leveledUp: true }
-   → LevelUpPage/Modal ko'rsatiladi + Confetti 🎉
-```

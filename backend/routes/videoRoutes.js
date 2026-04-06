@@ -14,6 +14,7 @@ const {
   getUploadCredentialsForVideo,
   checkVideoStatus,
   linkToBunny,
+  getTopVideos,
 } = require('../controllers/videoController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { checkSubscriptions } = require('../middleware/subscriptionCheck');
@@ -25,6 +26,7 @@ const validateObjectId = require('../middleware/validateObjectId');
 router.get('/course/:courseId', getCourseVideos);
 
 router.get('/search', authenticate, searchVideos);
+router.get('/top', getTopVideos);
 
 // ════════════════════════════════════════════════════════════════
 // GET /api/videos/:id
