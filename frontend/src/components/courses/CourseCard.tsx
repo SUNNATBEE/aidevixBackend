@@ -1,12 +1,16 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSelector } from 'react-redux';
 import { gsap } from 'gsap';
 import { IoPlay, IoTime, IoBookOutline, IoStar } from 'react-icons/io5';
+import { selectIsLoggedIn } from '@/store/slices/authSlice';
+import { selectInstagramSub } from '@/store/slices/subscriptionSlice';
 import { ROUTES } from '@/utils/constants';
 import { formatDurationText } from '@/utils/formatDuration';
+import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 
 const CAT = {
   html:       { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400',  label: 'HTML',   glow: 'hover:shadow-orange-500/10'  },
@@ -28,6 +32,9 @@ interface CourseProps {
 
 export default function CourseCard({ course, index = 0, className = '' }: CourseProps) {
   const cardRef = useRef(null)
+  const isLoggedIn = useSelector(selectIsLoggedIn);
+  const instagram = useSelector(selectInstagramSub);
+  const [showModal, setShowModal] = useState<boolean>(false);
 
   useEffect(() => {
     if (!cardRef.current) return
@@ -57,18 +64,35 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
     ? Date.now() - new Date(course.createdAt).getTime() < 14 * 24 * 60 * 60 * 1000
     : false
 
+  const handleClick = (e: React.MouseEvent) => {
+    // Agar foydalanuvchi login qilmagan yoki Instagram tasdiqlanmagan bo'lsa
+    if (!isLoggedIn || !instagram?.subscribed) {
+      e.preventDefault();
+      setShowModal(true);
+    }
+    // Aks holda Link o'z ishini qiladi
+  };
+
+  const handleModalSuccess = () => {
+    setShowModal(false);
+    // Instagram tasdiqlangandan keyin kursga o'tish
+    window.location.href = ROUTES.COURSE(course._id);
+  };
+
   return (
-    <Link
-      href={ROUTES.COURSE(course._id)}
-      ref={cardRef}
-      onMouseEnter={onEnter}
-      onMouseLeave={onLeave}
-      className={
-        'group block rounded-3xl overflow-hidden bg-[#12141c] border border-white/5 ' +
-        'transition-all duration-500 ' +
-        cat.glow + ' ' + className
-      }
-    >
+    <>
+      <Link
+        href={ROUTES.COURSE(course._id)}
+        ref={cardRef}
+        onMouseEnter={onEnter}
+        onMouseLeave={onLeave}
+        onClick={handleClick}
+        className={
+          'group block rounded-3xl overflow-hidden bg-[#12141c] border border-white/5 ' +
+          'transition-all duration-500 ' +
+          cat.glow + ' ' + className
+        }
+      >
       {/* Thumbnail */}
       <div className="relative aspect-video bg-[#0f1115] overflow-hidden">
         {course.thumbnail ? (
@@ -174,5 +198,13 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
         </div>
       </div>
     </Link>
+
+    {/* Instagram Verification Modal */}
+    <SubscriptionGate
+      isOpen={showModal}
+      onClose={() => setShowModal(false)}
+      onSuccess={handleModalSuccess}
+    />
+  </>
   )
 }

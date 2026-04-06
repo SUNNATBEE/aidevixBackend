@@ -3,20 +3,42 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSelector } from 'react-redux';
 import { IoPlay, IoTime, IoEye, IoLockClosed, IoArrowBack, IoCodeSlash, IoStar } from 'react-icons/io5';
+import { selectIsLoggedIn } from '@/store/slices/authSlice';
+import { selectInstagramSub } from '@/store/slices/subscriptionSlice';
 import { useVideos } from '@hooks/useVideos';
 import { formatDuration } from '@utils/formatDuration';
 import { ROUTES } from '@utils/constants';
+import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 
 export default function VideoPage() {
   const { id }: { id: string } = useParams();
   const router = useRouter();
   const { current: video, videoLink, loading, error, fetchById } = useVideos();
   const [modalOpen, setModalOpen] = useState(false);
+  const isLoggedIn = useSelector(selectIsLoggedIn);
+  const instagram = useSelector(selectInstagramSub);
+  const [showModal, setShowModal] = useState<boolean>(false);
 
   useEffect(() => {
     if (id) fetchById(id);
   }, [id]);
+
+  const handleVideoClick = (e: React.MouseEvent) => {
+    // Agar foydalanuvchi login qilmagan yoki Instagram tasdiqlanmagan bo'lsa
+    if (!isLoggedIn || !instagram?.subscribed) {
+      e.preventDefault();
+      setShowModal(true);
+    }
+    // Aks holda Telegram linkga o'tadi
+  };
+
+  const handleModalSuccess = () => {
+    setShowModal(false);
+    // Instagram tasdiqlangandan keyin sahifani qayta yuklash
+    window.location.reload();
+  };
 
   if (loading) {
     return (
@@ -94,7 +116,7 @@ export default function VideoPage() {
             Ushbu darsni ko&apos;rish uchun quyidagi tugmani bosing va biz taqdim etgan havola orqali videoga o&apos;ting.
           </p>
 
-          {videoLink ? (
+          {videoLink && (isLoggedIn && instagram?.subscribed) ? (
              <a 
                href={videoLink.telegramLink} 
                target="_blank" 
@@ -104,10 +126,12 @@ export default function VideoPage() {
                ▶ Videoni ko&apos;rish
              </a>
           ) : (
-             <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-8 py-4 rounded-2xl">
-                <span className="loading loading-spinner loading-sm text-indigo-400"></span>
-                <span className="text-sm text-gray-300 font-medium tracking-wide">Havola yuklanmoqda...</span>
-             </div>
+             <button
+               onClick={handleVideoClick}
+               className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-10 h-14 font-bold text-lg shadow-xl shadow-indigo-500/20"
+             >
+               ▶ Videoni ko&apos;rish
+             </button>
           )}
         </div>
 
@@ -126,6 +150,14 @@ export default function VideoPage() {
           </Link>
         </div>
       </div>
+
+      {/* Instagram Verification Modal */}
+      <SubscriptionGate
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSuccess={handleModalSuccess}
+        videoId={id}
+      />
     </div>
   );
 }

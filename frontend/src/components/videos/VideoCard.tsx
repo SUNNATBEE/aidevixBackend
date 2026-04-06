@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSelector } from 'react-redux';
 import { IoPlay, IoTime, IoEye, IoLockClosed, IoStar } from 'react-icons/io5';
 import { selectIsLoggedIn } from '@/store/slices/authSlice';
-import { selectAllVerified } from '@/store/slices/subscriptionSlice';
+import { selectAllVerified, selectInstagramSub } from '@/store/slices/subscriptionSlice';
 import { formatDurationText } from '@/utils/formatDuration';
 import { ROUTES } from '@/utils/constants';
+import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 
 interface VideoProps {
   video: {
@@ -23,6 +25,8 @@ interface VideoProps {
 export default function VideoCard({ video, index = 0 }: VideoProps) {
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const allVerified = useSelector(selectAllVerified);
+  const instagram = useSelector(selectInstagramSub);
+  const [showModal, setShowModal] = useState<boolean>(false);
 
   // canWatch logic: for now let's assume we need to be logged in and verified
   // but some might be free. If video has isFree, we should check that.
@@ -31,13 +35,29 @@ export default function VideoCard({ video, index = 0 }: VideoProps) {
   if (!video) return null;
 
   const rating = typeof video.rating === 'object' ? video.rating?.average : video.rating;
-  const href = canWatch ? ROUTES.VIDEO(video._id) : ROUTES.SUBSCRIPTION;
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Agar foydalanuvchi login qilmagan yoki Instagram tasdiqlanmagan bo'lsa
+    if (!isLoggedIn || !instagram?.subscribed) {
+      e.preventDefault();
+      setShowModal(true);
+    }
+    // Aks holda Link o'z ishini qiladi
+  };
+
+  const handleModalSuccess = () => {
+    setShowModal(false);
+    // Instagram tasdiqlangandan keyin videoga o'tish
+    window.location.href = ROUTES.VIDEO(video._id);
+  };
 
   return (
-    <Link
-      href={href}
-      className="group flex items-start gap-4 p-3 rounded-2xl bg-[#0f1115] border border-white/5 hover:bg-[#161920] hover:border-purple-500/20 transition-all duration-300 w-full"
-    >
+    <>
+      <Link
+        href={ROUTES.VIDEO(video._id)}
+        onClick={handleClick}
+        className="group flex items-start gap-4 p-3 rounded-2xl bg-[#0f1115] border border-white/5 hover:bg-[#161920] hover:border-purple-500/20 transition-all duration-300 w-full"
+      >
       {/* 1. Thumbnail / Order */}
       <div className="relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-white/5 border border-white/5">
         {video.thumbnail ? (
@@ -99,5 +119,14 @@ export default function VideoCard({ video, index = 0 }: VideoProps) {
         </div>
       </div>
     </Link>
+
+    {/* Instagram Verification Modal */}
+    <SubscriptionGate
+      isOpen={showModal}
+      onClose={() => setShowModal(false)}
+      onSuccess={handleModalSuccess}
+      videoId={video._id}
+    />
+  </>
   );
 }
