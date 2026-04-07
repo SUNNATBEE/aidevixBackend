@@ -51,7 +51,6 @@ export const checkAuthStatus = createAsyncThunk(
       tokenStorage.setUser(data.data)
       return { user: data.data }
     } catch {
-      tokenStorage.clearUser()
       return rejectWithValue('No active session')
     }
   },
@@ -107,7 +106,11 @@ const authSlice = createSlice({
       .addCase(checkAuthStatus.fulfilled, fulfilled)
       .addCase(checkAuthStatus.rejected,  (state) => {
         state.loading = false
-        state.user = null; state.isLoggedIn = false
+        if (!state.isLoggedIn) {
+          state.user = null
+          state.isLoggedIn = false
+          tokenStorage.clearUser()
+        }
       })
   },
 })
