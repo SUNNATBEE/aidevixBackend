@@ -6,7 +6,9 @@ const backendBaseUrl = (() => {
     return configuredUrl.replace(/\/$/, '');
   }
 
-  return 'http://127.0.0.1:5000';
+  return process.env.NODE_ENV === 'production'
+    ? 'https://aidevix-backend-production.up.railway.app'
+    : 'http://127.0.0.1:5000';
 })();
 
 /** @type {import('next').NextConfig} */
