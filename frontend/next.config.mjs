@@ -1,6 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async rewrites() {
+    const backendBaseUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      process.env.NEXT_PUBLIC_API_ORIGIN ||
+      'https://aidevix-backend-production.up.railway.app';
+
+    return [
+      {
+        source: '/api/proxy/:path*',
+        destination: `${backendBaseUrl.replace(/\/$/, '')}/api/:path*`,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
@@ -14,13 +27,6 @@ const nextConfig = {
     ],
     unoptimized: process.env.NODE_ENV === 'development',
   },
-  // Ignore lint errors in production build for faster deployment (optional)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  }
 };
 
 export default nextConfig;

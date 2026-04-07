@@ -1,17 +1,23 @@
 // ─── API ─────────────────────────────────────────────────────
-const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://aidevix-backend-production.up.railway.app/api'
+const base = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/proxy'
 export const API_BASE_URL = base.endsWith('/') ? base : `${base}/`
 
 // ─── Course Categories ────────────────────────────────────────
 export const CATEGORIES = [
   { id: 'all',        label: 'Barchasi',   icon: '🌐', color: '#6366f1' },
+  { id: 'ai',         label: 'AI va Agentlar', icon: 'AI', color: '#06b6d4' },
   { id: 'html',       label: 'HTML',       icon: '🟠', color: '#f97316' },
   { id: 'css',        label: 'CSS',        icon: '🔵', color: '#3b82f6' },
   { id: 'javascript', label: 'JavaScript', icon: '🟡', color: '#eab308' },
   { id: 'react',      label: 'React',      icon: '⚛️',  color: '#06b6d4' },
   { id: 'typescript', label: 'TypeScript', icon: '🔷', color: '#2563eb' },
   { id: 'nodejs',     label: 'Node.js',    icon: '🟢', color: '#22c55e' },
-  { id: 'general',    label: 'Boshqalar',  icon: '📚', color: '#8b5cf6' },
+  { id: 'telegram',   label: 'Telegram TMA', icon: '✈️', color: '#0ea5e9' },
+  { id: 'security',   label: 'Kiberxavfsizlik', icon: '🛡️', color: '#ef4444' },
+  { id: 'career',     label: 'Karyera/Freelance', icon: '💼', color: '#10b981' },
+  { id: 'nocode',     label: 'No-Code',    icon: '⚡', color: '#f59e0b' },
+  { id: 'web3',       label: 'Web3/Kripto', icon: '💎', color: '#8b5cf6' },
+  { id: 'general',    label: 'Boshqalar',  icon: '📚', color: '#94a3b8' },
 ]
 
 // ─── Sort Options ─────────────────────────────────────────────
@@ -57,4 +63,8 @@ export const ROUTES = {
   REGISTER:     '/register',
   PROFILE:      '/profile',
   SUBSCRIPTION: '/subscription',
+  CAREERS:      '/careers',
+  CHALLENGES:   '/challenges',
+  LEADERBOARD:  '/leaderboard',
+  REFERRAL:     '/referral',
 }

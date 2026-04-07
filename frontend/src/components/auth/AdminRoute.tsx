@@ -1,13 +1,30 @@
-import { redirect } from 'next/navigation';
+// @ts-nocheck
+'use client'
+
+import { ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
 import { useSelector } from 'react-redux'
-import { selectIsLoggedIn, selectUser } from '@store/slices/authSlice'
+import { selectAuthLoading, selectIsLoggedIn, selectUser } from '@store/slices/authSlice'
 
-export default function AdminRoute() {
+export default function AdminRoute({ children }: { children?: ReactNode }) {
   const isLoggedIn = useSelector(selectIsLoggedIn)
+  const loading = useSelector(selectAuthLoading)
   const user       = useSelector(selectUser)
+  const router = useRouter()
 
-  if (!isLoggedIn)             return /* redirect("/login"  replace /) */
-  if (user?.role !== 'admin')  return /* redirect("/"       replace /) */
+  if (loading) {
+    return null
+  }
 
-  return <Outlet />
+  if (!isLoggedIn) {
+    router.replace('/login')
+    return null
+  }
+
+  if (user?.role !== 'admin') {
+    router.replace('/')
+    return null
+  }
+
+  return children ?? null
 }

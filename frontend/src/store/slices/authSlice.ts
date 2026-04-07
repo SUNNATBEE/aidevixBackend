@@ -9,7 +9,6 @@ export const register = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const { data } = await authApi.register(credentials)
-      tokenStorage.setTokens(data.data.accessToken, data.data.refreshToken)
       tokenStorage.setUser(data.data.user)
       return data.data
     } catch (err) {
@@ -23,7 +22,6 @@ export const login = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const { data } = await authApi.login(credentials)
-      tokenStorage.setTokens(data.data.accessToken, data.data.refreshToken)
       tokenStorage.setUser(data.data.user)
       return data.data
     } catch (err) {
@@ -40,7 +38,7 @@ export const logout = createAsyncThunk(
     } catch {
       // Logout always clears local tokens even if API fails
     } finally {
-      tokenStorage.clearTokens()
+      tokenStorage.clearUser()
     }
   },
 )
@@ -48,18 +46,22 @@ export const logout = createAsyncThunk(
 export const checkAuthStatus = createAsyncThunk(
   'auth/checkAuthStatus',
   async (_, { rejectWithValue }) => {
-    const token = tokenStorage.getAccess()
-    const user  = tokenStorage.getUser()
-    if (!token || !user) return rejectWithValue('No token')
-    return { user, accessToken: token }
+    try {
+      const { data } = await authApi.getMe()
+      tokenStorage.setUser(data.data)
+      return { user: data.data }
+    } catch {
+      tokenStorage.clearUser()
+      return rejectWithValue('No active session')
+    }
   },
 )
 
 // ─── Slice ────────────────────────────────────────────────────
 
 const initialState = {
-  user:        null,
-  isLoggedIn:  false,
+  user:        tokenStorage.getUser(),
+  isLoggedIn:  Boolean(tokenStorage.getUser()),
   loading:     false,
   error:       null,
 }
@@ -101,8 +103,10 @@ const authSlice = createSlice({
         state.user = null; state.isLoggedIn = false
       })
 
+      .addCase(checkAuthStatus.pending,  pending)
       .addCase(checkAuthStatus.fulfilled, fulfilled)
       .addCase(checkAuthStatus.rejected,  (state) => {
+        state.loading = false
         state.user = null; state.isLoggedIn = false
       })
   },
