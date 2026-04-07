@@ -17,7 +17,7 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/api/proxy/:path*',
+        source: '/api-proxy/:path*',
         destination: `${backendBaseUrl}/api/:path*`,
       },
     ];

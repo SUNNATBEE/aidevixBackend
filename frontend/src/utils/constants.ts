@@ -1,5 +1,5 @@
 // ─── API ─────────────────────────────────────────────────────
-const base = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/proxy'
+const base = process.env.NEXT_PUBLIC_API_BASE_URL || '/api-proxy'
 export const API_BASE_URL = base.endsWith('/') ? base : `${base}/`
 
 // ─── Course Categories ────────────────────────────────────────
