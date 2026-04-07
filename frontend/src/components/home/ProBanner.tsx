@@ -1,104 +1,100 @@
-import React from 'react';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { HiLightningBolt, HiCheckCircle, HiArrowRight } from 'react-icons/hi';
+'use client'
+
+import React from 'react'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { HiArrowRight, HiCheckCircle, HiLightningBolt } from 'react-icons/hi'
+import { useLang } from '@/context/LangContext'
+import { useTheme } from '@/context/ThemeContext'
 
 const ProBanner = () => {
+  const { t } = useLang()
+  const { isDark } = useTheme()
+
+  const benefits = [
+    t('pro.benefit1'),
+    t('pro.benefit2'),
+    t('pro.benefit3'),
+  ]
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.8, ease: 'easeOut' }}
-      className="relative w-full rounded-[2rem] overflow-hidden"
+      initial={{ opacity: 1, y: 0 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="relative mx-auto w-full max-w-7xl overflow-hidden rounded-[2rem] px-4"
     >
-      {/* Background with advanced gradient and patterns */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460]"></div>
-      
-      {/* Decorative Blur elements */}
-      <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-600/20 blur-[100px] rounded-full"></div>
-      <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-600/20 blur-[100px] rounded-full"></div>
+      <div className={`absolute inset-4 rounded-[2rem] ${isDark ? 'bg-[linear-gradient(135deg,#0f1320_0%,#171b29_55%,#0f1320_100%)]' : 'bg-[linear-gradient(135deg,#f8f8fc_0%,#eef2ff_55%,#f7f8fc_100%)]'}`}></div>
+      <div className={`absolute inset-y-4 left-4 w-1/2 rounded-[2rem] ${isDark ? 'bg-[radial-gradient(circle_at_top_left,rgba(86,98,246,0.25),transparent_58%)]' : 'bg-[radial-gradient(circle_at_top_left,rgba(86,98,246,0.18),transparent_56%)]'}`}></div>
+      <div className="absolute right-10 bottom-4 h-48 w-48 rounded-full bg-amber-400/10 blur-[100px]"></div>
 
-      <div className="relative z-10 p-8 sm:p-12 md:p-16 flex flex-col md:flex-row items-center justify-between gap-12 border border-white/5 backdrop-blur-[2px]">
-        {/* Content Side */}
+      <div className={`relative z-10 m-4 flex flex-col gap-12 rounded-[2rem] border p-8 sm:p-12 md:p-14 lg:flex-row lg:items-end lg:justify-between ${isDark ? 'border-white/8 text-white' : 'border-slate-900/10 text-slate-950'}`}>
         <div className="flex-1 text-center md:text-left">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-semibold mb-6">
-            <HiLightningBolt className="w-4 h-4" />
-            <span>Aidevix Pro Imkoniyati</span>
+          <div className={`mb-6 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${isDark ? 'border-indigo-400/20 bg-indigo-500/10 text-indigo-200' : 'border-indigo-500/20 bg-indigo-50 text-indigo-600'}`}>
+            <HiLightningBolt className="h-4 w-4" />
+            <span>{t('pro.badge')}</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-6 leading-tight">
-            Dasturlash sirlarini <br /> 
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">
-              Cheksiz o'rganing
+          <h2 className={`mb-6 font-display text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl ${isDark ? 'text-white' : 'text-slate-950'}`}>
+            {t('pro.title1')} <br />
+            <span className="bg-gradient-to-r from-indigo-300 via-indigo-200 to-amber-300 bg-clip-text text-transparent">
+              {t('pro.title2')}
             </span>
           </h2>
 
-          <p className="text-slate-400 text-lg mb-10 max-w-xl leading-relaxed">
-            Pro obuna orqali barcha pullik kurslar, yopiq darslar va xalqaro darajadagi sertifikatlarga bir marta to'lov orqali ega bo'ling.
+          <p className={`mb-10 max-w-xl text-lg leading-8 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            {t('pro.subtitle')}
           </p>
 
-          <ul className="space-y-4 mb-10 text-slate-300 font-medium">
-            <li className="flex items-center gap-3">
-              <HiCheckCircle className="w-6 h-6 text-emerald-500" />
-              <span>Barcha kurslarga to'liq kirish</span>
-            </li>
-            <li className="flex items-center gap-3">
-              <HiCheckCircle className="w-6 h-6 text-emerald-500" />
-              <span>Yopiq hamjamiyat (Community) a'zoligi</span>
-            </li>
-            <li className="flex items-center gap-3">
-              <HiCheckCircle className="w-6 h-6 text-emerald-500" />
-              <span>Mentorlar bilan bevosita aloqa</span>
-            </li>
+          <ul className={`mb-10 grid gap-4 md:grid-cols-2 ${isDark ? 'text-white/90' : 'text-slate-700'}`}>
+            {benefits.map((text, i) => (
+              <li key={i} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${isDark ? 'border-white/8 bg-white/[0.03]' : 'border-slate-900/10 bg-white/70'}`}>
+                <HiCheckCircle className="h-6 w-6 shrink-0 text-emerald-400" />
+                <span>{text}</span>
+              </li>
+            ))}
           </ul>
 
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Link 
-              href="/subscription" 
-              className="btn btn-lg bg-white text-black hover:bg-slate-200 border-none rounded-2xl px-10 font-bold group"
-            >
-              Pro'ga o'tish
-              <HiArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <Link href="/subscription" className="group inline-flex h-14 items-center justify-center rounded-full bg-indigo-500 px-8 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-400">
+              {t('pro.cta1')}
+              <HiArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Link>
-            <Link 
-              href="/courses" 
-              className="btn btn-lg btn-ghost text-white border-white/10 hover:bg-white/5 rounded-2xl px-10"
-            >
-              Batafsil ma'lumot
+            <Link href="/courses" className={`inline-flex h-14 items-center justify-center rounded-full border px-8 text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 ${isDark ? 'border-white/10 text-white hover:bg-white/5' : 'border-slate-900/10 text-slate-900 hover:bg-slate-900/5'}`}>
+              {t('pro.cta2')}
             </Link>
           </div>
         </div>
 
-        {/* Visual Side / Card decoration */}
-        <div className="flex-1 w-full max-w-md hidden lg:block">
-          <div className="relative">
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-[2.5rem] blur opacity-30"></div>
-            <div className="relative bg-[#0d1117] rounded-[2.5rem] p-8 border border-white/10 shadow-2xl">
-               <div className="space-y-6">
-                 {[1, 2, 3].map((item) => (
-                    <div key={item} className="flex gap-4 items-center">
-                      <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5">
-                        <div className="w-6 h-6 bg-slate-700/50 rounded-lg animate-pulse" />
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-3 w-1/2 bg-slate-700/50 rounded-full animate-pulse" />
-                        <div className="h-2 w-3/4 bg-slate-800/50 rounded-full animate-pulse" />
-                      </div>
-                    </div>
-                 ))}
-                 <div className="pt-4 border-t border-white/5">
-                    <div className="h-10 w-full bg-purple-600/20 rounded-xl border border-purple-600/30 flex items-center justify-center text-purple-400 font-bold text-sm">
-                      ACTIVE ACCESS
-                    </div>
-                 </div>
-               </div>
+        <div className="hidden w-full max-w-md lg:block">
+          <div className={`rounded-[2rem] border p-6 ${isDark ? 'border-white/8 bg-white/[0.03]' : 'border-slate-900/10 bg-white/80'}`}>
+            <div className={`text-[10px] font-semibold uppercase tracking-[0.28em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Membership</div>
+            <div className={`mt-4 rounded-[1.5rem] border p-5 ${isDark ? 'border-white/8 bg-[#0b0f18]' : 'border-slate-900/10 bg-slate-50'}`}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className={`${isDark ? 'text-slate-400' : 'text-slate-500'} text-sm`}>Plan status</div>
+                  <div className={`mt-2 font-display text-3xl font-semibold ${isDark ? 'text-white' : 'text-slate-950'}`}>PRO</div>
+                </div>
+                <div className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-400">Active</div>
+              </div>
+              <div className="mt-6 space-y-4">
+                {benefits.map((text, i) => (
+                  <div key={i} className={`flex items-center justify-between border-b pb-3 last:border-b-0 ${isDark ? 'border-white/8' : 'border-slate-900/8'}`}>
+                    <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{text}</span>
+                    <span className="text-indigo-400">+</span>
+                  </div>
+                ))}
+              </div>
+              <div className={`mt-6 rounded-2xl border px-4 py-3 ${isDark ? 'border-indigo-400/20 bg-indigo-500/10 text-indigo-200' : 'border-indigo-500/20 bg-indigo-50 text-indigo-600'}`}>
+                <div className="text-xs uppercase tracking-[0.24em]">Priority Access</div>
+                <div className="mt-1 text-sm">Yangi kurslarga birinchi kirish va premium roadmap.</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </motion.div>
-  );
-};
+  )
+}
 
-export default ProBanner;
+export default ProBanner

@@ -1,40 +1,66 @@
-import { useState, useEffect, useRef } from 'react'
-import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@hooks/useAuth'
 import { useUserStats } from '@hooks/useUserStats'
 import { ROUTES } from '@utils/constants'
-import { HiMenuAlt3, HiX } from 'react-icons/hi'
+import { getRankInfo } from '@utils/xpLevel'
+import { useLang } from '@/context/LangContext'
+import { useTheme } from '@/context/ThemeContext'
+import { HiMenuAlt3, HiOutlineLightningBolt, HiX } from 'react-icons/hi'
 import { RiCodeSSlashLine } from 'react-icons/ri'
+import { MdDarkMode, MdLightMode } from 'react-icons/md'
+import type { Lang } from '@utils/i18n'
 
-const NAV_LINKS = [
-  { label: "Kurslar",      to: ROUTES.COURSES },
-  { label: "Yo'nalishlar", to: ROUTES.COURSES },
-  { label: "Hamjamiyat",   to: '/leaderboard' },
-  { label: "Blog",         to: '/top' },
-]
+const LANG_BADGES: Record<Lang, string> = { uz: 'UZ', ru: 'RU', en: 'EN' }
+const LANG_NAMES: Record<Lang, string> = { uz: "O'zbekcha", ru: 'Русский', en: 'English' }
 
 export default function Navbar() {
   const { user, isLoggedIn, logout } = useAuth()
   const { avatar } = useUserStats()
   const router = useRouter()
   const pathname = usePathname()
+  const { t, lang, setLang } = useLang()
+  const { isDark, toggleTheme } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const navRef = useRef(null)
+  const [langOpen, setLangOpen] = useState(false)
+  const langRef = useRef<HTMLDivElement>(null)
 
-  // Scroll effect
+  const NAV_LINKS = [
+    { label: t('nav.courses'), to: ROUTES.COURSES },
+    { label: t('nav.challenges'), to: ROUTES.CHALLENGES },
+    { label: t('nav.leaderboard'), to: ROUTES.LEADERBOARD },
+    { label: t('nav.careers'), to: ROUTES.CAREERS },
+  ]
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Close mobile menu on resize
   useEffect(() => {
-    const onResize = () => { if (window.innerWidth >= 1024) setMenuOpen(false) }
+    const onResize = () => {
+      if (window.innerWidth >= 1024) {
+        setMenuOpen(false)
+      }
+    }
+
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
   }, [])
 
   const handleLogout = async () => {
@@ -45,47 +71,51 @@ export default function Navbar() {
 
   const avatarLetter = user?.username?.[0]?.toUpperCase() ?? 'U'
   const avatarSrc = avatar || user?.avatar || null
+  const xpValue = (user as any)?.xp || 0
+  const rankInfo = getRankInfo(xpValue)
+
+  const navBg = isDark
+    ? scrolled ? 'bg-[#090b10]/82 shadow-[0_18px_60px_rgba(0,0,0,0.36)]' : 'bg-[#090b10]/56'
+    : scrolled ? 'bg-white/88 shadow-[0_18px_50px_rgba(15,23,42,0.08)]' : 'bg-white/58'
+
+  const borderColor = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(15,23,42,0.08)'
+  const logoTextColor = isDark ? 'text-white' : 'text-slate-950'
+  const subText = isDark ? 'text-slate-400' : 'text-slate-500'
+  const surface = isDark ? 'bg-white/[0.04] border-white/10' : 'bg-slate-950/[0.03] border-slate-900/10'
+  const navLinkBase = isDark ? 'text-slate-400 hover:text-white hover:bg-white/[0.06]' : 'text-slate-600 hover:text-slate-950 hover:bg-slate-900/[0.05]'
+  const activeNavLink = isDark ? 'text-white bg-white/[0.08]' : 'text-slate-950 bg-slate-900/[0.06]'
+  const dropdownBg = isDark ? 'bg-[#0d1017]/96 border-white/10 text-slate-200' : 'bg-white/96 border-slate-900/10 text-slate-800'
+  const dropdownItemColor = isDark ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]' : 'text-slate-700 hover:text-slate-950 hover:bg-slate-900/[0.05]'
+  const mobileMenuBg = isDark ? 'bg-[#090b10]/96' : 'bg-white/96'
 
   return (
     <>
       <nav
-        ref={navRef}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? 'bg-[#0a0c14]/95 backdrop-blur-md shadow-lg shadow-black/30'
-            : 'bg-[#0a0c14]/80 backdrop-blur-sm'
-        }`}
-        style={{ borderBottom: '1px solid rgba(99,102,241,0.25)' }}
+        className={`fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300 backdrop-blur-2xl ${navBg}`}
+        style={{ borderBottomColor: borderColor }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
-
-            {/* ─── Logo ─── */}
-            <Link
-              href={ROUTES.HOME}
-              className="flex items-center gap-2 group"
-            >
-              <div className="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500 transition-colors">
-                <RiCodeSSlashLine className="text-white text-sm" />
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <Link href={ROUTES.HOME} className="group flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-[0_12px_30px_rgba(86,98,246,0.35)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:bg-indigo-400">
+                <RiCodeSSlashLine className="text-sm" />
               </div>
-              <span className="text-white font-bold text-lg tracking-tight">
-                Aidevix
-              </span>
+              <div className="flex flex-col leading-none">
+                <span className={`font-display text-lg font-semibold tracking-[-0.04em] ${logoTextColor}`}>Aidevix</span>
+                <span className={`hidden text-[10px] font-semibold uppercase tracking-[0.28em] sm:block ${subText}`}>
+                  {t('nav.codeTagline')}
+                </span>
+              </div>
             </Link>
 
-            {/* ─── Desktop Nav Links ─── */}
-            <ul className="hidden lg:flex items-center gap-1">
+            <ul className={`hidden items-center gap-1 rounded-full border px-2 py-2 lg:flex ${surface}`}>
               {NAV_LINKS.map((link) => (
                 <li key={link.label}>
                   <Link
                     href={link.to}
-                    className={
-                      `px-3 py-1.5 rounded-md text-sm transition-colors duration-200 ${
-                        pathname === link.to
-                          ? 'text-white bg-white/10'
-                          : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-                      }`
-                    }
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                      pathname === link.to ? activeNavLink : navLinkBase
+                    }`}
                   >
                     {link.label}
                   </Link>
@@ -93,130 +123,209 @@ export default function Navbar() {
               ))}
             </ul>
 
-            {/* ─── Desktop Right Side ─── */}
-            <div className="hidden lg:flex items-center gap-2">
+            <div className="hidden items-center gap-2 lg:flex">
+              <div className={`hidden items-center gap-2 rounded-full border px-3 py-2 xl:flex ${surface}`}>
+                <HiOutlineLightningBolt className="text-amber-400" />
+                <span className={`text-xs font-semibold uppercase tracking-[0.24em] ${subText}`}>{t('nav.learnFast')}</span>
+              </div>
+
+              <button
+                onClick={toggleTheme}
+                className={`rounded-full border p-3 transition-all duration-300 ${surface} ${isDark ? 'text-slate-400 hover:text-amber-300' : 'text-slate-500 hover:text-indigo-600'}`}
+                title={isDark ? t('theme.light') : t('theme.dark')}
+              >
+                {isDark ? <MdLightMode size={18} /> : <MdDarkMode size={18} />}
+              </button>
+
+              <div className="relative" ref={langRef}>
+                <button
+                  onClick={() => setLangOpen(!langOpen)}
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-all duration-300 ${surface} ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'}`}
+                >
+                  <span>{LANG_BADGES[lang]}</span>
+                  <span>{t('nav.language')}</span>
+                  <svg className={`h-3 w-3 transition-transform ${langOpen ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                  </svg>
+                </button>
+
+                {langOpen && (
+                  <div className={`absolute right-0 mt-2 w-44 rounded-[1.25rem] border p-1.5 shadow-2xl backdrop-blur-2xl z-[60] ${dropdownBg}`}>
+                    {(['uz', 'ru', 'en'] as Lang[]).map((l) => (
+                      <button
+                        key={l}
+                        onClick={() => {
+                          setLang(l)
+                          setLangOpen(false)
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors ${
+                          lang === l ? (isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600') : dropdownItemColor
+                        }`}
+                      >
+                        <span>{LANG_BADGES[l]}</span>
+                        <span className="font-medium">{LANG_NAMES[l]}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {isLoggedIn ? (
-                <div className="dropdown dropdown-end">
-                  <label tabIndex={0} className="flex items-center gap-2 cursor-pointer group">
+                <div className="dropdown dropdown-end flex items-center justify-end">
+                  <div className={`hidden items-center gap-3 mr-3 rounded-full border px-4 py-2 md:flex ${surface}`}>
+                    <div className="flex items-center gap-1.5" title={t('nav.xpLabel')}>
+                      <span className="text-base text-amber-400">XP</span>
+                      <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        {xpValue} <span className={`text-xs font-medium ${subText}`}>{t('nav.xpLabel')}</span>
+                      </span>
+                    </div>
+                    <div className={`h-4 w-px ${isDark ? 'bg-white/10' : 'bg-slate-300'}`}></div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-base text-orange-500">Hot</span>
+                      <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{(user as any)?.streak || 0}</span>
+                    </div>
+                  </div>
+
+                  <label tabIndex={0} className="group flex cursor-pointer items-center gap-2">
                     {avatarSrc ? (
-                      <img
-                        src={avatarSrc}
-                        alt="avatar"
-                        className="w-8 h-8 rounded-full object-cover border border-white/20"
-                      />
+                      <div className="relative">
+                        <img src={avatarSrc} alt="avatar" className="h-10 w-10 rounded-full border-2 border-indigo-500/30 object-cover transition-colors group-hover:border-indigo-400" />
+                        {(user as any)?.rankTitle && (
+                          <span className="absolute -bottom-1 -right-1 rounded-md border border-black bg-amber-400 px-1 text-[10px] font-black uppercase text-black">
+                            {(user as any)?.rankTitle.substring(0, 3)}
+                          </span>
+                        )}
+                      </div>
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-semibold group-hover:bg-indigo-500 transition-colors">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-500 to-amber-400 text-sm font-bold text-white shadow-[0_12px_30px_rgba(86,98,246,0.35)]">
                         {avatarLetter}
                       </div>
                     )}
-                    <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-                      {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.username}
-                    </span>
+                    <div className="hidden flex-col items-start leading-none sm:flex">
+                      <span className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                        {user?.firstName || user?.username}
+                      </span>
+                      <span className="mt-1 text-[10px] font-bold tracking-[0.24em] text-indigo-400">
+                        {(user as any)?.rankTitle || 'AMATEUR'}
+                      </span>
+                    </div>
                   </label>
-                  <ul
-                    tabIndex={0}
-                    className="dropdown-content menu mt-3 w-48 rounded-xl shadow-xl bg-[#12141f] border border-white/10 p-1.5 z-50"
-                  >
+
+                  <ul tabIndex={0} className={`dropdown-content menu mt-3 w-72 rounded-[1.5rem] border p-2 shadow-2xl backdrop-blur-2xl z-50 translate-y-2 ${dropdownBg}`}>
+                    <div className={`relative mb-2 overflow-hidden rounded-[1.25rem] border p-4 ${isDark ? 'border-white/8 bg-white/[0.03]' : 'border-slate-900/10 bg-slate-950/[0.03]'}`}>
+                      <div className="mb-2 flex items-end justify-between">
+                        <div className={`text-xs font-semibold ${subText}`}>
+                          {rankInfo.currentRank.title}
+                          <span className="ml-1 text-amber-400">→ {rankInfo.isMaxRank ? 'MAX' : rankInfo.nextRank.title}</span>
+                        </div>
+                        <div className={`rounded-full px-2 py-1 text-[10px] font-bold ${isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-900/[0.06] text-slate-500'}`}>
+                          {xpValue} {t('nav.xpLabel')}
+                        </div>
+                      </div>
+                      <div className={`relative h-2 w-full overflow-hidden rounded-full ${isDark ? 'bg-white/8' : 'bg-slate-900/10'}`}>
+                        <div
+                          className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-amber-400 to-indigo-400 transition-all duration-1000"
+                          style={{ width: `${rankInfo.progressPercentage}%` }}
+                        ></div>
+                      </div>
+                      {!rankInfo.isMaxRank && (
+                        <div className={`mt-2 text-right text-[10px] ${subText}`}>
+                          {t('nav.xpToNext')} {rankInfo.xpNeeded} {t('nav.xpNeeded')}
+                        </div>
+                      )}
+                    </div>
+
+                    <li><Link href={ROUTES.PROFILE} className={`rounded-xl px-3 py-2.5 text-sm ${dropdownItemColor}`}>{t('nav.profile')}</Link></li>
                     <li>
-                      <Link href={ROUTES.PROFILE} className="text-gray-300 hover:text-white hover:bg-white/10 rounded-lg text-sm py-2">
-                        👤 Profil
+                      <Link href={ROUTES.REFERRAL} className="flex justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300">
+                        <span>{t('nav.referral')}</span>
+                        <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] text-emerald-300">+1000 XP</span>
                       </Link>
                     </li>
+                    <li><Link href={ROUTES.SUBSCRIPTION} className={`rounded-xl px-3 py-2.5 text-sm ${dropdownItemColor}`}>{t('nav.subscription')}</Link></li>
+                    <div className={`my-1 h-px ${isDark ? 'bg-white/10' : 'bg-slate-900/10'}`} />
                     <li>
-                      <Link href={ROUTES.SUBSCRIPTION} className="text-gray-300 hover:text-white hover:bg-white/10 rounded-lg text-sm py-2">
-                        🔗 Obuna holati
-                      </Link>
-                    </li>
-                    <div className="divider my-1 h-px bg-white/10" />
-                    <li>
-                      <button
-                        onClick={handleLogout}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg text-sm py-2 w-full text-left"
-                      >
-                        🚪 Chiqish
+                      <button onClick={handleLogout} className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300">
+                        {t('nav.logout')}
                       </button>
                     </li>
                   </ul>
                 </div>
               ) : (
                 <>
-                  <Link
-                    href={ROUTES.LOGIN}
-                    className="px-4 py-1.5 text-sm text-gray-300 hover:text-white transition-colors rounded-md hover:bg-white/5"
-                  >
-                    Kirish
+                  <Link href={ROUTES.LOGIN} className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${navLinkBase}`}>
+                    {t('nav.login')}
                   </Link>
-                  <Link
-                    href={ROUTES.REGISTER}
-                    className="px-4 py-1.5 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded-md transition-colors font-medium flex items-center gap-1"
-                  >
-                    Boshlash <span className="text-indigo-300">→</span>
+                  <Link href={ROUTES.REGISTER} className="rounded-full bg-indigo-500 px-5 py-2 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-400">
+                    {t('nav.register')} →
                   </Link>
                 </>
               )}
             </div>
 
-            {/* ─── Mobile Hamburger ─── */}
-            <button
-              className="lg:hidden p-2 text-gray-400 hover:text-white transition-colors"
-              onClick={() => setMenuOpen(!menuOpen)}
-              aria-label="Menyu"
-            >
-              {menuOpen ? <HiX size={22} /> : <HiMenuAlt3 size={22} />}
-            </button>
+            <div className="flex items-center gap-2 lg:hidden">
+              <button onClick={toggleTheme} className={`rounded-full border p-2.5 ${surface} ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                {isDark ? <MdLightMode size={20} /> : <MdDarkMode size={20} />}
+              </button>
+              <button
+                className={`rounded-full border p-2.5 transition-colors ${surface} ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'}`}
+                onClick={() => setMenuOpen(!menuOpen)}
+                aria-label="Menu"
+              >
+                {menuOpen ? <HiX size={22} /> : <HiMenuAlt3 size={22} />}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* ─── Mobile Menu ─── */}
         <div
-          className={`lg:hidden overflow-hidden transition-all duration-300 ${
-            menuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-          }`}
-          style={{ borderTop: menuOpen ? '1px solid rgba(255,255,255,0.06)' : 'none' }}
+          className={`overflow-hidden transition-all duration-300 lg:hidden ${menuOpen ? 'max-h-[560px] opacity-100' : 'max-h-0 opacity-0'}`}
+          style={{ borderTop: menuOpen ? `1px solid ${borderColor}` : 'none' }}
         >
-          <div className="bg-[#0a0c14] px-4 py-4 space-y-1">
+          <div className={`${mobileMenuBg} space-y-2 px-4 py-4 backdrop-blur-2xl`}>
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.label}
                 href={link.to}
                 onClick={() => setMenuOpen(false)}
-                className="block px-3 py-2.5 text-gray-300 hover:text-white hover:bg-white/8 rounded-lg text-sm transition-colors"
+                className={`block rounded-2xl px-4 py-3 text-sm font-medium transition-colors ${pathname === link.to ? activeNavLink : navLinkBase}`}
               >
                 {link.label}
               </Link>
             ))}
-            <div className="pt-3 border-t border-white/8 flex gap-2">
+
+            <div className={`mt-3 rounded-[1.5rem] border p-3 ${surface}`}>
+              <div className={`mb-2 text-[10px] font-semibold uppercase tracking-[0.28em] ${subText}`}>{t('nav.language')}</div>
+              <div className="flex gap-2">
+                {(['uz', 'ru', 'en'] as Lang[]).map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => setLang(l)}
+                    className={`flex-1 rounded-xl py-2 text-xs font-bold transition-colors ${lang === l ? 'bg-indigo-500 text-white' : isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-slate-900/[0.04] text-slate-500 hover:bg-slate-900/[0.08]'}`}
+                  >
+                    {LANG_BADGES[l]} {LANG_NAMES[l]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
               {isLoggedIn ? (
                 <>
-                  <Link
-                    href={ROUTES.PROFILE}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex-1 text-center py-2 text-sm text-gray-300 hover:text-white bg-white/8 hover:bg-white/12 rounded-lg transition-colors"
-                  >
-                    Profil
+                  <Link href={ROUTES.PROFILE} onClick={() => setMenuOpen(false)} className={`flex-1 rounded-2xl py-3 text-center text-sm transition-colors ${surface} ${isDark ? 'text-slate-300 hover:bg-white/12' : 'text-slate-700 hover:bg-slate-100'}`}>
+                    {t('nav.profile')}
                   </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="flex-1 py-2 text-sm text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors"
-                  >
-                    Chiqish
+                  <button onClick={handleLogout} className="flex-1 rounded-2xl bg-red-500/10 py-3 text-sm text-red-400 transition-colors hover:bg-red-500/20">
+                    {t('nav.logout')}
                   </button>
                 </>
               ) : (
                 <>
-                  <Link
-                    href={ROUTES.LOGIN}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex-1 text-center py-2 text-sm text-gray-300 hover:text-white bg-white/8 hover:bg-white/12 rounded-lg transition-colors"
-                  >
-                    Kirish
+                  <Link href={ROUTES.LOGIN} onClick={() => setMenuOpen(false)} className={`flex-1 rounded-2xl py-3 text-center text-sm transition-colors ${surface} ${isDark ? 'text-slate-300 hover:bg-white/12' : 'text-slate-700 hover:bg-slate-100'}`}>
+                    {t('nav.login')}
                   </Link>
-                  <Link
-                    href={ROUTES.REGISTER}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex-1 text-center py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors font-medium"
-                  >
-                    Boshlash →
+                  <Link href={ROUTES.REGISTER} onClick={() => setMenuOpen(false)} className="flex-1 rounded-2xl bg-indigo-500 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-indigo-400">
+                    {t('nav.register')}
                   </Link>
                 </>
               )}
@@ -225,8 +334,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Navbar height spacer */}
-      <div className="h-14" />
+      <div className="h-16" />
     </>
   )
 }

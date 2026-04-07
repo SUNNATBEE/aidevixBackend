@@ -51,11 +51,11 @@ api.interceptors.response.use(
         refreshQueue = []
         return api(original)
       } catch (refreshError) {
-        tokenStorage.clearUser()
+        tokenStorage.clearTokens()
         refreshQueue.forEach((cb) => cb.reject(refreshError))
         refreshQueue = []
 
-        return Promise.reject(refreshError)
+        return Promise.reject(error)
       } finally {
         isRefreshing = false
       }

@@ -9,6 +9,7 @@ export const register = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const { data } = await authApi.register(credentials)
+      tokenStorage.clearTokens()
       tokenStorage.setUser(data.data.user)
       return data.data
     } catch (err) {
@@ -22,6 +23,7 @@ export const login = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const { data } = await authApi.login(credentials)
+      tokenStorage.clearTokens()
       tokenStorage.setUser(data.data.user)
       return data.data
     } catch (err) {
@@ -38,7 +40,7 @@ export const logout = createAsyncThunk(
     } catch {
       // Logout always clears local tokens even if API fails
     } finally {
-      tokenStorage.clearUser()
+      tokenStorage.clearTokens()
     }
   },
 )
@@ -48,6 +50,7 @@ export const checkAuthStatus = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const { data } = await authApi.getMe()
+      tokenStorage.clearTokens()
       tokenStorage.setUser(data.data)
       return { user: data.data }
     } catch {
@@ -59,8 +62,8 @@ export const checkAuthStatus = createAsyncThunk(
 // ─── Slice ────────────────────────────────────────────────────
 
 const initialState = {
-  user:        tokenStorage.getUser(),
-  isLoggedIn:  Boolean(tokenStorage.getUser()),
+  user:        null,
+  isLoggedIn:  false,
   loading:     false,
   error:       null,
 }
@@ -71,13 +74,18 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => { state.error = null },
     updateUser: (state, action) => {
-      state.user = { ...state.user, ...action.payload }
+      state.user = { ...(state.user || {}), ...action.payload }
       tokenStorage.setUser(state.user)
     },
   },
   extraReducers: (builder) => {
     const pending   = (state) => { state.loading = true; state.error = null }
     const rejected  = (state, action) => { state.loading = false; state.error = action.payload }
+    const clearSession = (state) => {
+      state.user = null
+      state.isLoggedIn = false
+      tokenStorage.clearTokens()
+    }
     const registerFulfilled = (state, action) => {
       state.loading = false
       state.user = action.payload.user
@@ -99,18 +107,16 @@ const authSlice = createSlice({
       .addCase(login.rejected,           rejected)
 
       .addCase(logout.fulfilled,         (state) => {
-        state.user = null; state.isLoggedIn = false
+        state.loading = false
+        state.error = null
+        clearSession(state)
       })
 
       .addCase(checkAuthStatus.pending,  pending)
       .addCase(checkAuthStatus.fulfilled, fulfilled)
       .addCase(checkAuthStatus.rejected,  (state) => {
         state.loading = false
-        if (!state.isLoggedIn) {
-          state.user = null
-          state.isLoggedIn = false
-          tokenStorage.clearUser()
-        }
+        clearSession(state)
       })
   },
 })

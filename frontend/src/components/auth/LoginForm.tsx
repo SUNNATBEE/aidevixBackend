@@ -9,10 +9,14 @@ import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import { login, selectAuthLoading, selectAuthError, clearError } from '@store/slices/authSlice';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
+import { useLang } from '@/context/LangContext';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function LoginForm() {
   const [showPass, setShowPass] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm();
+  const { t } = useLang();
+  const { isDark } = useTheme();
   
   const dispatch = useDispatch();
   const router = useRouter();
@@ -20,9 +24,7 @@ export default function LoginForm() {
   const authError = useSelector(selectAuthError);
 
   const onSubmit = async (data: any) => {
-    if (clearError) {
-      dispatch(clearError());
-    }
+    dispatch(clearError());
 
     const result = await (dispatch as any)(login({
       email: data.email,
@@ -47,7 +49,7 @@ export default function LoginForm() {
       {/* Email input */}
       <div className="form-control w-full">
         <label className="label pt-0 pb-1 px-1">
-          <span className="label-text text-gray-300 font-medium text-sm">Email</span>
+          <span className={`label-text font-medium text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('auth.login.email')}</span>
         </label>
         <div className="relative">
           <input 
@@ -70,10 +72,10 @@ export default function LoginForm() {
       <div className="form-control w-full">
         <div className="flex justify-between items-center pb-1 px-1">
           <label className="label pt-0 pb-0">
-            <span className="label-text text-gray-300 font-medium text-sm">Parol</span>
+            <span className={`label-text font-medium text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('auth.login.password')}</span>
           </label>
-          <Link href="/forgot-password" university-tag="forgot-password" className="text-indigo-400 text-xs hover:underline">
-            Parolni unutdingizmi?
+          <Link href="/forgot-password" className="text-indigo-400 text-xs hover:underline">
+            {t('auth.login.forgot')}
           </Link>
         </div>
         <div className="relative flex items-center">
@@ -110,18 +112,18 @@ export default function LoginForm() {
         >
           {loading ? (
              <span className="loading loading-spinner loading-md"></span>
-          ) : (
+           ) : (
             <>
-              Kirish <span className="ml-2 font-bold">→</span>
+              {t('auth.login.submit')} <span className="ml-2 font-bold">→</span>
             </>
           )}
         </button>
       </div>
 
       <div className="text-center pt-4">
-        <span className="text-gray-400 text-sm">Hisobingiz yo'qmi? </span>
+        <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('auth.login.noAccount')} </span>
         <Link href="/register" className="text-indigo-400 hover:text-indigo-300 hover:underline text-sm font-medium transition-colors">
-          Ro'yxatdan o'tish
+          {t('auth.login.register')}
         </Link>
       </div>
     </form>

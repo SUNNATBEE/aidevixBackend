@@ -24,8 +24,8 @@ const connectDB = require('../config/database');
 const COURSES = [
   {
     key: 'html',
-    title: 'HTML Asoslari: Noldan Professionallikkacha',
-    description: 'HTML teglar, atributlar, semantik elementlar, formalar, jadvallar va zamonaviy HTML5 elementlarini o\'rganasiz. Veb-sahifalarning asosi — HTML ni to\'liq egallash.',
+    title: 'AI-Powered UI/UX Engineering: Zamonaviy Interfeyslar',
+    description: 'AI vositalari (v0.dev, UI-Gen) yordamida professional va semantik interfeyslar qurish. HTML5 va Web-standartlar asosida mahsulot dizaynini muhandislik darajasida o\'rganish.',
     thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/6/61/HTML5_logo_and_wordmark.svg',
     price: 99000,
     isFree: false,
@@ -86,8 +86,8 @@ const COURSES = [
 
   {
     key: 'css',
-    title: 'CSS Stillar va Zamonaviy Dizayn',
-    description: 'CSS selektorlar, Flexbox, Grid, animatsiyalar va responsive dizayn. Chiroyli va zamonaviy sahifalar yaratishni o\'rganasiz. Hammasini amaliyot bilan.',
+    title: 'Advanced Styling & Animations: Web-Vibe Dizayn',
+    description: 'GSAP, CSS3 animatsiyalar va zamonaviy UI/UX patternlar. Saytni shunchaki chiroyli emas, balki "tirik" va interaktiv qilishni professional darajada o\'rganasiz.',
     thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/CSS3_logo_and_wordmark.svg',
     price: 129000,
     isFree: false,
@@ -194,8 +194,8 @@ const COURSES = [
 
   {
     key: 'javascript',
-    title: 'JavaScript: Asoslaridan Ilg\'or Darajagacha',
-    description: 'JavaScript o\'zgaruvchilar, funksiyalar, massivlar, ob\'ektlar, ES6+ sintaksis, asinxron JS (Promises, async/await), DOM va Fetch API. Amaliyot bilan puxta o\'rganasiz.',
+    title: 'Logic Engineering: AI-Assisted JS Development',
+    description: 'JavaScript ning murakkab mantiqiy qismlari, asinxron dasturlash va AI yordamida samarali kod yozish strategiyalari. Bu shunchaki sintaksis emas, bu — muhandislik.',
     thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png',
     price: 299000,
     isFree: false,
@@ -275,8 +275,8 @@ const COURSES = [
 
   {
     key: 'react',
-    title: 'React.js: Zamonaviy Frontend Dasturlash',
-    description: 'React hooks (useState, useEffect, useContext, useMemo, useCallback), komponentlar, React Router v6, API integratsiya va production-ready ilovalar yaratish. Real loyihalar bilan.',
+    title: 'Product Architecture: React & Meta-Frameworks',
+    description: 'React 19+, Server Components va AI Agent integratsiyalari. Real dunyoda ishlaydigan scalable (kengayuvchan) SaaS mahsulotlar arxitekturasini noldan qurish.',
     thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg',
     price: 349000,
     isFree: false,
@@ -389,8 +389,8 @@ const COURSES = [
 
   {
     key: 'nodejs',
-    title: 'Node.js: Backend Dasturlash',
-    description: 'Node.js, Express.js, MongoDB, JWT autentifikatsiya, REST API, middleware, fayl yuklash va production deployment. To\'liq backend dasturlashni o\'rganasiz.',
+    title: 'Next-Gen Backend: AI Agents & Distributed Systems',
+    description: 'Node.js va Express.js orqali aqlli AI agentlar uchun backend qurish. MongoDB, JWT xavfsizlik va yuqori yuklamali tizimlar arxitekturasini o\'rganish.',
     thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/d/d9/Node.js_logo.svg',
     price: 399000,
     isFree: false,
@@ -453,6 +453,309 @@ const COURSES = [
       },
     ],
   },
+
+  {
+    key: 'antigravity-agent',
+    title: 'Antigravity: Mukammal AI Agent',
+    description: 'Antigravity — dasturlash vazifalarini to\'liq avtomatlashtiruvchi zamonaviy AI agenti. Arxitektura, workspace konfiguratsiyasi va murakkab muammolarni avtomatik tarzda hal qilishni o\'rganish.',
+    thumbnail: 'https://www.searchyour.ai/archivos/antigravity-google-ai-logo.jpg',
+    price: 399000,
+    isFree: false,
+    category: 'ai',
+    level: 'advanced',
+    rating: 5.0,
+    ratingCount: 1200,
+    studentsCount: 3500,
+    viewCount: 15000,
+    totalDuration: 18000,
+    videos: [
+      { title: '1-Dars: Antigravity Agent bilan Tanishuv', description: 'Antigravity dasturi nima? U nima uchun kerak?', order: 0, duration: 1800 },
+      { title: '2-Dars: Ishchi muhit (Workspace) sozlash', description: 'Agent uchun loyihani va muhitni to\'g\'ri tayyorlash.', order: 1, duration: 2100 },
+      { title: '3-Dars: CLI va Konfiguratsiya', description: 'Antigravity konfiguratsiyalari, flaglari va prompt yozish san\'ati.', order: 2, duration: 2400 },
+      { title: '4-Dars: Murakkab Tizimlarni Avtomatlashtirish', description: 'Bir nechta microservice va katta proektlarda agentdan to\'g\'ri foydalanish.', order: 3, duration: 3200 },
+    ],
+    projects: [
+      {
+        title: 'Avto Backend API Qidiruvi va Tahlili',
+        description: 'Antigravity yordamida backend loglari va fayllarini taxlil qiluvchi prompt tuzish.',
+        level: 'advanced',
+        order: 0,
+        technologies: ['AI', 'Antigravity'],
+        requirements: ['Agent prinsiplari tushunilgan bo\'lishi kerak'],
+        estimatedTime: 120,
+        xpReward: 500,
+        tasks: [
+          { order: 0, title: 'To\'g\'ri Task (Prompt) Tuzish', description: 'Antigravity ga loyihangiz arxitekturasini o\'rganish uchun task bering', hint: 'Aniq yo\'naltiruvchi shartlar yozing', xpReward: 250 },
+          { order: 1, title: 'Natijani Tekshirish', description: 'Agent chiqargan loglarni tahlil qilish va xulosa tuzish', hint: 'Log fayllari .gemini/.agents ichida bo\'ladi', xpReward: 250 },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'cursor-ai-editor',
+    title: 'Cursor AI: Tezkor Kod Yozish',
+    description: 'Cursor Editor yordamida dasturlash tezligini 10 barobarga oshirish. AI-First IDE imkoniyatlari, Composer xususiyatlari, va Chat orqali kod yozdirib olish.',
+    thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Cursor_logo.png/500px-Cursor_logo.png',
+    price: 349000,
+    isFree: false,
+    category: 'ai',
+    level: 'beginner',
+    rating: 4.9,
+    ratingCount: 5200,
+    studentsCount: 22000,
+    viewCount: 55000,
+    totalDuration: 21000,
+    videos: [
+      { title: '1-Dars: Cursor O\'rnatish va VS Code dan o\'tish', description: 'Kengaytmalarni import qilish va ilk loyihani ochish.', order: 0, duration: 1500 },
+      { title: '2-Dars: Cursor Chat va Inline AI (Cmd+K)', description: 'Tab bilan kod yozish va xatolarni tuzatish (Cmd+K).', order: 1, duration: 1800 },
+      { title: '3-Dars: Composer (Ctrl+I) bilan Katta Loyihalar Yaratish', description: 'Composer funksiyasining kuchi: butun boshli file arxitekturasini kodlashsiz qurish.', order: 2, duration: 2700 },
+      { title: '4-Dars: Maxsus (Custom) Qoidalar Yozish (Rules)', description: '.cursorrules faylidan foydalanib agentga loyiha standartini o\'rgatish.', order: 3, duration: 2100 },
+    ],
+    projects: [
+      {
+        title: 'Full-Stack Loyiha Generatsiyasi',
+        description: 'Cursor Composer qobiliyatidan foydalanib, butun e-commerce loyihasi va REST API sini 10 daqiqa ichida noldan yarating.',
+        level: 'intermediate',
+        order: 0,
+        technologies: ['Cursor', 'LLMs', 'React', 'Nodejs'],
+        requirements: ['Composer nima ekanini bilish'],
+        estimatedTime: 90,
+        xpReward: 300,
+        tasks: [
+          { order: 0, title: 'Prompt tuzish', description: 'Composer da loyiha strukturasi haqida batafsil ma\'lumot berish', hint: 'Ctrl+I bosing va prompt yozing', xpReward: 150 },
+          { order: 1, title: 'Kodlarni ko\'rib chiqish va Accept qilish', description: 'AI generatsiya qilgan kodlar ro\'yxatini tekshirib qabul qiling', hint: 'Accept All tugmasini bosing', xpReward: 150 },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'claude-code-terminal',
+    title: 'Claude Code va Anthropic: CLI da Kodlash',
+    description: 'Anthropic tomonidan yaratilgan ilg\'or Claude 3.5 Sonnet modellarini va Claude Code terminal uskunasini chuqur o\'rganish.',
+    thumbnail: 'https://static.vecteezy.com/system/resources/thumbnails/067/941/712/small_2x/claude-ai-logo-rounded-hd-free-png.png',
+    price: 399000,
+    isFree: false,
+    category: 'ai',
+    level: 'intermediate',
+    rating: 4.8,
+    ratingCount: 2200,
+    studentsCount: 10400,
+    viewCount: 38000,
+    totalDuration: 19000,
+    videos: [
+      { title: '1-Dars: Claude nima va uning farqi', description: 'Anthropic ning ishonchli AI modellari va context length kuchi.', order: 0, duration: 1200 },
+      { title: '2-Dars: Claude Code O\'rnatish (CLI)', description: 'Terminal dan chiqmagan holda kodlash agentidan foydalanish.', order: 1, duration: 1600 },
+      { title: '3-Dars: Terminal CLI commands', description: 'Bug fiksing, testlar yozdirish va Claude Code qoidalari.', order: 2, duration: 2000 },
+      { title: '4-Dars: Anthropic API', description: 'Loyiha kodiga API yordamida Claude 3.5 Sonnet kiritish.', order: 3, duration: 2500 },
+    ],
+    projects: [
+      {
+        title: 'Terminal Refactoring Loyihasi',
+        description: 'Eski JavaScript loyihani TypeScript ga Claude Code yordamida o\'tkazish.',
+        level: 'intermediate',
+        order: 0,
+        technologies: ['Claude CLI', 'LLMs'],
+        requirements: ['CLI asosi'],
+        estimatedTime: 120,
+        xpReward: 400,
+        tasks: [
+          { order: 0, title: 'Loyiha tekshiruvi', description: 'Terminalda Claude ga loyihani taxlil qildirish', hint: 'claude "Ushbu index.js ni types qo\'shib .ts ga aylantir"', xpReward: 200 },
+          { order: 1, title: 'Testlar Yozdirish', description: 'Avtomatik test fayllarini generatsiya qilish', hint: 'claude "Endi shunga jest testlar yarat"', xpReward: 200 },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'google-gemini-mastery',
+    title: 'Google Gemini Pro / Flash AI',
+    description: 'Eng tezkor AI modellaridan biri — Google Gemini (Pro, Flash modellari) API larini ilovalaringizga qanday qilib oson qo\'shishni o\'rganish.',
+    thumbnail: 'https://www.gstatic.com/lamda/images/gemini_aurora_thumbnail_4g_e74822ff0ca4259beb718.png',
+    price: 249000,
+    isFree: false,
+    category: 'ai',
+    level: 'beginner',
+    rating: 4.7,
+    ratingCount: 3100,
+    studentsCount: 15800,
+    viewCount: 41000,
+    totalDuration: 16000,
+    videos: [
+      { title: '1-Dars: Google AI Studio va Kalit Olish', description: 'BEPUL API kalitlarini topish va AI Studio interfeysi.', order: 0, duration: 1300 },
+      { title: '2-Dars: Gemini 1.5 Pro vs Flash', description: 'Modellar o\'rtasidagi farq va qay birini qayerda ishlatish kerak.', order: 1, duration: 1500 },
+      { title: '3-Dars: Rasm (Vision) va Matn', description: 'Rasm yuklash va uni aniqlash API logikasi. Node.js va React misolida.', order: 2, duration: 2400 },
+    ],
+    projects: [
+      {
+        title: 'Aqlli Rasm Tahlilchisi',
+        description: 'Rasm yuklaysiz, Gemini uni qaysi joy ekani, uning retsepti yoki tahlilini yozib beradi.',
+        level: 'intermediate',
+        order: 0,
+        technologies: ['Gemini API', 'React', 'Node.js'],
+        requirements: ['So\'rovlar yuborish asoslari'],
+        estimatedTime: 150,
+        xpReward: 600,
+        tasks: [
+          { order: 0, title: 'Server yaratish', description: 'Express da multerni sozlash', hint: 'Rasmni diskka yoki buferga saqlash', xpReward: 200 },
+          { order: 1, title: 'Gemini SDK qoshish', description: '@google/generative-ai dan foydalanish', hint: 'GoogleGenerativeAI klassidan instance oling', xpReward: 200 },
+          { order: 2, title: 'Client dan malumot olib chiqish', description: 'Javobni ekranda chiroyli formatlash', hint: 'React Markdown', xpReward: 200 },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'chatgpt-prompt-engineering',
+    title: 'ChatGPT & OpenAI: Professional API Integratsiya',
+    description: 'OpenAI ChatGPT vositasidan kundalik ishlab chiquvchi yordamchisi sifatida foydalanish, Prompt dizayni, GPT-4o arxitekturasi.',
+    thumbnail: 'https://thumbs.dreamstime.com/b/icons-sample-psost-setting-414595325.jpg',
+    price: 349000,
+    isFree: false,
+    category: 'ai',
+    level: 'beginner',
+    rating: 4.9,
+    ratingCount: 8800,
+    studentsCount: 32000,
+    viewCount: 65000,
+    totalDuration: 24000,
+    videos: [
+      { title: '1-Dars: ChatGPT Asoslari', description: 'Yangi boshlovchilar uchun ChatGPT bilan qanday suhbatlashish zarur.', order: 0, duration: 1500 },
+      { title: '2-Dars: Murakkab Promptlar (Zero-shot, Few-shot)', description: 'To\'g\'ri xulosa olish uchun kontekstdan foydalanish strategiyalari.', order: 1, duration: 2100 },
+      { title: '3-Dars: OpenAI API Platformasi', description: 'API ulanishi, Billing, Error tahlili.', order: 2, duration: 1800 },
+      { title: '4-Dars: Function Calling / Tools', description: 'API vositasida funksiyalarni bajarish va ChatGPT ga o\'z dastur funksiyalaringizni berish.', order: 3, duration: 2800 },
+    ],
+    projects: [
+      {
+        title: 'Xulosa Qiluvchi Bot (Summarizer)',
+        description: 'Telegram uchun katta matn yoki videoni o\'qib xulosa chiqaradigan bot yaratish.',
+        level: 'intermediate',
+        order: 0,
+        technologies: ['Telegraf', 'OpenAI API'],
+        requirements: ['Telegram API tajribasi'],
+        estimatedTime: 180,
+        xpReward: 500,
+        tasks: [
+          { order: 0, title: 'Telegram Bot Sozlash', description: 'Telegraf quramiz', hint: 'Token oling', xpReward: 250 },
+          { order: 1, title: 'OpenAI Chat Completions', description: 'Kelgan matnni "Qisqacha xulosa qilib ber" promti bilan ulash', hint: 'system promt role bering', xpReward: 250 },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'telegram-mini-apps',
+    title: 'Telegram Mini Apps & Botlar',
+    description: 'Zamonaviy Telegram Mini App\'lar (WebApps), murakkab botlar yaratish, to\'lov tizimlarini o\'rnatish (Payme, Click, Telegram Stars).',
+    thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg',
+    price: 349000,
+    isFree: false,
+    category: 'telegram',
+    level: 'intermediate',
+    rating: 4.9,
+    ratingCount: 1540,
+    studentsCount: 8200,
+    viewCount: 25000,
+    totalDuration: 22000,
+    videos: [
+      { title: '1-Dars: Telegraf (Node.js) va Aiogram (Python) asoslari', description: 'Node.js va Python da zamonaviy bot yaratish', order: 0, duration: 1800 },
+      { title: '2-Dars: Telegram Mini Apps (TMA) yaratish', description: 'React, Next.js ilovalarni bot ichiga moslashtirish', order: 1, duration: 2500 },
+      { title: '3-Dars: To\'lov Tizimlari', description: 'Telegram Stars va Payme/Click ulanishi', order: 2, duration: 2100 }
+    ],
+    projects: [
+      {
+        title: 'O\'z shaxsiy e-commerce TMA yarating',
+        description: 'Telegram ichida to\'liq ishlaydigan onlayn do\'kon',
+        level: 'intermediate',
+        order: 0,
+        technologies: ['React', 'Telegraf', 'Payment APIs'],
+        requirements: ['React asoslari'],
+        estimatedTime: 180,
+        xpReward: 600,
+        tasks: [
+          { order: 0, title: 'WebApp tugmasi', description: 'BotFather dan webapp url qo\'shish', hint: '/setmenubutton', xpReward: 100 },
+          { order: 1, title: 'TMA ulanishi', description: 'window.Telegram.WebApp', hint: 'tg.initDataUnsafe', xpReward: 500 }
+        ]
+      }
+    ]
+  },
+  {
+    key: 'ethical-hacking',
+    title: 'Etik Xakerlik va Kiberxavfsizlik',
+    description: 'Web zaifliklarni topish (SQLi, XSS, CSRF), Kali Linux dasturlari va Bug Bounty orqali internetda xavfsizlikni ta\'minlash.',
+    thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/2/2b/Kali-dragon-icon.svg',
+    price: 499000,
+    isFree: false,
+    category: 'security',
+    level: 'advanced',
+    rating: 4.8,
+    ratingCount: 2100,
+    studentsCount: 6500,
+    viewCount: 30000,
+    totalDuration: 28000,
+    videos: [
+      { title: '1-Dars: Axborot Xavfsizligi Asoslari', description: 'Network asoslari va Kali Linux o\'rnatish', order: 0, duration: 2000 },
+      { title: '2-Dars: Web zaifliklar (OWASP Top 10)', description: 'SQL Injection, XSS amalda', order: 1, duration: 2500 },
+      { title: '3-Dars: Bug Bounty Platformalari', description: 'HackerOne da qanday pul ishlash mumkin?', order: 2, duration: 1800 }
+    ],
+    projects: []
+  },
+  {
+    key: 'freelance-upwork',
+    title: 'Upwork va Fiverr: Top Developer Bo\'lish',
+    description: 'Freelance platformalarida profilni to\'ldirish, portfolio yaratish, cover letter yozish va chet ellik mijozlar bilan muloqot qilish sirlari.',
+    thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/d/d4/Upwork_Logo.svg',
+    price: 199000,
+    isFree: false,
+    category: 'career',
+    level: 'beginner',
+    rating: 5.0,
+    ratingCount: 3400,
+    studentsCount: 15000,
+    viewCount: 40000,
+    totalDuration: 15000,
+    videos: [
+      { title: '1-Dars: Upwork haqida', description: 'Profil 100% to\'ldirish va Approve qilish', order: 0, duration: 1500 },
+      { title: '2-Dars: Cover Letter yozish', description: 'Mijozni qiziqtiradigan murojaat yozish', order: 1, duration: 1800 }
+    ],
+    projects: []
+  },
+  {
+    key: 'nocode-flutterflow',
+    title: 'No-Code: Kod yozmasdan Ilova Yaratish',
+    description: 'Webflow va FlutterFlow yordamida dasturlashni umuman bilmagan holda 1 haftada to\'laqonli mobil va web ilovalar yig\'ish.',
+    thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/6/69/Webflow_logo.svg',
+    price: 349000,
+    isFree: false,
+    category: 'nocode',
+    level: 'beginner',
+    rating: 4.6,
+    ratingCount: 1000,
+    studentsCount: 5000,
+    viewCount: 18000,
+    totalDuration: 18000,
+    videos: [
+      { title: '1-Dars: FlutterFlow Asoslari', description: 'Drag and Drop orqali UI qurish', order: 0, duration: 2000 },
+      { title: '2-Dars: Baza ulash', description: 'Supabase bilan Firebase o\'zaro integratsiyasi', order: 1, duration: 2200 }
+    ],
+    projects: []
+  },
+  {
+    key: 'web3-solidity',
+    title: 'Web3 & Solidity: Smart Kontraktlar',
+    description: 'Ethereum tarmog\'ida tokenlar chiqarish, NFT bozorlari va Smart Kontraktlarni Solidity da yozish.',
+    thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/0/05/Ethereum_logo_2014.svg',
+    price: 599000,
+    isFree: false,
+    category: 'web3',
+    level: 'advanced',
+    rating: 4.9,
+    ratingCount: 1800,
+    studentsCount: 4200,
+    viewCount: 22000,
+    totalDuration: 30000,
+    videos: [
+      { title: '1-Dars: Blokcheyn va Kriptovalyuta', description: 'Ethereum tranzaksiyalari va Wallet o\'rnatish', order: 0, duration: 2000 },
+      { title: '2-Dars: Solidity asoslari', description: 'Smart kontraktlar yozish va deploy qilish', order: 1, duration: 2500 }
+    ],
+    projects: []
+  }
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -460,6 +763,10 @@ const COURSES = [
 // ─────────────────────────────────────────────────────────────────────────────
 async function seedData() {
   try {
+    if (!process.env.ALLOW_DESTRUCTIVE_SEED) {
+      throw new Error('Refusing to run destructive seed without ALLOW_DESTRUCTIVE_SEED=true');
+    }
+
     await connectDB();
     console.log('✅ Database ulandi');
 
@@ -525,7 +832,6 @@ async function seedData() {
 
     console.log('\n🎉 Barcha ma\'lumotlar muvaffaqiyatli yaratildi!');
     console.log(`   Kurslar: ${COURSES.length} ta`);
-    console.log(`   Admin: admin@aidevix.com / Admin@123456`);
     process.exit(0);
   } catch (err) {
     console.error('❌ Seed xatosi:', err.message);

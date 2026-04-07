@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { FaTelegram } from 'react-icons/fa'
-import { IoCheckmarkCircle, IoCloseCircle, IoWarning } from 'react-icons/io5'
+import { IoCheckmarkCircle, IoCloseCircle } from 'react-icons/io5'
 import toast from 'react-hot-toast'
 import {
   verifyTelegram,
   selectTelegramSub,
-  selectSubLoading
+  selectSubLoading,
 } from '@store/slices/subscriptionSlice'
 import { SOCIAL_LINKS } from '@utils/constants'
 
@@ -32,7 +32,6 @@ export default function TelegramVerify({ onTelegramVerified }: TelegramVerifyPro
   const [checkResult, setCheckResult] = useState<CheckResult | null>(null)
   const [isChecking, setIsChecking] = useState<boolean>(false)
 
-  // Telegram obunasini tekshirish funksiyasi
   const checkTelegramSubscription = async (): Promise<void> => {
     if (!inputUserId.trim()) {
       toast.error('Telegram User ID ni kiriting')
@@ -44,282 +43,144 @@ export default function TelegramVerify({ onTelegramVerified }: TelegramVerifyPro
     setCheckResult(null)
 
     try {
-      // Backend API orqali haqiqiy Telegram obunasini tekshirish
-      const response = await fetch('/api/subscriptions/check-telegram', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}` // Auth token
-        },
-        body: JSON.stringify({
-          telegramUserId: cleanUserId
-        })
-      })
+      const data = await (dispatch as any)(verifyTelegram({
+        telegramUserId: cleanUserId,
+        username: 'telegram_user',
+      })).unwrap()
 
-      if (response.ok) {
-        const data = await response.json()
-        
-        if (data.success && data.data.isSubscribed) {
-          setCheckResult({
-            isSubscribed: true,
-            message: `ID: ${cleanUserId} Aidevix Telegram kanaliga obuna bo'lgan ✅`
-          })
-          toast.success('Aidevix Telegram obunachisi tasdiqlandi!')
-        } else {
-          setCheckResult({
-            isSubscribed: false,
-            message: `ID: ${cleanUserId} hali Aidevix Telegram kanaliga obuna bo'lmagan ❌`
-          })
-          toast.error('Aidevix Telegram obunasi topilmadi. Iltimos, avval kanalga obuna bo\'ling')
-        }
+      if (data?.telegram?.subscribed) {
+        setCheckResult({
+          isSubscribed: true,
+          message: `ID: ${cleanUserId} Aidevix kanaliga obuna bo'lgan`,
+        })
+        toast.success('Obuna tasdiqlandi!')
       } else {
-        // Backend xatosi
-        const errorData = await response.json().catch(() => ({}))
         setCheckResult({
           isSubscribed: false,
-          message: errorData.message || 'Telegram obunasini tekshirishda xato'
+          message: `ID: ${cleanUserId} hali kanalga obuna bo'lmagan`,
         })
-        toast.error(errorData.message || 'Tekshirishda xato yuz berdi')
+        toast.error('Obuna topilmadi. Iltimos, avval kanalga obuna bo\'ling')
       }
     } catch (error) {
       console.error('Telegram API error:', error)
       setCheckResult({
         isSubscribed: false,
-        message: 'Internet aloqasi yoki server bilan bog\'lanishda muammo'
+        message: 'Server bilan bog\'lanishda muammo yuz berdi',
       })
-      toast.error('Internet aloqasini tekshiring va qaytadan urinib ko\'ring')
+      toast.error('Internet aloqasini tekshiring')
     } finally {
       setIsChecking(false)
     }
   }
 
   const handleVerify = async (): Promise<void> => {
-    if (!inputUserId.trim()) {
-      toast.error('Telegram User ID ni kiriting')
-      return
-    }
-
     if (!checkResult?.isSubscribed) {
-      toast.error('Avval Telegram obunasini tekshiring')
+      toast.error('Avval obunani tekshiring')
       return
     }
 
-    const cleanUserId = inputUserId.trim()
-    
-    // Mock tasdiqlash - har doim muvaffaqiyatli
-    toast.success('Telegram obuna tasdiqlandi!')
-    setInputUserId('')
-    setCheckResult(null)
-    
-    // Telegram tasdiqlangandan keyin callback chaqirish
+    toast.success('Barcha obunalar muvaffaqiyatli tasdiqlandi!')
+
     if (onTelegramVerified) {
-      console.log('Calling onTelegramVerified callback')
-      setTimeout(() => {
-        onTelegramVerified()
-      }, 1000)
+      onTelegramVerified()
     }
   }
 
-  // Obuna bo'lmagan holatda qayta obuna bo'lishni taklif qilish
-  const handleRetrySubscription = (): void => {
-    setCheckResult(null)
-    setInputUserId('')
-    toast.success('Iltimos, avval Telegram kanalimizga obuna bo\'ling')
-  }
-
-  // Состояние: уже подтверждён
   if (telegram?.subscribed) {
     return (
-      <div className="glass-card border border-success/30 p-6 rounded-xl">
+      <div className="glass-card border border-emerald-500/30 p-6 rounded-xl bg-emerald-500/5">
         <div className="flex items-center gap-4">
-          <IoCheckmarkCircle className="text-3xl text-success" />
+          <IoCheckmarkCircle className="text-3xl text-emerald-500" />
           <div>
-            <h3 className="text-lg font-semibold text-white">Telegram tasdiqlangan</h3>
-            <p className="text-zinc-400">@{telegram.username}</p>
+            <h3 className="text-lg font-semibold text-white">Telegram hozir tasdiqlangan</h3>
+            <p className="text-zinc-400">Darslarni ko'rishda davom eting</p>
           </div>
         </div>
       </div>
     )
   }
 
-  // Состояние: не подтверждён
   return (
-    <div className="glass-card p-6 rounded-xl space-y-6">
-      {/* Шапка */}
+    <div className="glass-card p-6 rounded-xl space-y-6 bg-[#1a1c26] border border-white/5 shadow-2xl">
       <div className="text-center space-y-2">
-        <FaTelegram className="text-3xl text-blue-400 mx-auto" />
-        <h3 className="text-lg font-semibold text-white">Telegram kanalga obuna bo'ling</h3>
-        <p className="text-xs text-zinc-400">Kanalga obuna bo'ling, keyin tasdiqlang</p>
-      </div>
-
-      {/* Шаг 1 — Переход на Telegram канал */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium text-white">1-qadam:</h4>
-        <a
-          href={SOCIAL_LINKS.telegram}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full p-3 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 rounded-lg text-center text-blue-400 font-medium transition-colors"
-        >
-          Telegram kanalini ochish →
-        </a>
-      </div>
-
-      {/* Шаг 2 — Получение ID */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium text-white">2-qadam:</h4>
-        <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-          <p className="text-xs text-blue-300">
-            💡 Botimizga <code className="bg-blue-500/20 px-1 rounded">/start</code> yozing va User ID ni oling
-          </p>
+        <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
+          <FaTelegram className="text-3xl text-blue-400" />
         </div>
+        <h3 className="text-xl font-bold text-white">Telegram Verifikatsiya</h3>
+        <p className="text-sm text-zinc-400">Telegram kanalimizga obuna bo'lishingiz shart</p>
       </div>
 
-      {/* Шаг 3 — Ввод ID и проверка */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium text-white">3-qadam:</h4>
-        
-        {/* Real API ma'lumotlari */}
-        <div className="p-4 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-lg">
-          <div className="flex items-center gap-2 mb-3">
-            <FaTelegram className="text-blue-400 text-lg" />
-            <p className="text-sm font-semibold text-blue-300">
-              Haqiqiy Telegram Obuna Tekshirish
-            </p>
-          </div>
-          
-          <p className="text-xs text-blue-200 mb-3">
-            Har qanday Telegram User ID kiritishingiz mumkin. Tizim avtomatik ravishda Aidevix Telegram kanaliga obuna ekanligingizni tekshiradi.
-          </p>
-          
-          <div className="space-y-2">
-            <p className="text-xs text-cyan-300">
-              🔍 Tekshirish jarayoni:
-            </p>
-            <div className="text-xs text-cyan-200 ml-4 space-y-1">
-              <p>• Backend API orqali Telegram tekshirish</p>
-              <p>• Aidevix Telegram kanali obunachilari</p>
-              <p>• Real vaqtda natija</p>
-            </div>
-            
-            <p className="text-xs text-green-300 mt-3">
-              ✅ Agar obuna bo'lsangiz: Tasdiqlash tugmasi paydo bo'ladi
-            </p>
-            <p className="text-xs text-red-300">
-              ❌ Agar obuna bo'lmasangiz: Obuna bo'lish taklif qilinadi
-            </p>
+      <div className="space-y-4">
+        <div className="flex gap-4">
+          <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold shrink-0">1</div>
+          <div className="space-y-2 flex-1">
+            <p className="text-sm text-zinc-200 font-medium">Kanalga obuna bo'ling</p>
+            <a
+              href={SOCIAL_LINKS.telegram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition-all shadow-lg shadow-blue-500/20"
+            >
+              KANALNI OCHISH →
+            </a>
           </div>
         </div>
-        
-        <div className="space-y-3">
-          <input
-            type="text"
-            placeholder="Telegram User ID (masalan: 123456789)"
-            value={inputUserId}
-            onChange={(e) => setInputUserId(e.target.value)}
-            className="w-full p-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500/50 transition-colors"
-          />
-          
-          {/* Проверка подписки */}
-          <button
-            onClick={checkTelegramSubscription}
-            disabled={isChecking || !inputUserId.trim()}
-            className="w-full p-3 bg-blue-500/20 border border-blue-500/30 hover:bg-blue-500/30 disabled:bg-blue-500/10 disabled:cursor-not-allowed text-blue-400 font-medium rounded-lg transition-colors"
-          >
-            {isChecking ? 'Tekshirilmoqda...' : 'Obunani tekshirish'}
-          </button>
 
-          {/* Результат проверки */}
-          {checkResult && (
-            <div className={`p-3 rounded-lg border ${
-              checkResult.isSubscribed 
-                ? 'bg-green-500/10 border-green-500/30 text-green-400' 
-                : 'bg-red-500/10 border-red-500/30 text-red-400'
-            }`}>
-              <div className="flex items-center gap-2">
-                {checkResult.isSubscribed ? (
-                  <IoCheckmarkCircle className="text-lg" />
-                ) : (
-                  <IoCloseCircle className="text-lg" />
-                )}
-                <span className="text-sm font-medium">{checkResult.message}</span>
+        <div className="flex gap-4">
+          <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold shrink-0">2</div>
+          <div className="space-y-2 flex-1">
+            <p className="text-sm text-zinc-200 font-medium">ID raqamingizni oling</p>
+            <div className="p-3 bg-zinc-900/50 rounded-lg border border-white/5">
+              <p className="text-xs text-zinc-400 italic">
+                Botimizga <code className="text-blue-400">/id</code> yoki <code className="text-blue-400">/start</code> yozing:
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <a href="https://t.me/aidevix_bot" target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-400 hover:underline">@aidevix_bot</a>
               </div>
             </div>
-          )}
+          </div>
+        </div>
 
-          {/* Подтверждение - только если подписан */}
-          {checkResult?.isSubscribed ? (
+        <div className="flex gap-4">
+          <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold shrink-0">3</div>
+          <div className="space-y-3 flex-1">
+            <p className="text-sm text-zinc-200 font-medium">ID ni kiriting</p>
+            <input
+              type="text"
+              placeholder="Masalan: 12345678"
+              value={inputUserId}
+              onChange={(e) => setInputUserId(e.target.value)}
+              className="w-full p-3 bg-zinc-900 border border-white/10 rounded-xl text-white placeholder-zinc-600 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
+            />
+
             <button
-              onClick={handleVerify}
-              disabled={loading}
-              className="w-full p-3 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+              onClick={checkTelegramSubscription}
+              disabled={isChecking || loading || !inputUserId.trim()}
+              className="w-full p-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {loading ? 'Tasdiqlash...' : '✅ Telegram obunani tasdiqlash'}
+              {isChecking || loading ? 'Tekshirilmoqda...' : 'OBUNANI TEKSHIRISH'}
             </button>
-          ) : checkResult && !checkResult.isSubscribed ? (
-            <div className="space-y-3">
+
+            {checkResult && (
+              <div className={`p-4 rounded-xl border flex items-center gap-3 ${
+                checkResult.isSubscribed
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                  : 'bg-red-500/10 border-red-500/20 text-red-400'
+              }`}>
+                {checkResult.isSubscribed ? <IoCheckmarkCircle className="text-xl" /> : <IoCloseCircle className="text-xl" />}
+                <span className="text-xs font-bold uppercase tracking-wider">{checkResult.message}</span>
+              </div>
+            )}
+
+            {checkResult?.isSubscribed && (
               <button
-                onClick={handleRetrySubscription}
-                className="w-full p-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
+                onClick={handleVerify}
+                className="w-full p-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-blue-600/30"
               >
-                🔄 Qaytadan urinish
+                TASDIQLASH VA DAVOM ETTIRISH
               </button>
-              <a
-                href={SOCIAL_LINKS.telegram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full p-3 bg-blue-500/20 border border-blue-500/30 hover:bg-blue-500/30 rounded-lg text-center text-blue-400 font-medium transition-colors"
-              >
-                📱 Telegram kanalga o'tish va obuna bo'lish
-              </a>
-            </div>
-          ) : (
-            <button
-              onClick={handleVerify}
-              disabled={true}
-              className="w-full p-3 bg-gray-500/50 cursor-not-allowed text-gray-400 font-medium rounded-lg"
-            >
-              Avval obunani tekshiring
-            </button>
-          )}
-
-          {/* Предупреждение и действия если не подписан */}
-          {checkResult && !checkResult.isSubscribed && (
-            <div className="space-y-3">
-              <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <IoWarning className="text-lg text-yellow-400 mt-0.5 flex-shrink-0" />
-                  <div className="space-y-2">
-                    <p className="text-sm text-yellow-400 font-medium">
-                      Video ko'rish uchun Telegram kanalga obuna bo'lish shart!
-                    </p>
-                    <p className="text-xs text-yellow-300/80">
-                      1. Telegram kanalimizga obuna bo'ling<br/>
-                      2. Botdan User ID ni oling<br/>
-                      3. Qaytadan ID ni tekshiring
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Успешная подписка */}
-          {checkResult?.isSubscribed && (
-            <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-              <div className="flex items-center gap-3">
-                <IoCheckmarkCircle className="text-lg text-green-400" />
-                <div>
-                  <p className="text-sm text-green-400 font-medium">
-                    Ajoyib! Siz bizning Telegram obunachimiz
-                  </p>
-                  <p className="text-xs text-green-300/80">
-                    Endi tasdiqlash tugmasini bosing
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

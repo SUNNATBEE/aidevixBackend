@@ -44,6 +44,7 @@ dist/
 build/
 out/
 .next/
+*.tsbuildinfo
 
 # Debug
 .cursor/

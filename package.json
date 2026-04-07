@@ -18,8 +18,10 @@
     "doc": "docs"
   },
   "scripts": {
-    "postinstall": "bash setup-protection.sh && cd backend && npm install",
-    "start": "cd backend && npm start"
+    "install:backend": "npm --prefix backend install",
+    "install:frontend": "npm --prefix frontend install",
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "start": "npm --prefix backend start"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

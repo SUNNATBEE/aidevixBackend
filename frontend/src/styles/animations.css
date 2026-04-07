@@ -91,3 +91,45 @@
   stroke-dashoffset: 50;
   animation: checkDraw 0.5s ease 0.2s forwards;
 }
+
+/* ─── XP Progress Bar Glow Sweep ─── */
+@keyframes xpGlow {
+  0%   { box-shadow: 0 0 4px rgba(252, 211, 77, 0.2), 0 0 8px rgba(252, 211, 77, 0.1); }
+  50%  { box-shadow: 0 0 12px rgba(252, 211, 77, 0.6), 0 0 20px rgba(252, 211, 77, 0.3); }
+  100% { box-shadow: 0 0 4px rgba(252, 211, 77, 0.2), 0 0 8px rgba(252, 211, 77, 0.1); }
+}
+.xp-bar-fill { animation: xpGlow 2s ease-in-out infinite; }
+
+/* ─── Modal Pop-In ─── */
+@keyframes popIn {
+  0%   { transform: scale(0.6); opacity: 0; }
+  70%  { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.pop-in { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+/* ─── Ticker Card Slide In ─── */
+@keyframes slideInLeft {
+  from { transform: translateX(-120%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+.ticker-card { animation: slideInLeft 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+/* ─── Button Pulse on Hover ─── */
+@keyframes btnPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5); }
+  70%  { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+}
+.btn-pulse:hover { animation: btnPulse 1s infinite; }
+
+/* ─── Floating badge shake on XP gain ─── */
+@keyframes xpShake {
+  0%, 100% { transform: translateY(0); }
+  20%  { transform: translateY(-6px) scale(1.1); }
+  40%  { transform: translateY(2px) scale(0.98); }
+  60%  { transform: translateY(-4px) scale(1.05); }
+  80%  { transform: translateY(1px); }
+}
+.xp-gained { animation: xpShake 0.6s ease; }
+

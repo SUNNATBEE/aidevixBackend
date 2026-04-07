@@ -118,6 +118,39 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  lastClaimedDaily: {
+    type: Date,
+    default: null,
+  },
+  // --- GAMIFICATION & REFERRAL ---
+  xp: {
+    type: Number,
+    default: 0,
+  },
+  streak: {
+    type: Number,
+    default: 0,
+  },
+  rankTitle: {
+    type: String,
+    enum: ['AMATEUR', 'CANDIDATE', 'JUNIOR', 'MIDDLE', 'SENIOR', 'MASTER', 'LEGEND'],
+    default: 'AMATEUR',
+  },
+  referralCode: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+  },
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
+  referralsCount: {
+    type: Number,
+    default: 0,
+  },
 }, {
   timestamps: true,
 });

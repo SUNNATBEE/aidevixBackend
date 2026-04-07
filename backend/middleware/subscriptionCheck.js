@@ -16,35 +16,46 @@ const checkSubscriptions = async (req, res, next) => {
       });
     }
 
-    const { instagramSubscribed, telegramSubscribed, changed } = await performSubscriptionCheck(user);
+    // Try real-time verification with Failsafe
+    try {
+      const { instagramSubscribed, telegramSubscribed, changed } = await performSubscriptionCheck(user);
 
-    if (changed) {
-      await user.save();
-    }
+      if (changed) {
+        await user.save();
+      }
 
-    if (!instagramSubscribed || !telegramSubscribed) {
-      const missingSubscriptions = [];
-      if (!instagramSubscribed) missingSubscriptions.push('Instagram');
-      if (!telegramSubscribed) missingSubscriptions.push('Telegram');
+      if (!instagramSubscribed || !telegramSubscribed) {
+        const missingSubscriptions = [];
+        if (!instagramSubscribed) missingSubscriptions.push('Instagram');
+        if (!telegramSubscribed) missingSubscriptions.push('Telegram');
 
-      return res.status(403).json({
+        return res.status(403).json({
+          success: false,
+          isSubscriptionError: true,
+          message: `Darsni davom ettirish uchun ijtimoiy tarmoqlarga obuna bo'lishingiz kerak.`,
+          subscriptions: {
+            instagram: instagramSubscribed,
+            telegram: telegramSubscribed,
+          },
+          missingSubscriptions,
+        });
+      }
+
+      req.user = user;
+      next();
+    } catch (checkError) {
+      console.error('CRITICAL: Subscription Check Failed:', checkError.message);
+      return res.status(503).json({
         success: false,
-        message: `Siz obuna bekor qildingiz. Video ko'ra olmaysiz. Iltimos, ${missingSubscriptions.join(' va ')} ga qayta obuna bo'ling.`,
-        subscriptions: {
-          instagram: instagramSubscribed,
-          telegram: telegramSubscribed,
-        },
-        missingSubscriptions,
+        isSubscriptionError: true,
+        message: 'Subscription verification service is temporarily unavailable. Please try again shortly.',
       });
     }
-
-    // Update req.user with latest subscription status
-    req.user = user;
-    next();
   } catch (error) {
+    console.error('Global Subscription Middleware Error:', error.message);
     res.status(500).json({
       success: false,
-      message: 'Error checking subscriptions.',
+      message: 'Server xatosi (Subscription check).',
     });
   }
 };

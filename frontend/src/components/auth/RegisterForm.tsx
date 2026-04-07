@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
@@ -9,13 +9,28 @@ import { toast } from 'react-hot-toast';
 import { IoPersonOutline, IoMailOutline, IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from 'react-icons/io5';
 import { FiRefreshCcw } from 'react-icons/fi';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
+import { useLang } from '@/context/LangContext';
 
 export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { t } = useLang();
   
-  const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const { register, handleSubmit, watch, formState: { errors }, setValue } = useForm();
   const router = useRouter();
+  const [refCodeParam, setRefCodeParam] = useState('');
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const ref = searchParams.get('ref');
+      if (ref) {
+        setRefCodeParam(ref);
+        setValue('referralCode', ref);
+      }
+    }
+  }, [setValue]);
+
   const dispatch = useDispatch();
   const loading = useSelector(selectAuthLoading);
   const authError = useSelector(selectAuthError);
@@ -38,7 +53,7 @@ export default function RegisterForm() {
   const strengthPercentage = password.length === 0 ? 0 : Math.min((strength / 5) * 100, 100);
 
   const onSubmit = async (data: any) => {
-    if (clearError) dispatch(clearError());
+    dispatch(clearError());
 
     // Shartlarni qabul qilganini tekshirish
     if (!data.terms) {
@@ -63,7 +78,8 @@ export default function RegisterForm() {
       email,
       password: data.password,
       firstName,
-      lastName
+      lastName,
+      referralCode: data.referralCode || undefined
     }));
 
     if (registerUser.fulfilled.match(result)) {
@@ -196,6 +212,27 @@ export default function RegisterForm() {
           />
         </div>
         {errors.confirmPassword && <span className="text-red-500 text-xs mt-1 block">{(errors.confirmPassword as any).message || "Parollar mos emas"}</span>}
+      </div>
+
+      {/* Referral yozish */}
+      <div>
+        <label className="flex justify-between text-sm font-medium text-gray-300 mb-1.5">
+          <span>{t('auth.register.ref')}</span>
+          <span className="text-xs text-gray-500 font-normal">{t('auth.register.refOptional')}</span>
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+            <span className="text-emerald-500 font-bold mb-1">🎁</span>
+          </div>
+          <input
+            type="text"
+            defaultValue={refCodeParam}
+            {...register('referralCode')}
+            className="w-full pl-11 pr-4 py-3 bg-[#0A0E1A]/50 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all uppercase"
+            placeholder={t('auth.register.refPlaceholder')}
+          />
+        </div>
+        {refCodeParam && <span className="text-emerald-400 text-xs mt-1 block tracking-wide">{t('auth.register.refBonus')}</span>}
       </div>
 
       {/* Shartlar Checkbox */}

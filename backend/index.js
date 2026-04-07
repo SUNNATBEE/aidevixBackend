@@ -19,6 +19,7 @@ app.set('trust proxy', 1);
 // Connect to database (async - won't block server start)
 connectDB().catch(err => {
   console.error('Failed to connect to database on startup');
+  process.exit(1);
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -29,47 +30,23 @@ const allowedOrigins = (process.env.FRONTEND_URL || '')
   .map(o => o.trim())
   .filter(Boolean);
 
-/**
- * O'quvchilar turli IP manzillardan ishlashi mumkin (192.168.x.x, 10.x.x.x, 26.x.x.x, etc.)
- * Bu funksiya private/local network IP larni avtomatik ruxsat beradi.
- */
-function isPrivateNetworkOrigin(origin) {
-  try {
-    const url = new URL(origin);
-    const hostname = url.hostname;
-    // localhost
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true;
-    // Private network ranges: 10.x.x.x, 172.16-31.x.x, 192.168.x.x
-    const parts = hostname.split('.').map(Number);
-    if (parts.length === 4 && parts.every(p => !isNaN(p))) {
-      if (parts[0] === 10) return true;
-      if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-      if (parts[0] === 192 && parts[1] === 168) return true;
-      // Hamachi / VPN range (26.x.x.x — o'quvchilaringiz ishlatyapti)
-      if (parts[0] === 26) return true;
-      // Other common private/VPN ranges
-      if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true; // CGNAT
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
+const devOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+];
 
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, Postman, direct navigation)
     if (!origin) return callback(null, true);
     // Allow opaque origins (Telegram webview, file://, etc.)
-    if (origin === 'null') return callback(null, true);
+    if (origin === 'null' && process.env.NODE_ENV !== 'production') return callback(null, true);
     // Allow if wildcard '*' configured
     if (allowedOrigins.includes('*')) return callback(null, true);
     // Allow if explicitly listed
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    // Allow private/local network origins (o'quvchilar uchun)
-    if (isPrivateNetworkOrigin(origin)) return callback(null, true);
-    // Allow Vercel preview and production domains
-    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    // Allow local frontend during development only
+    if (process.env.NODE_ENV !== 'production' && devOrigins.includes(origin)) return callback(null, true);
     // Allow Railway backend URL itself (Swagger UI "Try it out" feature)
     const backendUrl = process.env.BACKEND_URL || 'https://aidevix-backend-production.up.railway.app';
     if (origin === backendUrl) return callback(null, true);
@@ -288,7 +265,7 @@ app.use(errorHandler);
 // Global process handlers for stability (Senior approach)
 process.on('unhandledRejection', (err, promise) => {
   console.error(`💥 Unhandled Rejection at: ${promise}\nReason: ${err.message}`);
-  // In production, log this to a service like Sentry instead of crashing immediately.
+  process.exit(1);
 });
 
 process.on('uncaughtException', (err) => {
@@ -306,7 +283,6 @@ app.listen(PORT, HOST, () => {
   console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 API Base URL: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
   console.log(`🌍 CORS allowed origins: ${allowedOrigins.length > 0 ? allowedOrigins.join(', ') : '(all — no FRONTEND_URL set)'}`);
-  console.log(`🔒 Private network origins: auto-allowed (localhost, 192.168.x.x, 10.x.x.x, 26.x.x.x)`);
   if (process.env.NODE_ENV === 'production') {
     console.log(`✅ Production mode enabled`);
   }

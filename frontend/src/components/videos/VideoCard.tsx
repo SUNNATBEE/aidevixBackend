@@ -1,13 +1,11 @@
-import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSelector } from 'react-redux';
 import { IoPlay, IoTime, IoEye, IoLockClosed, IoStar } from 'react-icons/io5';
 import { selectIsLoggedIn } from '@/store/slices/authSlice';
-import { selectAllVerified, selectInstagramSub } from '@/store/slices/subscriptionSlice';
+import { selectAllVerified } from '@/store/slices/subscriptionSlice';
 import { formatDurationText } from '@/utils/formatDuration';
 import { ROUTES } from '@/utils/constants';
-import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 
 interface VideoProps {
   video: {
@@ -25,8 +23,6 @@ interface VideoProps {
 export default function VideoCard({ video, index = 0 }: VideoProps) {
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const allVerified = useSelector(selectAllVerified);
-  const instagram = useSelector(selectInstagramSub);
-  const [showModal, setShowModal] = useState<boolean>(false);
 
   // canWatch logic: for now let's assume we need to be logged in and verified
   // but some might be free. If video has isFree, we should check that.
@@ -36,30 +32,12 @@ export default function VideoCard({ video, index = 0 }: VideoProps) {
 
   const rating = typeof video.rating === 'object' ? video.rating?.average : video.rating;
 
-  const handleClick = (e: React.MouseEvent) => {
-    // Agar foydalanuvchi login qilmagan yoki Instagram tasdiqlanmagan bo'lsa
-    if (!isLoggedIn || !instagram?.subscribed) {
-      e.preventDefault();
-      setShowModal(true);
-    }
-    // Aks holda Link o'z ishini qiladi
-  };
-
-  const handleModalSuccess = () => {
-    setShowModal(false);
-    // Instagram tasdiqlangandan keyin videoga o'tish
-    window.location.href = ROUTES.VIDEO(video._id);
-  };
-
   return (
-    <>
-      <Link
-        href={ROUTES.VIDEO(video._id)}
-        onClick={handleClick}
-        className="group flex items-start gap-4 p-3 rounded-2xl bg-[#0f1115] border border-white/5 hover:bg-[#161920] hover:border-purple-500/20 transition-all duration-300 w-full"
-      >
-      {/* 1. Thumbnail / Order */}
-      <div className="relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-white/5 border border-white/5">
+    <Link
+      href={ROUTES.VIDEO(video._id)}
+      className="group flex w-full items-start gap-4 rounded-[1.5rem] border border-white/8 bg-[#10131a] p-3.5 transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-400/20 hover:bg-[#151a23]"
+    >
+      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-[1rem] border border-white/8 bg-white/5">
         {video.thumbnail ? (
           <Image
             src={video.thumbnail}
@@ -69,40 +47,38 @@ export default function VideoCard({ video, index = 0 }: VideoProps) {
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-purple-600/10">
-            <span className="text-xl font-black text-purple-400 opacity-40">
+          <div className="flex h-full w-full items-center justify-center bg-indigo-500/10">
+            <span className="text-xl font-black text-indigo-300 opacity-50">
               {(index + 1).toString().padStart(2, '0')}
             </span>
           </div>
         )}
 
-        {/* Lock / Play Overlay */}
         {!canWatch ? (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[2px]">
             <IoLockClosed className="text-yellow-500 text-xl" />
           </div>
         ) : (
-          <div className="absolute inset-0 bg-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center scale-90 group-hover:scale-100 transition-transform shadow-lg shadow-purple-600/40">
+          <div className="absolute inset-0 flex items-center justify-center bg-indigo-500/15 opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="flex h-8 w-8 scale-90 items-center justify-center rounded-full bg-indigo-500 shadow-lg shadow-indigo-500/40 transition-transform group-hover:scale-100">
               <IoPlay className="text-white text-xs ml-0.5" />
             </div>
           </div>
         )}
       </div>
 
-      {/* 2. Content */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+      <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
         <div>
-          <h3 className="text-sm font-semibold text-slate-200 line-clamp-1 group-hover:text-purple-400 transition-colors">
+          <h3 className="line-clamp-1 text-sm font-semibold tracking-[-0.02em] text-slate-200 transition-colors group-hover:text-indigo-300">
             {video.title}
           </h3>
-          <p className="text-xs text-slate-500 mt-1 line-clamp-1">
+          <p className="mt-1 line-clamp-1 text-xs text-slate-500">
             {video.description || "Video darslik tafsilotlari"}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 mt-2">
-          <span className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-white/5 px-1.5 py-0.5 rounded-md">
+        <div className="mt-3 flex items-center gap-3">
+          <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1 text-[10px] font-medium text-slate-400">
             <IoTime className="text-slate-600" />
             {formatDurationText(video.duration || 0)}
           </span>
@@ -119,14 +95,5 @@ export default function VideoCard({ video, index = 0 }: VideoProps) {
         </div>
       </div>
     </Link>
-
-    {/* Instagram Verification Modal */}
-    <SubscriptionGate
-      isOpen={showModal}
-      onClose={() => setShowModal(false)}
-      onSuccess={handleModalSuccess}
-      videoId={video._id}
-    />
-  </>
   );
 }

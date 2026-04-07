@@ -1,3 +1,12 @@
+const crypto = require('crypto');
+
+const safeEqual = (left = '', right = '') => {
+  const leftBuffer = Buffer.from(String(left));
+  const rightBuffer = Buffer.from(String(right));
+  if (leftBuffer.length !== rightBuffer.length) return false;
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+};
+
 /**
  * Swagger UI Authentication Middleware
  * Basic auth orqali Swagger UI'ni himoya qiladi
@@ -30,11 +39,12 @@ const swaggerAuth = (req, res, next) => {
     return res.status(503).send('Swagger auth not configured. Set SWAGGER_USERNAME and SWAGGER_PASSWORD.');
   }
 
-  const effectiveUsername = validUsername || 'admin';
-  const effectivePassword = validPassword || 'admin123';
+  if (!validUsername || !validPassword) {
+    return res.status(503).send('Swagger auth not configured. Set SWAGGER_USERNAME and SWAGGER_PASSWORD.');
+  }
 
   // Tekshirish
-  if (username === effectiveUsername && password === effectivePassword) {
+  if (safeEqual(username, validUsername) && safeEqual(password, validPassword)) {
     return next();
   }
 

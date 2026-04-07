@@ -32,7 +32,10 @@ const verifyInstagram = async (req, res) => {
         ? 'Instagram subscription verified successfully.' 
         : 'Instagram subscription verification failed.',
       data: {
-        subscription: user.socialSubscriptions.instagram,
+        subscriptions: user.socialSubscriptions,
+        instagram: user.socialSubscriptions.instagram,
+        telegram: user.socialSubscriptions.telegram,
+        hasAllSubscriptions: user.hasAllSubscriptions(),
       },
     });
   } catch (error) {
@@ -86,7 +89,10 @@ const verifyTelegram = async (req, res) => {
         ? 'Telegram subscription verified successfully.' 
         : 'Telegram subscription verification failed.',
       data: {
-        subscription: user.socialSubscriptions.telegram,
+        subscriptions: user.socialSubscriptions,
+        instagram: user.socialSubscriptions.instagram,
+        telegram: user.socialSubscriptions.telegram,
+        hasAllSubscriptions: user.hasAllSubscriptions(),
       },
     });
   } catch (error) {
@@ -107,6 +113,8 @@ const getSubscriptionStatus = async (req, res) => {
       success: true,
       data: {
         subscriptions: user.socialSubscriptions,
+        instagram: user.socialSubscriptions.instagram,
+        telegram: user.socialSubscriptions.telegram,
         hasAllSubscriptions: user.hasAllSubscriptions(),
       },
     });

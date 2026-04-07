@@ -19,14 +19,14 @@ function useDebounce(value: any, delay: number) {
 
 function CoursesContent() {
   const searchParams = useSearchParams()
-  const [search, setSearch]             = useState(searchParams.get('search') || '')
+  const [search, setSearch]             = useState(searchParams?.get('search') || '')
   const [showFilter, setShowFilter]     = useState(false)
   const debouncedSearch                 = useDebounce(search, 500)
 
   const { courses, loading, filters, pages, total, fetchAll, setFilter, setPage } = useCourses()
 
   useEffect(() => {
-    const cat = searchParams.get('category')
+    const cat = searchParams?.get('category')
     if (cat) setFilter({ category: cat })
   }, [])
 

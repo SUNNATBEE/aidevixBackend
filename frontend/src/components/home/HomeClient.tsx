@@ -1,221 +1,326 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import 'swiper/css';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 
 import CourseCard from '@/components/courses/CourseCard';
 import VideoCard from '@/components/videos/VideoCard';
 import ProBanner from '@/components/home/ProBanner';
-import { HiOutlineDesktopComputer, HiOutlineServer, HiOutlineDeviceMobile, HiOutlineDatabase } from 'react-icons/hi';
+import { useLang } from '@/context/LangContext';
+import { useTheme } from '@/context/ThemeContext';
+import { HiArrowRight, HiOutlineDesktopComputer, HiOutlineServer, HiOutlineDeviceMobile, HiOutlineDatabase } from 'react-icons/hi';
 import { SiPython, SiFigma } from 'react-icons/si';
 
-const categories = [
-  { name: 'Frontend', subtitle: "Web saytlar ko'rinishi", icon: <HiOutlineDesktopComputer className="w-8 h-8 text-white" />, path: 'frontend' },
-  { name: 'Backend', subtitle: "Server va mantiq", icon: <HiOutlineServer className="w-8 h-8 text-emerald-400" />, path: 'backend' },
-  { name: 'Python', subtitle: "AI va Telegram botlar", icon: <SiPython className="w-8 h-8 text-yellow-500" />, path: 'python' },
-  { name: 'Mobile', subtitle: "Android va iOS", icon: <HiOutlineDeviceMobile className="w-8 h-8 text-pink-400" />, path: 'mobile' },
-  { name: 'UI/UX', subtitle: "Dizayn va Prototip", icon: <SiFigma className="w-8 h-8 text-purple-400" />, path: 'ui-ux' },
-  { name: 'Ma\'lumotlar', subtitle: "SQL va Tahlil", icon: <HiOutlineDatabase className="w-8 h-8 text-blue-400" />, path: 'malumotlar' },
-];
+const ThreeHero = dynamic(() => import('@/components/home/ThreeHero'), { ssr: false });
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 export default function HomeClient({ initialCourses = [], initialVideos = [] }) {
   const [isMounted, setIsMounted] = useState(false);
+  const [showHeroVisual, setShowHeroVisual] = useState(false);
+  const { t } = useLang();
+  const { isDark } = useTheme();
+  const statsRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Show a dark background or simple skeleton during hydration
-  if (!isMounted) {
-    return (
-       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-          <div className="w-20 h-20 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin"></div>
-       </div>
-    );
-  }
+  useEffect(() => {
+    if (!isMounted) return;
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
+
+    const enable = () => {
+      if (window.innerWidth >= 768) {
+        setShowHeroVisual(true);
+      }
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(enable, { timeout: 1800 });
+    } else {
+      timeoutId = setTimeout(enable, 1200);
+    }
+
+    return () => {
+      if (idleId !== null && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isMounted]);
+
+  useEffect(() => {
+    if (!isMounted || !pageRef.current) return;
+
+    const ctx = gsap.context(() => {
+      if (statsRef.current) {
+        const counters = statsRef.current.querySelectorAll('.stat-value');
+        counters.forEach((counter: Element) => {
+          const targetValue = parseInt(counter.getAttribute('data-value') || '0', 10);
+          gsap.fromTo(
+            counter,
+            { innerText: 0 },
+            {
+              innerText: targetValue,
+              duration: 1.8,
+              snap: { innerText: 1 },
+              ease: 'power2.out',
+              scrollTrigger: {
+                trigger: statsRef.current,
+                start: 'top 82%',
+                once: true,
+              },
+            },
+          );
+        });
+      }
+
+      gsap.utils.toArray<HTMLElement>('.reveal-section').forEach((section, index) => {
+        gsap.fromTo(
+          section,
+          { y: 42, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.9,
+            delay: Math.min(index * 0.04, 0.18),
+            ease: 'power3.out',
+            scrollTrigger: {
+              trigger: section,
+              start: 'top 84%',
+              once: true,
+            },
+          },
+        );
+      });
+    }, pageRef);
+
+    return () => ctx.revert();
+  }, [isMounted]);
+
+  const categories = [
+    { name: t('cat.frontend'), subtitle: t('cat.frontendSub'), icon: <HiOutlineDesktopComputer className="w-8 h-8 text-white" />, path: 'frontend' },
+    { name: t('cat.backend'), subtitle: t('cat.backendSub'), icon: <HiOutlineServer className="w-8 h-8 text-emerald-400" />, path: 'backend' },
+    { name: t('cat.ai'), subtitle: t('cat.aiSub'), icon: <div className="w-8 h-8 text-cyan-400 flex items-center justify-center font-bold text-xl">AI</div>, path: 'ai' },
+    { name: t('cat.python'), subtitle: t('cat.pythonSub'), icon: <SiPython className="w-8 h-8 text-yellow-500" />, path: 'python' },
+    { name: t('cat.mobile'), subtitle: t('cat.mobileSub'), icon: <HiOutlineDeviceMobile className="w-8 h-8 text-pink-400" />, path: 'mobile' },
+    { name: t('cat.uiux'), subtitle: t('cat.uiuxSub'), icon: <SiFigma className="w-8 h-8 text-purple-400" />, path: 'ui-ux' },
+    { name: t('cat.data'), subtitle: t('cat.dataSub'), icon: <HiOutlineDatabase className="w-8 h-8 text-blue-400" />, path: 'malumotlar' },
+  ];
+
+  const stats = [
+    { value: '15000', display: '15k+', label: t('stats.students'), color: isDark ? 'text-white' : 'text-gray-900' },
+    { value: '120', display: '120+', label: t('stats.videos'), color: 'bg-gradient-to-r from-amber-400 to-indigo-400 bg-clip-text text-transparent' },
+    { value: '50', display: '50+', label: t('stats.mentors'), color: isDark ? 'text-white' : 'text-gray-900' },
+    { value: '5', display: '4.9', label: t('stats.rating'), color: 'text-orange-500' },
+  ];
+
+  const pageBg = isDark ? 'text-slate-100' : 'text-slate-900';
+  const heroText = isDark ? 'text-white' : 'text-slate-950';
+  const mutedText = isDark ? 'text-slate-400' : 'text-slate-600';
+  const hairline = isDark ? 'border-white/10' : 'border-slate-900/10';
+  const softSurface = isDark ? 'bg-white/[0.03]' : 'bg-white/70';
+  const railSurface = isDark ? 'bg-white/[0.02]' : 'bg-slate-950/[0.03]';
+  const ctaBg = isDark ? 'bg-[#07080d] border-white/10' : 'bg-slate-950 border-slate-800';
+
+  if (!isMounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 font-sans selection:bg-purple-500/30">
-      {/* 1. HERO SECTION */}
-      <section className="bg-transparent text-white min-h-[85vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        {/* Glow effect for background */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-full max-w-3xl h-[400px] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none animate-pulse"></div>
+    <div ref={pageRef} className={`min-h-screen font-sans selection:bg-indigo-500/30 ${pageBg}`}>
+      <section className={`relative isolate overflow-hidden px-4 pt-8 ${heroText}`}>
+        <div className="aidevix-grid absolute inset-0 opacity-20" />
+        <div className={`absolute inset-x-0 top-0 h-[42rem] ${isDark ? 'bg-[radial-gradient(circle_at_top,rgba(86,98,246,0.24),transparent_46%)]' : 'bg-[radial-gradient(circle_at_top,rgba(86,98,246,0.16),transparent_44%)]'}`} />
+        {showHeroVisual && <ThreeHero isDark={isDark} />}
+        <div className={`pointer-events-none absolute inset-x-0 top-24 mx-auto h-64 max-w-5xl rounded-full blur-3xl ${isDark ? 'bg-amber-400/10' : 'bg-amber-300/20'}`} />
 
-        <div className="max-w-5xl mx-auto text-center flex flex-col items-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-8 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-sm font-medium text-slate-300"
+        <div className="relative z-10 mx-auto grid min-h-[calc(100svh-5rem)] max-w-7xl items-end gap-12 pb-16 pt-20 xl:grid-cols-[minmax(0,1.15fr)_22rem] xl:gap-16 xl:pb-20">
+          <div className="max-w-4xl">
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`section-kicker mb-6 inline-flex items-center gap-3 border-b ${hairline} pb-4 ${mutedText}`}
+            >
+              <span>Aidevix</span>
+              <span>{t('hero.badge')}</span>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.05 }}
+              className="max-w-5xl font-display text-[3.5rem] font-bold leading-[0.92] tracking-[-0.06em] sm:text-[4.8rem] lg:text-[7rem]"
+            >
+              {t('hero.title1')}{' '}
+              <span className="bg-gradient-to-r from-white via-indigo-200 to-amber-300 bg-clip-text text-transparent">
+                {t('hero.titleHighlight')}
+              </span>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.12 }}
+              className={`mt-8 max-w-2xl text-base leading-8 sm:text-lg ${mutedText}`}
+            >
+              {t('hero.subtitle')}
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center"
+            >
+              <Link
+                href="/courses"
+                className="inline-flex h-14 items-center justify-center rounded-full bg-indigo-500 px-8 text-sm font-semibold text-white shadow-[0_18px_60px_rgba(86,98,246,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-400"
+              >
+                {t('hero.cta1')}
+              </Link>
+              <Link
+                href="/register"
+                className={`inline-flex h-14 items-center justify-center gap-2 rounded-full border px-8 text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 ${isDark ? 'border-white/12 bg-white/5 text-white hover:bg-white hover:text-slate-950' : 'border-slate-300 bg-white/80 text-slate-900 hover:bg-slate-950 hover:text-white'}`}
+              >
+                {t('hero.cta2')}
+                <HiArrowRight className="text-base" />
+              </Link>
+            </motion.div>
+          </div>
+
+          <motion.aside
+            initial={{ opacity: 0, x: 18 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.18 }}
+            className={`self-end border-t pt-6 xl:border-l xl:border-t-0 xl:pl-8 xl:pt-0 ${hairline}`}
           >
-            Professional dasturlash platformasi
-          </motion.div>
-          
-          <motion.h1 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl lg:text-8xl font-extrabold tracking-tighter mb-8 leading-tight"
-          >
-            Kelajak kasbini <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-500">O'zbek tilida</span> o'rganing
-          </motion.h1>
-          
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-lg md:text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed"
-          >
-            Eng talabgir dasturlash yo'nalishlarini noldan boshlab amaliy loyihalar orqali o'rganing va IT sohasiga birinchi qadamingizni qo'ying.
-          </motion.p>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="flex flex-col sm:flex-row justify-center gap-4 w-full sm:w-auto"
-          >
-            <Link href="/courses" className="btn bg-purple-600 hover:bg-purple-700 border-none text-white btn-lg rounded-full px-12 shadow-2xl shadow-purple-600/30 font-bold transition-all hover:scale-105 active:scale-95">
-              Kurslarni ko'rish
-            </Link>
-            <Link href="/register" className="btn btn-outline border-slate-700 text-white hover:bg-white hover:text-black btn-lg rounded-full px-12 font-bold transition-all hover:scale-105 active:scale-95 backdrop-blur-sm">
-              Ro'yxatdan o'tish
-            </Link>
-          </motion.div>
+            <div className={`section-kicker ${mutedText}`}>{t('home.learningSignal')}</div>
+            <div className={`mt-6 space-y-6 border-y py-6 ${hairline}`}>
+              {stats.slice(0, 3).map((stat, index) => (
+                <div key={stat.label} className="flex items-end justify-between gap-4">
+                  <div>
+                    <div className={`text-xs uppercase tracking-[0.26em] ${mutedText}`}>0{index + 1}</div>
+                    <div className="mt-2 text-3xl font-semibold tracking-[-0.05em]">{stat.display}</div>
+                  </div>
+                  <div className={`max-w-[10rem] text-right text-sm leading-6 ${mutedText}`}>{stat.label}</div>
+                </div>
+              ))}
+            </div>
+            <p className={`mt-6 max-w-xs text-sm leading-7 ${mutedText}`}>{t('home.learningSignalSub')}</p>
+          </motion.aside>
         </div>
       </section>
 
-      {/* 2. STATS SECTION */}
-      <section className="px-4 relative -mt-16 z-20 max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row shadow-[0_20px_50px_rgba(0,0,0,0.6)] w-full bg-[#0f0f12] rounded-[2.5rem] border border-white/5 divide-y md:divide-y-0 md:divide-x divide-white/5 backdrop-blur-xl">
-          {[
-            { value: '15k+', label: 'Faol o\'quvchilar', color: 'text-white' },
-            { value: '120+', label: 'Video darslar', color: 'bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent' },
-            { value: '50+', label: 'Mentorlar', color: 'text-white' },
-            { value: '4.9', label: 'Reyting', color: 'text-orange-500' }
-          ].map((stat, i) => (
-             <div key={i} className="flex-1 py-10 text-center hover:bg-white/5 transition-colors cursor-default first:rounded-l-[2.5rem] last:rounded-r-[2.5rem]">
-               <div className={`text-4xl font-black mb-2 ${stat.color}`}>{stat.value}</div>
-               <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">{stat.label}</div>
-             </div>
+      <section ref={statsRef} className="relative z-20 mx-auto mt-2 max-w-7xl px-4 reveal-section">
+        <div className={`grid gap-px overflow-hidden rounded-[2rem] border ${hairline} ${softSurface} backdrop-blur-2xl md:grid-cols-4`}>
+          {stats.map((stat, i) => (
+            <div key={i} className={`px-6 py-8 md:px-8 md:py-10 ${i < stats.length - 1 ? 'md:border-r' : ''} ${hairline}`}>
+              <div className={`text-xs uppercase tracking-[0.3em] ${mutedText}`}>Metric 0{i + 1}</div>
+              <div className={`mt-4 flex items-end text-4xl font-black tracking-[-0.06em] md:text-5xl ${stat.color}`}>
+                <span className="stat-value" data-value={stat.value}>0</span>
+                {stat.display.includes('+') ? '+' : ''}
+                {stat.display.includes('.') ? '.9' : ''}
+              </div>
+              <div className={`mt-3 text-sm leading-6 ${mutedText}`}>{stat.label}</div>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* 3. CATEGORIES */}
-      <section className="py-32 bg-transparent">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-20">
-             <span className="text-purple-500 font-bold tracking-[0.3em] uppercase text-xs mb-4 block">Yo'nalishlar</span>
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Sohangizni tanlang</h2>
-            <p className="text-slate-500 max-w-xl mx-auto text-lg font-medium">Barcha darajalar uchun optimallashtirilgan o'quv darsliklari</p>
+      <section className="reveal-section px-4 py-28 md:py-36">
+        <div className="mx-auto grid max-w-7xl gap-12 xl:grid-cols-[0.8fr_1.2fr] xl:gap-20">
+          <div className="xl:sticky xl:top-28 xl:h-fit">
+            <div className={`section-kicker ${mutedText}`}>{t('home.paths')}</div>
+            <h2 className="mt-5 max-w-lg font-display text-4xl font-semibold tracking-[-0.05em] md:text-6xl">
+              {t('cat.title')}
+            </h2>
+            <p className={`mt-6 max-w-md text-base leading-8 ${mutedText}`}>{t('cat.subtitle')}</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+          <div className={`border-t ${hairline}`}>
             {categories.map((category, idx) => (
-              <motion.div 
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                key={idx} 
-                className="h-full"
+              <Link
+                key={idx}
+                href={`/courses?category=${category.path}`}
+                className={`group grid gap-4 border-b px-0 py-7 transition-all duration-300 md:grid-cols-[5rem_minmax(0,1fr)_auto] md:items-center ${hairline}`}
               >
-                <Link href={`/courses?category=${category.path}`} className="bg-[#0f1115] border border-white/5 rounded-3xl p-8 flex flex-col items-center justify-center text-center hover:bg-[#161920] hover:border-purple-500/20 transition-all duration-500 group h-full shadow-lg hover:shadow-purple-500/5">
-                  <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
-                    {category.icon}
-                  </div>
-                  <h3 className="text-white font-bold text-lg mb-2">{category.name}</h3>
-                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">{category.subtitle}</p>
-                </Link>
-              </motion.div>
+                <div className={`text-sm font-semibold tracking-[0.28em] ${mutedText}`}>0{idx + 1}</div>
+                <div>
+                  <h3 className="text-2xl font-semibold tracking-[-0.04em] transition-colors duration-300 group-hover:text-indigo-400 md:text-3xl">
+                    {category.name}
+                  </h3>
+                  <p className={`mt-2 max-w-xl text-sm leading-7 ${mutedText}`}>{category.subtitle}</p>
+                </div>
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] transition-all duration-300 group-hover:-translate-y-1 group-hover:border-indigo-400/30 group-hover:text-indigo-300">
+                  {category.icon}
+                </div>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* 4. COURSES SECTION */}
-      <section className="py-32 px-4 max-w-7xl mx-auto bg-transparent">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-          <div>
-             <span className="text-purple-500 font-bold tracking-[0.3em] uppercase text-xs mb-4 block underline underline-offset-8 decoration-purple-600/50">Yangi darsliklar</span>
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tighter">Tavsiya etilgan kurslar</h2>
-            <p className="text-slate-500 text-lg">Hozirgi kunda eng ko'p o'rganilayotgan texnologiyalar</p>
+      <section className="reveal-section px-4 py-10 md:py-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className={`section-kicker ${mutedText}`}>{t('home.showcase')}</div>
+              <h2 className="mt-4 font-display text-4xl font-semibold tracking-[-0.05em] md:text-6xl">{t('courses.title')}</h2>
+            </div>
+            <Link href="/courses" className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-400 transition-transform duration-300 hover:translate-x-1">
+              {t('courses.viewAll')} <HiArrowRight />
+            </Link>
           </div>
-          <Link href="/courses" className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-bold text-slate-300 hover:bg-white hover:text-black transition-all duration-500 group">
-             Barchasini ko'rish <span className="inline-block transition-transform group-hover:translate-x-1">&rarr;</span>
-          </Link>
-        </div>
-        
-        <div className="courses-swiper-container -mx-4 px-4 sm:mx-0 sm:px-0">
-          <Swiper
-            spaceBetween={30}
-            slidesPerView={1}
-            breakpoints={{
-              640: { slidesPerView: 2 },
-              1024: { slidesPerView: 3 },
-              1280: { slidesPerView: 4 },
-            }}
-            className="pb-12"
-          >
-            {initialCourses.length > 0 ? (
-              initialCourses.map((course: any, index: any) => (
-                <SwiperSlide key={course._id || index} className="h-auto">
-                  <CourseCard course={course} index={index} />
-                </SwiperSlide>
-              ))
-            ) : (
-                <div className="text-center py-20 text-slate-500 w-full bg-[#121215] rounded-[3rem] border border-white/5 p-12">
-                   <p className="text-xl font-bold mb-2">Hozircha kurslar yo'q</p>
-                   <p className="text-sm opacity-50">Kechirasiz, tizimda hali darsliklar mavjud emas.</p>
-                </div>
-            )}
-          </Swiper>
+          <div className={`mt-10 grid gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]`}>
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+              {initialCourses.slice(0, 6).map((course: any, index: number) => (
+                <CourseCard key={course._id || index} course={course} index={index} />
+              ))}
+            </div>
+
+            <div className={`rounded-[2rem] border p-6 md:p-8 ${hairline} ${railSurface}`}>
+              <div className={`section-kicker ${mutedText}`}>{t('home.freshVideos')}</div>
+              <h3 className="mt-4 text-2xl font-semibold tracking-[-0.04em]">
+                {t('home.videoRailTitle')}
+              </h3>
+              <p className={`mt-4 text-sm leading-7 ${mutedText}`}>{t('home.videoRailSubtitle')}</p>
+              <div className="mt-8 space-y-4">
+                {initialVideos.slice(0, 4).map((video: any, index: number) => (
+                  <VideoCard key={video._id || index} video={video} index={index} />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* PRO BANNER */}
-      <section className="py-20 px-4 max-w-7xl mx-auto mb-20">
+      <section className="py-20 reveal-section">
         <ProBanner />
       </section>
 
-      {/* 5. VIDEOS SECTION */}
-      <section className="py-32 px-4 max-w-7xl mx-auto bg-transparent border-t border-white/5">
-        <div className="text-center mb-20">
-          <span className="text-purple-500 font-bold tracking-[0.3em] uppercase text-xs mb-4 block italic">Mustaqil o'rganish</span>
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Top amaliy videolar</h2>
-          <p className="text-slate-500 text-lg">Tezkor o'rganish uchun qisqa va amaliy videolar</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {initialVideos.length > 0 ? (
-            initialVideos.map((video: any, index: any) => (
-              <VideoCard key={video._id || index} video={video} index={index} />
-            ))
-          ) : (
-            <div className="col-span-full text-center py-20 text-slate-500 bg-[#0f1115] rounded-[3rem] border border-white/5 p-12 italic opacity-60">
-              Videolar topilmadi
-            </div>
-          )}
-        </div>
-      </section>
-      
-      {/* 6. FOOTER CTA */}
-      <section className="py-40 px-4 bg-[#050505] border-t border-white/5 text-center relative overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl h-[500px] bg-purple-600/10 blur-[150px] rounded-full pointer-events-none"></div>
-        <div className="max-w-4xl mx-auto relative z-10">
-          <h2 className="text-5xl md:text-7xl font-black text-white mb-10 tracking-tight">Kelajakni biz bilan <span className="text-indigo-500 underline decoration-indigo-600/30 underline-offset-[12px]">kodlang!</span></h2>
-          <p className="text-xl md:text-2xl text-slate-400 mb-16 leading-relaxed font-medium">
-            Minglab muvaffaqiyatli bitiruvchilarga qo'shiling va professional karyerangizni bugun boshlang.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-6">
-            <Link href="/register" className="btn btn-lg bg-white text-black hover:bg-slate-200 border-none rounded-full px-16 font-bold shadow-2xl shadow-white/5 transition-all hover:scale-105 active:scale-95 h-16">
-              Bepul boshlash
-            </Link>
-            <Link href="/courses" className="btn btn-lg btn-outline border-white/10 text-white hover:bg-white/10 rounded-full px-16 font-semibold h-16 backdrop-blur-md">
-               Barcha kurslar
-            </Link>
-          </div>
+      <section className={`relative overflow-hidden border-y px-4 py-28 text-center reveal-section ${ctaBg}`}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(86,98,246,0.2),transparent_34%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-[radial-gradient(circle_at_bottom,rgba(245,158,11,0.16),transparent_38%)]" />
+        <div className="relative z-10 mx-auto max-w-5xl">
+          <div className="section-kicker text-slate-400">{t('home.startNow')}</div>
+          <h2 className="mt-6 font-display text-5xl font-semibold tracking-[-0.06em] text-white md:text-7xl lg:text-8xl">
+            {t('cta.title1')}<span className="text-indigo-300">{t('cta.titleHighlight')}</span>
+          </h2>
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-400">{t('home.ctaSubtitle')}</p>
+          <Link
+            href="/register"
+            className="mt-10 inline-flex h-16 items-center justify-center rounded-full bg-white px-10 text-base font-semibold text-slate-950 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-50"
+          >
+            {t('cta.start')}
+          </Link>
         </div>
       </section>
     </div>

@@ -3,15 +3,18 @@ import { API_BASE_URL } from '@/utils/constants'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://aidevix.uz'
+  const courseFeedUrl = API_BASE_URL.startsWith('http') ? `${API_BASE_URL}courses` : null;
 
   // Fetch courses for sitemap
   let courses: { _id: string, updatedAt: string }[] = []
-  try {
-    const res = await fetch(`${API_BASE_URL}courses`, { next: { revalidate: 3600 } })
-    const data = await res.json()
-    courses = data.data?.courses || []
-  } catch (e) {
-    console.error('Sitemap fetch error:', e)
+  if (courseFeedUrl) {
+    try {
+      const res = await fetch(courseFeedUrl, { next: { revalidate: 3600 } })
+      const data = await res.json()
+      courses = data.data?.courses || []
+    } catch (e) {
+      console.error('Sitemap fetch error:', e)
+    }
   }
 
   const courseUrls = courses.map((course) => ({

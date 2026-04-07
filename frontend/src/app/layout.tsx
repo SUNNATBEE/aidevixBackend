@@ -1,8 +1,22 @@
 import '../styles/globals.css';
 import '../styles/animations.css';
 import { Metadata } from 'next';
+import Script from 'next/script';
+import { Manrope, Space_Grotesk } from 'next/font/google';
 import { Providers } from '@components/Providers';
 import ClientLayoutWrapper from '@components/layout/ClientLayoutWrapper';
+
+const manrope = Manrope({
+  subsets: ['latin'],
+  variable: '--app-font-sans',
+  display: 'swap',
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--app-font-display',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://aidevix.uz'),
@@ -68,14 +82,37 @@ export const viewport = {
   maximumScale: 5,
 };
 
+const themeAndLangBootstrap = `
+(function () {
+  try {
+    var root = document.documentElement;
+    var theme = localStorage.getItem('aidevix_theme');
+    var lang = localStorage.getItem('aidevix_lang');
+    var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    var browserLang = (navigator.language || '').slice(0, 2).toLowerCase();
+    var resolvedTheme = theme === 'light' || theme === 'dark' ? theme : (prefersLight ? 'light' : 'dark');
+    var resolvedLang = (lang === 'uz' || lang === 'ru' || lang === 'en')
+      ? lang
+      : (browserLang === 'ru' || browserLang === 'en' ? browserLang : 'uz');
+
+    root.dataset.theme = resolvedTheme;
+    root.classList.toggle('light-mode', resolvedTheme === 'light');
+    root.classList.toggle('dark-mode', resolvedTheme === 'dark');
+    root.lang = resolvedLang;
+    root.dataset.lang = resolvedLang;
+    root.style.colorScheme = resolvedTheme;
+  } catch (error) {}
+})();`;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html lang="uz">
-      <body className="antialiased selection:bg-indigo-500/30">
+    <html lang="uz" suppressHydrationWarning>
+      <body className={`${manrope.variable} ${spaceGrotesk.variable} antialiased selection:bg-indigo-500/30`}>
+        <Script id="theme-and-lang-bootstrap" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeAndLangBootstrap }} />
         <Providers>
           <ClientLayoutWrapper>
             {children}

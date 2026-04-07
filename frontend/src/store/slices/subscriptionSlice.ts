@@ -53,7 +53,9 @@ const subscriptionSlice = createSlice({
   },
   extraReducers: (builder) => {
     const setStatus = (state, action) => {
-      const { telegram, instagram } = action.payload
+      const source = action.payload?.subscriptions || action.payload || {}
+      const telegram = action.payload?.telegram || source.telegram
+      const instagram = action.payload?.instagram || source.instagram
       state.telegram   = telegram   || state.telegram
       state.instagram  = instagram  || state.instagram
       state.allVerified = !!(state.telegram.subscribed && state.instagram.subscribed)

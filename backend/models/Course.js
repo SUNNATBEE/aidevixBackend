@@ -35,7 +35,7 @@ const courseSchema = new mongoose.Schema({
   category: {
     type: String,
     default: 'general',
-    enum: ['html', 'css', 'javascript', 'react', 'typescript', 'nodejs', 'general'],
+    enum: ['html', 'css', 'javascript', 'react', 'typescript', 'nodejs', 'general', 'ai', 'telegram', 'security', 'career', 'nocode', 'web3'],
   },
   // Ko'rishlar soni (Numton - Top Courses Ranking uchun)
   viewCount: {

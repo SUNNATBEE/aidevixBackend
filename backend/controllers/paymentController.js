@@ -1,11 +1,55 @@
 const Payment    = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');
 const Course     = require('../models/Course');
+const crypto = require('crypto');
 
 /**
  * To'lov tizimi — Payme va Click
  * PAYME_MERCHANT_ID, CLICK_SERVICE_ID, CLICK_SECRET_KEY env o'zgaruvchilarini to'ldiring
  */
+
+const verifyPaymeAuth = (req) => {
+  const merchantKey = process.env.PAYME_MERCHANT_KEY;
+  const authHeader = req.headers.authorization || '';
+
+  if (!merchantKey) {
+    return process.env.NODE_ENV !== 'production';
+  }
+
+  if (!authHeader.startsWith('Basic ')) return false;
+
+  const credentials = Buffer.from(authHeader.slice(6), 'base64').toString('utf8');
+  const [login, password] = credentials.split(':');
+
+  return login === 'Paycom' && password === merchantKey;
+};
+
+const buildClickSignString = (body) => [
+  body.click_trans_id,
+  body.service_id,
+  process.env.CLICK_SECRET_KEY || '',
+  body.merchant_trans_id,
+  body.amount,
+  body.action,
+  body.sign_time,
+].join('');
+
+const verifyClickSignature = (req) => {
+  const secretKey = process.env.CLICK_SECRET_KEY;
+  if (!secretKey) {
+    return process.env.NODE_ENV !== 'production';
+  }
+
+  const providedSign = String(req.body.sign_string || '').toLowerCase();
+  if (!providedSign) return false;
+
+  const expectedSign = crypto
+    .createHash('md5')
+    .update(buildClickSignString(req.body))
+    .digest('hex');
+
+  return providedSign === expectedSign;
+};
 
 /** @desc  To'lovni boshlash | @route POST /api/payments/initiate | @access Private */
 const initiatePayment = async (req, res) => {
@@ -258,6 +302,10 @@ const getStatement = async (params, id) => {
 
 /** @desc  Payme JSON-RPC webhook | @route POST /api/payments/payme | @access Public */
 const handlePayme = async (req, res) => {
+  if (!verifyPaymeAuth(req)) {
+    return res.status(401).json({ error: { code: -32504, message: 'Unauthorized' }, id: req.body?.id || null });
+  }
+
   const { method, params, id } = req.body;
   try {
     switch (method) {
@@ -280,6 +328,10 @@ const handlePayme = async (req, res) => {
 /** @desc  Click prepare | @route POST /api/payments/click/prepare | @access Public */
 const clickPrepare = async (req, res) => {
   try {
+    if (!verifyClickSignature(req)) {
+      return res.json({ error: -1, error_note: 'SIGN CHECK FAILED' });
+    }
+
     const { merchant_trans_id, amount, action } = req.body;
     if (Number(action) !== 0) return res.json({ error: -3, error_note: 'Noto\'g\'ri action' });
 
@@ -297,6 +349,10 @@ const clickPrepare = async (req, res) => {
 /** @desc  Click complete | @route POST /api/payments/click/complete | @access Public */
 const clickComplete = async (req, res) => {
   try {
+    if (!verifyClickSignature(req)) {
+      return res.json({ error: -1, error_note: 'SIGN CHECK FAILED' });
+    }
+
     const { merchant_trans_id, click_trans_id, click_paydoc_id, error: clickError } = req.body;
 
     if (Number(clickError) < 0) {

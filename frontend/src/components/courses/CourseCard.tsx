@@ -1,16 +1,12 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useSelector } from 'react-redux';
 import { gsap } from 'gsap';
 import { IoPlay, IoTime, IoBookOutline, IoStar } from 'react-icons/io5';
-import { selectIsLoggedIn } from '@/store/slices/authSlice';
-import { selectInstagramSub } from '@/store/slices/subscriptionSlice';
 import { ROUTES } from '@/utils/constants';
 import { formatDurationText } from '@/utils/formatDuration';
-import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 
 const CAT = {
   html:       { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400',  label: 'HTML',   glow: 'hover:shadow-orange-500/10'  },
@@ -32,9 +28,6 @@ interface CourseProps {
 
 export default function CourseCard({ course, index = 0, className = '' }: CourseProps) {
   const cardRef = useRef(null)
-  const isLoggedIn = useSelector(selectIsLoggedIn);
-  const instagram = useSelector(selectInstagramSub);
-  const [showModal, setShowModal] = useState<boolean>(false);
 
   useEffect(() => {
     if (!cardRef.current) return
@@ -45,8 +38,8 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
     )
   }, [index])
 
-  const onEnter = () => gsap.to(cardRef.current, { y: -4, shadow: '0 10px 40px -5px rgba(124, 58, 237, 0.2)', scale: 1.01, duration: 0.3, ease: 'power2.out' })
-  const onLeave = () => gsap.to(cardRef.current, { y: 0,  shadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', scale: 1,     duration: 0.3, ease: 'power2.out' })
+  const onEnter = () => gsap.to(cardRef.current, { y: -4, boxShadow: '0 10px 40px -5px rgba(124, 58, 237, 0.2)', scale: 1.01, duration: 0.3, ease: 'power2.out' })
+  const onLeave = () => gsap.to(cardRef.current, { y: 0,  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', scale: 1,     duration: 0.3, ease: 'power2.out' })
 
   if (!course) return null
 
@@ -64,35 +57,18 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
     ? Date.now() - new Date(course.createdAt).getTime() < 14 * 24 * 60 * 60 * 1000
     : false
 
-  const handleClick = (e: React.MouseEvent) => {
-    // Agar foydalanuvchi login qilmagan yoki Instagram tasdiqlanmagan bo'lsa
-    if (!isLoggedIn || !instagram?.subscribed) {
-      e.preventDefault();
-      setShowModal(true);
-    }
-    // Aks holda Link o'z ishini qiladi
-  };
-
-  const handleModalSuccess = () => {
-    setShowModal(false);
-    // Instagram tasdiqlangandan keyin kursga o'tish
-    window.location.href = ROUTES.COURSE(course._id);
-  };
-
   return (
-    <>
-      <Link
-        href={ROUTES.COURSE(course._id)}
-        ref={cardRef}
-        onMouseEnter={onEnter}
-        onMouseLeave={onLeave}
-        onClick={handleClick}
-        className={
-          'group block rounded-3xl overflow-hidden bg-[#12141c] border border-white/5 ' +
-          'transition-all duration-500 ' +
-          cat.glow + ' ' + className
-        }
-      >
+    <Link
+      href={ROUTES.COURSE(course._id)}
+      ref={cardRef}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+      className={
+        'group block overflow-hidden rounded-[2rem] border border-white/8 bg-[#11141b] ' +
+        'transition-all duration-500 ' +
+        cat.glow + ' ' + className
+      }
+    >
       {/* Thumbnail */}
       <div className="relative aspect-video bg-[#0f1115] overflow-hidden">
         {course.thumbnail ? (
@@ -112,11 +88,11 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
         )}
 
         {/* Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#12141c] via-transparent to-transparent opacity-80" />
-        <div className="absolute inset-0 bg-blue-600/5 mix-blend-overlay group-hover:bg-blue-600/0 transition-colors" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#11141b] via-[#11141b]/20 to-transparent opacity-90" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(86,98,246,0.18),transparent_40%)] opacity-80" />
 
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
-           <div className="bg-white/10 backdrop-blur-md p-3 rounded-full border border-white/20 scale-50 group-hover:scale-100 transition-transform duration-500">
+           <div className="scale-50 rounded-full border border-white/15 bg-white/10 p-3 backdrop-blur-md transition-transform duration-500 group-hover:scale-100">
              <IoPlay className="text-white text-xl translate-x-0.5" />
            </div>
         </div>
@@ -141,38 +117,36 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
       </div>
 
       {/* Body */}
-      <div className="p-5 flex flex-col justify-between h-auto">
+      <div className="flex h-auto flex-col justify-between p-6">
         <div className="space-y-3">
-          {/* Meta Info */}
           <div className="flex items-center gap-3 text-[10px] font-medium tracking-wide text-white/30">
-            <span className="flex items-center gap-1.5 py-1 px-2 bg-white/5 rounded-lg border border-white/5">
+            <span className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/5 px-2.5 py-1">
               <IoBookOutline className="text-xs" />
               {videoCount} dars
             </span>
             {totalSecs > 0 && (
-              <span className="flex items-center gap-1.5 py-1 px-2 bg-white/5 rounded-lg border border-white/5">
+              <span className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/5 px-2.5 py-1">
                 <IoTime className="text-xs" />
                 {formatDurationText(totalSecs)}
               </span>
             )}
           </div>
 
-          <h3 className="font-bold text-base leading-snug line-clamp-2 text-white group-hover:text-indigo-400 transition-colors duration-300">
+          <h3 className="line-clamp-2 text-lg font-semibold leading-snug tracking-[-0.03em] text-white transition-colors duration-300 group-hover:text-indigo-300">
             {course.title}
           </h3>
 
           <div className="flex items-center gap-2 group/author">
-            <div className="w-6 h-6 rounded-full bg-indigo-600/20 flex items-center justify-center text-[10px] font-bold text-indigo-400 border border-indigo-500/20 group-hover/author:bg-indigo-600/30 transition-colors">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-indigo-500/20 bg-indigo-600/20 text-[10px] font-bold text-indigo-300 transition-colors group-hover/author:bg-indigo-600/30">
               {instructorName?.[0]?.toUpperCase() || 'A'}
             </div>
-            <span className="text-xs text-white/40 group-hover/author:text-white/60 transition-colors truncate">
+            <span className="truncate text-xs text-white/45 transition-colors group-hover/author:text-white/70">
               {instructorName || 'Aidevix Mentor'}
             </span>
           </div>
         </div>
 
-        {/* Rating + Price */}
-        <div className="flex items-center justify-between pt-5 mt-5 border-t border-white/5">
+        <div className="mt-6 flex items-center justify-between border-t border-white/8 pt-5">
           <div className="flex items-center gap-1.5">
             <div className="flex text-yellow-500">
               <IoStar className="text-xs" />
@@ -186,7 +160,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
           </div>
           
           <div className="flex flex-col items-end">
-            <span className={'text-base font-black ' + (isPro ? 'text-indigo-400' : 'text-emerald-400')}>
+            <span className={'text-base font-black tracking-[-0.03em] ' + (isPro ? 'text-indigo-300' : 'text-emerald-400')}>
               {isPro ? `${course.price.toLocaleString()} so'm` : 'Bepul'}
             </span>
             {isPro && (
@@ -198,13 +172,5 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
         </div>
       </div>
     </Link>
-
-    {/* Instagram Verification Modal */}
-    <SubscriptionGate
-      isOpen={showModal}
-      onClose={() => setShowModal(false)}
-      onSuccess={handleModalSuccess}
-    />
-  </>
   )
 }

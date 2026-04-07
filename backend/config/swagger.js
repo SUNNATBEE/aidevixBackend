@@ -376,7 +376,7 @@ Format: \`Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\`
             },
             category: {
               type: 'string',
-              enum: ['html', 'css', 'javascript', 'react', 'typescript', 'nodejs', 'general'],
+              enum: ['html', 'css', 'javascript', 'react', 'typescript', 'nodejs', 'general', 'ai', 'telegram', 'security', 'career', 'nocode', 'web3'],
               example: 'react',
               description: 'Kurs kategoriyasi / Категория курса',
             },

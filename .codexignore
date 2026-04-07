@@ -1,0 +1,68 @@
+# Codex token-optimization rules for this repo
+
+# Package managers / generated artifacts
+**/node_modules/
+**/.next/
+**/dist/
+**/build/
+**/.cache/
+**/coverage/
+**/*.map
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+**/bun.lockb
+
+# VCS / editor / deployment metadata
+**/.git/
+**/.github/
+**/.vscode/
+**/.idea/
+**/.vercel/
+**/.playwright-mcp/
+**/.claude/
+
+# Environment and logs
+**/.env
+**/.env.local
+**/.env.production
+**/.env.development
+**/.env.*.local
+!**/.env.example
+**/*.log
+**/logs/
+
+# Binary / media-heavy files
+frontend/public/
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.svg
+**/*.ico
+**/*.pdf
+**/*.mp3
+**/*.mp4
+**/*.woff
+**/*.woff2
+**/*.ttf
+**/*.eot
+
+# Heavy docs not needed for most coding tasks
+frontend/docs/students/
+backend/docs/swagger/
+backend/postman_collection.json
+backend/API_DOCUMENTATION.md
+backend/OQUVCHILAR_UCHUN.md
+backend/DEPLOY.md
+backend/ADMIN_PANEL.md
+backend_documentation.md
+PROMPT_RULES.md
+
+# Keep these visible for agent context
+!README.md
+!backend/README.md
+!CLAUDE.md
+!CODEX.md
+!AUDIT_REPORT.md
