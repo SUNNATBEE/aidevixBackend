@@ -1,6 +1,7 @@
 // ─── API ─────────────────────────────────────────────────────
 const base = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/proxy'
-export const API_BASE_URL = base.endsWith('/') ? base : `${base}/`
+const withLeading = base.startsWith('/') ? base : `/${base}`
+export const API_BASE_URL = withLeading.endsWith('/') ? withLeading : `${withLeading}/`
 
 // ─── Course Categories ────────────────────────────────────────
 export const CATEGORIES = [

@@ -20,12 +20,17 @@ const nextConfig = {
         source: '/api/proxy/:path*',
         destination: `${backendBaseUrl}/api/:path*`,
       },
+      {
+        source: '/api-proxy/:path*',
+        destination: `${backendBaseUrl}/api/:path*`,
+      },
     ];
   },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'upload.wikimedia.org' },
       { protocol: 'https', hostname: 'searchyour.ai' },
+      { protocol: 'https', hostname: 'www.searchyour.ai' },
       { protocol: 'https', hostname: 'static.vecteezy.com' },
       { protocol: 'https', hostname: 'www.gstatic.com' },
       { protocol: 'https', hostname: 'thumbs.dreamstime.com' },
