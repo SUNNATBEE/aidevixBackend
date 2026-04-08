@@ -35,7 +35,7 @@ const courseSchema = new mongoose.Schema({
   category: {
     type: String,
     default: 'general',
-    enum: ['html', 'css', 'javascript', 'react', 'typescript', 'nodejs', 'general'],
+    enum: ['html', 'css', 'javascript', 'react', 'typescript', 'nodejs', 'general', 'ai', 'telegram', 'security', 'career', 'nocode', 'web3'],
   },
   // Ko'rishlar soni (Numton - Top Courses Ranking uchun)
   viewCount: {
@@ -80,5 +80,11 @@ const courseSchema = new mongoose.Schema({
 }, {
   timestamps: true,
 });
+
+courseSchema.index({ category: 1, isActive: 1 });
+courseSchema.index({ viewCount: -1 });
+courseSchema.index({ rating: -1 });
+courseSchema.index({ createdAt: -1 });
+courseSchema.index({ title: 'text', description: 'text' });
 
 module.exports = mongoose.model('Course', courseSchema);

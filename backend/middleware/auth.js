@@ -1,18 +1,23 @@
 const { verifyAccessToken } = require('../utils/jwt');
 const User = require('../models/User');
+const { ACCESS_COOKIE_NAME, parseCookies } = require('../utils/authSecurity');
 
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const cookies = parseCookies(req.headers.cookie);
+    const bearerToken = authHeader && authHeader.startsWith('Bearer ')
+      ? authHeader.substring(7)
+      : null;
+    const token = cookies[ACCESS_COOKIE_NAME] || bearerToken;
+
+    if (!token) {
       return res.status(401).json({
         success: false,
         message: 'No token provided. Authorization denied.',
       });
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     const decoded = verifyAccessToken(token);
 
     if (!decoded) {

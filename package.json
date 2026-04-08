@@ -1,8 +1,29 @@
 {
   "name": "aidevix-root",
   "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/SUNNATBEE/aidevixBackend#readme",
+  "bugs": {
+    "url": "https://github.com/SUNNATBEE/aidevixBackend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SUNNATBEE/aidevixBackend.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
   "scripts": {
-    "postinstall": "cd backend && npm install",
-    "start": "cd backend && npm start"
+    "install:backend": "npm --prefix backend install",
+    "install:frontend": "npm --prefix frontend install",
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "start": "npm --prefix backend start"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

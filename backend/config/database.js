@@ -14,12 +14,19 @@ const connectDB = async () => {
     console.log('🔄 Connecting to MongoDB...');
     
     const connectionOptions = {
-      serverSelectionTimeoutMS: 30000,
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       connectTimeoutMS: 30000,
       retryWrites: true,
       w: 'majority',
     };
+
+    if (process.env.NODE_ENV === 'development') {
+      mongoose.set('debug', (collectionName, method, query) => {
+        console.log(`[MongoDB] ${collectionName}.${method}`, JSON.stringify(query));
+      });
+    }
     
     const conn = await mongoose.connect(process.env.MONGODB_URI, connectionOptions);
 

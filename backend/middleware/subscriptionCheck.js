@@ -1,8 +1,5 @@
 const User = require('../models/User');
-const { 
-  checkInstagramSubscriptionRealTime, 
-  checkTelegramSubscriptionRealTime 
-} = require('../utils/socialVerification');
+const { performSubscriptionCheck } = require('../utils/checkSubscriptions');
 
 /**
  * Middleware to check if user has subscribed to required social media platforms
@@ -11,7 +8,7 @@ const {
 const checkSubscriptions = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -19,83 +16,46 @@ const checkSubscriptions = async (req, res, next) => {
       });
     }
 
-    // Real-time subscription check
-    let instagramSubscribed = false;
-    let telegramSubscribed = false;
-    let subscriptionChanged = false;
+    // Try real-time verification with Failsafe
+    try {
+      const { instagramSubscribed, telegramSubscribed, changed } = await performSubscriptionCheck(user);
 
-    // Check Instagram subscription in real-time
-    if (user.socialSubscriptions.instagram.username) {
-      instagramSubscribed = await checkInstagramSubscriptionRealTime(
-        user.socialSubscriptions.instagram.username,
-        user._id
-      );
-      
-      // Update database if subscription status changed
-      if (user.socialSubscriptions.instagram.subscribed !== instagramSubscribed) {
-        user.socialSubscriptions.instagram.subscribed = instagramSubscribed;
-        user.socialSubscriptions.instagram.verifiedAt = instagramSubscribed ? new Date() : null;
-        subscriptionChanged = true;
+      if (changed) {
+        await user.save();
       }
-    }
 
-    // Check Telegram subscription in real-time
-    if (user.socialSubscriptions.telegram.username) {
-      const channelUsername = process.env.TELEGRAM_CHANNEL_USERNAME;
-      // Note: You need to store telegramUserId in user model for this to work
-      // For now, we'll use username-based check if available
-      const telegramUserId = user.socialSubscriptions.telegram.telegramUserId || null;
-      
-      if (telegramUserId && channelUsername) {
-        telegramSubscribed = await checkTelegramSubscriptionRealTime(
-          telegramUserId,
-          channelUsername
-        );
-      } else {
-        // Fallback: use stored subscription status if real-time check not possible
-        telegramSubscribed = user.socialSubscriptions.telegram.subscribed;
+      if (!instagramSubscribed || !telegramSubscribed) {
+        const missingSubscriptions = [];
+        if (!instagramSubscribed) missingSubscriptions.push('Instagram');
+        if (!telegramSubscribed) missingSubscriptions.push('Telegram');
+
+        return res.status(403).json({
+          success: false,
+          isSubscriptionError: true,
+          message: `Darsni davom ettirish uchun ijtimoiy tarmoqlarga obuna bo'lishingiz kerak.`,
+          subscriptions: {
+            instagram: instagramSubscribed,
+            telegram: telegramSubscribed,
+          },
+          missingSubscriptions,
+        });
       }
-      
-      // Update database if subscription status changed
-      if (user.socialSubscriptions.telegram.subscribed !== telegramSubscribed) {
-        user.socialSubscriptions.telegram.subscribed = telegramSubscribed;
-        user.socialSubscriptions.telegram.verifiedAt = telegramSubscribed ? new Date() : null;
-        subscriptionChanged = true;
-      }
-    } else {
-      telegramSubscribed = user.socialSubscriptions.telegram.subscribed;
-    }
 
-    // Save changes if subscription status changed
-    if (subscriptionChanged) {
-      await user.save();
-    }
-
-    // Check if user has all required subscriptions
-    if (!instagramSubscribed || !telegramSubscribed) {
-      const missingSubscriptions = [];
-      if (!instagramSubscribed) missingSubscriptions.push('Instagram');
-      if (!telegramSubscribed) missingSubscriptions.push('Telegram');
-
-      return res.status(403).json({
+      req.user = user;
+      next();
+    } catch (checkError) {
+      console.error('CRITICAL: Subscription Check Failed:', checkError.message);
+      return res.status(503).json({
         success: false,
-        message: `Siz obuna bekor qildingiz. Video ko'ra olmaysiz. Iltimos, ${missingSubscriptions.join(' va ')} ga qayta obuna bo'ling.`,
-        subscriptions: {
-          instagram: instagramSubscribed,
-          telegram: telegramSubscribed,
-        },
-        missingSubscriptions,
+        isSubscriptionError: true,
+        message: 'Subscription verification service is temporarily unavailable. Please try again shortly.',
       });
     }
-
-    // Update req.user with latest subscription status
-    req.user = user;
-    next();
   } catch (error) {
+    console.error('Global Subscription Middleware Error:', error.message);
     res.status(500).json({
       success: false,
-      message: 'Error checking subscriptions.',
-      error: error.message,
+      message: 'Server xatosi (Subscription check).',
     });
   }
 };

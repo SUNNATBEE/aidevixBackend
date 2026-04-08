@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const { verifyInstagramSubscription, verifyTelegramSubscription } = require('../utils/socialVerification');
+const { verifyInstagramSubscription, verifyTelegramSubscription, checkTelegramSubscription } = require('../utils/socialVerification');
 
 // Verify Instagram subscription
 const verifyInstagram = async (req, res) => {
@@ -32,7 +32,10 @@ const verifyInstagram = async (req, res) => {
         ? 'Instagram subscription verified successfully.' 
         : 'Instagram subscription verification failed.',
       data: {
-        subscription: user.socialSubscriptions.instagram,
+        subscriptions: user.socialSubscriptions,
+        instagram: user.socialSubscriptions.instagram,
+        telegram: user.socialSubscriptions.telegram,
+        hasAllSubscriptions: user.hasAllSubscriptions(),
       },
     });
   } catch (error) {
@@ -86,7 +89,10 @@ const verifyTelegram = async (req, res) => {
         ? 'Telegram subscription verified successfully.' 
         : 'Telegram subscription verification failed.',
       data: {
-        subscription: user.socialSubscriptions.telegram,
+        subscriptions: user.socialSubscriptions,
+        instagram: user.socialSubscriptions.instagram,
+        telegram: user.socialSubscriptions.telegram,
+        hasAllSubscriptions: user.hasAllSubscriptions(),
       },
     });
   } catch (error) {
@@ -107,6 +113,8 @@ const getSubscriptionStatus = async (req, res) => {
       success: true,
       data: {
         subscriptions: user.socialSubscriptions,
+        instagram: user.socialSubscriptions.instagram,
+        telegram: user.socialSubscriptions.telegram,
         hasAllSubscriptions: user.hasAllSubscriptions(),
       },
     });
@@ -119,8 +127,42 @@ const getSubscriptionStatus = async (req, res) => {
   }
 };
 
+// Telegram ID saqlash
+const setTelegramId = async (req, res) => {
+  try {
+    const { telegramUserId } = req.body;
+    if (!telegramUserId) return res.status(400).json({ success: false, message: 'Telegram ID kiritilmadi' });
+    await User.findByIdAndUpdate(req.user._id, { telegramUserId: String(telegramUserId) });
+    res.json({ success: true, message: 'Telegram ID saqlandi' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server xatosi' });
+  }
+};
+
+// Real-time obuna holati
+const getRealtimeStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const telegramId = user.telegramUserId || user.socialSubscriptions?.telegram?.telegramUserId;
+    const telegramOk = await checkTelegramSubscription(telegramId);
+    const instagramOk = user.socialSubscriptions?.instagram?.subscribed || false;
+    res.json({
+      success: true,
+      data: {
+        telegram: telegramOk,
+        instagram: instagramOk,
+        telegramUserId: telegramId || null,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server xatosi' });
+  }
+};
+
 module.exports = {
   verifyInstagram,
   verifyTelegram,
   getSubscriptionStatus,
+  setTelegramId,
+  getRealtimeStatus,
 };

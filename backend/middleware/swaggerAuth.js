@@ -1,3 +1,12 @@
+const crypto = require('crypto');
+
+const safeEqual = (left = '', right = '') => {
+  const leftBuffer = Buffer.from(String(left));
+  const rightBuffer = Buffer.from(String(right));
+  if (leftBuffer.length !== rightBuffer.length) return false;
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+};
+
 /**
  * Swagger UI Authentication Middleware
  * Basic auth orqali Swagger UI'ni himoya qiladi
@@ -23,11 +32,19 @@ const swaggerAuth = (req, res, next) => {
   const [username, password] = credentials.split(':');
 
   // Environment variables'dan username va password olish
-  const validUsername = process.env.SWAGGER_USERNAME || 'admin';
-  const validPassword = process.env.SWAGGER_PASSWORD || 'admin123';
+  const validUsername = process.env.SWAGGER_USERNAME;
+  const validPassword = process.env.SWAGGER_PASSWORD;
+
+  if (process.env.NODE_ENV === 'production' && (!validUsername || !validPassword)) {
+    return res.status(503).send('Swagger auth not configured. Set SWAGGER_USERNAME and SWAGGER_PASSWORD.');
+  }
+
+  if (!validUsername || !validPassword) {
+    return res.status(503).send('Swagger auth not configured. Set SWAGGER_USERNAME and SWAGGER_PASSWORD.');
+  }
 
   // Tekshirish
-  if (username === validUsername && password === validPassword) {
+  if (safeEqual(username, validUsername) && safeEqual(password, validPassword)) {
     return next();
   }
 

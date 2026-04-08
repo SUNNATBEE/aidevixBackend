@@ -43,6 +43,8 @@ Desktop.ini
 dist/
 build/
 out/
+.next/
+*.tsbuildinfo
 
 # Debug
 .cursor/
@@ -59,3 +61,5 @@ coverage/
 .cache/
 nul
 NUL
+.vercel
+.env*.local

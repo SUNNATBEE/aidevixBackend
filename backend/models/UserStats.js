@@ -74,6 +74,27 @@ const userStatsSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  // Haftalik XP (weekly leaderboard uchun)
+  weeklyXp: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  lastWeekReset: {
+    type: Date,
+    default: null,
+  },
+  // Streak Freeze — streakni bir kun uchun himoyalash
+  streakFreezes: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+  },
+  streakFreezeUsedAt: {
+    type: Date,
+    default: null,
+  },
 }, {
   timestamps: true,
 });
@@ -88,5 +109,18 @@ userStatsSchema.methods.getLevelProgress = function () {
   const xpInCurrentLevel = this.xp % 1000;
   return Math.round((xpInCurrentLevel / 1000) * 100);
 };
+
+// Level nomi
+userStatsSchema.methods.getLevelTitle = function () {
+  const lvl = this.level;
+  if (lvl <= 5) return 'Yangi Boshlovchi';
+  if (lvl <= 15) return 'O\'rganuvchi';
+  if (lvl <= 30) return 'Dasturchi';
+  if (lvl <= 50) return 'Senior Dasturchi';
+  return 'Ustoz';
+};
+
+userStatsSchema.index({ xp: -1 });
+userStatsSchema.index({ weeklyXp: -1 });
 
 module.exports = mongoose.model('UserStats', userStatsSchema);

@@ -1,0 +1,64 @@
+# 🚀 AI Context Optimization - Maximize Token Efficiency
+
+# Build, Cache & Coverage
+**/node_modules/
+**/dist/
+**/build/
+**/.next/
+**/.vite/
+**/.cache/
+**/coverage/
+**/*.map
+**/*.min.js
+**/*.min.css
+
+# Lock files (Auto-generated, extremely token heavy)
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+**/bun.lockb
+
+# Media, Assets & Binaries
+frontend/public/
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.svg
+**/*.ico
+**/*.pdf
+**/*.mp3
+**/*.mp4
+**/*.woff
+**/*.woff2
+**/*.ttf
+**/*.eot
+
+# Git & IDEs
+**/.git/
+**/.github/
+**/.vscode/
+**/.idea/
+**/.DS_Store
+**/Thumbs.db
+
+# Logs & Local Environments
+**/*.log
+**/logs/
+**/.env
+**/.env.local
+**/.env.development
+**/.env.production
+!**/.env.example
+
+# Specific Heavy/Redundant Docs
+backend/docs/swagger/
+docs/students/
+backend/OQUVCHILAR_UCHUN.md
+backend/DEPLOY.md
+render.yaml
+extract-swagger.js
+**/__fixtures__/
+**/__mocks__/
+**/test-data/

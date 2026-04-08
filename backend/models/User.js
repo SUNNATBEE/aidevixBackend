@@ -9,7 +9,15 @@ const userSchema = new mongoose.Schema({
     unique: true,
     trim: true,
     minlength: [3, 'Username must be at least 3 characters'],
-    maxlength: [30, 'Username cannot exceed 30 characters'],
+    maxlength: [50, 'Username cannot exceed 50 characters'],
+  },
+  firstName: {
+    type: String,
+    default: null,
+  },
+  lastName: {
+    type: String,
+    default: null,
   },
   email: {
     type: String,
@@ -62,6 +70,17 @@ const userSchema = new mongoose.Schema({
       },
     },
   },
+  // Instructor profili uchun (Course Details sahifasida ko'rsatiladi)
+  jobTitle: {
+    type: String,
+    default: null,
+    maxlength: 100,
+  },
+  position: {
+    type: String,
+    default: null,
+    maxlength: 150,
+  },
   role: {
     type: String,
     enum: ['user', 'admin'],
@@ -71,16 +90,84 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  // Telegram bot bildirishnomalar uchun
+  telegramUserId: {
+    type: String,
+    default: null,
+  },
+  telegramChatId: {
+    type: String,
+    default: null,
+  },
+  resetPasswordCode: {
+    type: String,
+    default: null,
+    select: false,
+  },
+  resetPasswordExpire: {
+    type: Date,
+    default: null,
+    select: false,
+  },
+  // Avatar rasm URL
+  avatar: {
+    type: String,
+    default: null,
+  },
+  lastLogin: {
+    type: Date,
+    default: null,
+  },
+  lastClaimedDaily: {
+    type: Date,
+    default: null,
+  },
+  // --- GAMIFICATION & REFERRAL ---
+  xp: {
+    type: Number,
+    default: 0,
+  },
+  streak: {
+    type: Number,
+    default: 0,
+  },
+  rankTitle: {
+    type: String,
+    enum: ['AMATEUR', 'CANDIDATE', 'JUNIOR', 'MIDDLE', 'SENIOR', 'MASTER', 'LEGEND'],
+    default: 'AMATEUR',
+  },
+  referralCode: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+  },
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
+  referralsCount: {
+    type: Number,
+    default: 0,
+  },
 }, {
   timestamps: true,
 });
 
+userSchema.index({ role: 1 });
+userSchema.index({ createdAt: -1 });
+userSchema.index({ isActive: 1 });
+
 // Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  
-  this.password = await bcrypt.hash(this.password, 12);
-  next();
+  try {
+    this.password = await bcrypt.hash(this.password, 12);
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Compare password method

@@ -1,5 +1,7 @@
 const Course = require('../models/Course');
 const Video  = require('../models/Video');
+const CourseRating = require('../models/CourseRating');
+const Enrollment = require('../models/Enrollment');
 
 /**
  * @desc  Barcha kurslar — filter, qidiruv, pagination
@@ -23,9 +25,10 @@ const getAllCourses = async (req, res) => {
     if (level) filter.level = level;
     if (isFree !== undefined) filter.isFree = isFree === 'true';
     if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
-        { title:       { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
+        { title:       { $regex: escapedSearch, $options: 'i' } },
+        { description: { $regex: escapedSearch, $options: 'i' } },
       ];
     }
 
@@ -43,11 +46,12 @@ const getAllCourses = async (req, res) => {
     const total = await Course.countDocuments(filter);
 
     const courses = await Course.find(filter)
-      .populate('instructor', 'username email')
+      .populate('instructor', 'username email jobTitle position')
       .sort(sortOption)
       .skip(skip)
       .limit(parseInt(limit))
-      .select('-videos');
+      .select('-videos')
+      .lean();
 
     res.json({
       success: true,
@@ -83,7 +87,8 @@ const getTopCourses = async (req, res) => {
       .populate('instructor', 'username email')
       .sort({ viewCount: -1, rating: -1 })
       .limit(limit)
-      .select('-videos');
+      .select('-videos')
+      .lean();
 
     res.json({ success: true, data: { courses } });
   } catch (error) {
@@ -123,13 +128,14 @@ const getCategories = async (req, res) => {
 const getCourse = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id)
-      .populate('instructor', 'username email')
+      .populate('instructor', 'username email jobTitle position')
       .populate({
         path:   'videos',
         match:  { isActive: true },
         select: 'title description order duration thumbnail',
         options: { sort: { order: 1 } },
-      });
+      })
+      .lean();
 
     if (!course || !course.isActive) {
       return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
@@ -139,6 +145,37 @@ const getCourse = async (req, res) => {
     Course.findByIdAndUpdate(req.params.id, { $inc: { viewCount: 1 } }).exec();
 
     res.json({ success: true, data: { course } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc  Tavsiya etilgan kurslar — xuddi shu kategoriyadan, eng yuqori reytingli
+ * @route GET /api/courses/:id/recommended?limit=4
+ * @access Public
+ */
+const getRecommendedCourses = async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id).select('category');
+    if (!course) {
+      return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
+    }
+
+    const limit = parseInt(req.query.limit) || 4;
+
+    const courses = await Course.find({
+      isActive: true,
+      category: course.category,
+      _id: { $ne: req.params.id },
+    })
+      .populate('instructor', 'username email jobTitle position')
+      .sort({ rating: -1, viewCount: -1 })
+      .limit(limit)
+      .select('-videos')
+      .lean();
+
+    res.json({ success: true, data: { courses } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -235,12 +272,148 @@ const deleteCourse = async (req, res) => {
   }
 };
 
+/**
+ * @desc  Kursni baholash (1-5 yulduz)
+ * @route POST /api/courses/:id/rate
+ * @access Private
+ */
+const rateCourse = async (req, res) => {
+  try {
+    const { rating, review } = req.body;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ success: false, message: 'Reyting 1 dan 5 gacha bo\'lishi kerak' });
+    }
+
+    const course = await Course.findById(req.params.id);
+    if (!course || !course.isActive) {
+      return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
+    }
+
+    // Upsert rating — har bir foydalanuvchi faqat bir marta baholay oladi
+    const existing = await CourseRating.findOne({ userId: req.user._id, courseId: course._id });
+
+    if (existing) {
+      existing.rating = rating;
+      if (review !== undefined) existing.review = review;
+      await existing.save();
+    } else {
+      await CourseRating.create({ userId: req.user._id, courseId: course._id, rating, review });
+    }
+
+    // Kurs o'rtacha reytingini qayta hisoblash
+    const agg = await CourseRating.aggregate([
+      { $match: { courseId: course._id } },
+      { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
+    ]);
+
+    if (agg.length > 0) {
+      course.rating      = Math.round(agg[0].avg * 10) / 10;
+      course.ratingCount = agg[0].count;
+      await course.save();
+    }
+
+    res.json({
+      success: true,
+      message: 'Baholash saqlandi',
+      data: { rating: course.rating, ratingCount: course.ratingCount },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+
+ * @desc  Foydalanuvchi uchun tavsiya etilgan kurslar (enrollment asosida)
+ * @route GET /api/courses/recommended
+ * @access Private
+ */
+const getUserRecommendedCourses = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 6;
+    const courses = await Course.find({ isActive: true })
+      .sort({ viewCount: -1 })
+      .limit(limit)
+      .select('-videos')
+      .lean();
+    res.json({ success: true, data: { courses } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+
+ * @desc  Kurs nomlarini autocomplete qidirish
+ * @route GET /api/courses/autocomplete?q=react
+ * @access Public
+ */
+const getAutocomplete = async (req, res) => {
+  try {
+    const { q = '' } = req.query;
+    if (!q.trim()) return res.json({ success: true, data: { suggestions: [] } });
+
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const suggestions = await Course.find({
+      isActive: true,
+      title: { $regex: escaped, $options: 'i' },
+    })
+      .select('_id title category')
+      .limit(5)
+      .lean();
+
+    res.json({ success: true, data: { suggestions } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc  Filter badge counters (frontend uchun)
+ * @route GET /api/courses/filter-counts
+ * @access Public
+ */
+const getFilterCounts = async (req, res) => {
+  try {
+    const [catAgg, levelAgg, freeCount, paidCount] = await Promise.all([
+      Course.aggregate([
+        { $match: { isActive: true } },
+        { $group: { _id: '$category', count: { $sum: 1 } } },
+      ]),
+      Course.aggregate([
+        { $match: { isActive: true } },
+        { $group: { _id: '$level', count: { $sum: 1 } } },
+      ]),
+      Course.countDocuments({ isActive: true, isFree: true }),
+      Course.countDocuments({ isActive: true, isFree: false }),
+    ]);
+
+    const categories = {};
+    catAgg.forEach((c) => { categories[c._id] = c.count; });
+
+    const levels = {};
+    levelAgg.forEach((l) => { levels[l._id] = l.count; });
+
+    res.json({
+      success: true,
+      data: { categories, levels, free: freeCount, paid: paidCount },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getAllCourses,
   getCourse,
   getTopCourses,
   getCategories,
+  getRecommendedCourses,
+  getAutocomplete,
+  getFilterCounts,
   createCourse,
   updateCourse,
   deleteCourse,
+  rateCourse,
 };

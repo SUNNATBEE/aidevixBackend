@@ -7,3 +7,6 @@ dist/
 Thumbs.db
 *.log
 .cache/
+.vercel
+.env*.local
+.next/

@@ -31,6 +31,17 @@ const videoSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  // Bunny.net Stream integration
+  bunnyVideoId: {
+    type: String,
+    default: null,
+  },
+  // ready | processing | failed | pending
+  bunnyStatus: {
+    type: String,
+    enum: ['pending', 'processing', 'ready', 'failed'],
+    default: 'pending',
+  },
   // Ko'rishlar soni (statistika uchun)
   viewCount: {
     type: Number,
@@ -44,6 +55,12 @@ const videoSchema = new mongoose.Schema({
       url: { type: String },
     },
   ],
+  // Bo'lim (Section) ga tegishli
+  sectionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Section',
+    default: null,
+  },
   // Savollar (Q&A)
   questions: [
     {
@@ -56,5 +73,9 @@ const videoSchema = new mongoose.Schema({
 }, {
   timestamps: true,
 });
+
+videoSchema.index({ course: 1, order: 1 });
+videoSchema.index({ course: 1, isActive: 1 });
+videoSchema.index({ bunnyStatus: 1 });
 
 module.exports = mongoose.model('Video', videoSchema);

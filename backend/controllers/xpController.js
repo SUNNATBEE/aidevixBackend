@@ -1,6 +1,7 @@
 const UserStats = require('../models/UserStats');
 const Quiz = require('../models/Quiz');
 const QuizResult = require('../models/QuizResult');
+const { awardBadges } = require('../utils/badgeService');
 
 /**
  * @desc  Foydalanuvchi statsini olish
@@ -30,9 +31,11 @@ const getUserStats = async (req, res) => {
       data: {
         xp: stats.xp,
         level: stats.level,
+        levelTitle: stats.getLevelTitle(),
         levelProgress,
         xpToNextLevel: 1000 - (stats.xp % 1000),
         streak: stats.streak,
+        weeklyXp: stats.weeklyXp || 0,
         lastActivityDate: stats.lastActivityDate,
         badges: stats.badges,
         videosWatched: stats.videosWatched,
@@ -62,6 +65,7 @@ const addVideoWatchXP = async (req, res) => {
     }
 
     stats.xp += XP_FOR_VIDEO;
+    stats.weeklyXp = (stats.weeklyXp || 0) + XP_FOR_VIDEO;
     stats.videosWatched += 1;
     stats.level = stats.calculateLevel();
 
@@ -77,7 +81,14 @@ const addVideoWatchXP = async (req, res) => {
       if (diffDays === 1) {
         stats.streak += 1; // Ketma-ket kun
       } else if (diffDays > 1) {
-        stats.streak = 1; // Streak uzildi
+        // Streak freeze tekshiruvi
+        if ((stats.streakFreezes || 0) > 0 && diffDays === 2) {
+          stats.streakFreezes -= 1;
+          stats.streakFreezeUsedAt = new Date();
+          // streak saqlanadi
+        } else {
+          stats.streak = 1; // Streak uzildi
+        }
       }
       // diffDays === 0 bo'lsa — bugun allaqachon faol bo'lgan, streak o'zgarmaydi
     } else {
@@ -86,6 +97,9 @@ const addVideoWatchXP = async (req, res) => {
 
     stats.lastActivityDate = new Date();
     await stats.save();
+
+    // Badge auto-award
+    awardBadges(req.user.id).catch(() => {});
 
     res.json({
       success: true,
@@ -171,10 +185,14 @@ const submitQuiz = async (req, res) => {
     }
 
     stats.xp += totalXP;
+    stats.weeklyXp = (stats.weeklyXp || 0) + totalXP;
     stats.quizzesCompleted += 1;
     stats.level = stats.calculateLevel();
     stats.lastActivityDate = new Date();
     await stats.save();
+
+    // Badge auto-award
+    awardBadges(req.user.id).catch(() => {});
 
     res.json({
       success: true,
@@ -232,11 +250,13 @@ const getQuizByVideo = async (req, res) => {
  */
 const updateProfile = async (req, res) => {
   try {
-    const { bio, skills, avatar } = req.body;
+    const { bio, skills, avatar, ism, familiya, kasb } = req.body;
+    const userId = req.user._id || req.user.id;
 
-    let stats = await UserStats.findOne({ userId: req.user.id });
+    // 1. UserStats ni yangilash
+    let stats = await UserStats.findOne({ userId });
     if (!stats) {
-      stats = await UserStats.create({ userId: req.user.id });
+      stats = await UserStats.create({ userId });
     }
 
     if (bio !== undefined) stats.bio = bio;
@@ -245,12 +265,135 @@ const updateProfile = async (req, res) => {
 
     await stats.save();
 
+    // 2. User modelini (ism, familiya, kasb) yangilash
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
+    }
+
+    let userUpdated = false;
+    if (ism !== undefined) { user.firstName = ism; userUpdated = true; }
+    if (familiya !== undefined) { user.lastName = familiya; userUpdated = true; }
+    if (kasb !== undefined) { user.jobTitle = kasb; userUpdated = true; }
+
+    if (userUpdated) {
+      await user.save();
+    }
+
+    // Yangilangan ma'lumotlarni qaytarish
     res.json({
       success: true,
+      message: 'Profil muvaffaqiyatli yangilandi',
       data: {
         bio: stats.bio,
         skills: stats.skills,
         avatar: stats.avatar,
+        user: {
+          _id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          jobTitle: user.jobTitle,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+        }
+      },
+    });
+  } catch (err) {
+    console.error('UPDATE_PROFILE_ERROR:', err);
+    res.status(500).json({ success: false, message: 'Profilni yangilashda xatolik: ' + err.message });
+  }
+};
+
+/**
+ * @desc  Streak freeze ishlatish (1 ta freeze sarflaydi)
+ * @route POST /api/xp/streak-freeze
+ * @access Private
+ */
+const useStreakFreeze = async (req, res) => {
+  try {
+    let stats = await UserStats.findOne({ userId: req.user.id });
+    if (!stats) {
+      return res.status(404).json({ success: false, message: 'Stats topilmadi' });
+    }
+
+    if ((stats.streakFreezes || 0) <= 0) {
+      return res.status(400).json({ success: false, message: 'Streak freeze qolmadi (max 5 ta)' });
+    }
+
+    stats.streakFreezes -= 1;
+    stats.streakFreezeUsedAt = new Date();
+    await stats.save();
+
+    res.json({
+      success: true,
+      message: 'Streak freeze ishlatildi',
+      data: { streakFreezes: stats.streakFreezes, streak: stats.streak },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * @desc  Streak freeze qo'shish (Admin yoki sovg'a sifatida)
+ * @route POST /api/xp/streak-freeze/add
+ * @access Private
+ */
+const addStreakFreeze = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const targetId = userId || req.user.id;
+
+    let stats = await UserStats.findOne({ userId: targetId });
+    if (!stats) {
+      stats = await UserStats.create({ userId: targetId });
+    }
+
+    const MAX_FREEZES = 5;
+    if ((stats.streakFreezes || 0) >= MAX_FREEZES) {
+      return res.status(400).json({ success: false, message: `Maksimal ${MAX_FREEZES} ta streak freeze bo'lishi mumkin` });
+    }
+
+    stats.streakFreezes = (stats.streakFreezes || 0) + 1;
+    await stats.save();
+
+    res.json({
+      success: true,
+      message: 'Streak freeze qo\'shildi',
+      data: { streakFreezes: stats.streakFreezes },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * @desc  Haftalik liderlar jadvali (weeklyXp bo'yicha)
+ * @route GET /api/xp/weekly-leaderboard
+ * @access Public
+ */
+const getWeeklyLeaderboard = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+
+    const leaders = await UserStats.find({ weeklyXp: { $gt: 0 } })
+      .sort({ weeklyXp: -1 })
+      .limit(limit)
+      .populate('userId', 'username');
+
+    res.json({
+      success: true,
+      data: {
+        leaderboard: leaders.map((s, i) => ({
+          rank: i + 1,
+          user: s.userId,
+          weeklyXp: s.weeklyXp || 0,
+          level: s.level,
+          streak: s.streak,
+        })),
       },
     });
   } catch (err) {
@@ -258,4 +401,57 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = { getUserStats, addVideoWatchXP, submitQuiz, getQuizByVideo, updateProfile };
+/**
+ * @desc  XP tarixi (so'nggi 50 ta)
+ * @route GET /api/xp/history
+ * @access Private
+ */
+const getXPHistory = async (req, res) => {
+  try {
+    // XPTransaction model was deleted, returning empty history for now
+    const history = [];
+    res.json({ success: true, data: { history } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * @desc  Streak holati va qolgan vaqt
+ * @route GET /api/xp/streak-status
+ * @access Private
+ */
+const getStreakStatus = async (req, res) => {
+  try {
+    const stats = await UserStats.findOne({ userId: req.user.id }).lean();
+    if (!stats) return res.json({ success: true, data: { streak: 0, atRisk: false, hoursRemaining: 24 } });
+
+    const lastActivity = stats.lastActivityDate ? new Date(stats.lastActivityDate) : null;
+    const hoursAgo = lastActivity ? (Date.now() - lastActivity.getTime()) / (1000 * 60 * 60) : 999;
+
+    res.json({
+      success: true,
+      data: {
+        streak: stats.streak || 0,
+        lastActivity: stats.lastActivityDate,
+        atRisk: hoursAgo > 20,
+        hoursRemaining: Math.max(0, Math.round(24 - hoursAgo)),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = {
+  getUserStats,
+  addVideoWatchXP,
+  submitQuiz,
+  getQuizByVideo,
+  updateProfile,
+  useStreakFreeze,
+  addStreakFreeze,
+  getWeeklyLeaderboard,
+  getXPHistory,
+  getStreakStatus,
+};

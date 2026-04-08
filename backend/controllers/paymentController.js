@@ -1,0 +1,391 @@
+const Payment    = require('../models/Payment');
+const Enrollment = require('../models/Enrollment');
+const Course     = require('../models/Course');
+const crypto = require('crypto');
+
+/**
+ * To'lov tizimi — Payme va Click
+ * PAYME_MERCHANT_ID, CLICK_SERVICE_ID, CLICK_SECRET_KEY env o'zgaruvchilarini to'ldiring
+ */
+
+const verifyPaymeAuth = (req) => {
+  const merchantKey = process.env.PAYME_MERCHANT_KEY;
+  const authHeader = req.headers.authorization || '';
+
+  if (!merchantKey) {
+    return process.env.NODE_ENV !== 'production';
+  }
+
+  if (!authHeader.startsWith('Basic ')) return false;
+
+  const credentials = Buffer.from(authHeader.slice(6), 'base64').toString('utf8');
+  const [login, password] = credentials.split(':');
+
+  return login === 'Paycom' && password === merchantKey;
+};
+
+const buildClickSignString = (body) => [
+  body.click_trans_id,
+  body.service_id,
+  process.env.CLICK_SECRET_KEY || '',
+  body.merchant_trans_id,
+  body.amount,
+  body.action,
+  body.sign_time,
+].join('');
+
+const verifyClickSignature = (req) => {
+  const secretKey = process.env.CLICK_SECRET_KEY;
+  if (!secretKey) {
+    return process.env.NODE_ENV !== 'production';
+  }
+
+  const providedSign = String(req.body.sign_string || '').toLowerCase();
+  if (!providedSign) return false;
+
+  const expectedSign = crypto
+    .createHash('md5')
+    .update(buildClickSignString(req.body))
+    .digest('hex');
+
+  return providedSign === expectedSign;
+};
+
+/** @desc  To'lovni boshlash | @route POST /api/payments/initiate | @access Private */
+const initiatePayment = async (req, res) => {
+  try {
+    const { courseId, provider = 'payme' } = req.body;
+    if (!courseId) return res.status(400).json({ success: false, message: 'courseId majburiy' });
+
+    const course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
+    if (course.isFree) return res.status(400).json({ success: false, message: 'Bu kurs bepul' });
+
+    const existing = await Enrollment.findOne({ userId: req.user._id, courseId });
+    if (existing && existing.paymentStatus === 'paid')
+      return res.status(400).json({ success: false, message: 'Siz bu kursni allaqachon sotib olgansiz' });
+
+    // Mavjud pending to'lovni qaytarish (duplikat oldini olish)
+    const pendingPayment = await Payment.findOne({ userId: req.user._id, courseId, status: 'pending' });
+    if (pendingPayment) {
+      let paymentUrl = null;
+      if (pendingPayment.provider === 'payme') {
+        const merchantId = process.env.PAYME_MERCHANT_ID || 'YOUR_MERCHANT_ID';
+        const encoded = Buffer.from(`m=${merchantId};ac.order_id=${pendingPayment._id};a=${course.price * 100}`).toString('base64');
+        paymentUrl = `https://checkout.paycom.uz/${encoded}`;
+      } else if (pendingPayment.provider === 'click') {
+        const serviceId = process.env.CLICK_SERVICE_ID || 'YOUR_SERVICE_ID';
+        paymentUrl = `https://my.click.uz/services/pay?service_id=${serviceId}&merchant_id=${serviceId}&amount=${course.price}&transaction_param=${pendingPayment._id}`;
+      }
+      return res.status(200).json({
+        success: true,
+        message: 'Mavjud to\'lov',
+        data: { payment: { _id: pendingPayment._id, amount: pendingPayment.amount, provider: pendingPayment.provider, status: 'pending' }, paymentUrl },
+      });
+    }
+
+    const payment = await Payment.create({
+      userId: req.user._id,
+      courseId,
+      amount: course.price,
+      provider,
+      status: 'pending',
+    });
+
+    let paymentUrl = null;
+    if (provider === 'payme') {
+      const merchantId = process.env.PAYME_MERCHANT_ID || 'YOUR_MERCHANT_ID';
+      const encoded = Buffer.from(`m=${merchantId};ac.order_id=${payment._id};a=${course.price * 100}`).toString('base64');
+      paymentUrl = `https://checkout.paycom.uz/${encoded}`;
+    } else if (provider === 'click') {
+      const serviceId = process.env.CLICK_SERVICE_ID || 'YOUR_SERVICE_ID';
+      paymentUrl = `https://my.click.uz/services/pay?service_id=${serviceId}&merchant_id=${serviceId}&amount=${course.price}&transaction_param=${payment._id}`;
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'To\'lov boshlandi',
+      data: { payment: { _id: payment._id, amount: payment.amount, provider, status: 'pending' }, paymentUrl },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @desc  To'lov tarixi | @route GET /api/payments/my | @access Private */
+const getMyPayments = async (req, res) => {
+  try {
+    const page  = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+
+    const [payments, total] = await Promise.all([
+      Payment.find({ userId: req.user._id })
+        .populate('courseId', 'title thumbnail')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Payment.countDocuments({ userId: req.user._id }),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        payments,
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @desc  To'lov holatini tekshirish | @route GET /api/payments/:id/status | @access Private */
+const getPaymentStatus = async (req, res) => {
+  try {
+    const payment = await Payment.findOne({ _id: req.params.id, userId: req.user._id })
+      .populate('courseId', 'title price');
+    if (!payment) return res.status(404).json({ success: false, message: 'To\'lov topilmadi' });
+
+    // 30 daqiqadan oshgan pending to'lovni expired qilish
+    if (payment.status === 'pending') {
+      const ageMinutes = (Date.now() - payment.createdAt.getTime()) / (1000 * 60);
+      if (ageMinutes > 30) {
+        payment.status = 'expired';
+        payment.expiredAt = new Date();
+        await payment.save();
+      }
+    }
+
+    res.json({ success: true, data: { payment } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── Payme metodlari ──────────────────────────────────────────────────────────
+
+const checkPerformTransaction = async (params, id) => {
+  const { account, amount } = params;
+  const payment = await Payment.findOne({ _id: account?.order_id, status: 'pending' });
+  if (!payment) return { error: { code: -31050, message: 'To\'lov topilmadi' }, id };
+  if (payment.amount * 100 !== amount) return { error: { code: -31001, message: 'Noto\'g\'ri summa' }, id };
+  return { result: { allow: true }, id };
+};
+
+const createPaymeTransaction = async (params, id) => {
+  const { id: providerTxId, time, amount, account } = params;
+  const payment = await Payment.findById(account?.order_id);
+  if (!payment) return { error: { code: -31050, message: 'To\'lov topilmadi' }, id };
+  if (payment.amount * 100 !== amount) return { error: { code: -31001, message: 'Noto\'g\'ri summa' }, id };
+
+  // Idempotency: bir xil Payme txId bilan qayta kelgan
+  if (payment.providerTransactionId === providerTxId) {
+    if (payment.status === 'cancelled') return { error: { code: -31008, message: 'Tranzaksiya bekor qilingan' }, id };
+    return { result: { create_time: payment.paymeCreateTime, transaction: payment._id.toString(), state: 1 }, id };
+  }
+
+  // Boshqa Payme txId allaqachon tayinlangan
+  if (payment.providerTransactionId && payment.providerTransactionId !== providerTxId) {
+    return { error: { code: -31099, message: 'Boshqa tranzaksiya mavjud' }, id };
+  }
+
+  payment.providerTransactionId = providerTxId;
+  payment.paymeCreateTime = time;
+  payment.status = 'pending';
+  await payment.save();
+
+  return { result: { create_time: time, transaction: payment._id.toString(), state: 1 }, id };
+};
+
+const performTransaction = async (params, id) => {
+  const { id: providerTxId } = params;
+  const performTime = Date.now();
+
+  // Atomic: faqat pending bo'lsa completed ga o'tkaz (race condition oldini olish)
+  const payment = await Payment.findOneAndUpdate(
+    { providerTransactionId: providerTxId, status: 'pending' },
+    { $set: { status: 'completed', paidAt: new Date(), paymePerformTime: performTime } },
+    { new: true }
+  );
+
+  if (!payment) {
+    const existing = await Payment.findOne({ providerTransactionId: providerTxId });
+    if (!existing) return { error: { code: -31003, message: 'Tranzaksiya topilmadi' }, id };
+    if (existing.status === 'completed') {
+      return { result: { transaction: existing._id.toString(), perform_time: existing.paymePerformTime, state: 2 }, id };
+    }
+    if (existing.status === 'cancelled') {
+      return { error: { code: -31008, message: 'Tranzaksiya bekor qilingan' }, id };
+    }
+    return { error: { code: -31008, message: 'Tranzaksiyani bajarib bo\'lmaydi' }, id };
+  }
+
+  // Enrollment upsert (idempotent)
+  await Enrollment.findOneAndUpdate(
+    { userId: payment.userId, courseId: payment.courseId },
+    { userId: payment.userId, courseId: payment.courseId, paymentStatus: 'paid', paymentId: payment._id },
+    { upsert: true, new: true }
+  );
+  // studentsCount faqat shu yerda oshiriladi (atomic update kafolat beradi)
+  await Course.findByIdAndUpdate(payment.courseId, { $inc: { studentsCount: 1 } });
+
+  return { result: { transaction: payment._id.toString(), perform_time: performTime, state: 2 }, id };
+};
+
+const cancelTransaction = async (params, id) => {
+  const { id: providerTxId, reason } = params;
+  const payment = await Payment.findOne({ providerTransactionId: providerTxId });
+  if (!payment) return { error: { code: -31003, message: 'Tranzaksiya topilmadi' }, id };
+
+  // Completed to'lovni bekor qilib bo'lmaydi
+  if (payment.status === 'completed') {
+    return { error: { code: -31007, message: 'Tranzaksiyani bekor qilib bo\'lmaydi' }, id };
+  }
+
+  const cancelTime = Date.now();
+  payment.status = 'cancelled';
+  payment.paymeCancelTime = cancelTime;
+  payment.paymeCancelReason = reason;
+  payment.cancelledAt = new Date();
+  await payment.save();
+
+  return { result: { transaction: payment._id.toString(), cancel_time: cancelTime, state: -1 }, id };
+};
+
+// Payme CheckTransaction (Payme reconciliation uchun majburiy)
+const checkTransaction = async (params, id) => {
+  const { id: providerTxId } = params;
+  const payment = await Payment.findOne({ providerTransactionId: providerTxId }).lean();
+  if (!payment) return { error: { code: -31003, message: 'Tranzaksiya topilmadi' }, id };
+
+  const stateMap = { pending: 1, completed: 2, cancelled: -1 };
+  const state = stateMap[payment.status] ?? -1;
+
+  return {
+    result: {
+      create_time:  payment.paymeCreateTime  ?? 0,
+      perform_time: payment.paymePerformTime ?? 0,
+      cancel_time:  payment.paymeCancelTime  ?? 0,
+      transaction:  payment._id.toString(),
+      state,
+      reason: payment.paymeCancelReason ?? null,
+    },
+    id,
+  };
+};
+
+// Payme GetStatement (hisobot uchun majburiy)
+const getStatement = async (params, id) => {
+  const { from, to } = params;
+  const payments = await Payment.find({
+    provider: 'payme',
+    providerTransactionId: { $ne: null },
+    paymeCreateTime: { $gte: from, $lte: to },
+  }).lean();
+
+  const transactions = payments.map(p => ({
+    id:           p.providerTransactionId,
+    time:         p.paymeCreateTime,
+    amount:       p.amount * 100,
+    account:      { order_id: p._id.toString() },
+    create_time:  p.paymeCreateTime  ?? 0,
+    perform_time: p.paymePerformTime ?? 0,
+    cancel_time:  p.paymeCancelTime  ?? 0,
+    transaction:  p._id.toString(),
+    state:        ({ pending: 1, completed: 2, cancelled: -1 })[p.status] ?? -1,
+    reason:       p.paymeCancelReason ?? null,
+  }));
+
+  return { result: { transactions }, id };
+};
+
+/** @desc  Payme JSON-RPC webhook | @route POST /api/payments/payme | @access Public */
+const handlePayme = async (req, res) => {
+  if (!verifyPaymeAuth(req)) {
+    return res.status(401).json({ error: { code: -32504, message: 'Unauthorized' }, id: req.body?.id || null });
+  }
+
+  const { method, params, id } = req.body;
+  try {
+    switch (method) {
+      case 'CheckPerformTransaction': return res.json(await checkPerformTransaction(params, id));
+      case 'CreateTransaction':       return res.json(await createPaymeTransaction(params, id));
+      case 'PerformTransaction':      return res.json(await performTransaction(params, id));
+      case 'CancelTransaction':       return res.json(await cancelTransaction(params, id));
+      case 'CheckTransaction':        return res.json(await checkTransaction(params, id));
+      case 'GetStatement':            return res.json(await getStatement(params, id));
+      default: return res.json({ error: { code: -32601, message: 'Method not found' }, id });
+    }
+  } catch (err) {
+    console.error('Payme error:', err.message);
+    return res.json({ error: { code: -31008, message: err.message }, id });
+  }
+};
+
+// ─── Click metodlari ──────────────────────────────────────────────────────────
+
+/** @desc  Click prepare | @route POST /api/payments/click/prepare | @access Public */
+const clickPrepare = async (req, res) => {
+  try {
+    if (!verifyClickSignature(req)) {
+      return res.json({ error: -1, error_note: 'SIGN CHECK FAILED' });
+    }
+
+    const { merchant_trans_id, amount, action } = req.body;
+    if (Number(action) !== 0) return res.json({ error: -3, error_note: 'Noto\'g\'ri action' });
+
+    const payment = await Payment.findById(merchant_trans_id).lean();
+    if (!payment) return res.json({ error: -5, error_note: 'To\'lov topilmadi' });
+    if (payment.amount !== Number(amount)) return res.json({ error: -2, error_note: 'Noto\'g\'ri summa' });
+    if (payment.status === 'completed') return res.json({ error: -4, error_note: 'To\'lov allaqachon yakunlangan' });
+
+    res.json({ click_trans_id: req.body.click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
+  } catch (err) {
+    res.json({ error: -8, error_note: err.message });
+  }
+};
+
+/** @desc  Click complete | @route POST /api/payments/click/complete | @access Public */
+const clickComplete = async (req, res) => {
+  try {
+    if (!verifyClickSignature(req)) {
+      return res.json({ error: -1, error_note: 'SIGN CHECK FAILED' });
+    }
+
+    const { merchant_trans_id, click_trans_id, click_paydoc_id, error: clickError } = req.body;
+
+    if (Number(clickError) < 0) {
+      await Payment.findByIdAndUpdate(merchant_trans_id, { $set: { status: 'failed' } });
+      return res.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Cancelled' });
+    }
+
+    // Atomic: faqat pending bo'lsa completed ga o'tkaz (idempotency)
+    const payment = await Payment.findOneAndUpdate(
+      { _id: merchant_trans_id, status: 'pending' },
+      { $set: { status: 'completed', paidAt: new Date(), clickTransId: click_trans_id, clickPaydocId: click_paydoc_id, providerTransactionId: click_trans_id } },
+      { new: true }
+    );
+
+    if (!payment) {
+      const existing = await Payment.findById(merchant_trans_id).lean();
+      if (!existing) return res.json({ error: -5, error_note: 'To\'lov topilmadi' });
+      // Allaqachon completed — idempotent muvaffaqiyat
+      if (existing.status === 'completed') return res.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
+      return res.json({ error: -9, error_note: 'To\'lovni qayta ishlash mumkin emas' });
+    }
+
+    await Enrollment.findOneAndUpdate(
+      { userId: payment.userId, courseId: payment.courseId },
+      { userId: payment.userId, courseId: payment.courseId, paymentStatus: 'paid', paymentId: payment._id },
+      { upsert: true, new: true }
+    );
+    await Course.findByIdAndUpdate(payment.courseId, { $inc: { studentsCount: 1 } });
+
+    res.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
+  } catch (err) {
+    res.json({ error: -8, error_note: err.message });
+  }
+};
+
+module.exports = { initiatePayment, getMyPayments, getPaymentStatus, handlePayme, clickPrepare, clickComplete };
