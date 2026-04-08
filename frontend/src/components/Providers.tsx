@@ -6,6 +6,7 @@ import store from '@/store';
 import { Toaster } from 'react-hot-toast';
 import { LangProvider } from '@/context/LangContext';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { SoundProvider } from '@/context/SoundContext';
 import { checkAuthStatus } from '@/store/slices/authSlice';
 
 function AuthBootstrap() {
@@ -22,6 +23,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthBootstrap />
       <ThemeProvider>
         <LangProvider>
+          <SoundProvider>
           {children}
           <Toaster
             position="bottom-right"
@@ -35,6 +37,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               },
             }}
           />
+          </SoundProvider>
         </LangProvider>
       </ThemeProvider>
     </Provider>

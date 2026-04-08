@@ -7,6 +7,7 @@ import { gsap } from 'gsap';
 import { IoPlay, IoTime, IoBookOutline, IoStar } from 'react-icons/io5';
 import { ROUTES } from '@/utils/constants';
 import { formatDurationText } from '@/utils/formatDuration';
+import { useSound } from '@/context/SoundContext';
 
 const CAT = {
   html:       { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400',  label: 'HTML',   glow: 'hover:shadow-orange-500/10'  },
@@ -28,6 +29,7 @@ interface CourseProps {
 
 export default function CourseCard({ course, index = 0, className = '' }: CourseProps) {
   const cardRef = useRef(null)
+  const { playSound } = useSound()
 
   useEffect(() => {
     if (!cardRef.current) return
@@ -38,7 +40,10 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
     )
   }, [index])
 
-  const onEnter = () => gsap.to(cardRef.current, { y: -4, boxShadow: '0 10px 40px -5px rgba(124, 58, 237, 0.2)', scale: 1.01, duration: 0.3, ease: 'power2.out' })
+  const onEnter = () => {
+    playSound('/sounds/onlyclick.wav')
+    gsap.to(cardRef.current, { y: -4, boxShadow: '0 10px 40px -5px rgba(124, 58, 237, 0.2)', scale: 1.01, duration: 0.3, ease: 'power2.out' })
+  }
   const onLeave = () => gsap.to(cardRef.current, { y: 0,  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', scale: 1,     duration: 0.3, ease: 'power2.out' })
 
   if (!course) return null

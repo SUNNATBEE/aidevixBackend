@@ -4,12 +4,15 @@ import React from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { HiArrowRight, HiCheckCircle, HiLightningBolt } from 'react-icons/hi'
+import TypedText from '@/components/common/TypedText'
 import { useLang } from '@/context/LangContext'
 import { useTheme } from '@/context/ThemeContext'
+import { useSound } from '@/context/SoundContext'
 
 const ProBanner = () => {
   const { t } = useLang()
   const { isDark } = useTheme()
+  const { playSound } = useSound()
 
   const benefits = [
     t('pro.benefit1'),
@@ -32,36 +35,56 @@ const ProBanner = () => {
         <div className="flex-1 text-center md:text-left">
           <div className={`mb-6 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${isDark ? 'border-indigo-400/20 bg-indigo-500/10 text-indigo-200' : 'border-indigo-500/20 bg-indigo-50 text-indigo-600'}`}>
             <HiLightningBolt className="h-4 w-4" />
-            <span>{t('pro.badge')}</span>
+            <span><TypedText text={t('pro.badge')} /></span>
           </div>
 
           <h2 className={`mb-6 font-display text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl ${isDark ? 'text-white' : 'text-slate-950'}`}>
-            {t('pro.title1')} <br />
-            <span className="bg-gradient-to-r from-indigo-300 via-indigo-200 to-amber-300 bg-clip-text text-transparent">
-              {t('pro.title2')}
+            <TypedText text={t('pro.title1')} /> <br />
+            <span className={`bg-clip-text text-transparent bg-gradient-to-r ${isDark ? 'from-indigo-300 via-purple-300 to-violet-400' : 'from-indigo-600 via-purple-600 to-violet-700'}`}>
+              <TypedText text={t('pro.title2')} />
             </span>
           </h2>
 
           <p className={`mb-10 max-w-xl text-lg leading-8 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-            {t('pro.subtitle')}
+            <TypedText text={t('pro.subtitle')} />
           </p>
 
           <ul className={`mb-10 grid gap-4 md:grid-cols-2 ${isDark ? 'text-white/90' : 'text-slate-700'}`}>
             {benefits.map((text, i) => (
-              <li key={i} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${isDark ? 'border-white/8 bg-white/[0.03]' : 'border-slate-900/10 bg-white/70'}`}>
-                <HiCheckCircle className="h-6 w-6 shrink-0 text-emerald-400" />
-                <span>{text}</span>
+              <li 
+                key={i} 
+                onMouseEnter={() => playSound('/sounds/onlyclick.wav')}
+                className={`group flex items-center gap-4 rounded-2xl border px-5 py-4 transition-all duration-300 hover:-translate-y-1 ${
+                  isDark 
+                    ? 'border-white/8 bg-white/[0.03] hover:border-indigo-400/40 hover:bg-white/[0.06] hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.4)]' 
+                    : 'border-slate-900/10 bg-white/70 hover:border-indigo-500/30 hover:bg-white hover:shadow-[0_15px_35px_-10px_rgba(79,70,229,0.15)]'
+                }`}
+              >
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors duration-300 ${
+                  isDark ? 'bg-indigo-500/10 group-hover:bg-indigo-500/20' : 'bg-indigo-50 group-hover:bg-indigo-100'
+                }`}>
+                  <HiCheckCircle className="h-6 w-6 text-emerald-400" />
+                </div>
+                <span className="font-medium"><TypedText text={text} /></span>
               </li>
             ))}
           </ul>
 
           <div className="flex flex-col gap-4 sm:flex-row">
-            <Link href="/subscription" className="group inline-flex h-14 items-center justify-center rounded-full bg-indigo-500 px-8 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-400">
-              {t('pro.cta1')}
+            <Link 
+              href="/subscription" 
+              onMouseEnter={() => playSound('/sounds/onlyclick.wav')}
+              className="group inline-flex h-14 items-center justify-center rounded-full bg-indigo-500 px-8 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-400"
+            >
+              <TypedText text={t('pro.cta1')} />
               <HiArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Link>
-            <Link href="/courses" className={`inline-flex h-14 items-center justify-center rounded-full border px-8 text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 ${isDark ? 'border-white/10 text-white hover:bg-white/5' : 'border-slate-900/10 text-slate-900 hover:bg-slate-900/5'}`}>
-              {t('pro.cta2')}
+            <Link 
+              href="/courses" 
+              onMouseEnter={() => playSound('/sounds/onlyclick.wav')}
+              className={`inline-flex h-14 items-center justify-center rounded-full border px-8 text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 ${isDark ? 'border-white/10 text-white hover:bg-white/5' : 'border-slate-900/10 text-slate-900 hover:bg-slate-950/5'}`}
+            >
+              <TypedText text={t('pro.cta2')} />
             </Link>
           </div>
         </div>

@@ -1,8 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { FaInstagram, FaTelegram, FaYoutube } from 'react-icons/fa'
 import { RiCodeSSlashLine } from 'react-icons/ri'
+import TypedText from '@/components/common/TypedText'
 import { ROUTES, SOCIAL_LINKS } from '@utils/constants'
 import { useLang } from '@/context/LangContext'
 import { useTheme } from '@/context/ThemeContext'
@@ -57,10 +59,15 @@ export default function Footer() {
   const copyText = isDark ? 'text-slate-500' : 'text-slate-500'
 
   return (
-    <footer className={`mt-24 border-t ${shell}`} style={{ borderTopColor: borderClr }}>
+    <footer className={`border-t ${shell}`} style={{ borderTopColor: borderClr }}>
       <div className="mx-auto max-w-7xl px-4 pt-16 pb-10 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1.15fr_0.85fr_0.85fr_0.85fr] lg:gap-8">
-          <div>
+          <motion.div
+            initial={{ y: 40, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+          >
             <div className="section-kicker text-indigo-400">Aidevix</div>
             <Link href={ROUTES.HOME} className="group mt-5 flex w-fit items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-[0_12px_30px_rgba(86,98,246,0.3)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:bg-indigo-400">
@@ -68,7 +75,7 @@ export default function Footer() {
               </div>
               <span className={`font-display text-2xl font-semibold tracking-[-0.04em] ${brandText}`}>Aidevix</span>
             </Link>
-            <p className={`mt-6 max-w-sm text-sm leading-7 ${descText}`}>{t('footer.desc')}</p>
+            <p className={`mt-6 max-w-sm text-sm leading-7 ${descText}`}><TypedText text={t('footer.desc')} /></p>
             <div className="mt-6 flex items-center gap-2">
               {SOCIAL.map((s) => (
                 <a
@@ -84,36 +91,51 @@ export default function Footer() {
                 </a>
               ))}
             </div>
-          </div>
+          </motion.div>
 
-          {FOOTER_LINKS.map((group) => (
-            <div key={group.title} className="border-t pt-5 lg:border-0 lg:pt-0" style={{ borderColor: borderClr }}>
-              <h4 className={`mb-5 text-sm font-semibold uppercase tracking-[0.24em] ${headingText}`}>{group.title}</h4>
+          {FOOTER_LINKS.map((group, idx) => (
+            <motion.div 
+              key={group.title} 
+              initial={{ y: 40, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.1 * (idx + 1), ease: 'easeOut' }}
+              className="border-t pt-5 lg:border-0 lg:pt-0" 
+              style={{ borderColor: borderClr }}
+            >
+              <h4 className={`mb-5 text-sm font-semibold uppercase tracking-[0.24em] ${headingText}`}><TypedText text={group.title} /></h4>
               <ul className="space-y-3">
                 {group.links.map((link) => (
                   <li key={link.label}>
                     <Link href={link.to} className={`text-sm transition-colors duration-300 ${linkText}`}>
-                      {link.label}
+                      <TypedText text={link.label} />
                     </Link>
                   </li>
                 ))}
               </ul>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-4 sm:flex-row sm:px-6 lg:px-8" style={{ borderTop: `1px solid ${borderClr}` }}>
-        <p className={`text-xs ${copyText}`}>{t('footer.copyright')}</p>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 1, delay: 0.5 }}
+        className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-4 sm:flex-row sm:px-6 lg:px-8" 
+        style={{ borderTop: `1px solid ${borderClr}` }}
+      >
+        <p className={`text-xs ${copyText}`}><TypedText text={t('footer.copyright')} /></p>
         <div className={`flex items-center gap-1.5 text-xs ${copyText}`}>
-          <span>{t('footer.location')}</span>
+          <span><TypedText text={t('footer.location')} /></span>
           <span className={isDark ? 'text-slate-700' : 'text-slate-300'}>|</span>
           <span className="flex items-center gap-1">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            {t('footer.status')}
+            <TypedText text={t('footer.status')} />
           </span>
         </div>
-      </div>
+      </motion.div>
     </footer>
   )
 }
