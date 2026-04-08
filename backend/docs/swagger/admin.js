@@ -2,9 +2,9 @@
  * @swagger
  * tags:
  *   - name: Admin Panel - Courses
- *     description: 👑 Admin: Kurs boshqaruvi / Управление курсами
+ *     description: "👑 Admin: Kurs boshqaruvi / Управление курсами"
  *   - name: Admin Panel - Videos
- *     description: 👑 Admin: Video boshqaruvi / Управление видео
+ *     description: "👑 Admin: Video boshqaruvi / Управление видео"
  * 
  * /api/admin/courses:
  *   get:
