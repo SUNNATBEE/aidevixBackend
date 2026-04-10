@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { FaInstagram, FaTelegram, FaYoutube } from 'react-icons/fa'
 import { RiCodeSSlashLine } from 'react-icons/ri'
-import TypedText from '@/components/common/TypedText'
 import { ROUTES, SOCIAL_LINKS } from '@utils/constants'
 import { useLang } from '@/context/LangContext'
 import { useTheme } from '@/context/ThemeContext'
@@ -75,7 +74,7 @@ export default function Footer() {
               </div>
               <span className={`font-display text-2xl font-semibold tracking-[-0.04em] ${brandText}`}>Aidevix</span>
             </Link>
-            <p className={`mt-6 max-w-sm text-sm leading-7 ${descText}`}><TypedText text={t('footer.desc')} /></p>
+            <p className={`mt-6 max-w-sm text-sm leading-7 ${descText}`}>{t('footer.desc')}</p>
             <div className="mt-6 flex items-center gap-2">
               {SOCIAL.map((s) => (
                 <a
@@ -103,12 +102,12 @@ export default function Footer() {
               className="border-t pt-5 lg:border-0 lg:pt-0" 
               style={{ borderColor: borderClr }}
             >
-              <h4 className={`mb-5 text-sm font-semibold uppercase tracking-[0.24em] ${headingText}`}><TypedText text={group.title} /></h4>
+              <h4 className={`mb-5 text-sm font-semibold uppercase tracking-[0.24em] ${headingText}`}>{group.title}</h4>
               <ul className="space-y-3">
                 {group.links.map((link) => (
                   <li key={link.label}>
                     <Link href={link.to} className={`text-sm transition-colors duration-300 ${linkText}`}>
-                      <TypedText text={link.label} />
+                      {link.label}
                     </Link>
                   </li>
                 ))}
@@ -126,13 +125,13 @@ export default function Footer() {
         className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-4 sm:flex-row sm:px-6 lg:px-8" 
         style={{ borderTop: `1px solid ${borderClr}` }}
       >
-        <p className={`text-xs ${copyText}`}><TypedText text={t('footer.copyright')} /></p>
+        <p className={`text-xs ${copyText}`}>{t('footer.copyright')}</p>
         <div className={`flex items-center gap-1.5 text-xs ${copyText}`}>
-          <span><TypedText text={t('footer.location')} /></span>
+          <span>{t('footer.location')}</span>
           <span className={isDark ? 'text-slate-700' : 'text-slate-300'}>|</span>
           <span className="flex items-center gap-1">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <TypedText text={t('footer.status')} />
+            {t('footer.status')}
           </span>
         </div>
       </motion.div>

@@ -21,13 +21,16 @@ function CoursesContent() {
   const searchParams = useSearchParams()
   const [search, setSearch]             = useState(searchParams?.get('search') || '')
   const [showFilter, setShowFilter]     = useState(false)
+  const [isReady, setIsReady]           = useState(false)
   const debouncedSearch                 = useDebounce(search, 500)
 
   const { courses, loading, filters, pages, total, fetchAll, setFilter, setPage } = useCourses()
 
   useEffect(() => {
+    const timer = setTimeout(() => setIsReady(true), 1500)
     const cat = searchParams?.get('category')
     if (cat) setFilter({ category: cat })
+    return () => clearTimeout(timer)
   }, [])
 
   useEffect(() => {
@@ -45,6 +48,24 @@ function CoursesContent() {
 
   const clearSearch = useCallback(() => setSearch(''), [])
   const hasMore     = filters.page < pages
+
+  if (!isReady) {
+    return (
+      <div className="min-h-screen pt-24 pb-20 px-4">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 space-y-4">
+            <div className="skeleton h-4 w-24" />
+            <div className="skeleton h-12 w-64" />
+          </div>
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="skeleton h-72 w-full rounded-[2rem]" />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-base-100">
@@ -186,7 +207,18 @@ function CoursesContent() {
 
 export default function CoursesPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-base-100 flex items-center justify-center"><span className="loading loading-spinner loading-lg"></span></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen pt-24 pb-20 px-4 bg-base-100">
+        <div className="mx-auto max-w-7xl animate-pulse">
+          <div className="mb-12 h-10 w-64 bg-base-300 rounded-xl" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-72 w-full bg-base-300 rounded-[2rem]" />
+            ))}
+          </div>
+        </div>
+      </div>
+    }>
       <CoursesContent />
     </Suspense>
   )
