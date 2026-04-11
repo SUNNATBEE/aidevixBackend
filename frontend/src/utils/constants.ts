@@ -1,9 +1,9 @@
-// ─── API ─────────────────────────────────────────────────────
+
 const base = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/proxy'
 const withLeading = base.startsWith('/') ? base : `/${base}`
 export const API_BASE_URL = withLeading.endsWith('/') ? withLeading : `${withLeading}/`
 
-// ─── Course Categories ────────────────────────────────────────
+
 export const CATEGORIES = [
   { id: 'all',        label: 'Barchasi',   icon: '🌐', color: '#6366f1' },
   { id: 'ai',         label: 'AI va Agentlar', icon: 'AI', color: '#06b6d4' },
@@ -21,7 +21,7 @@ export const CATEGORIES = [
   { id: 'general',    label: 'Boshqalar',  icon: '📚', color: '#94a3b8' },
 ]
 
-// ─── Sort Options ─────────────────────────────────────────────
+
 export const SORT_OPTIONS = [
   { value: 'newest',    label: 'Yangi kurslar' },
   { value: 'popular',   label: 'Eng ommabop' },
@@ -29,23 +29,23 @@ export const SORT_OPTIONS = [
   { value: 'views',     label: 'Ko\'p ko\'rilgan' },
 ]
 
-// ─── Social Media ─────────────────────────────────────────────
+
 export const SOCIAL_LINKS = {
   telegram:  process.env.NEXT_PUBLIC_TELEGRAM_CHANNEL || 'https://t.me/aidevix',
   instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL    || 'https://instagram.com/aidevix',
   bot:       process.env.NEXT_PUBLIC_TELEGRAM_BOT     || 'https://t.me/aidevix_bot',
 }
 
-// ─── Subscription Requirements ───────────────────────────────
+
 export const REQUIRED_SUBSCRIPTIONS = ['telegram', 'instagram']
 
-// ─── Pagination ───────────────────────────────────────────────
+
 export const PAGE_SIZE = 12
 
-// ─── Rating ───────────────────────────────────────────────────
+
 export const MAX_RATING = 5
 
-// ─── Local Storage Keys ──────────────────────────────────────
+
 export const STORAGE_KEYS = {
   ACCESS_TOKEN:  'aidevix_access_token',
   REFRESH_TOKEN: 'aidevix_refresh_token',
@@ -53,7 +53,7 @@ export const STORAGE_KEYS = {
   THEME:         'aidevix_theme',
 }
 
-// ─── Route Paths ─────────────────────────────────────────────
+
 export const ROUTES = {
   HOME:         '/',
   COURSES:      '/courses',

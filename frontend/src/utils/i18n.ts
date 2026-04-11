@@ -23,9 +23,9 @@ export const translations: Record<Lang, Record<string, string>> = {
 
     // ─── Hero ───
     'hero.badge': 'Professional dasturlash platformasi',
-    'hero.title1': 'Kelajak kasbini ',
-    'hero.titleHighlight': "O'zbek tilida",
-    'hero.title2': " o'rganing",
+    'hero.title1': 'Kelajak kasbini',
+    'hero.titleHighlight': "o'zbek tilida",
+    'hero.title2': "o'rgan",
     'hero.subtitle': "Eng talabgir dasturlash yo'nalishlarini noldan boshlab amaliy loyihalar orqali o'rganing va IT sohasiga birinchi qadamingizni qo'ying.",
     'hero.cta1': "Kurslarni ko'rish",
     'hero.cta2': "Ro'yxatdan o'tish",
@@ -215,9 +215,9 @@ export const translations: Record<Lang, Record<string, string>> = {
     'nav.xpToNext': 'К следующему уровню',
 
     'hero.badge': 'Профессиональная платформа для обучения',
-    'hero.title1': 'Освойте профессию будущего ',
-    'hero.titleHighlight': 'на узбекском',
-    'hero.title2': ' языке',
+    'hero.title1': 'IT-профессии на',
+    'hero.titleHighlight': 'узбекском',
+    'hero.title2': '',
     'hero.subtitle': 'Изучайте самые востребованные направления программирования с нуля через практические проекты.',
     'hero.cta1': 'Смотреть курсы',
     'hero.cta2': 'Зарегистрироваться',
@@ -384,9 +384,9 @@ export const translations: Record<Lang, Record<string, string>> = {
     'nav.xpToNext': 'To next rank',
 
     'hero.badge': 'Professional coding platform',
-    'hero.title1': 'Learn future careers ',
-    'hero.titleHighlight': 'in Uzbek',
-    'hero.title2': ' language',
+    'hero.title1': 'Master IT in',
+    'hero.titleHighlight': 'Uzbek',
+    'hero.title2': '',
     'hero.subtitle': 'Learn the most in-demand programming fields from scratch through hands-on projects and take your first step into IT.',
     'hero.cta1': 'Browse Courses',
     'hero.cta2': 'Sign Up Free',

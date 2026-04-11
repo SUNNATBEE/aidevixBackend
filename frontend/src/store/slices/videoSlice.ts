@@ -102,7 +102,8 @@ const videoSlice = createSlice({
       .addCase(fetchVideo.fulfilled, (state, action) => {
         state.loading   = false
         state.current   = action.payload.video
-        state.videoLink = action.payload.videoLink
+        // API returns { video, player: { embedUrl, expiresAt } }
+        state.videoLink = action.payload.player ?? action.payload.videoLink ?? null
       })
       .addCase(fetchVideo.rejected,  (state, action) => {
         state.loading = false; state.error = action.payload

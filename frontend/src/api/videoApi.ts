@@ -16,6 +16,10 @@ export const videoApi = {
   /** POST /videos/:id/rate - rate a video (1-5 stars) */
   rate: (id, rating) => api.post(`videos/${id}/rate`, { rating }),
 
+  /** POST /videos/:id/progress - save watch progress */
+  saveProgress: (id: string, watchedSeconds: number) =>
+    api.post(`videos/${id}/progress`, { watchedSeconds }),
+
   /** GET /videos/:id/rating - get video rating stats */
   getRating: (id) => api.get(`videos/${id}/rating`),
 

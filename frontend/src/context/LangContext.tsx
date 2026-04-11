@@ -15,8 +15,7 @@ const readInitialLang = (): Lang => {
     return saved;
   }
 
-  const browserLang = window.navigator.language.slice(0, 2).toLowerCase();
-  return browserLang === 'ru' || browserLang === 'en' ? browserLang : 'uz';
+  return 'uz';
 };
 
 const syncDocumentLang = (nextLang: Lang) => {

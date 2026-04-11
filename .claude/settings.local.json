@@ -5,7 +5,8 @@
       "Bash(cd:*)",
       "Bash(cd \"C:/Users/User/OneDrive/Рабочий стол/AidevixBackend\" && git push origin main 2>&1)",
       "mcp__plugin_playwright_playwright__browser_navigate",
-      "mcp__plugin_playwright_playwright__browser_press_key"
+      "mcp__plugin_playwright_playwright__browser_press_key",
+      "Bash(npm install:*)"
     ]
   }
 }

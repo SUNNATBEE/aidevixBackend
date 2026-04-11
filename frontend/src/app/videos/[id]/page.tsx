@@ -49,10 +49,32 @@ export default function VideoPage() {
   }
 
   if (error || !video) {
+    const statusCode = (error as { statusCode?: number })?.statusCode
+    const isAuth = statusCode === 401
+    const isSub  = statusCode === 403
+
     return (
       <div className="min-h-screen bg-[#0A0E1A] flex flex-col items-center justify-center p-6 text-center">
-        <h2 className="text-2xl font-bold text-white mb-4">Video topilmadi</h2>
-        <Link href="/courses" className="btn btn-primary rounded-full px-8">Kurslarga qaytish</Link>
+        <div className="text-5xl mb-6">{isAuth ? '🔐' : isSub ? '🔒' : '😕'}</div>
+        <h2 className="text-2xl font-bold text-white mb-3">
+          {isAuth ? 'Tizimga kirish talab qilinadi'
+          : isSub  ? 'Obuna talab qilinadi'
+          :          'Video topilmadi'}
+        </h2>
+        <p className="text-gray-400 mb-8 max-w-sm">
+          {isAuth ? 'Videoni ko\'rish uchun avval tizimga kiring.'
+          : isSub  ? 'Ushbu videoni ko\'rish uchun Telegram va Instagram kanallarimizga obuna bo\'ling.'
+          :          'Bunday video mavjud emas yoki o\'chirib yuborilgan.'}
+        </p>
+        <div className="flex gap-3">
+          {isAuth && (
+            <Link href="/login" className="btn btn-primary rounded-full px-8">Kirish</Link>
+          )}
+          {isSub && (
+            <Link href="/subscription" className="btn btn-primary rounded-full px-8">Obuna bo'lish</Link>
+          )}
+          <Link href="/courses" className="btn btn-outline btn-sm rounded-full px-6 text-white border-white/20">Kurslarga qaytish</Link>
+        </div>
       </div>
     );
   }
@@ -101,37 +123,33 @@ export default function VideoPage() {
           </div>
         </div>
 
-        {/* Video Player Section (Placeholder for now) */}
-        <div className="bg-black/40 border border-white/5 rounded-[2.5rem] overflow-hidden aspect-video flex flex-col items-center justify-center relative group">
-          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 via-transparent to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-          
-          <div className="w-24 h-24 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mb-6 shadow-2xl group-hover:scale-110 transition-transform duration-500">
-             <div className="w-16 h-16 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40">
-                <IoPlay size={32} className="ml-1" />
-             </div>
-          </div>
-          
-          <h2 className="text-2xl font-bold text-white mb-2">Video Telegram&apos;da joylashgan</h2>
-          <p className="text-gray-400 text-center px-8 max-w-md mb-8">
-            Ushbu darsni ko&apos;rish uchun quyidagi tugmani bosing va biz taqdim etgan havola orqali videoga o&apos;ting.
-          </p>
-
-          {videoLink && (isLoggedIn && instagram?.subscribed) ? (
-             <a 
-               href={videoLink.telegramLink} 
-               target="_blank" 
-               rel="noopener noreferrer"
-               className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-10 h-14 font-bold text-lg shadow-xl shadow-indigo-500/20"
-             >
-               ▶ Videoni ko&apos;rish
-             </a>
+        {/* Video Player Section */}
+        <div className="rounded-[2.5rem] overflow-hidden aspect-video relative bg-black border border-white/5 shadow-2xl">
+          {videoLink?.embedUrl && (isLoggedIn && instagram?.subscribed) ? (
+            <iframe
+              src={videoLink.embedUrl}
+              className="absolute inset-0 w-full h-full"
+              allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
           ) : (
-             <button
-               onClick={handleVideoClick}
-               className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-10 h-14 font-bold text-lg shadow-xl shadow-indigo-500/20"
-             >
-               ▶ Videoni ko&apos;rish
-             </button>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e] group">
+              <div className="w-24 h-24 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mb-6 shadow-2xl group-hover:scale-110 transition-transform duration-500">
+                <div className="w-16 h-16 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40">
+                  <IoPlay size={32} className="ml-1" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Videoni ko&apos;rish</h2>
+              <p className="text-gray-400 text-center px-8 max-w-md mb-8">
+                Ushbu darsni ko&apos;rish uchun obuna tasdiqlanishi kerak.
+              </p>
+              <button
+                onClick={handleVideoClick}
+                className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-10 h-14 font-bold text-lg shadow-xl shadow-indigo-500/20"
+              >
+                ▶ Videoni ko&apos;rish
+              </button>
+            </div>
           )}
         </div>
 

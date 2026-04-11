@@ -1,7 +1,9 @@
+import { useState, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { setFilter, selectFilters } from '@store/slices/courseSlice'
 import { CATEGORIES, SORT_OPTIONS } from '@utils/constants'
 import { IoStar } from 'react-icons/io5'
+import { useSound } from '@/context/SoundContext'
 
 const LEVELS = [
   { id: 'all',          label: 'Barchasi' },
@@ -19,29 +21,51 @@ const RATINGS = [
 
 export default function CourseFilter() {
   const dispatch = useDispatch()
+  const [expanded, setExpanded] = useState(false)
   const filters  = useSelector(selectFilters)
 
+  const COLLAPSED_COUNT = 4
+  const displayedCategories = expanded ? CATEGORIES : CATEGORIES.slice(0, COLLAPSED_COUNT)
+  const hasMore = CATEGORIES.length > COLLAPSED_COUNT
+
+  const { playSound } = useSound()
+
+  const playHoverSound = () => {
+    playSound('/sounds/onlyclick.wav')
+  }
+
   return (
-    <div className="space-y-3">
-      {/* Category tabs — horizontal scroll on mobile */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {CATEGORIES.map((cat) => {
+    <div className="space-y-4">
+      {/* Category Grid */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+        {displayedCategories.map((cat) => {
           const active = filters.category === cat.id
           return (
             <button
               key={cat.id}
+              onMouseEnter={playHoverSound}
               onClick={() => dispatch(setFilter({ category: cat.id }))}
               className={
-                'flex-shrink-0 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ' +
+                'w-full px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 text-center ' +
                 (active
-                  ? 'bg-primary text-primary-content shadow-lg shadow-primary/25'
-                  : 'bg-base-200 border border-base-content/8 text-base-content/55 hover:bg-base-300 hover:text-base-content')
+                  ? 'bg-primary text-primary-content shadow-[0_8px_25px_rgba(99,102,241,0.3)] scale-[1.02]'
+                  : 'bg-base-200/50 border border-base-content/5 text-base-content/60 hover:bg-base-300 hover:text-base-content hover:scale-[1.01]')
               }
             >
               {cat.label}
             </button>
           )
         })}
+
+        {hasMore && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            onMouseEnter={playHoverSound}
+            className="w-full px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 text-center bg-base-200/80 border border-dashed border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
+          >
+            {expanded ? 'Yopish' : 'Yana'}
+          </button>
+        )}
       </div>
 
       {/* Level + Rating + Sort row */}
@@ -55,6 +79,7 @@ export default function CourseFilter() {
               return (
                 <button
                   key={lvl.id}
+                  onMouseEnter={playHoverSound}
                   onClick={() => dispatch(setFilter({ level: lvl.id === 'all' ? undefined : lvl.id }))}
                   className={
                     'px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 ' +
@@ -79,6 +104,7 @@ export default function CourseFilter() {
               return (
                 <button
                   key={r.value}
+                  onMouseEnter={playHoverSound}
                   onClick={() => dispatch(setFilter({ minRating: r.value || undefined }))}
                   className={
                     'flex items-center gap-0.5 px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 ' +

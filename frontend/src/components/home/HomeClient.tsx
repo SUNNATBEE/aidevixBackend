@@ -10,8 +10,10 @@ import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 import CourseCard from '@/components/courses/CourseCard';
 import VideoCard from '@/components/videos/VideoCard';
 import ProBanner from '@/components/home/ProBanner';
+import TypedText from '@/components/common/TypedText';
 import { useLang } from '@/context/LangContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useSound } from '@/context/SoundContext';
 import { HiArrowRight, HiOutlineDesktopComputer, HiOutlineServer, HiOutlineDeviceMobile, HiOutlineDatabase } from 'react-icons/hi';
 import { SiPython, SiFigma } from 'react-icons/si';
 
@@ -26,6 +28,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
   const [showHeroVisual, setShowHeroVisual] = useState(false);
   const { t } = useLang();
   const { isDark } = useTheme();
+  const { playSound } = useSound();
   const statsRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
 
@@ -86,23 +89,50 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
       }
 
       gsap.utils.toArray<HTMLElement>('.reveal-section').forEach((section, index) => {
+        const direction = section.getAttribute('data-direction') || 'up';
+        let x = 0, y = 0;
+        
+        if (direction === 'up') y = 100;
+        else if (direction === 'left') x = 100;
+        else if (direction === 'right') x = -100;
+
         gsap.fromTo(
           section,
-          { y: 42, opacity: 0 },
+          { x, y, opacity: 0, scale: 0.95 },
           {
+            x: 0,
             y: 0,
+            scale: 1,
             opacity: 1,
-            duration: 0.9,
-            delay: Math.min(index * 0.04, 0.18),
-            ease: 'power3.out',
+            duration: 1.2,
+            delay: Math.min(index * 0.05, 0.2),
+            ease: 'power4.out',
             scrollTrigger: {
               trigger: section,
-              start: 'top 84%',
+              start: 'top 88%',
               once: true,
             },
           },
         );
       });
+
+      // Staggered animation for category items (right to left)
+      gsap.fromTo(
+        '.category-item',
+        { x: 120, opacity: 0 },
+        {
+          x: 0,
+          opacity: 1,
+          duration: 1.6,
+          stagger: 0.15,
+          ease: 'power4.out',
+          scrollTrigger: {
+            trigger: '.category-item',
+            start: 'top 92%',
+            once: true,
+          },
+        }
+      );
     }, pageRef);
 
     return () => ctx.revert();
@@ -131,7 +161,11 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
   const hairline = isDark ? 'border-white/10' : 'border-slate-900/10';
   const softSurface = isDark ? 'bg-white/[0.03]' : 'bg-white/70';
   const railSurface = isDark ? 'bg-white/[0.02]' : 'bg-slate-950/[0.03]';
-  const ctaBg = isDark ? 'bg-[#07080d] border-white/10' : 'bg-slate-950 border-slate-800';
+  const ctaBg = isDark ? 'bg-[#07080d] border-white/10' : 'bg-slate-50 border-slate-200';
+
+  const playHoverSound = () => {
+    playSound('/sounds/onlyclick.wav');
+  };
 
   if (!isMounted) return null;
 
@@ -150,8 +184,8 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
               animate={{ opacity: 1, y: 0 }}
               className={`section-kicker mb-6 inline-flex items-center gap-3 border-b ${hairline} pb-4 ${mutedText}`}
             >
-              <span>Aidevix</span>
-              <span>{t('hero.badge')}</span>
+              <span><TypedText text="Aidevix" /></span>
+              <span><TypedText text={t('hero.badge')} /></span>
             </motion.div>
 
             <motion.h1
@@ -160,10 +194,15 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
               transition={{ duration: 0.7, delay: 0.05 }}
               className="max-w-5xl font-display text-[3.5rem] font-bold leading-[0.92] tracking-[-0.06em] sm:text-[4.8rem] lg:text-[7rem]"
             >
-              {t('hero.title1')}{' '}
-              <span className="bg-gradient-to-r from-white via-indigo-200 to-amber-300 bg-clip-text text-transparent">
-                {t('hero.titleHighlight')}
-              </span>
+              <TypedText text={t('hero.title1')} />{' '}
+              <span className={`bg-clip-text text-transparent bg-gradient-to-r ${
+                isDark 
+                  ? 'from-indigo-300 via-purple-400 to-violet-400' 
+                  : 'from-indigo-600 via-purple-600 to-violet-700'
+              }`}>
+                <TypedText text={t('hero.titleHighlight')} />
+              </span>{' '}
+              <TypedText text={t('hero.title2')} />
             </motion.h1>
 
             <motion.p
@@ -172,7 +211,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
               transition={{ duration: 0.7, delay: 0.12 }}
               className={`mt-8 max-w-2xl text-base leading-8 sm:text-lg ${mutedText}`}
             >
-              {t('hero.subtitle')}
+              <TypedText text={t('hero.subtitle')} />
             </motion.p>
 
             <motion.div
@@ -183,15 +222,17 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
             >
               <Link
                 href="/courses"
+                onMouseEnter={playHoverSound}
                 className="inline-flex h-14 items-center justify-center rounded-full bg-indigo-500 px-8 text-sm font-semibold text-white shadow-[0_18px_60px_rgba(86,98,246,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-400"
               >
-                {t('hero.cta1')}
+                <TypedText text={t('hero.cta1')} />
               </Link>
               <Link
                 href="/register"
+                onMouseEnter={playHoverSound}
                 className={`inline-flex h-14 items-center justify-center gap-2 rounded-full border px-8 text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 ${isDark ? 'border-white/12 bg-white/5 text-white hover:bg-white hover:text-slate-950' : 'border-slate-300 bg-white/80 text-slate-900 hover:bg-slate-950 hover:text-white'}`}
               >
-                {t('hero.cta2')}
+                <TypedText text={t('hero.cta2')} />
                 <HiArrowRight className="text-base" />
               </Link>
             </motion.div>
@@ -220,7 +261,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
         </div>
       </section>
 
-      <section ref={statsRef} className="relative z-20 mx-auto mt-2 max-w-7xl px-4 reveal-section">
+      <section ref={statsRef} data-direction="up" className="relative z-20 mx-auto mt-2 max-w-7xl px-4 reveal-section">
         <div className={`grid gap-px overflow-hidden rounded-[2rem] border ${hairline} ${softSurface} backdrop-blur-2xl md:grid-cols-4`}>
           {stats.map((stat, i) => (
             <div key={i} className={`px-6 py-8 md:px-8 md:py-10 ${i < stats.length - 1 ? 'md:border-r' : ''} ${hairline}`}>
@@ -236,30 +277,35 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
         </div>
       </section>
 
-      <section className="reveal-section px-4 py-28 md:py-36">
+      <section data-direction="left" className="reveal-section px-4 py-28 md:py-36">
         <div className="mx-auto grid max-w-7xl gap-12 xl:grid-cols-[0.8fr_1.2fr] xl:gap-20">
           <div className="xl:sticky xl:top-28 xl:h-fit">
-            <div className={`section-kicker ${mutedText}`}>{t('home.paths')}</div>
+            <div className={`section-kicker ${mutedText}`}><TypedText text={t('home.paths')} /></div>
             <h2 className="mt-5 max-w-lg font-display text-4xl font-semibold tracking-[-0.05em] md:text-6xl">
-              {t('cat.title')}
+              <TypedText text={t('cat.title')} />
             </h2>
-            <p className={`mt-6 max-w-md text-base leading-8 ${mutedText}`}>{t('cat.subtitle')}</p>
+            <p className={`mt-6 max-w-md text-base leading-8 ${mutedText}`}>
+              <TypedText text={t('cat.subtitle')} />
+            </p>
           </div>
           <div className={`border-t ${hairline}`}>
             {categories.map((category, idx) => (
               <Link
                 key={idx}
                 href={`/courses?category=${category.path}`}
-                className={`group grid gap-4 border-b px-0 py-7 transition-all duration-300 md:grid-cols-[5rem_minmax(0,1fr)_auto] md:items-center ${hairline}`}
+                onMouseEnter={playHoverSound}
+                className={`group category-item grid gap-4 border-b px-0 py-7 transition-all duration-300 md:grid-cols-[5rem_minmax(0,1fr)_auto] md:items-center hover:pl-5 ${hairline}`}
               >
                 <div className={`text-sm font-semibold tracking-[0.28em] ${mutedText}`}>0{idx + 1}</div>
                 <div>
                   <h3 className="text-2xl font-semibold tracking-[-0.04em] transition-colors duration-300 group-hover:text-indigo-400 md:text-3xl">
-                    {category.name}
+                    <TypedText text={category.name} />
                   </h3>
-                  <p className={`mt-2 max-w-xl text-sm leading-7 ${mutedText}`}>{category.subtitle}</p>
+                  <p className={`mt-2 max-w-xl text-sm leading-7 ${mutedText}`}><TypedText text={category.subtitle} /></p>
                 </div>
-                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] transition-all duration-300 group-hover:-translate-y-1 group-hover:border-indigo-400/30 group-hover:text-indigo-300">
+                <div 
+                  className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] transition-all duration-300 group-hover:border-indigo-400/30 group-hover:text-indigo-300"
+                >
                   {category.icon}
                 </div>
               </Link>
@@ -268,12 +314,14 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
         </div>
       </section>
 
-      <section className="reveal-section px-4 py-10 md:py-16">
+      <section data-direction="right" className="reveal-section px-4 py-10 md:py-16">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
               <div className={`section-kicker ${mutedText}`}>{t('home.showcase')}</div>
-              <h2 className="mt-4 font-display text-4xl font-semibold tracking-[-0.05em] md:text-6xl">{t('courses.title')}</h2>
+              <h2 className="mt-4 font-display text-4xl font-semibold tracking-[-0.05em] md:text-6xl">
+                <TypedText text={t('courses.title')} />
+              </h2>
             </div>
             <Link href="/courses" className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-400 transition-transform duration-300 hover:translate-x-1">
               {t('courses.viewAll')} <HiArrowRight />
@@ -302,22 +350,30 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
         </div>
       </section>
 
-      <section className="py-20 reveal-section">
+      <section data-direction="up" className="py-20 reveal-section">
         <ProBanner />
       </section>
 
-      <section className={`relative overflow-hidden border-y px-4 py-28 text-center reveal-section ${ctaBg}`}>
+      <section data-direction="up" className={`relative overflow-hidden border-y px-4 py-28 text-center reveal-section ${ctaBg}`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(86,98,246,0.2),transparent_34%)]" />
         <div className="absolute inset-x-0 bottom-0 h-48 bg-[radial-gradient(circle_at_bottom,rgba(245,158,11,0.16),transparent_38%)]" />
         <div className="relative z-10 mx-auto max-w-5xl">
-          <div className="section-kicker text-slate-400">{t('home.startNow')}</div>
-          <h2 className="mt-6 font-display text-5xl font-semibold tracking-[-0.06em] text-white md:text-7xl lg:text-8xl">
-            {t('cta.title1')}<span className="text-indigo-300">{t('cta.titleHighlight')}</span>
+          <div className={`section-kicker ${mutedText}`}>{t('home.startNow')}</div>
+          <h2 className={`mt-6 font-display text-5xl font-semibold tracking-[-0.06em] md:text-7xl lg:text-8xl ${isDark ? 'text-white' : 'text-slate-950'}`}>
+            <TypedText text={t('cta.title1')} />
+            <span className="text-indigo-500">
+              <TypedText text={t('cta.titleHighlight')} />
+            </span>
           </h2>
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-400">{t('home.ctaSubtitle')}</p>
+          <p className={`mx-auto mt-6 max-w-2xl text-base leading-8 ${mutedText}`}>
+            <TypedText text={t('home.ctaSubtitle')} />
+          </p>
           <Link
             href="/register"
-            className="mt-10 inline-flex h-16 items-center justify-center rounded-full bg-white px-10 text-base font-semibold text-slate-950 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-50"
+            onMouseEnter={playHoverSound}
+            className={`mt-10 inline-flex h-16 items-center justify-center rounded-full px-10 text-base font-semibold transition-all duration-300 hover:-translate-y-0.5 ${
+              isDark ? 'bg-white text-slate-950 hover:bg-indigo-50' : 'bg-slate-950 text-white hover:bg-slate-800'
+            }`}
           >
             {t('cta.start')}
           </Link>
