@@ -9,7 +9,7 @@ const generateGeminiReply = async (message: string) => {
     return null;
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
   
   const systemInstruction = `Sen "Aidevix" IT-Ta'lim platformasining tajribali ustozi va AI Assistantisan. 
 Sening maqsading o'quvchilarga kodlash (React, Node.js, AI va h.k) hamda platformadan foydalanish bo'yicha maslahatlar berish. 
