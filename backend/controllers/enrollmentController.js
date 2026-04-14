@@ -133,6 +133,15 @@ const _issueCertificate = async (user, courseId, enrollmentId) => {
       courseName: course.title,
     });
     sendCertificateEmail(user.email, user.username, course.title, code).catch(() => {});
+
+    // Telegram orqali sertifikat haqida xabar yuborish
+    try {
+      const { getBot } = require('../utils/telegramBot');
+      const bot = getBot();
+      const telegramId = user.telegramUserId || user.telegramChatId || user.socialSubscriptions?.telegram?.telegramUserId;
+      if (bot && telegramId) bot.sendCertificateNotification(telegramId, cert);
+    } catch (_) {}
+
     return cert;
   } catch (err) {
     // duplicate sertifikat bo'lsa skip

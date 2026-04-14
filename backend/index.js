@@ -12,14 +12,16 @@ const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 
 // Initialize Express app
 const app = express();
-const { initTelegramBot } = require('./utils/telegramBot');
-initTelegramBot();
+
 
 // Trust proxy — REQUIRED on Render/Railway (otherwise all IPs look the same → rate limit breaks)
 app.set('trust proxy', 1);
 
 // Connect to database (async - won't block server start)
-connectDB().catch(err => {
+connectDB().then(() => {
+  const { initTelegramBot } = require('./utils/telegramBot');
+  initTelegramBot();
+}).catch(err => {
   console.error('Failed to connect to database on startup');
   process.exit(1);
 });

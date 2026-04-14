@@ -120,6 +120,13 @@ const register = asyncHandler(async (req, res, next) => {
   UserStats.create({ userId: user._id }).catch(() => {});
   sendWelcomeEmail(user.email, user.username).catch(() => {});
 
+  // Telegram admin bildirishnoma
+  try {
+    const { getBot } = require('../utils/telegramBot');
+    const bot = getBot();
+    if (bot) bot.notifyNewRegistration(user);
+  } catch (_) {}
+
   res.status(201).json({
     success: true,
     data: {
