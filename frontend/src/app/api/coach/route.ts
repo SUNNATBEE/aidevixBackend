@@ -41,7 +41,11 @@ Faqat o'zbek tilida, haqiqiy inson kabi qisqa, tushunarli, samimiy va do'stona j
     if (!response.ok) {
       const errorData = await response.text();
       console.error("Gemini API Error:", response.status, errorData);
-      return null;
+      return {
+        reply: `Lokal Xato: Google API dan xato qaytdi (Status: ${response.status}). Xato matni: ${errorData}`,
+        suggestions: ["Qayta urinib ko'rish"],
+        mode: 'error'
+      };
     }
 
     const data = await response.json();
@@ -50,15 +54,23 @@ Faqat o'zbek tilida, haqiqiy inson kabi qisqa, tushunarli, samimiy va do'stona j
     if (text) {
       return {
         reply: text,
-        // AI tomonidan universal tavsiyalar
         suggestions: ["Misol kod yozib bering", "Batafsilroq tushuntiring 💡", "Aidevix da qanday kurslar bor?"],
         mode: 'ai_gemini'
       };
     }
-    return null;
-  } catch (error) {
+    
+    return {
+      reply: `Xato: Google API dan bo'sh javob qaytdi.`,
+      suggestions: [],
+      mode: 'error'
+    };
+  } catch (error: any) {
     console.error("Gemini AI xatosi:", error);
-    return null;
+    return {
+      reply: `Server xatosi (gemini_fetch): ${error?.message || 'Nomalum xato'}`,
+      suggestions: [],
+      mode: 'error'
+    };
   } finally {
     clearTimeout(timeout);
   }
