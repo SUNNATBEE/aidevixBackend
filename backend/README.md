@@ -233,12 +233,12 @@ const API_URL = 'https://aidevixbackend.onrender.com';
 **Umumiy API Dokumentatsiya:**
 - **Production:** `https://aidevixbackend.onrender.com/api-docs`
 - **Local:** `http://localhost:5000/api-docs`
-- **Parol:** Username: `Aidevix`, Password: `sunnatbee`
+- **Auth:** `SWAGGER_USERNAME` va `SWAGGER_PASSWORD` env o'zgaruvchilari orqali himoyalangan.
 
 **Admin Panel API Dokumentatsiya:**
 - **Production:** `https://aidevixbackend.onrender.com/admin-docs`
 - **Local:** `http://localhost:5000/admin-docs`
-- **Parol:** Username: `Aidevix`, Password: `sunnatbee`
+- **Auth:** `SWAGGER_USERNAME` va `SWAGGER_PASSWORD` env o'zgaruvchilari orqali himoyalangan.
 
 **Xususiyatlar:**
 - ✅ Barcha endpoint'lar ko'rinadi

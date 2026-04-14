@@ -12,6 +12,8 @@ const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 
 // Initialize Express app
 const app = express();
+const { initTelegramBot } = require('./utils/telegramBot');
+initTelegramBot();
 
 // Trust proxy — REQUIRED on Render/Railway (otherwise all IPs look the same → rate limit breaks)
 app.set('trust proxy', 1);
