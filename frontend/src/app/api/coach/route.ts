@@ -1,73 +1,71 @@
 import { NextResponse } from 'next/server';
 import { generateCoachReply } from '@/utils/coachAssistant';
 
-const generateGeminiReply = async (message: string) => {
-  // .env yoki .env.local dagi GEMINI_API_KEY ni olamiz
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+const generateAIReply = async (message: string) => {
+  const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-  if (!GEMINI_API_KEY) {
+  if (!GROQ_API_KEY) {
     return null;
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-  
-  const systemInstruction = `Sen "Aidevix" IT-Ta'lim platformasining tajribali ustozi va AI Assistantisan. 
-Sening maqsading o'quvchilarga kodlash (React, Node.js, AI va h.k) hamda platformadan foydalanish bo'yicha maslahatlar berish. 
+  const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+
+  const systemInstruction = `Sen "Aidevix" IT-Ta'lim platformasining tajribali ustozi va AI Assistantisan.
+Sening maqsading o'quvchilarga kodlash (React, Node.js, AI va h.k) hamda platformadan foydalanish bo'yicha maslahatlar berish.
 Faqat o'zbek tilida, haqiqiy inson kabi qisqa, tushunarli, samimiy va do'stona javob ber. Hech qachon o'zingni oddiy "AI model" ekaningni aytma, men Aidevix ustoziman deb o'zingni tut. Emoji lardan xushmuomalalik bilan foydalan.`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000); // 12 sec timeout gacha kutadi
+  const timeout = setTimeout(() => controller.abort(), 12000);
 
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+      },
       body: JSON.stringify({
-        system_instruction: { 
-          parts: [{ text: systemInstruction }] 
-        },
-        contents: [{
-          role: "user",
-          parts: [{ text: message }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 800,
-        }
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: systemInstruction },
+          { role: 'user', content: message },
+        ],
+        temperature: 0.7,
+        max_tokens: 800,
       }),
       signal: controller.signal,
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error("Gemini API Error:", response.status, errorData);
+      console.error("Groq API Error:", response.status, errorData);
       return {
-        reply: `Lokal Xato: Google API dan xato qaytdi (Status: ${response.status}). Xato matni: ${errorData}`,
+        reply: `Xato: AI API dan xato qaytdi (Status: ${response.status}). ${errorData}`,
         suggestions: ["Qayta urinib ko'rish"],
         mode: 'error'
       };
     }
 
     const data = await response.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    
+    const text = data?.choices?.[0]?.message?.content;
+
     if (text) {
       return {
         reply: text,
         suggestions: ["Misol kod yozib bering", "Batafsilroq tushuntiring 💡", "Aidevix da qanday kurslar bor?"],
-        mode: 'ai_gemini'
+        mode: 'ai_groq'
       };
     }
-    
+
     return {
-      reply: `Xato: Google API dan bo'sh javob qaytdi.`,
+      reply: `Xato: AI API dan bo'sh javob qaytdi.`,
       suggestions: [],
       mode: 'error'
     };
   } catch (error: any) {
-    console.error("Gemini AI xatosi:", error);
+    console.error("Groq AI xatosi:", error);
     return {
-      reply: `Server xatosi (gemini_fetch): ${error?.message || 'Nomalum xato'}`,
+      reply: `Server xatosi: ${error?.message || 'Nomalum xato'}`,
       suggestions: [],
       mode: 'error'
     };
@@ -87,8 +85,8 @@ export async function POST(request: Request) {
     );
   }
 
-  // 1. Google Gemini API orqali haqiqiy insonday fikrlash!
-  const aiPayload = await generateGeminiReply(message);
+  // 1. Groq API orqali AI javob
+  const aiPayload = await generateAIReply(message);
   if (aiPayload) {
     return NextResponse.json({
       success: true,
@@ -96,12 +94,12 @@ export async function POST(request: Request) {
     });
   }
 
-  // 2. Agar .env faylida API kaliti ko'rsatilmagan bo'lsa yoki API ishlamasa: (Lokal javoblar qaytaramiz)
+  // 2. Agar API kaliti yo'q bo'lsa: lokal javoblar
   const fallback = generateCoachReply(message);
   return NextResponse.json({
     success: true,
     data: {
-      reply: fallback.reply + "\n\n*(Eslatma: AI assistantni to'laqonli ishlashi uchun .env fayliga GEMINI_API_KEY ulanishi kerak)*",
+      reply: fallback.reply + "\n\n*(Eslatma: AI assistantni to'laqonli ishlashi uchun .env fayliga GROQ_API_KEY ulanishi kerak)*",
       suggestions: fallback.suggestions,
       mode: 'fallback',
     },
