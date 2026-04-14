@@ -24,7 +24,7 @@ Faqat o'zbek tilida, haqiqiy inson kabi qisqa, tushunarli, samimiy va do'stona j
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system_instruction: { 
-          parts: { text: systemInstruction } 
+          parts: [{ text: systemInstruction }] 
         },
         contents: [{
           role: "user",
@@ -39,6 +39,8 @@ Faqat o'zbek tilida, haqiqiy inson kabi qisqa, tushunarli, samimiy va do'stona j
     });
 
     if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Gemini API Error:", response.status, errorData);
       return null;
     }
 
