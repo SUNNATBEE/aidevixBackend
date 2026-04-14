@@ -9,7 +9,7 @@ const generateGeminiReply = async (message: string) => {
     return null;
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
   
   const systemInstruction = `Sen "Aidevix" IT-Ta'lim platformasining tajribali ustozi va AI Assistantisan. 
 Sening maqsading o'quvchilarga kodlash (React, Node.js, AI va h.k) hamda platformadan foydalanish bo'yicha maslahatlar berish. 
@@ -23,20 +23,13 @@ Faqat o'zbek tilida, haqiqiy inson kabi qisqa, tushunarli, samimiy va do'stona j
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: systemInstruction }]
-          },
-          {
-            role: "model",
-            parts: [{ text: "Assalomu alaykum! Men Aidevix platformasining sun'iy intellekt bo'yicha ustoziman. Qanday yordam bera olaman?" }]
-          },
-          {
-            role: "user",
-            parts: [{ text: message }]
-          }
-        ],
+        system_instruction: { 
+          parts: [{ text: systemInstruction }] 
+        },
+        contents: [{
+          role: "user",
+          parts: [{ text: message }]
+        }],
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 800,
