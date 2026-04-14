@@ -4,7 +4,6 @@ import React from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { HiArrowRight, HiCheckCircle, HiLightningBolt } from 'react-icons/hi'
-import TypedText from '@/components/common/TypedText'
 import { useLang } from '@/context/LangContext'
 import { useTheme } from '@/context/ThemeContext'
 import { useSound } from '@/context/SoundContext'
@@ -35,18 +34,18 @@ const ProBanner = () => {
         <div className="flex-1 text-center md:text-left">
           <div className={`mb-6 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${isDark ? 'border-indigo-400/20 bg-indigo-500/10 text-indigo-200' : 'border-indigo-500/20 bg-indigo-50 text-indigo-600'}`}>
             <HiLightningBolt className="h-4 w-4" />
-            <span><TypedText text={t('pro.badge')} /></span>
+            <span>{t('pro.badge')}</span>
           </div>
 
           <h2 className={`mb-6 font-display text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl ${isDark ? 'text-white' : 'text-slate-950'}`}>
-            <TypedText text={t('pro.title1')} /> <br />
+            {t('pro.title1')} <br />
             <span className={`bg-clip-text text-transparent bg-gradient-to-r ${isDark ? 'from-indigo-300 via-purple-300 to-violet-400' : 'from-indigo-600 via-purple-600 to-violet-700'}`}>
-              <TypedText text={t('pro.title2')} />
+              {t('pro.title2')}
             </span>
           </h2>
 
           <p className={`mb-10 max-w-xl text-lg leading-8 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-            <TypedText text={t('pro.subtitle')} />
+            {t('pro.subtitle')}
           </p>
 
           <ul className={`mb-10 grid gap-4 md:grid-cols-2 ${isDark ? 'text-white/90' : 'text-slate-700'}`}>
@@ -65,7 +64,7 @@ const ProBanner = () => {
                 }`}>
                   <HiCheckCircle className="h-6 w-6 text-emerald-400" />
                 </div>
-                <span className="font-medium"><TypedText text={text} /></span>
+                <span className="font-medium">{text}</span>
               </li>
             ))}
           </ul>
@@ -76,7 +75,7 @@ const ProBanner = () => {
               onMouseEnter={() => playSound('/sounds/onlyclick.wav')}
               className="group inline-flex h-14 items-center justify-center rounded-full bg-indigo-500 px-8 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-400"
             >
-              <TypedText text={t('pro.cta1')} />
+              {t('pro.cta1')}
               <HiArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Link>
             <Link 
@@ -84,7 +83,7 @@ const ProBanner = () => {
               onMouseEnter={() => playSound('/sounds/onlyclick.wav')}
               className={`inline-flex h-14 items-center justify-center rounded-full border px-8 text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 ${isDark ? 'border-white/10 text-white hover:bg-white/5' : 'border-slate-900/10 text-slate-900 hover:bg-slate-950/5'}`}
             >
-              <TypedText text={t('pro.cta2')} />
+              {t('pro.cta2')}
             </Link>
           </div>
         </div>

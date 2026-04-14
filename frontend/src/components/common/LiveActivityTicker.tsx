@@ -52,7 +52,7 @@ export default function LiveActivityTicker() {
   const current = ACTIVITIES[index];
 
   return (
-    <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[40] w-fit">
+    <div className="hidden md:block fixed top-28 left-1/2 -translate-x-1/2 z-[40] w-fit">
       <div
         ref={itemRef}
         className={`activity-item px-4 py-2 bg-[#12141c]/80 backdrop-blur-md border border-white/5 rounded-full flex items-center gap-3 shadow-2xl bg-gradient-to-r ${current.color} to-transparent`}

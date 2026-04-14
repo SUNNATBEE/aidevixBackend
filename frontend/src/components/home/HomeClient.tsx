@@ -10,7 +10,7 @@ import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 import CourseCard from '@/components/courses/CourseCard';
 import VideoCard from '@/components/videos/VideoCard';
 import ProBanner from '@/components/home/ProBanner';
-import TypedText from '@/components/common/TypedText';
+import HomeSkeleton from '@/components/home/HomeSkeleton';
 import { useLang } from '@/context/LangContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useSound } from '@/context/SoundContext';
@@ -26,6 +26,7 @@ if (typeof window !== 'undefined') {
 export default function HomeClient({ initialCourses = [], initialVideos = [] }) {
   const [isMounted, setIsMounted] = useState(false);
   const [showHeroVisual, setShowHeroVisual] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const { t } = useLang();
   const { isDark } = useTheme();
   const { playSound } = useSound();
@@ -34,10 +35,15 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
 
   useEffect(() => {
     setIsMounted(true);
+    // Force skeleton visibility for 1500ms even if data is already here
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 1500);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted || !isReady) return;
 
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let idleId: number | null = null;
@@ -116,19 +122,19 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
         );
       });
 
-      // Staggered animation for category items (right to left)
+      // Staggered animation for category items
       gsap.fromTo(
         '.category-item',
-        { x: 120, opacity: 0 },
+        { x: 100, opacity: 0 },
         {
           x: 0,
           opacity: 1,
-          duration: 1.6,
-          stagger: 0.15,
-          ease: 'power4.out',
+          duration: 1.2,
+          stagger: 0.1,
+          ease: 'power3.out',
           scrollTrigger: {
             trigger: '.category-item',
-            start: 'top 92%',
+            start: 'top 90%',
             once: true,
           },
         }
@@ -167,7 +173,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
     playSound('/sounds/onlyclick.wav');
   };
 
-  if (!isMounted) return null;
+  if (!isMounted || !isReady) return <HomeSkeleton />;
 
   return (
     <div ref={pageRef} className={`min-h-screen font-sans selection:bg-indigo-500/30 ${pageBg}`}>
@@ -184,8 +190,8 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
               animate={{ opacity: 1, y: 0 }}
               className={`section-kicker mb-6 inline-flex items-center gap-3 border-b ${hairline} pb-4 ${mutedText}`}
             >
-              <span><TypedText text="Aidevix" /></span>
-              <span><TypedText text={t('hero.badge')} /></span>
+              <span>Aidevix</span>
+              <span>{t('hero.badge')}</span>
             </motion.div>
 
             <motion.h1
@@ -194,15 +200,15 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
               transition={{ duration: 0.7, delay: 0.05 }}
               className="max-w-5xl font-display text-[3.5rem] font-bold leading-[0.92] tracking-[-0.06em] sm:text-[4.8rem] lg:text-[7rem]"
             >
-              <TypedText text={t('hero.title1')} />{' '}
+              {t('hero.title1')}{' '}
               <span className={`bg-clip-text text-transparent bg-gradient-to-r ${
                 isDark 
                   ? 'from-indigo-300 via-purple-400 to-violet-400' 
                   : 'from-indigo-600 via-purple-600 to-violet-700'
               }`}>
-                <TypedText text={t('hero.titleHighlight')} />
+                {t('hero.titleHighlight')}
               </span>{' '}
-              <TypedText text={t('hero.title2')} />
+              {t('hero.title2')}
             </motion.h1>
 
             <motion.p
@@ -211,7 +217,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
               transition={{ duration: 0.7, delay: 0.12 }}
               className={`mt-8 max-w-2xl text-base leading-8 sm:text-lg ${mutedText}`}
             >
-              <TypedText text={t('hero.subtitle')} />
+              {t('hero.subtitle')}
             </motion.p>
 
             <motion.div
@@ -225,14 +231,14 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
                 onMouseEnter={playHoverSound}
                 className="inline-flex h-14 items-center justify-center rounded-full bg-indigo-500 px-8 text-sm font-semibold text-white shadow-[0_18px_60px_rgba(86,98,246,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-400"
               >
-                <TypedText text={t('hero.cta1')} />
+                {t('hero.cta1')}
               </Link>
               <Link
                 href="/register"
                 onMouseEnter={playHoverSound}
                 className={`inline-flex h-14 items-center justify-center gap-2 rounded-full border px-8 text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 ${isDark ? 'border-white/12 bg-white/5 text-white hover:bg-white hover:text-slate-950' : 'border-slate-300 bg-white/80 text-slate-900 hover:bg-slate-950 hover:text-white'}`}
               >
-                <TypedText text={t('hero.cta2')} />
+                {t('hero.cta2')}
                 <HiArrowRight className="text-base" />
               </Link>
             </motion.div>
@@ -280,15 +286,15 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
       <section data-direction="left" className="reveal-section px-4 py-28 md:py-36">
         <div className="mx-auto grid max-w-7xl gap-12 xl:grid-cols-[0.8fr_1.2fr] xl:gap-20">
           <div className="xl:sticky xl:top-28 xl:h-fit">
-            <div className={`section-kicker ${mutedText}`}><TypedText text={t('home.paths')} /></div>
+            <div className={`section-kicker ${mutedText}`}>{t('home.paths')}</div>
             <h2 className="mt-5 max-w-lg font-display text-4xl font-semibold tracking-[-0.05em] md:text-6xl">
-              <TypedText text={t('cat.title')} />
+              {t('cat.title')}
             </h2>
             <p className={`mt-6 max-w-md text-base leading-8 ${mutedText}`}>
-              <TypedText text={t('cat.subtitle')} />
+              {t('cat.subtitle')}
             </p>
           </div>
-          <div className={`border-t ${hairline}`}>
+          <div className={`border-t ${hairline} category-item-container`}>
             {categories.map((category, idx) => (
               <Link
                 key={idx}
@@ -299,9 +305,9 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
                 <div className={`text-sm font-semibold tracking-[0.28em] ${mutedText}`}>0{idx + 1}</div>
                 <div>
                   <h3 className="text-2xl font-semibold tracking-[-0.04em] transition-colors duration-300 group-hover:text-indigo-400 md:text-3xl">
-                    <TypedText text={category.name} />
+                    {category.name}
                   </h3>
-                  <p className={`mt-2 max-w-xl text-sm leading-7 ${mutedText}`}><TypedText text={category.subtitle} /></p>
+                  <p className={`mt-2 max-w-xl text-sm leading-7 ${mutedText}`}>{category.subtitle}</p>
                 </div>
                 <div 
                   className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] transition-all duration-300 group-hover:border-indigo-400/30 group-hover:text-indigo-300"
@@ -320,7 +326,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
             <div>
               <div className={`section-kicker ${mutedText}`}>{t('home.showcase')}</div>
               <h2 className="mt-4 font-display text-4xl font-semibold tracking-[-0.05em] md:text-6xl">
-                <TypedText text={t('courses.title')} />
+                {t('courses.title')}
               </h2>
             </div>
             <Link href="/courses" className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-400 transition-transform duration-300 hover:translate-x-1">
@@ -360,13 +366,13 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
         <div className="relative z-10 mx-auto max-w-5xl">
           <div className={`section-kicker ${mutedText}`}>{t('home.startNow')}</div>
           <h2 className={`mt-6 font-display text-5xl font-semibold tracking-[-0.06em] md:text-7xl lg:text-8xl ${isDark ? 'text-white' : 'text-slate-950'}`}>
-            <TypedText text={t('cta.title1')} />
+            {t('cta.title1')}
             <span className="text-indigo-500">
-              <TypedText text={t('cta.titleHighlight')} />
+              {t('cta.titleHighlight')}
             </span>
           </h2>
           <p className={`mx-auto mt-6 max-w-2xl text-base leading-8 ${mutedText}`}>
-            <TypedText text={t('home.ctaSubtitle')} />
+            {t('home.ctaSubtitle')}
           </p>
           <Link
             href="/register"

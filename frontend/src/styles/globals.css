@@ -180,3 +180,9 @@ canvas {
   font-size: 0.72rem;
   font-weight: 700;
 }
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

@@ -24,19 +24,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ThemeProvider>
         <LangProvider>
           <SoundProvider>
-          {children}
-          <Toaster
-            position="bottom-right"
-            reverseOrder={false}
-            toastOptions={{
-              style: {
-                background: '#12141f',
-                color: '#e2e8f0',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '12px',
-              },
-            }}
-          />
+            {children}
+            <Toaster
+              position="bottom-right"
+              reverseOrder={false}
+              toastOptions={{
+                style: {
+                  background: '#12141f',
+                  color: '#e2e8f0',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '12px',
+                },
+              }}
+            />
           </SoundProvider>
         </LangProvider>
       </ThemeProvider>
