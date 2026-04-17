@@ -35,11 +35,8 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
 
   useEffect(() => {
     setIsMounted(true);
-    // Force skeleton visibility for 400ms to provide premium perceived performance
-    const timer = setTimeout(() => {
-      setIsReady(true);
-    }, 400);
-    return () => clearTimeout(timer);
+    // Instant rendering instead of artificial timeout
+    setIsReady(true);
   }, []);
 
   useEffect(() => {

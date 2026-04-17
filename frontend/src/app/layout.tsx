@@ -67,8 +67,8 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
+    icon: '/icon.svg',
+    apple: '/icon.svg',
   },
   verification: {
     google: 'TUCRHfBmNAFXN61L3px29vaGKe1epzTfbY1lB0zeydk',

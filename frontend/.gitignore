@@ -10,3 +10,8 @@ Thumbs.db
 .vercel
 .env*.local
 .next/
+
+# Playwright
+e2e/test-results/
+e2e/playwright-report/
+/playwright/.cache/
