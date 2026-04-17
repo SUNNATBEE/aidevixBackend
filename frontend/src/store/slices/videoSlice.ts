@@ -22,7 +22,10 @@ export const fetchVideo = createAsyncThunk(
       const { data } = await videoApi.getById(id)
       return data.data
     } catch (err) {
-      return rejectWithValue(err.response?.data)
+      return rejectWithValue({
+        ...err.response?.data,
+        statusCode: err.response?.status,   // HTTP status kodi (401, 403, 404...)
+      })
     }
   },
 )

@@ -3,12 +3,15 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { IoLockClosed, IoCheckmarkCircle, IoArrowForward, IoRefreshOutline } from 'react-icons/io5';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useSubscription } from '@hooks/useSubscription';
 import TelegramVerify from '@components/subscription/TelegramVerify';
 import InstagramVerify from '@components/subscription/InstagramVerify';
 
 export default function SubscriptionPage() {
   const { allVerified, telegram, instagram, refetch } = useSubscription();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/courses';
 
   return (
     <div className="min-h-screen bg-[#0A0E1A] text-white pt-24 pb-20 px-4 sm:px-6 lg:px-8 font-sans selection:bg-indigo-500/30">
@@ -67,10 +70,13 @@ export default function SubscriptionPage() {
                   Barcha obunalar muvaffaqiyatli tasdiqlandi. Endi siz platformamizdan to&apos;liq foydalana olasiz.
                 </p>
                 <Link
-                  href="/courses"
+                  href={returnUrl}
                   className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none w-full rounded-2xl h-14 font-black normal-case text-lg shadow-2xl shadow-indigo-500/30"
                 >
-                  Kurslarga o&apos;tish <IoArrowForward className="ml-2" />
+                  {returnUrl.startsWith('/videos/')
+                    ? <>Videoga o&apos;tish <IoArrowForward className="ml-2" /></>
+                    : <>Kurslarga o&apos;tish <IoArrowForward className="ml-2" /></>
+                  }
                 </Link>
               </motion.div>
             )}

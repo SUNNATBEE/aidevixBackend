@@ -26,10 +26,19 @@ const verifyInstagram = async (req, res) => {
     };
     await user.save();
 
+    // Telegram admin bildirishnoma
+    if (verification.subscribed) {
+      try {
+        const { getBot } = require('../utils/telegramBot');
+        const bot = getBot();
+        if (bot) bot.notifySubscriptionVerified(user, 'instagram');
+      } catch (_) {}
+    }
+
     res.json({
       success: true,
-      message: verification.subscribed 
-        ? 'Instagram subscription verified successfully.' 
+      message: verification.subscribed
+        ? 'Instagram subscription verified successfully.'
         : 'Instagram subscription verification failed.',
       data: {
         subscriptions: user.socialSubscriptions,
@@ -83,10 +92,19 @@ const verifyTelegram = async (req, res) => {
     };
     await user.save();
 
+    // Telegram admin bildirishnoma
+    if (verification.subscribed) {
+      try {
+        const { getBot } = require('../utils/telegramBot');
+        const bot = getBot();
+        if (bot) bot.notifySubscriptionVerified(user, 'telegram');
+      } catch (_) {}
+    }
+
     res.json({
       success: true,
-      message: verification.subscribed 
-        ? 'Telegram subscription verified successfully.' 
+      message: verification.subscribed
+        ? 'Telegram subscription verified successfully.'
         : 'Telegram subscription verification failed.',
       data: {
         subscriptions: user.socialSubscriptions,
@@ -108,7 +126,7 @@ const verifyTelegram = async (req, res) => {
 const getSubscriptionStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    
+
     res.json({
       success: true,
       data: {

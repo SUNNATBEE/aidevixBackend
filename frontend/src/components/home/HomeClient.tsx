@@ -35,10 +35,10 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
 
   useEffect(() => {
     setIsMounted(true);
-    // Force skeleton visibility for 1500ms even if data is already here
+    // Force skeleton visibility for 400ms to provide premium perceived performance
     const timer = setTimeout(() => {
       setIsReady(true);
-    }, 1500);
+    }, 400);
     return () => clearTimeout(timer);
   }, []);
 

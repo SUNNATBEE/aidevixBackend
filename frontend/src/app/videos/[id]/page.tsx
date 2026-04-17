@@ -1,29 +1,50 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
-import { IoPlay, IoTime, IoEye, IoLockClosed, IoArrowBack, IoCodeSlash, IoStar } from 'react-icons/io5';
+import { IoPlay, IoTime, IoEye, IoArrowBack, IoCodeSlash, IoStar, IoDocumentText } from 'react-icons/io5';
 import { selectIsLoggedIn } from '@/store/slices/authSlice';
 import { selectInstagramSub } from '@/store/slices/subscriptionSlice';
 import { useVideos } from '@hooks/useVideos';
+import { useSubscription } from '@hooks/useSubscription';
 import { formatDuration } from '@utils/formatDuration';
-import { ROUTES } from '@utils/constants';
 import SubscriptionGate from '@/components/subscription/SubscriptionGate';
+import { videoApi } from '@/api/videoApi';
 
 export default function VideoPage() {
   const { id }: { id: string } = useParams();
   const router = useRouter();
   const { current: video, videoLink, loading, error, fetchById } = useVideos();
-  const [modalOpen, setModalOpen] = useState(false);
+  useSubscription();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const instagram = useSelector(selectInstagramSub);
-  const [showModal, setShowModal] = useState<boolean>(false);
+  const [showModal, setShowModal] = useState(false);
+  const [question, setQuestion] = useState('');
+
+  // Progress tracking: har 10 soniyada POST /api/videos/{id}/progress
+  const watchedSecondsRef = useRef<number>(0);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (id) fetchById(id);
   }, [id]);
+
+  // Video ko'rilayotganda progress saqlash (faqat login + obuna bo'lsa)
+  useEffect(() => {
+    const canWatch = isLoggedIn && instagram?.subscribed && videoLink?.embedUrl;
+    if (!canWatch || !id) return;
+
+    progressTimerRef.current = setInterval(() => {
+      watchedSecondsRef.current += 10;
+      videoApi.saveProgress(id, watchedSecondsRef.current).catch(() => {});
+    }, 10_000);
+
+    return () => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    };
+  }, [id, isLoggedIn, instagram?.subscribed, videoLink?.embedUrl]);
 
   const handleVideoClick = (e: React.MouseEvent) => {
     // Agar foydalanuvchi login qilmagan yoki Instagram tasdiqlanmagan bo'lsa
@@ -71,7 +92,12 @@ export default function VideoPage() {
             <Link href="/login" className="btn btn-primary rounded-full px-8">Kirish</Link>
           )}
           {isSub && (
-            <Link href="/subscription" className="btn btn-primary rounded-full px-8">Obuna bo'lish</Link>
+            <Link
+              href={`/subscription?returnUrl=/videos/${id}`}
+              className="btn btn-primary rounded-full px-8"
+            >
+              Obuna bo&apos;lish
+            </Link>
           )}
           <Link href="/courses" className="btn btn-outline btn-sm rounded-full px-6 text-white border-white/20">Kurslarga qaytish</Link>
         </div>
@@ -159,13 +185,62 @@ export default function VideoPage() {
             <h3 className="text-xl font-bold text-white mb-1">Amaliyot bilan o&apos;rganing</h3>
             <p className="text-gray-400 text-sm">Playground orqali yozilgan kodlarni sinab ko&apos;ring.</p>
           </div>
-          <Link 
-            href={`/videos/${id}/playground`} 
+          <Link
+            href={`/videos/${id}/playground`}
             className="btn bg-white/5 hover:bg-white/10 text-white border-white/10 rounded-2xl normal-case gap-2 px-8 h-12"
           >
             <IoCodeSlash />
             Playground&apos;da o&apos;rganish →
           </Link>
+        </div>
+
+        {/* Materials */}
+        {video?.materials && video.materials.length > 0 && (
+          <div className="mt-8 bg-[#0d1224]/60 border border-white/5 rounded-3xl p-6 sm:p-8">
+            <h3 className="text-lg font-bold text-white mb-4">Dars Materiallari</h3>
+            <div className="space-y-3">
+              {video.materials.map((mat: { name: string; url: string }, i: number) => (
+                <a
+                  key={i}
+                  href={mat.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
+                    <IoDocumentText className="text-indigo-400" size={18} />
+                  </div>
+                  <span className="text-sm text-gray-300 group-hover:text-white transition-colors truncate">
+                    {mat.name}
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Q&A */}
+        <div className="mt-8 mb-12 bg-[#0d1224]/60 border border-white/5 rounded-3xl p-6 sm:p-8">
+          <h3 className="text-lg font-bold text-white mb-6">Savol va Javoblar</h3>
+          <div className="flex gap-3 items-start">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shrink-0" />
+            <div className="flex-1 relative">
+              <textarea
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                className="w-full bg-black/30 border border-white/10 rounded-2xl text-sm text-white placeholder-gray-600 px-4 py-3 resize-none focus:outline-none focus:border-indigo-500/50 transition-colors"
+                rows={3}
+                placeholder="Dars bo'yicha savolingiz bormi?"
+              />
+              <button
+                onClick={() => setQuestion('')}
+                disabled={!question.trim()}
+                className="absolute bottom-3 right-3 px-4 py-1.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white text-xs font-bold transition-colors"
+              >
+                Yuborish
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

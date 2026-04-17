@@ -230,6 +230,18 @@ const performTransaction = async (params, id) => {
   // studentsCount faqat shu yerda oshiriladi (atomic update kafolat beradi)
   await Course.findByIdAndUpdate(payment.courseId, { $inc: { studentsCount: 1 } });
 
+  // Telegram admin bildirishnoma (Payme)
+  try {
+    const { getBot } = require('../utils/telegramBot');
+    const User = require('../models/User');
+    const bot = getBot();
+    if (bot) {
+      const pUser = await User.findById(payment.userId);
+      const pCourse = await Course.findById(payment.courseId);
+      if (pUser && pCourse) bot.notifyNewPayment(payment, pUser, pCourse);
+    }
+  } catch (_) {}
+
   return { result: { transaction: payment._id.toString(), perform_time: performTime, state: 2 }, id };
 };
 
@@ -381,6 +393,18 @@ const clickComplete = async (req, res) => {
       { upsert: true, new: true }
     );
     await Course.findByIdAndUpdate(payment.courseId, { $inc: { studentsCount: 1 } });
+
+    // Telegram admin bildirishnoma (Click)
+    try {
+      const { getBot } = require('../utils/telegramBot');
+      const User = require('../models/User');
+      const bot = getBot();
+      if (bot) {
+        const cUser = await User.findById(payment.userId);
+        const cCourse = await Course.findById(payment.courseId);
+        if (cUser && cCourse) bot.notifyNewPayment(payment, cUser, cCourse);
+      }
+    } catch (_) {}
 
     res.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
   } catch (err) {

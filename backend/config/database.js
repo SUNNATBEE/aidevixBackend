@@ -36,7 +36,7 @@ const connectDB = async () => {
     console.error(`❌ MongoDB Connection Error: ${error.message}`);
     
     if (process.env.NODE_ENV === 'production') {
-      console.error('⚠️  Database connection failed in production. Server will continue but database operations will fail.');
+      console.error('⚠️  Database connection failed in production. Server will terminate to prevent broken state.');
     } else {
       console.error('\n📋 Troubleshooting steps:');
       console.error('1. Check MongoDB Atlas cluster is running');
@@ -44,6 +44,7 @@ const connectDB = async () => {
       console.error('3. Verify database user credentials');
       console.error('4. Check environment variables are set correctly');
     }
+    throw error; // Re-throw to allow index.js to catch and exit
   }
 };
 

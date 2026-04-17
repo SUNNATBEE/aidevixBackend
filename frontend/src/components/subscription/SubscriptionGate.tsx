@@ -23,20 +23,14 @@ export default function SubscriptionGate({
   const telegram = useSelector(selectTelegramSub)
   const [currentStep, setCurrentStep] = useState<'instagram' | 'telegram'>('instagram')
 
-  console.log('SubscriptionGate render:', { 
-    currentStep, 
-    instagramSubscribed: instagram?.subscribed, 
-    telegramSubscribed: telegram?.subscribed 
-  })
+  // Modal yopiq bo'lsa — hech narsa ko'rsatma
+  if (!isOpen) return null
 
-  // Agar ikkala obuna ham tasdiqlangan bo'lsa, modal yopiladi
+  // Modal ochiq + ikkala obuna tasdiqlangan → muvaffaqiyat
   if (instagram?.subscribed && telegram?.subscribed && onSuccess) {
-    console.log('Both subscriptions verified, closing modal')
     onSuccess()
     return null
   }
-
-  if (!isOpen) return null
 
   const handleInstagramVerified = () => {
     console.log('handleInstagramVerified called - switching to telegram')
@@ -114,10 +108,6 @@ export default function SubscriptionGate({
           />
         )}
 
-        {/* Debug info */}
-        <div className="mt-4 p-2 bg-zinc-800/50 rounded text-xs text-zinc-500">
-          Current Step: {currentStep}
-        </div>
       </div>
     </div>
   )

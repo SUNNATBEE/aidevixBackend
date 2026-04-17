@@ -101,7 +101,7 @@ const Scene = ({ isDark }: { isDark: boolean }) => {
 export default function ThreeHero({ isDark }: { isDark: boolean }) {
   return (
     <div className="absolute inset-0 z-0 pointer-events-none opacity-60">
-      <Canvas dpr={[1, 2]}>
+      <Canvas dpr={[1, 2]} gl={{ powerPreference: 'high-performance' }}>
         <PerspectiveCamera makeDefault position={[0, 0, 10]} fov={50} />
         <Scene isDark={isDark} />
       </Canvas>
