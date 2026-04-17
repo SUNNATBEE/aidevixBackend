@@ -23,15 +23,8 @@ export default function SubscriptionGate({
   const telegram = useSelector(selectTelegramSub)
   const [currentStep, setCurrentStep] = useState<'instagram' | 'telegram'>('instagram')
 
-  console.log('SubscriptionGate render:', { 
-    currentStep, 
-    instagramSubscribed: instagram?.subscribed, 
-    telegramSubscribed: telegram?.subscribed 
-  })
-
   // Agar ikkala obuna ham tasdiqlangan bo'lsa, modal yopiladi
   if (instagram?.subscribed && telegram?.subscribed && onSuccess) {
-    console.log('Both subscriptions verified, closing modal')
     onSuccess()
     return null
   }
@@ -39,13 +32,11 @@ export default function SubscriptionGate({
   if (!isOpen) return null
 
   const handleInstagramVerified = () => {
-    console.log('handleInstagramVerified called - switching to telegram')
     toast.success('✅ Instagram tasdiqlandi! Endi Telegram obunasini tekshiring')
     setCurrentStep('telegram')
   }
 
   const handleTelegramVerified = () => {
-    console.log('handleTelegramVerified called - proceeding to video')
     toast.success('🎉 Barcha obunalar tasdiqlandi! Video ko\'rishga ruxsat berildi!')
     
     if (onSuccess) {
@@ -114,10 +105,6 @@ export default function SubscriptionGate({
           />
         )}
 
-        {/* Debug info */}
-        <div className="mt-4 p-2 bg-zinc-800/50 rounded text-xs text-zinc-500">
-          Current Step: {currentStep}
-        </div>
       </div>
     </div>
   )

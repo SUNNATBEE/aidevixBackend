@@ -276,10 +276,37 @@ const claimDailyReward = asyncHandler(async (req, res, next) => {
   user.rankTitle = calculateRank(user.xp)
   await user.save()
 
-  res.json({ 
-    success: true, 
-    message: 'Kunlik mukofot qabul qilindi (+50 XP)', 
-    xp: user.xp, 
+  // UserStats ga ham XP qo'shish (leaderboard uchun)
+  let stats = await UserStats.findOne({ userId: user._id })
+  if (!stats) {
+    stats = await UserStats.create({ userId: user._id })
+  }
+  stats.xp += 50
+  stats.weeklyXp = (stats.weeklyXp || 0) + 50
+  stats.level = stats.calculateLevel()
+
+  // Streak yangilash
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (stats.lastActivityDate) {
+    const last = new Date(stats.lastActivityDate)
+    last.setHours(0, 0, 0, 0)
+    const diffDays = Math.floor((today - last) / (1000 * 60 * 60 * 24))
+    if (diffDays === 1) {
+      stats.streak += 1
+    } else if (diffDays > 1) {
+      stats.streak = 1
+    }
+  } else {
+    stats.streak = 1
+  }
+  stats.lastActivityDate = new Date()
+  await stats.save()
+
+  res.json({
+    success: true,
+    message: 'Kunlik mukofot qabul qilindi (+50 XP)',
+    xp: user.xp,
     streak: user.streak,
     lastClaimedDaily: user.lastClaimedDaily
   })

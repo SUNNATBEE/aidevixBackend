@@ -15,10 +15,14 @@ import { Navigation } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/navigation'
 
+import { useSelector } from 'react-redux'
+import { selectIsLoggedIn } from '@store/slices/authSlice'
+import { selectInstagramSub, selectTelegramSub } from '@store/slices/subscriptionSlice'
 import { useCourse, useCourses } from '@hooks/useCourses'
 import { useVideos } from '@hooks/useVideos'
 import StarRating from '@components/common/StarRating'
 import CourseCard from '@components/courses/CourseCard'
+import SubscriptionGate from '@components/subscription/SubscriptionGate'
 import { formatDurationText, formatDuration } from '@utils/formatDuration'
 import { ROUTES } from '@utils/constants'
 import api from '@api/axiosInstance'
@@ -125,14 +129,27 @@ export default function CourseDetailPage() {
   if (loading) return <Skeleton />
   if (!course)  return null
 
+  const isLoggedIn     = useSelector(selectIsLoggedIn)
+  const instagram      = useSelector(selectInstagramSub)
+  const telegram       = useSelector(selectTelegramSub)
+  const isSubscribed   = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed)
+  const [showGate, setShowGate] = useState(false)
+
   const rating         = typeof course.rating === 'object' ? (course.rating?.average ?? 0) : (course.rating ?? 0)
   const ratingCount    = typeof course.rating === 'object' ? (course.rating?.count ?? 0)   : (course.ratingCount ?? 0)
-  const isPro          = course.price > 0
   const totalSecs      = courseVideos.reduce((s, v) => s + (v.duration || 0), 0)
   const level          = course.level || 'beginner'
   const instructorName = typeof course.instructor === 'object' ? course.instructor?.username : course.instructor
   const instructorTitle = typeof course.instructor === 'object' ? course.instructor?.jobTitle : null
   const catColor       = CAT_TEXT[course.category] || 'text-violet-400'
+
+  const handleWatch = () => {
+    if (isSubscribed && courseVideos.length > 0) {
+      window.location.href = ROUTES.VIDEO(courseVideos[0]._id)
+    } else {
+      setShowGate(true)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-base-100">
@@ -219,13 +236,14 @@ export default function CourseDetailPage() {
             <div className="lg:hidden">
               <MobilePriceCard
                 course={course}
-                isPro={isPro}
                 courseVideos={courseVideos}
                 totalSecs={totalSecs}
                 level={level}
                 rating={rating}
                 projects={projects}
                 catColor={catColor}
+                isSubscribed={isSubscribed}
+                onWatch={handleWatch}
               />
             </div>
 
@@ -331,13 +349,14 @@ export default function CourseDetailPage() {
           >
             <DesktopPriceCard
               course={course}
-              isPro={isPro}
               courseVideos={courseVideos}
               totalSecs={totalSecs}
               level={level}
               rating={rating}
               projects={projects}
               catColor={catColor}
+              isSubscribed={isSubscribed}
+              onWatch={handleWatch}
             />
           </motion.div>
         </div>
@@ -371,25 +390,30 @@ export default function CourseDetailPage() {
           </motion.div>
         )}
       </div>
+
+      <SubscriptionGate
+        isOpen={showGate}
+        onClose={() => setShowGate(false)}
+        onSuccess={() => {
+          setShowGate(false)
+          if (courseVideos.length > 0) {
+            window.location.href = ROUTES.VIDEO(courseVideos[0]._id)
+          }
+        }}
+      />
     </div>
   )
 }
 
 // ── Price card shared content ──────────────────────────────────
-function PriceCardContent({ course, isPro, courseVideos, totalSecs, level, rating, projects }) {
+function PriceCardContent({ course, courseVideos, totalSecs, level, rating, projects, isSubscribed, onWatch }) {
   return (
     <div className="p-4 sm:p-5 space-y-4">
-      <div>
-        <span className={'text-2xl sm:text-3xl font-black ' + (isPro ? 'text-primary' : 'text-emerald-400')}>
-          {isPro ? course.price.toLocaleString() + " so'm" : 'Bepul'}
-        </span>
-      </div>
       <div className="space-y-2">
-        <button className="btn btn-primary btn-block rounded-xl font-bold gap-2">
-          <IoRocket className="text-base" />
-          {isPro ? 'Kursni sotib olish' : 'Kursni boshlash'}
+        <button onClick={onWatch} className="btn btn-primary btn-block rounded-xl font-bold gap-2">
+          {isSubscribed ? <IoPlay className="text-base" /> : <IoLockClosed className="text-base" />}
+          {isSubscribed ? 'Kursni ko\'rish' : 'Obuna bo\'lish va ko\'rish'}
         </button>
-        <button className="btn btn-outline btn-block btn-sm rounded-xl">Saqlash +</button>
       </div>
       <div className="divider my-0 opacity-20" />
       <div className="space-y-2.5">
@@ -421,16 +445,13 @@ function DesktopPriceCard(props) {
 }
 
 function MobilePriceCard(props) {
-  const { course, isPro } = props
+  const { isSubscribed, onWatch } = props
   return (
     <div className="rounded-2xl border border-base-content/8 bg-base-200 overflow-hidden shadow-lg">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-base-content/5">
-        <span className={'text-xl font-black ' + (isPro ? 'text-primary' : 'text-emerald-400')}>
-          {isPro ? course.price.toLocaleString() + " so'm" : 'Bepul'}
-        </span>
-        <button className="btn btn-primary btn-sm rounded-xl gap-1">
-          <IoRocket className="text-sm" />
-          {isPro ? 'Sotib olish' : 'Boshlash'}
+      <div className="flex items-center justify-center px-4 py-3">
+        <button onClick={onWatch} className="btn btn-primary btn-sm rounded-xl gap-1">
+          {isSubscribed ? <IoPlay className="text-sm" /> : <IoLockClosed className="text-sm" />}
+          {isSubscribed ? 'Kursni ko\'rish' : 'Obuna bo\'lish va ko\'rish'}
         </button>
       </div>
     </div>

@@ -53,7 +53,6 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
   const videoCount   = course.videos?.length ?? course.videoCount ?? 0
   const rating       = typeof course.rating === 'object' ? (course.rating?.average ?? 0) : (course.rating ?? 0)
   const ratingCount  = typeof course.rating === 'object' ? (course.rating?.count ?? 0)   : (course.ratingCount ?? 0)
-  const isPro        = course.price > 0
   const instructorName = typeof course.instructor === 'object'
     ? (course.instructor?.firstName ? `${course.instructor.firstName} ${course.instructor.lastName || ''}` : course.instructor?.username) 
     : course.instructor
@@ -109,11 +108,6 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
               YANGI
             </span>
           )}
-          {isPro && (
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-600/90 text-white backdrop-blur-md shadow-lg shadow-indigo-600/20">
-              PRO
-            </span>
-          )}
         </div>
 
         <div className={'absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md ' + cat.bg + ' ' + cat.text + ' ' + cat.border}>
@@ -164,16 +158,10 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
             )}
           </div>
           
-          <div className="flex flex-col items-end">
-            <span className={'text-base font-black tracking-[-0.03em] ' + (isPro ? 'text-indigo-300' : 'text-emerald-400')}>
-              {isPro ? `${course.price.toLocaleString()} so'm` : 'Bepul'}
-            </span>
-            {isPro && (
-               <span className="text-[10px] text-white/20 line-through">
-                {(course.price * 1.5).toLocaleString()} so'm
-               </span>
-            )}
-          </div>
+          <span className="text-xs font-semibold text-indigo-300 flex items-center gap-1">
+            <IoPlay className="text-xs" />
+            Ko'rish
+          </span>
         </div>
       </div>
     </Link>

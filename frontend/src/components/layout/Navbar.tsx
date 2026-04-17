@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
+import { useSelector } from 'react-redux'
+import { selectIsAdmin } from '@/store/slices/authSlice'
 import { useAuth } from '@hooks/useAuth'
 import { useUserStats } from '@hooks/useUserStats'
 import { ROUTES } from '@utils/constants'
@@ -19,6 +21,7 @@ const LANG_FLAGS: Record<Lang, string> = { uz: 'fi-uz', ru: 'fi-ru', en: 'fi-us'
 const LANG_NAMES: Record<Lang, string> = { uz: 'UZ', ru: 'RUS', en: 'ENG' }
 
 export default function Navbar() {
+  const isAdmin = useSelector(selectIsAdmin)
   const { user, isLoggedIn, logout } = useAuth()
   const { avatar } = useUserStats()
   const router = useRouter()
@@ -253,6 +256,13 @@ export default function Navbar() {
                         )}
                       </div>
 
+                      {isAdmin && (
+                        <li>
+                          <Link href="/admin" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300">
+                            Admin Panel
+                          </Link>
+                        </li>
+                      )}
                       <li><Link href={ROUTES.PROFILE} className={`rounded-xl px-3 py-2.5 text-sm ${dropdownItemColor}`}>{t('nav.profile')}</Link></li>
                       <li>
                         <Link href={ROUTES.REFERRAL} className="flex justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300">
