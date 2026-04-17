@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { IoClose } from 'react-icons/io5'
 import toast from 'react-hot-toast'
@@ -10,7 +10,7 @@ interface SubscriptionGateProps {
   isOpen: boolean
   onClose: () => void
   onSuccess?: () => void
-  videoId?: string // Video ID ni qo'shamiz
+  videoId?: string
 }
 
 export default function SubscriptionGate({ 
@@ -21,7 +21,23 @@ export default function SubscriptionGate({
 }: SubscriptionGateProps): JSX.Element | null {
   const instagram = useSelector(selectInstagramSub)
   const telegram = useSelector(selectTelegramSub)
-  const [currentStep, setCurrentStep] = useState<'instagram' | 'telegram'>('instagram')
+
+  // Qaysi obuna yo'qligini aniqlash
+  const needsInstagram = !instagram?.subscribed
+  const needsTelegram = !telegram?.subscribed
+
+  const getInitialStep = (): 'instagram' | 'telegram' => {
+    if (needsInstagram) return 'instagram'
+    if (needsTelegram) return 'telegram'
+    return 'instagram'
+  }
+
+  const [currentStep, setCurrentStep] = useState<'instagram' | 'telegram'>(getInitialStep())
+
+  // Step ni obuna o'zgarganda yangilash
+  useEffect(() => {
+    setCurrentStep(getInitialStep())
+  }, [instagram?.subscribed, telegram?.subscribed])
 
   // Agar ikkala obuna ham tasdiqlangan bo'lsa, modal yopiladi
   if (instagram?.subscribed && telegram?.subscribed && onSuccess) {
@@ -31,9 +47,23 @@ export default function SubscriptionGate({
 
   if (!isOpen) return null
 
+  // Faqat kerakli steplarni hisoblash
+  const totalSteps = (needsInstagram ? 1 : 0) + (needsTelegram ? 1 : 0)
+  const currentStepNumber = currentStep === 'instagram' ? 1 : (needsInstagram ? 2 : 1)
+
   const handleInstagramVerified = () => {
-    toast.success('✅ Instagram tasdiqlandi! Endi Telegram obunasini tekshiring')
-    setCurrentStep('telegram')
+    if (needsTelegram) {
+      toast.success('✅ Instagram tasdiqlandi! Endi Telegram obunasini tekshiring')
+      setCurrentStep('telegram')
+    } else {
+      toast.success('🎉 Instagram obunasi tasdiqlandi! Video ko\'rishga ruxsat berildi!')
+      if (onSuccess) {
+        setTimeout(() => {
+          onSuccess()
+          if (videoId) window.location.href = `/videos/${videoId}`
+        }, 1500)
+      }
+    }
   }
 
   const handleTelegramVerified = () => {
@@ -48,6 +78,14 @@ export default function SubscriptionGate({
       }, 1500)
     }
   }
+
+  const stepLabel = currentStep === 'instagram' 
+    ? 'Instagram obunasi' 
+    : 'Telegram obunasi'
+
+  const stepDesc = currentStep === 'instagram'
+    ? 'Instagram sahifamizga obuna bo\'ling va tasdiqlang'
+    : 'Telegram kanalimizga obuna bo\'ling va tasdiqlang'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -70,25 +108,27 @@ export default function SubscriptionGate({
         {/* Progress indicator */}
         <div className="mb-4 flex items-center justify-center gap-2">
           <div className={`w-3 h-3 rounded-full transition-colors ${
-            currentStep === 'telegram' ? 'bg-green-500' : 
-            currentStep === 'instagram' ? 'bg-pink-500' : 'bg-zinc-600'
+            currentStep === 'instagram' ? 'bg-pink-500' : 
+            !needsInstagram ? 'bg-green-500' : 'bg-zinc-600'
           }`} />
-          <div className="w-8 h-0.5 bg-zinc-600" />
-          <div className={`w-3 h-3 rounded-full transition-colors ${
-            currentStep === 'telegram' ? 'bg-blue-500' : 'bg-zinc-600'
-          }`} />
+          {totalSteps > 1 && (
+            <>
+              <div className="w-8 h-0.5 bg-zinc-600" />
+              <div className={`w-3 h-3 rounded-full transition-colors ${
+                currentStep === 'telegram' ? 'bg-blue-500' : 
+                !needsTelegram ? 'bg-green-500' : 'bg-zinc-600'
+              }`} />
+            </>
+          )}
         </div>
 
         {/* Step indicator */}
         <div className="text-center mb-6">
           <p className="text-lg font-semibold text-white">
-            {currentStep === 'instagram' ? '1/2 - Instagram obunasi' : '2/2 - Telegram obunasi'}
+            {currentStepNumber}/{totalSteps} - {stepLabel}
           </p>
           <p className="text-sm text-zinc-400 mt-2">
-            {currentStep === 'instagram' 
-              ? 'Instagram sahifamizga obuna bo\'ling va tasdiqlang' 
-              : 'Telegram kanalimizga obuna bo\'ling va tasdiqlang'
-            }
+            {stepDesc}
           </p>
         </div>
 

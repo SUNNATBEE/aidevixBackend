@@ -122,10 +122,23 @@ const verifyTelegram = async (req, res) => {
   }
 };
 
-// Get subscription status
+// Get subscription status (with real-time Telegram re-check)
 const getSubscriptionStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
+    const telegramData = user.socialSubscriptions?.telegram;
+    const telegramId = user.telegramUserId || telegramData?.telegramUserId;
+
+    // Agar Telegram oldin tasdiqlangan bo'lsa, real-time tekshiramiz
+    if (telegramData?.subscribed && telegramId) {
+      const stillSubscribed = await checkTelegramSubscription(telegramId);
+      if (!stillSubscribed) {
+        // Foydalanuvchi kanaldan chiqib ketgan — DB ni yangilaymiz
+        user.socialSubscriptions.telegram.subscribed = false;
+        user.socialSubscriptions.telegram.verifiedAt = null;
+        await user.save();
+      }
+    }
 
     res.json({
       success: true,
