@@ -88,7 +88,7 @@ export default function TelegramVerify({ onTelegramVerified }: TelegramVerifyPro
 
   if (telegram?.subscribed) {
     return (
-      <div className="glass-card border border-emerald-500/30 p-6 rounded-xl bg-emerald-500/5">
+      <div className="glass-card border border-emerald-500/30 p-6 rounded-xl bg-emerald-500/5 space-y-4">
         <div className="flex items-center gap-4">
           <IoCheckmarkCircle className="text-3xl text-emerald-500" />
           <div>
@@ -96,6 +96,12 @@ export default function TelegramVerify({ onTelegramVerified }: TelegramVerifyPro
             <p className="text-zinc-400">Darslarni ko'rishda davom eting</p>
           </div>
         </div>
+        <button
+          onClick={onTelegramVerified}
+          className="w-full p-3 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors"
+        >
+          Tasdiqlash va tugatish →
+        </button>
       </div>
     )
   }
