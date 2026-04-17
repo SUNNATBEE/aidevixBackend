@@ -65,7 +65,13 @@ class AidevixBot {
       const firstName = update.message.from.first_name || 'Foydalanuvchi';
       const username = update.message.from.username || null;
 
-      if (text.startsWith('/start'))  return this._cmdStart(chatId, userId, firstName, username);
+      if (text.startsWith('/start')) {
+        const parts = text.split(' ');
+        if (parts.length > 1 && parts[1]) {
+          return this._handleVerifyToken(chatId, userId, username, parts[1]);
+        }
+        return this._cmdStart(chatId, userId, firstName, username);
+      }
       if (text.startsWith('/id'))     return this._cmdId(chatId, userId, firstName);
       if (text.startsWith('/login'))  return this._cmdLogin(chatId, userId, firstName);
       if (text.startsWith('/help'))   return this._cmdHelp(chatId, firstName);
@@ -114,6 +120,33 @@ class AidevixBot {
     };
 
     await this.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard });
+  }
+
+  /** /start token — Avtomatik bog'lash */
+  async _handleVerifyToken(chatId, userId, username, token) {
+    try {
+      const { linkTelegramByToken } = require('../controllers/subscriptionController');
+      const success = await linkTelegramByToken(token, userId, username);
+
+      if (success) {
+        const msg = 
+          `✅ <b>Muvaffaqiyat!</b>\n\n` +
+          `Sizning Telegram hisobingiz platformaga muvaffaqiyatli bog'landi.\n\n` +
+          `📢 <b>Endi quyidagi kanalga obuna bo'lganingizni tekshiring:</b>\n` +
+          `@${process.env.TELEGRAM_CHANNEL_USERNAME || 'aidevix'}\n\n` +
+          `<i>Saytga qayting, tizim avtomatik sizni darslarga yuboradi.</i>`;
+        
+        const keyboard = {
+          inline_keyboard: [[{ text: '📢 Kanalga o\'tish', url: `https://t.me/${process.env.TELEGRAM_CHANNEL_USERNAME || 'aidevix'}` }]]
+        };
+        await this.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard });
+      } else {
+        await this.sendMessage(chatId, `❌ <b>Xatolik!</b>\n\nToken noto'g'ri yoki allaqachon ishlatilgan. Saytdan qaytadan urinib ko'ring.`, { parse_mode: 'HTML' });
+      }
+    } catch (error) {
+      console.error('Bot verify token error:', error.message);
+      await this.sendMessage(chatId, `❌ Bog'lashda ichki xatolik yuz berdi.`);
+    }
   }
 
   /** /id — Faqat ID raqam ko'rsatish */

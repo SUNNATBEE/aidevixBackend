@@ -1,5 +1,9 @@
 const User = require('../models/User');
+const crypto = require('crypto');
 const { verifyInstagramSubscription, verifyTelegramSubscription, checkTelegramSubscription } = require('../utils/socialVerification');
+
+// Xotirada tokenlarni saqlash (production uchun Redis ishlatish mumkin)
+const verifyTokens = new Map(); // token -> { userId, createdAt }
 
 // Verify Instagram subscription
 const verifyInstagram = async (req, res) => {
@@ -190,10 +194,103 @@ const getRealtimeStatus = async (req, res) => {
   }
 };
 
+// ═══════════════════════════════════════════════════════════════
+// Avtomatik Telegram bog'lash uchun token yaratish
+// ═══════════════════════════════════════════════════════════════
+const generateVerifyToken = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    // Eski tokenlarni tozalash (5 daqiqadan oshganlari)
+    const now = Date.now();
+    for (const [key, val] of verifyTokens) {
+      if (now - val.createdAt > 5 * 60 * 1000) verifyTokens.delete(key);
+    }
+
+    // Yangi token yaratish
+    const token = crypto.randomBytes(16).toString('hex');
+    verifyTokens.set(token, { userId: String(userId), createdAt: now });
+
+    res.json({
+      success: true,
+      data: { token, botUsername: process.env.TELEGRAM_BOT_USERNAME || 'aidevix_bot' },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Token yaratishda xato' });
+  }
+};
+
+// Bot tomonidan chaqiriladigan — tokenni Telegram ID bilan bog'lash
+const linkTelegramByToken = async (token, telegramUserId, telegramUsername) => {
+  const entry = verifyTokens.get(token);
+  if (!entry) return false;
+
+  try {
+    const user = await User.findById(entry.userId);
+    if (!user) return false;
+
+    // Telegram ID ni saqlash
+    user.telegramUserId = String(telegramUserId);
+    user.telegramChatId = String(telegramUserId);
+    user.socialSubscriptions.telegram.telegramUserId = String(telegramUserId);
+    user.socialSubscriptions.telegram.username = telegramUsername || 'telegram_user';
+    await user.save();
+
+    // Tokenni o'chirish (bir martalik)
+    verifyTokens.delete(token);
+    return true;
+  } catch (err) {
+    console.error('linkTelegramByToken error:', err.message);
+    return false;
+  }
+};
+
+// Frontend polling uchun — token bog'landimi va kanal obunasi bormi
+const checkVerifyToken = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const telegramId = user.telegramUserId || user.socialSubscriptions?.telegram?.telegramUserId;
+
+    if (!telegramId) {
+      return res.json({ success: true, data: { linked: false, subscribed: false } });
+    }
+
+    // Telegram kanalga obuna bormi tekshirish
+    const isSubscribed = await checkTelegramSubscription(telegramId);
+
+    // Agar obuna bo'lsa DB ni yangilash
+    if (isSubscribed && !user.socialSubscriptions.telegram.subscribed) {
+      user.socialSubscriptions.telegram.subscribed = true;
+      user.socialSubscriptions.telegram.verifiedAt = new Date();
+      await user.save();
+
+      // Admin bildirishnoma
+      try {
+        const { getBot } = require('../utils/telegramBot');
+        const bot = getBot();
+        if (bot) bot.notifySubscriptionVerified(user, 'telegram');
+      } catch (_) {}
+    }
+
+    res.json({
+      success: true,
+      data: {
+        linked: true,
+        subscribed: isSubscribed,
+        telegram: user.socialSubscriptions.telegram,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Tekshirishda xato' });
+  }
+};
+
 module.exports = {
   verifyInstagram,
   verifyTelegram,
   getSubscriptionStatus,
   setTelegramId,
   getRealtimeStatus,
+  generateVerifyToken,
+  linkTelegramByToken,
+  checkVerifyToken,
 };
