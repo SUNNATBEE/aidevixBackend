@@ -20,6 +20,7 @@ import { selectIsLoggedIn } from '@store/slices/authSlice'
 import { selectInstagramSub, selectTelegramSub } from '@store/slices/subscriptionSlice'
 import { useCourse, useCourses } from '@hooks/useCourses'
 import { useVideos } from '@hooks/useVideos'
+import { useSubscription } from '@hooks/useSubscription'
 import StarRating from '@components/common/StarRating'
 import CourseCard from '@components/courses/CourseCard'
 import SubscriptionGate from '@components/subscription/SubscriptionGate'
@@ -118,6 +119,9 @@ export default function CourseDetailPage() {
   const { courseVideos, loading: vLoad, fetchByCourse } = useVideos()
   const [recommended, setRecommended]                   = useState([])
   const [projects, setProjects]                         = useState([])
+
+  // Serverdan obuna holatini avtomatik yuklash
+  useSubscription()
 
   useEffect(() => {
     if (!id) return
