@@ -412,7 +412,7 @@ function PriceCardContent({ course, courseVideos, totalSecs, level, rating, proj
       <div className="space-y-2">
         <button onClick={onWatch} className="btn btn-primary btn-block rounded-xl font-bold gap-2">
           {isSubscribed ? <IoPlay className="text-base" /> : <IoLockClosed className="text-base" />}
-          {isSubscribed ? 'Kursni ko\'rish' : 'Obuna bo\'lish va ko\'rish'}
+          {isSubscribed ? 'Videoni ko\'rish' : 'Obuna bo\'lish va ko\'rish'}
         </button>
       </div>
       <div className="divider my-0 opacity-20" />
@@ -451,7 +451,7 @@ function MobilePriceCard(props) {
       <div className="flex items-center justify-center px-4 py-3">
         <button onClick={onWatch} className="btn btn-primary btn-sm rounded-xl gap-1">
           {isSubscribed ? <IoPlay className="text-sm" /> : <IoLockClosed className="text-sm" />}
-          {isSubscribed ? 'Kursni ko\'rish' : 'Obuna bo\'lish va ko\'rish'}
+          {isSubscribed ? 'Videoni ko\'rish' : 'Obuna bo\'lish va ko\'rish'}
         </button>
       </div>
     </div>
