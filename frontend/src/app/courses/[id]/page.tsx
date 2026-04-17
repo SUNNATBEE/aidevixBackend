@@ -126,14 +126,15 @@ export default function CourseDetailPage() {
     api.get(`/projects/course/${id}`).then(r => setProjects(r.data?.data?.projects || [])).catch(() => {})
   }, [id])
 
-  if (loading) return <Skeleton />
-  if (!course)  return null
-
   const isLoggedIn     = useSelector(selectIsLoggedIn)
   const instagram      = useSelector(selectInstagramSub)
   const telegram       = useSelector(selectTelegramSub)
   const isSubscribed   = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed)
   const [showGate, setShowGate] = useState(false)
+
+  if (loading) return <Skeleton />
+  if (!course)  return null
+
 
   const rating         = typeof course.rating === 'object' ? (course.rating?.average ?? 0) : (course.rating ?? 0)
   const ratingCount    = typeof course.rating === 'object' ? (course.rating?.count ?? 0)   : (course.ratingCount ?? 0)
