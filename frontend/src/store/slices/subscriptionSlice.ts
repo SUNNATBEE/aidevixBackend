@@ -56,8 +56,9 @@ const subscriptionSlice = createSlice({
       const source = action.payload?.subscriptions || action.payload || {}
       const telegram = action.payload?.telegram || source.telegram
       const instagram = action.payload?.instagram || source.instagram
-      state.telegram   = telegram   || state.telegram
-      state.instagram  = instagram  || state.instagram
+      // undefined tekshirish — null/false qiymatlarni to'g'ri qabul qilish uchun
+      state.telegram   = telegram  !== undefined ? telegram  : state.telegram
+      state.instagram  = instagram !== undefined ? instagram : state.instagram
       state.allVerified = !!(state.telegram.subscribed && state.instagram.subscribed)
       state.loading = false
     }

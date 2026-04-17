@@ -12,7 +12,7 @@ export function useSubscription() {
 
   useEffect(() => {
     if (isLoggedIn) dispatch(fetchSubscriptionStatus())
-  }, [isLoggedIn])
+  }, [isLoggedIn, dispatch])
 
   return {
     telegram:     useSelector(selectTelegramSub),

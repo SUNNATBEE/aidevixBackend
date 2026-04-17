@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { FaTelegram, FaRobot, FaCheckCircle, FaSpinner } from 'react-icons/fa'
 import { IoCheckmarkCircle, IoCloseCircle, IoInformationCircle } from 'react-icons/io5'
@@ -11,6 +11,9 @@ import {
 import { subscriptionApi } from '@api/subscriptionApi'
 import { SOCIAL_LINKS } from '@utils/constants'
 
+const MAX_POLL_ATTEMPTS = 60 // 60 * 3s = 3 daqiqa
+const POLL_INTERVAL = 3000
+
 interface TelegramVerifyProps {
   onTelegramVerified?: () => void
 }
@@ -19,24 +22,39 @@ export default function TelegramVerify({ onTelegramVerified }: TelegramVerifyPro
   const dispatch = useDispatch()
   const telegram = useSelector(selectTelegramSub)
   const loading = useSelector(selectSubLoading)
-  
+
   const [isAutoChecking, setIsAutoChecking] = useState(false)
   const [verifyData, setVerifyData] = useState<{ token: string; botUsername: string } | null>(null)
   const [status, setStatus] = useState<{ linked: boolean; subscribed: boolean }>({ linked: false, subscribed: false })
-  
-  const pollingRef = useRef<NodeJS.Timeout | null>(null)
+  const [pollCount, setPollCount] = useState(0)
+  const [pollError, setPollError] = useState<string | null>(null)
 
-  // Token yaratish
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pollCountRef = useRef(0)
+  const mountedRef = useRef(true)
+
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+  }, [])
+
+  // Token yaratish va botni ochish
   const startAutoVerify = async () => {
     try {
+      setPollError(null)
       setIsAutoChecking(true)
+      pollCountRef.current = 0
+      setPollCount(0)
+
       const res = await subscriptionApi.generateToken()
       if (res.data.success) {
         setVerifyData(res.data.data)
         // Botni ochish
         const botUrl = `https://t.me/${res.data.data.botUsername}?start=${res.data.data.token}`
         window.open(botUrl, '_blank')
-        
+
         // Pollingni boshlash
         startPolling()
       }
@@ -47,39 +65,63 @@ export default function TelegramVerify({ onTelegramVerified }: TelegramVerifyPro
   }
 
   const startPolling = () => {
-    if (pollingRef.current) clearInterval(pollingRef.current)
-    
+    stopPolling()
+
     pollingRef.current = setInterval(async () => {
+      if (!mountedRef.current) {
+        stopPolling()
+        return
+      }
+
+      pollCountRef.current += 1
+      setPollCount(pollCountRef.current)
+
+      // Maksimal urinishlar soni
+      if (pollCountRef.current >= MAX_POLL_ATTEMPTS) {
+        stopPolling()
+        setIsAutoChecking(false)
+        setPollError('Vaqt tugadi. Qaytadan urinib ko\'ring.')
+        toast.error('Vaqt tugadi. Iltimos, qaytadan urinib ko\'ring.')
+        return
+      }
+
       try {
         const res = await subscriptionApi.checkToken()
         if (res.data.success) {
           const { linked, subscribed } = res.data.data
           setStatus({ linked, subscribed })
-          
+
           if (linked && subscribed) {
             stopPolling()
-            toast.success('🎉 Telegram muvaffaqiyatli tasdiqlandi!')
+            setIsAutoChecking(false)
+            toast.success('Telegram muvaffaqiyatli tasdiqlandi!')
             // Redux stateni yangilash
-            dispatch(fetchSubscriptionStatus() as any)
+            await dispatch(fetchSubscriptionStatus() as any)
             if (onTelegramVerified) onTelegramVerified()
           }
         }
       } catch (err) {
         console.error('Polling error:', err)
       }
-    }, 3000)
+    }, POLL_INTERVAL)
   }
 
-  const stopPolling = () => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current)
-      pollingRef.current = null
-    }
-  }
-
+  // Cleanup on unmount
   useEffect(() => {
-    return () => stopPolling()
-  }, [])
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      stopPolling()
+    }
+  }, [stopPolling])
+
+  // Qayta urinish
+  const handleRetry = () => {
+    setPollError(null)
+    setStatus({ linked: false, subscribed: false })
+    setVerifyData(null)
+    startAutoVerify()
+  }
 
   if (telegram?.subscribed || status.subscribed) {
     return (
@@ -102,7 +144,7 @@ export default function TelegramVerify({ onTelegramVerified }: TelegramVerifyPro
   return (
     <div className="glass-card p-6 rounded-2xl space-y-6 bg-[#1a1c26] border border-white/5 shadow-2xl overflow-hidden relative">
       <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
-      
+
       <div className="text-center space-y-3 relative z-10">
         <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-blue-500/20 rotate-3">
           <FaTelegram className="text-4xl text-white -rotate-3" />
@@ -145,15 +187,15 @@ export default function TelegramVerify({ onTelegramVerified }: TelegramVerifyPro
               </p>
               {!status.linked ? (
                 <button
-                  onClick={startAutoVerify}
+                  onClick={pollError ? handleRetry : startAutoVerify}
                   disabled={isAutoChecking}
-                  className="mt-3 w-full py-3 bg-white text-black font-black text-xs rounded-xl hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-xl shadow-white/5"
+                  className="mt-3 w-full py-3 bg-white text-black font-black text-xs rounded-xl hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-xl shadow-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isAutoChecking ? <FaSpinner className="animate-spin" /> : <FaRobot />}
-                  BOT ORQALI BOG'LASH
+                  {pollError ? 'QAYTADAN URINISH' : 'BOT ORQALI BOG\'LASH'}
                 </button>
               ) : (
-                <p className="text-xs text-emerald-500/70 mt-1 font-medium italic">Sizning Telegram ID aniqlandi ✅</p>
+                <p className="text-xs text-emerald-500/70 mt-1 font-medium italic">Sizning Telegram ID aniqlandi</p>
               )}
             </div>
           </div>
@@ -161,9 +203,24 @@ export default function TelegramVerify({ onTelegramVerified }: TelegramVerifyPro
 
         {/* Status Indicator while waiting */}
         {isAutoChecking && !status.subscribed && (
-          <div className="flex items-center justify-center gap-3 p-4 bg-zinc-900/50 rounded-xl border border-white/5 animate-pulse">
+          <div className="flex items-center justify-center gap-3 p-4 bg-zinc-900/50 rounded-xl border border-white/5">
             <FaSpinner className="animate-spin text-blue-400" />
-            <p className="text-xs text-zinc-400 font-medium">Botdan tasdiqlashingizni kutyapman...</p>
+            <div className="text-center">
+              <p className="text-xs text-zinc-400 font-medium">
+                {status.linked ? 'Kanal obunasi tekshirilmoqda...' : 'Botdan tasdiqlashingizni kutyapman...'}
+              </p>
+              <p className="text-[10px] text-zinc-600 mt-1">
+                {Math.max(0, Math.floor((MAX_POLL_ATTEMPTS - pollCount) * POLL_INTERVAL / 1000))} soniya qoldi
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {pollError && (
+          <div className="flex items-center gap-3 p-4 bg-red-500/10 rounded-xl border border-red-500/20">
+            <IoCloseCircle className="text-red-400 text-lg shrink-0" />
+            <p className="text-xs text-red-400 font-medium">{pollError}</p>
           </div>
         )}
 

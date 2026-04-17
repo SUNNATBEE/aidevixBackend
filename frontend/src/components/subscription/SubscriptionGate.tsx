@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSelector } from 'react-redux'
 import { IoClose } from 'react-icons/io5'
 import toast from 'react-hot-toast'
@@ -13,14 +13,15 @@ interface SubscriptionGateProps {
   videoId?: string
 }
 
-export default function SubscriptionGate({ 
-  isOpen, 
-  onClose, 
+export default function SubscriptionGate({
+  isOpen,
+  onClose,
   onSuccess,
-  videoId 
+  videoId
 }: SubscriptionGateProps): JSX.Element | null {
   const instagram = useSelector(selectInstagramSub)
   const telegram = useSelector(selectTelegramSub)
+  const successCalledRef = useRef(false)
 
   // Qaysi obuna yo'qligini aniqlash
   const needsInstagram = !instagram?.subscribed
@@ -39,13 +40,21 @@ export default function SubscriptionGate({
     setCurrentStep(getInitialStep())
   }, [instagram?.subscribed, telegram?.subscribed])
 
-  // Agar ikkala obuna ham tasdiqlangan bo'lsa, modal yopiladi
-  if (instagram?.subscribed && telegram?.subscribed && onSuccess) {
-    onSuccess()
-    return null
-  }
+  // Reset success flag when modal opens
+  useEffect(() => {
+    if (isOpen) successCalledRef.current = false
+  }, [isOpen])
+
+  // Agar ikkala obuna ham tasdiqlangan bo'lsa, modal yopiladi (faqat bir marta)
+  useEffect(() => {
+    if (instagram?.subscribed && telegram?.subscribed && onSuccess && !successCalledRef.current) {
+      successCalledRef.current = true
+      onSuccess()
+    }
+  }, [instagram?.subscribed, telegram?.subscribed, onSuccess])
 
   if (!isOpen) return null
+  if (instagram?.subscribed && telegram?.subscribed) return null
 
   // Faqat kerakli steplarni hisoblash
   const totalSteps = (needsInstagram ? 1 : 0) + (needsTelegram ? 1 : 0)
@@ -53,11 +62,12 @@ export default function SubscriptionGate({
 
   const handleInstagramVerified = () => {
     if (needsTelegram) {
-      toast.success('✅ Instagram tasdiqlandi! Endi Telegram obunasini tekshiring')
+      toast.success('Instagram tasdiqlandi! Endi Telegram obunasini tekshiring')
       setCurrentStep('telegram')
     } else {
-      toast.success('🎉 Instagram obunasi tasdiqlandi! Video ko\'rishga ruxsat berildi!')
-      if (onSuccess) {
+      toast.success('Instagram obunasi tasdiqlandi! Video ko\'rishga ruxsat berildi!')
+      if (onSuccess && !successCalledRef.current) {
+        successCalledRef.current = true
         setTimeout(() => {
           onSuccess()
           if (videoId) window.location.href = `/videos/${videoId}`
@@ -67,9 +77,12 @@ export default function SubscriptionGate({
   }
 
   const handleTelegramVerified = () => {
-    toast.success('🎉 Barcha obunalar tasdiqlandi! Video ko\'rishga ruxsat berildi!')
-    
-    if (onSuccess) {
+    if (!instagram?.subscribed) return // Instagram hali tasdiqlanmagan
+
+    toast.success('Barcha obunalar tasdiqlandi! Video ko\'rishga ruxsat berildi!')
+
+    if (onSuccess && !successCalledRef.current) {
+      successCalledRef.current = true
       setTimeout(() => {
         onSuccess()
         if (videoId) {
@@ -79,8 +92,8 @@ export default function SubscriptionGate({
     }
   }
 
-  const stepLabel = currentStep === 'instagram' 
-    ? 'Instagram obunasi' 
+  const stepLabel = currentStep === 'instagram'
+    ? 'Instagram obunasi'
     : 'Telegram obunasi'
 
   const stepDesc = currentStep === 'instagram'
@@ -90,11 +103,11 @@ export default function SubscriptionGate({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative w-full max-w-md mx-auto">
         {/* Close button */}
@@ -108,14 +121,14 @@ export default function SubscriptionGate({
         {/* Progress indicator */}
         <div className="mb-4 flex items-center justify-center gap-2">
           <div className={`w-3 h-3 rounded-full transition-colors ${
-            currentStep === 'instagram' ? 'bg-pink-500' : 
+            currentStep === 'instagram' ? 'bg-pink-500' :
             !needsInstagram ? 'bg-green-500' : 'bg-zinc-600'
           }`} />
           {totalSteps > 1 && (
             <>
               <div className="w-8 h-0.5 bg-zinc-600" />
               <div className={`w-3 h-3 rounded-full transition-colors ${
-                currentStep === 'telegram' ? 'bg-blue-500' : 
+                currentStep === 'telegram' ? 'bg-blue-500' :
                 !needsTelegram ? 'bg-green-500' : 'bg-zinc-600'
               }`} />
             </>
@@ -134,13 +147,13 @@ export default function SubscriptionGate({
 
         {/* Component based on current step */}
         {currentStep === 'instagram' ? (
-          <InstagramVerify 
-            videoId={videoId} 
+          <InstagramVerify
+            videoId={videoId}
             onVideoAccess={handleInstagramVerified}
             showVideoButton={false}
           />
         ) : (
-          <TelegramVerify 
+          <TelegramVerify
             onTelegramVerified={handleTelegramVerified}
           />
         )}
