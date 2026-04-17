@@ -9,6 +9,7 @@ const {
   generateResetToken, 
   verifyResetToken 
 } = require('../utils/jwt');
+const crypto = require('crypto');
 const validator = require('validator');
 const { sendWelcomeEmail, sendResetCodeEmail } = require('../utils/emailService');
 const {
@@ -51,8 +52,6 @@ const sanitizeUser = (user) => ({
 });
 
 // @desc    Register new user
-const crypto = require('crypto');
-
 const register = asyncHandler(async (req, res, next) => {
   const { username, email, password, firstName, lastName, referralCode } = req.body;
   const normalizedEmail = normalizeEmail(email);
@@ -92,6 +91,15 @@ const register = asyncHandler(async (req, res, next) => {
       referrer.rankTitle = calculateRank(referrer.xp);
       referrer.referralsCount = (referrer.referralsCount || 0) + 1;
       await referrer.save();
+
+      // Referrer statsini ham yangilash
+      let referrerStats = await UserStats.findOne({ userId: referrer._id });
+      if (referrerStats) {
+        referrerStats.xp = (referrerStats.xp || 0) + 1000;
+        referrerStats.weeklyXp = (referrerStats.weeklyXp || 0) + 1000;
+        referrerStats.level = referrerStats.calculateLevel();
+        await referrerStats.save();
+      }
     }
   }
 
@@ -117,7 +125,7 @@ const register = asyncHandler(async (req, res, next) => {
   attachAuthCookies(res, accessToken, refreshToken);
 
   // Background
-  UserStats.create({ userId: user._id }).catch(() => {});
+  UserStats.create({ userId: user._id, xp: user.xp, weeklyXp: user.xp }).catch(() => {});
   sendWelcomeEmail(user.email, user.username).catch(() => {});
 
   // Telegram admin bildirishnoma
@@ -214,7 +222,6 @@ const getMe = asyncHandler(async (req, res, next) => {
   let user = await User.findById(req.user._id);
   
   if (!user.referralCode) {
-    const crypto = require('crypto');
     const newReferralCode = user.username.substring(0, 4).toUpperCase() + crypto.randomBytes(2).toString('hex').toUpperCase();
     user.referralCode = newReferralCode;
     await user.save();
@@ -271,7 +278,6 @@ const claimDailyReward = asyncHandler(async (req, res, next) => {
   }
 
   user.xp = (user.xp || 0) + 50
-  user.streak = (user.streak || 0) + 1
   user.lastClaimedDaily = now
   user.rankTitle = calculateRank(user.xp)
   await user.save()
@@ -302,6 +308,10 @@ const claimDailyReward = asyncHandler(async (req, res, next) => {
   }
   stats.lastActivityDate = new Date()
   await stats.save()
+
+  // User streak ni stats bilan sinxronlash
+  user.streak = stats.streak
+  await user.save()
 
   res.json({
     success: true,

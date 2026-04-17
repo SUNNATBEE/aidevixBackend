@@ -1,7 +1,19 @@
 const UserStats = require('../models/UserStats');
+const User = require('../models/User');
 const Quiz = require('../models/Quiz');
 const QuizResult = require('../models/QuizResult');
 const { awardBadges } = require('../utils/badgeService');
+
+// Rank hisoblash (authController.js dagi bilan bir xil bo'lishi kerak)
+const calculateRank = (xp) => {
+  if (xp >= 50000) return 'LEGEND';
+  if (xp >= 20000) return 'MASTER';
+  if (xp >= 10000) return 'SENIOR';
+  if (xp >= 5000) return 'MIDDLE';
+  if (xp >= 2000) return 'JUNIOR';
+  if (xp >= 500) return 'CANDIDATE';
+  return 'AMATEUR';
+};
 
 /**
  * @desc  Foydalanuvchi statsini olish
@@ -24,6 +36,31 @@ const getUserStats = async (req, res) => {
     if (stats.level !== currentLevel) {
       stats.level = currentLevel;
       await stats.save();
+    }
+
+    // Mirroring check: User modeldagi XP ni Stats bilan bir xil qilamiz
+    const user = await User.findById(req.user.id);
+    if (user && (user.xp !== stats.xp || user.streak !== stats.streak)) {
+      // Eng yuqori qiymatni asosiq qilib olamiz (yo'qolmasligi uchun)
+      const maxXP = Math.max(user.xp || 0, stats.xp || 0);
+      const maxStreak = Math.max(user.streak || 0, stats.streak || 0);
+      
+      let changed = false;
+      if (stats.xp < maxXP) { 
+        const diff = maxXP - stats.xp;
+        stats.xp = maxXP; 
+        stats.weeklyXp = (stats.weeklyXp || 0) + diff; 
+        changed = true; 
+      }
+      if (stats.streak < maxStreak) { stats.streak = maxStreak; changed = true; }
+      if (changed) await stats.save();
+
+      if (user.xp < maxXP || user.streak < maxStreak) {
+        user.xp = maxXP;
+        user.streak = maxStreak;
+        user.rankTitle = calculateRank(user.xp);
+        await user.save();
+      }
     }
 
     res.json({
@@ -97,6 +134,15 @@ const addVideoWatchXP = async (req, res) => {
 
     stats.lastActivityDate = new Date();
     await stats.save();
+
+    // 2. User modelini sinxronlash (Navbar va Auth uchun)
+    const user = await User.findById(req.user.id);
+    if (user) {
+      user.xp = stats.xp; 
+      user.streak = stats.streak;
+      user.rankTitle = calculateRank(user.xp);
+      await user.save();
+    }
 
     // Badge auto-award
     awardBadges(req.user.id).catch(() => {});
@@ -191,6 +237,15 @@ const submitQuiz = async (req, res) => {
     stats.lastActivityDate = new Date();
     await stats.save();
 
+    // 2. User modelini sinxronlash
+    const user = await User.findById(req.user.id);
+    if (user) {
+      user.xp = stats.xp;
+      user.streak = stats.streak;
+      user.rankTitle = calculateRank(user.xp);
+      await user.save();
+    }
+
     // Badge auto-award
     awardBadges(req.user.id).catch(() => {});
 
@@ -266,7 +321,6 @@ const updateProfile = async (req, res) => {
     await stats.save();
 
     // 2. User modelini (ism, familiya, kasb) yangilash
-    const User = require('../models/User');
     const user = await User.findById(userId);
     
     if (!user) {
@@ -377,7 +431,7 @@ const addStreakFreeze = async (req, res) => {
  */
 const getWeeklyLeaderboard = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 100);
 
     const leaders = await UserStats.find({ weeklyXp: { $gt: 0 } })
       .sort({ weeklyXp: -1 })
