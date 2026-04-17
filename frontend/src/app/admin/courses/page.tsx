@@ -144,19 +144,19 @@ export default function AdminCoursesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
-                        <span className="font-bold text-emerald-400">{course.price === 0 ? 'Free' : \`$\${course.price}\`}</span>
+                        <span className="font-bold text-emerald-400">{course.price === 0 ? 'Free' : `$${course.price}`}</span>
                         <span className="text-xs text-slate-500">{course.level || 'All Levels'}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={\`px-2.5 py-1 text-xs font-semibold rounded-md \${course.isPublished ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}\`}>
+                      <span className={`px-2.5 py-1 text-xs font-semibold rounded-md ${course.isPublished ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
                         {course.isPublished ? 'Published' : 'Draft'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex justify-end gap-2">
                         <Link 
-                          href={\`/admin/courses/\${course._id}\`}
+                          href={`/admin/courses/${course._id}`}
                           className="p-2 text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-colors"
                           title="Edit Course"
                         >

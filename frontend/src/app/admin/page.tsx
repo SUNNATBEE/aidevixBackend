@@ -20,7 +20,7 @@ export default function AdminDashboardPage() {
     { title: 'Total Users', value: stats?.users?.total || 0, icon: <FiUsers />, color: 'from-blue-500 to-indigo-600', shadow: 'shadow-indigo-500/20' },
     { title: 'Total Courses', value: stats?.courses?.total || 0, icon: <FiBookOpen />, color: 'from-emerald-500 to-teal-600', shadow: 'shadow-emerald-500/20' },
     { title: 'Total Videos', value: stats?.videos?.total || 0, icon: <FiVideo />, color: 'from-orange-500 to-red-600', shadow: 'shadow-orange-500/20' },
-    { title: 'Total Revenue', value: \`$\${stats?.payments?.totalVolume || 0}\`, icon: <FiDollarSign />, color: 'from-purple-500 to-fuchsia-600', shadow: 'shadow-purple-500/20' },
+    { title: 'Total Revenue', value: `$${stats?.payments?.totalVolume || 0}`, icon: <FiDollarSign />, color: 'from-purple-500 to-fuchsia-600', shadow: 'shadow-purple-500/20' },
   ];
 
   if (loading) {
@@ -47,12 +47,12 @@ export default function AdminDashboardPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1, duration: 0.4 }}
-            className={\`relative overflow-hidden rounded-2xl bg-slate-900 border border-slate-800 p-6 flex flex-col gap-4 shadow-xl \${card.shadow} group hover:-translate-y-1 transition-transform\`}
+            className={`relative overflow-hidden rounded-2xl bg-slate-900 border border-slate-800 p-6 flex flex-col gap-4 shadow-xl ${card.shadow} group hover:-translate-y-1 transition-transform`}
           >
             <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br opacity-20 blur-2xl z-0 transition-opacity group-hover:opacity-40" />
             
             <div className="flex items-center gap-4 z-10">
-              <div className={\`w-12 h-12 rounded-xl bg-gradient-to-br \${card.color} flex items-center justify-center text-white text-xl shadow-lg\`}>
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center text-white text-xl shadow-lg`}>
                 {card.icon}
               </div>
               <p className="text-slate-400 font-medium">{card.title}</p>
