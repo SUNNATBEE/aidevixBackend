@@ -32,7 +32,7 @@ const performSubscriptionCheck = async (user) => {
     }
   }
 
-  // Telegram: ikkala kanalni (public + private) real-time tekshirish
+  // Telegram: public kanalni real-time tekshirish
   if (user.socialSubscriptions.telegram.username) {
     const telegramUserId = user.socialSubscriptions.telegram.telegramUserId || null;
 
