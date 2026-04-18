@@ -130,13 +130,34 @@ async function postNewsToChannel() {
 
     const chatId = channel.startsWith('@') ? channel : `@${channel}`;
     
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '🔥', callback_data: 'news_react_fire' },
+          { text: '🚀', callback_data: 'news_react_rocket' },
+          { text: '💡', callback_data: 'news_react_bulb' }
+        ],
+        [
+          { text: '📢 Do\'stlarga ulashish', url: `https://t.me/share/url?url=${encodeURIComponent(item.link)}&text=${encodeURIComponent(aiData.title)}` }
+        ]
+      ]
+    };
+    
     if (item.image) {
       await axios.post(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-        chat_id: chatId, photo: item.image, caption: message, parse_mode: 'HTML'
+        chat_id: chatId, 
+        photo: item.image, 
+        caption: message, 
+        parse_mode: 'HTML',
+        reply_markup: keyboard
       });
     } else {
       await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        chat_id: chatId, text: message, parse_mode: 'HTML', disable_web_page_preview: false
+        chat_id: chatId, 
+        text: message, 
+        parse_mode: 'HTML', 
+        disable_web_page_preview: false,
+        reply_markup: keyboard
       });
     }
     return true;

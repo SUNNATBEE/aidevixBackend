@@ -90,32 +90,31 @@ class AidevixBot {
   async _cmdStart(chatId, userId, firstName, username) {
     const frontendUrl = this._getFrontendUrl();
     const msg =
-      `🚀 <b>Aidevix IT-Ta'lim Platformasi</b>\n` +
+      `🚀 <b>Aidevix Akademiyasi — Kelajak Markaziga Xush Kelibsiz!</b>\n` +
       `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
       `👋 Salom, <b>${firstName}</b>!\n\n` +
-      `Aidevix — <b>bepul va sifatli</b> IT kurslar platformasi.\n` +
-      `Bizda <b>React, Node.js, AI, Telegram Mini App</b> va boshqa texnologiyalar bo'yicha professional darslar mavjud.\n\n` +
-      `🔑 <b>Sizning ID raqamingiz:</b>\n` +
+      `Siz zamonaviy IT va Sun'iy Intellekt olamiga kirish eshigidasiz. Bizning platformada siz nafaqat dars ko'rasiz, balki professional darajaga ko'tarilasiz.\n\n` +
+      `🔑 <b>Sizning Shaxsiy ID:</b>\n` +
       `┌─────────────────────┐\n` +
       `│  <code>${userId}</code>\n` +
       `└─────────────────────┘\n\n` +
-      `<i>Yuqoridagi raqamni saytdagi obuna tasdiqlash sahifasiga kiriting.</i>\n\n` +
-      `📋 <b>Buyruqlar:</b>\n` +
-      `/id — ID raqamni ko'rish\n` +
-      `/login — Parolsiz saytga kirish\n` +
-      `/stats — O'z statistikangiz\n` +
-      `/help — Yordam`;
+      `<i>Bu raqam orqali saytda obunalaringizni tasdiqlashingiz mumkin.</i>\n\n` +
+      `⚡ <b>Imkoniyatlar:</b>\n` +
+      `• AI sohasidagi eng so'nggi trendlar\n` +
+      `• Prompt Engineering sirlari\n` +
+      `• Professional sertifikatlar\n\n` +
+      `👇 <b>Akademiyaga kirish uchun quyidagi tugmani bosing:</b>`;
 
     const keyboard = {
       inline_keyboard: [
-        [{ text: '🌐 Platformaga kirish', web_app: { url: frontendUrl } }],
+        [{ text: '🚀 Akademiyaga kirish (Mini App)', web_app: { url: frontendUrl } }],
         [
-          { text: '🆔 ID raqam', callback_data: 'cb_get_id' },
-          { text: '🔐 Tizimga kirish', callback_data: 'cb_magic_login' },
+          { text: '📊 Statistika', callback_data: 'cb_get_stats' },
+          { text: '🔐 Kirish', callback_data: 'cb_magic_login' },
         ],
         [
-          { text: '📢 Kanal', url: 'https://t.me/aidevix' },
-          { text: '📸 Instagram', url: 'https://instagram.com/aidevix' },
+          { text: '📢 AI Kanal', url: 'https://t.me/aidevix' },
+          { text: '🎓 Kurslarimiz', web_app: { url: `${frontendUrl}/courses` } },
         ],
       ],
     };
@@ -333,6 +332,19 @@ class AidevixBot {
       case 'cb_magic_login':
         await this.answerCallbackQuery(query.id, '🔐 Tizimga kirilmoqda...', false);
         if (chatId) await this._cmdLogin(chatId, userId, firstName);
+        break;
+      case 'cb_get_stats':
+        await this.answerCallbackQuery(query.id, '📊 Yuklanmoqda...', false);
+        if (chatId) await this._cmdStats(chatId, userId, firstName);
+        break;
+      case 'news_react_fire':
+        await this.answerCallbackQuery(query.id, 'Olov bo\'ldi! 🔥', false);
+        break;
+      case 'news_react_rocket':
+        await this.answerCallbackQuery(query.id, 'Rahmat! 🚀', false);
+        break;
+      case 'news_react_bulb':
+        await this.answerCallbackQuery(query.id, 'Foydali bo\'ldi! 💡', false);
         break;
       default:
         await this.answerCallbackQuery(query.id, 'Noma\'lum buyruq', false);
