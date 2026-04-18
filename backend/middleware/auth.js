@@ -42,7 +42,6 @@ const authenticate = async (req, res, next) => {
     res.status(401).json({
       success: false,
       message: 'Authentication failed.',
-      error: error.message,
     });
   }
 };

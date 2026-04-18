@@ -7,6 +7,7 @@ import { IoSearch, IoClose, IoOptions } from 'react-icons/io5'
 import { useCourses } from '@hooks/useCourses'
 import CourseGrid from '@components/courses/CourseGrid'
 import CourseFilter from '@components/courses/CourseFilter'
+import { useLang } from '@context/LangContext'
 
 function useDebounce(value: any, delay: number) {
   const [d, setD] = useState(value)
@@ -24,6 +25,7 @@ function CoursesContent() {
   const [isReady, setIsReady]           = useState(false)
   const debouncedSearch                 = useDebounce(search, 500)
 
+  const { t } = useLang()
   const { courses, loading, filters, pages, total, fetchAll, setFilter, setPage } = useCourses()
 
   useEffect(() => {
@@ -81,16 +83,16 @@ function CoursesContent() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-4xl font-black text-base-content leading-tight">
-                Barcha{' '}
-                <span className="text-primary">Kurslar</span>
+                {t('courses.allTitle').split(' ')[0]}{' '}
+                <span className="text-primary">{t('courses.allTitle').split(' ').slice(1).join(' ')}</span>
               </h1>
               <p className="text-base-content/45 text-sm sm:text-base mt-1">
-                Professional dasturlash kurslarini kashf eting
+                {t('courses.allSubtitle')}
               </p>
             </div>
             {total > 0 && (
               <div className="flex-shrink-0 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20">
-                <span className="text-xs font-bold text-primary">{total} kurs</span>
+                <span className="text-xs font-bold text-primary">{total} {t('courses.count')}</span>
               </div>
             )}
           </div>
@@ -109,7 +111,7 @@ function CoursesContent() {
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setFilter({ page: 1 }) }}
-              placeholder="Kurs qidirish..."
+              placeholder={t('courses.search')}
               className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-base-200 border border-base-content/8 focus:border-primary/40 focus:outline-none text-sm transition-colors placeholder:text-base-content/30"
             />
             <AnimatePresence>
@@ -167,8 +169,8 @@ function CoursesContent() {
           loading={loading && filters.page === 1}
           emptyText={
             debouncedSearch
-              ? `"${debouncedSearch}" bo'yicha kurs topilmadi`
-              : "Hozircha kurslar yo'q"
+              ? `"${debouncedSearch}" ${t('courses.notFound')}`
+              : t('courses.empty')
           }
         />
 
@@ -190,16 +192,16 @@ function CoursesContent() {
               onClick={() => setPage(filters.page + 1)}
               className="btn btn-outline btn-primary rounded-2xl px-8 sm:px-12"
             >
-              Yana yuklash
+              {t('courses.loadMore')}
             </button>
           </motion.div>
         )}
 
-        {!loading && !hasMore && courses.length > 0 && (
           <p className="text-center text-xs text-base-content/25 mt-8">
-            Barcha {total} ta kurs ko'rsatildi
+            {t('courses.allShown').replace('{total}', total.toString()).includes('{total}') 
+              ? t('courses.allShown').replace('{total}', total.toString())
+              : `${t('filter.all')} ${total} ${t('courses.allShown')}`}
           </p>
-        )}
       </div>
     </div>
   )

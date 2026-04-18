@@ -2,6 +2,7 @@ const User = require('../models/User');
 const VerifyToken = require('../models/VerifyToken');
 const crypto = require('crypto');
 const { verifyInstagramSubscription, verifyTelegramSubscription, checkTelegramSubscription } = require('../utils/socialVerification');
+const { invalidate: invalidateCache } = require('../utils/subscriptionCache');
 
 // Verify Instagram subscription
 const verifyInstagram = async (req, res) => {
@@ -27,6 +28,7 @@ const verifyInstagram = async (req, res) => {
       verifiedAt: verification.verifiedAt,
     };
     await user.save();
+    invalidateCache(userId); // Cache tozalash — keyingi checkda yangi holat yuklanadi
 
     // Telegram admin bildirishnoma
     if (verification.subscribed) {
@@ -93,6 +95,7 @@ const verifyTelegram = async (req, res) => {
       verifiedAt: verification.verifiedAt,
     };
     await user.save();
+    invalidateCache(userId); // Cache tozalash
 
     // Telegram admin bildirishnoma
     if (verification.subscribed) {

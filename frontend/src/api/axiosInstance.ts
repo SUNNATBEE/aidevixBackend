@@ -55,6 +55,10 @@ api.interceptors.response.use(
         refreshQueue.forEach((cb) => cb.reject(refreshError))
         refreshQueue = []
 
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login'
+        }
+
         return Promise.reject(error)
       } finally {
         isRefreshing = false

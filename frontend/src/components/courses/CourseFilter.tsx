@@ -2,27 +2,28 @@ import { useState, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { setFilter, selectFilters } from '@store/slices/courseSlice'
 import { CATEGORIES, SORT_OPTIONS } from '@utils/constants'
-import { IoStar } from 'react-icons/io5'
 import { useSound } from '@/context/SoundContext'
-
-const LEVELS = [
-  { id: 'all',          label: 'Barchasi' },
-  { id: 'beginner',     label: "Boshlang'ich" },
-  { id: 'intermediate', label: "O'rta" },
-  { id: 'advanced',     label: 'Yuqori' },
-]
-
-const RATINGS = [
-  { value: 0,   label: 'Barchasi' },
-  { value: 4.5, label: '4.5+' },
-  { value: 4.0, label: '4.0+' },
-  { value: 3.5, label: '3.5+' },
-]
+import { useLang } from '@context/LangContext'
 
 export default function CourseFilter() {
+  const { t } = useLang()
   const dispatch = useDispatch()
   const [expanded, setExpanded] = useState(false)
   const filters  = useSelector(selectFilters)
+
+  const LEVELS = [
+    { id: 'all',          label: t('filter.all') },
+    { id: 'beginner',     label: t('filter.beginner') },
+    { id: 'intermediate', label: t('filter.intermediate') },
+    { id: 'advanced',     label: t('filter.advanced') },
+  ]
+
+  const RATINGS = [
+    { value: 0,   label: t('filter.all') },
+    { value: 4.5, label: '4.5+' },
+    { value: 4.0, label: '4.0+' },
+    { value: 3.5, label: '3.5+' },
+  ]
 
   const COLLAPSED_COUNT = 4
   const displayedCategories = expanded ? CATEGORIES : CATEGORIES.slice(0, COLLAPSED_COUNT)
@@ -52,7 +53,7 @@ export default function CourseFilter() {
                   : 'bg-base-200/50 border border-base-content/5 text-base-content/60 hover:bg-base-300 hover:text-base-content hover:scale-[1.01]')
               }
             >
-              {cat.label}
+              {t(`cat.${cat.id}`, cat.label)}
             </button>
           )
         })}
@@ -63,7 +64,7 @@ export default function CourseFilter() {
             onMouseEnter={playHoverSound}
             className="w-full px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 text-center bg-base-200/80 border border-dashed border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
           >
-            {expanded ? 'Yopish' : 'Yana'}
+            {expanded ? t('filter.collapse') : t('filter.expand')}
           </button>
         )}
       </div>
@@ -72,7 +73,7 @@ export default function CourseFilter() {
       <div className="flex items-center gap-3 flex-wrap">
         {/* Level filter */}
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-base-content/40 whitespace-nowrap">Daraja:</span>
+          <span className="text-xs text-base-content/40 whitespace-nowrap">{t('filter.level')}</span>
           <div className="flex gap-1">
             {LEVELS.map((lvl) => {
               const active = (filters.level || 'all') === lvl.id
@@ -97,7 +98,7 @@ export default function CourseFilter() {
 
         {/* Rating filter */}
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-base-content/40 whitespace-nowrap">Reyting:</span>
+          <span className="text-xs text-base-content/40 whitespace-nowrap">{t('filter.rating')}</span>
           <div className="flex gap-1">
             {RATINGS.map((r) => {
               const active = (filters.minRating || 0) === r.value
@@ -123,14 +124,14 @@ export default function CourseFilter() {
 
         {/* Sort */}
         <div className="flex items-center gap-1.5 ml-auto">
-          <span className="text-xs text-base-content/40 whitespace-nowrap">Saralash:</span>
+          <span className="text-xs text-base-content/40 whitespace-nowrap">{t('filter.sort')}</span>
           <select
             value={filters.sort || 'newest'}
             onChange={(e) => dispatch(setFilter({ sort: e.target.value }))}
             className="select select-xs sm:select-sm bg-base-200 border-base-content/10 text-xs sm:text-sm max-w-[180px] rounded-xl"
           >
             {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+              <option key={opt.value} value={opt.value}>{t(`sort.${opt.value}`, opt.label)}</option>
             ))}
           </select>
         </div>

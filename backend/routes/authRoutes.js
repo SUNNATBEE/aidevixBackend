@@ -1,19 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const { 
-  register, 
-  login, 
-  refreshToken, 
-  logout, 
-  getMe, 
+const {
+  register,
+  login,
+  refreshToken,
+  logout,
+  getMe,
   getReferralStats,
   claimDailyReward,
-  forgotPassword, 
-  verifyCode, 
-  resetPassword 
+  forgotPassword,
+  verifyCode,
+  resetPassword,
+  verifyEmail,
+  resendVerification,
 } = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
-const { otpLimiter, authLimiter } = require('../middleware/rateLimiter');
+const { otpLimiter, authLimiter, dailyRewardLimiter } = require('../middleware/rateLimiter');
 
 // Public
 router.post('/register', authLimiter, register);
@@ -25,8 +27,10 @@ router.post('/reset-password', otpLimiter, resetPassword);
 
 // Private
 router.post('/logout', authenticate, logout);
-router.post('/daily-reward', authenticate, claimDailyReward);
+router.post('/daily-reward', authenticate, dailyRewardLimiter, claimDailyReward);
 router.get('/me', authenticate, getMe);
 router.get('/referrals', authenticate, getReferralStats);
+router.post('/verify-email', authenticate, otpLimiter, verifyEmail);
+router.post('/resend-verification', authenticate, otpLimiter, resendVerification);
 
 module.exports = router;

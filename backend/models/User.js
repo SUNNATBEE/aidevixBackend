@@ -99,6 +99,21 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  // Email verification
+  emailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  emailVerificationCode: {
+    type: String,
+    default: null,
+    select: false,
+  },
+  emailVerificationExpire: {
+    type: Date,
+    default: null,
+    select: false,
+  },
   resetPasswordCode: {
     type: String,
     default: null,
@@ -158,6 +173,9 @@ const userSchema = new mongoose.Schema({
 userSchema.index({ role: 1 });
 userSchema.index({ createdAt: -1 });
 userSchema.index({ isActive: 1 });
+userSchema.index({ email: 1, isActive: 1 });
+userSchema.index({ xp: -1 });
+userSchema.index({ referralCode: 1 }, { sparse: true });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

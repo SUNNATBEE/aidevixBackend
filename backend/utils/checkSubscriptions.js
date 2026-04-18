@@ -2,14 +2,21 @@ const {
   checkInstagramSubscriptionRealTime,
   checkTelegramSubscription,
 } = require('./socialVerification');
+const cache = require('./subscriptionCache');
 
 /**
  * Perform real-time subscription check for a user.
+ * Cache TTL: 5 daqiqa (Telegram API call takrorlanmaydi).
  * Falls back to stored DB value for Instagram when INSTAGRAM_ACCESS_TOKEN not configured.
  * @param {Object} user - Mongoose User document
  * @returns {{ instagramSubscribed: boolean, telegramSubscribed: boolean, changed: boolean }}
  */
 const performSubscriptionCheck = async (user) => {
+  // Cache hit — Telegram API ga so'rov yubormasdan qaytarish
+  const cached = cache.get(user._id);
+  if (cached) {
+    return { ...cached, changed: false };
+  }
   let instagramSubscribed = false;
   let telegramSubscribed = false;
   let changed = false;
@@ -58,6 +65,9 @@ const performSubscriptionCheck = async (user) => {
   } else {
     telegramSubscribed = user.socialSubscriptions.telegram.subscribed;
   }
+
+  // Cache ga saqlash (keyingi 5 daqiqa uchun)
+  cache.set(user._id, { instagramSubscribed, telegramSubscribed });
 
   return { instagramSubscribed, telegramSubscribed, changed };
 };

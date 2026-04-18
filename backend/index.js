@@ -18,14 +18,27 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Connect to database (async - won't block server start)
-connectDB().then(() => {
-  const { initTelegramBot } = require('./utils/telegramBot');
-  initTelegramBot();
+connectDB().then(async () => {
+  console.log('📦 Starting background services...');
+  
+  // Telegram Bot initialization
+  try {
+    const { initTelegramBot } = require('./utils/telegramBot');
+    initTelegramBot();
+  } catch (botError) {
+    console.error('⚠️ Telegram Bot initialization failed:', botError.message);
+  }
 
-  const { startNewsScheduler } = require('./utils/newsScheduler');
-  startNewsScheduler();
+  // News Scheduler initialization
+  try {
+    const { startNewsScheduler } = require('./utils/newsScheduler');
+    startNewsScheduler();
+  } catch (newsError) {
+    console.error('⚠️ News Scheduler initialization failed:', newsError.message);
+  }
 }).catch(err => {
-  console.error('Failed to connect to database on startup');
+  console.error('❌ CRITICAL: Failed to connect to database or initialize core services');
+  console.error('   Reason:', err.message);
   process.exit(1);
 });
 
@@ -111,6 +124,18 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use((req, res, next) => {
   if (req.body) mongoSanitizeValue(req.body);
   if (req.params) mongoSanitizeValue(req.params);
+  next();
+});
+
+// HTTP request logger (production-ready structured logs)
+const logger = require('./utils/logger');
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    if (req.path !== '/health') {
+      logger.request(req, res.statusCode, Date.now() - start);
+    }
+  });
   next();
 });
 

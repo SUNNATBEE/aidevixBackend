@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { forgotPasswordApi } from '@api/forgotPasswordApi';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
+import { useLang } from '@context/LangContext';
 import gsap from 'gsap';
 
 function VerifyCodeContent() {
@@ -18,6 +19,7 @@ function VerifyCodeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const cardRef = useRef(null);
+  const { t } = useLang();
 
   const email = searchParams.get('email');
 
@@ -64,10 +66,10 @@ function VerifyCodeContent() {
         throw new Error('Serverdan reset token olinmadi.');
       }
 
-      toast.success('Kod tasdiqlandi. Endi yangi parol kiriting.');
+      toast.success(t('verify.confirmed'));
       router.push(`/reset-password?email=${encodeURIComponent(email)}&token=${encodeURIComponent(resetToken)}`);
     } catch (error: any) {
-      const msg = error.response?.data?.message || error.message || 'Kodni tasdiqlashda xatolik yuz berdi.';
+      const msg = error.response?.data?.message || error.message || t('profile.toast.error');
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -81,9 +83,9 @@ function VerifyCodeContent() {
       await forgotPasswordApi.forgotPassword({ email });
       forgotPasswordFlow.startTimer(email);
       setTimeLeft(forgotPasswordFlow.getRemainingSeconds(email));
-      toast.success('Yangi kod yuborildi!');
+      toast.success(t('verify.sent'));
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Xatolik yuz berdi');
+      toast.error(error.response?.data?.message || t('profile.toast.error'));
     } finally {
       setResendLoading(false);
     }
@@ -97,16 +99,16 @@ function VerifyCodeContent() {
           className="w-full max-w-[420px] bg-[#0A0E1A] lg:bg-[#0d1224]/40 rounded-3xl border-0 lg:border lg:border-white/5 p-8 sm:p-10 opacity-0 shadow-2xl shadow-indigo-500/5"
         >
           <div className="text-center mb-10">
-            <h2 className="text-[1.75rem] font-bold text-white mb-3">Kodni tasdiqlash</h2>
+            <h2 className="text-[1.75rem] font-bold text-white mb-3">{t('verify.title')}</h2>
             <p className="text-gray-400 text-[0.95rem] px-2 leading-relaxed">
-              <strong>{email}</strong> manziliga yuborilgan 6 xonali kodni kiriting.
+              <strong>{email}</strong> {t('verify.desc')}
             </p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 w-full">
             <div className="form-control w-full">
               <label className="label pt-0 pb-1 px-1">
-                <span className="label-text text-gray-300 font-medium text-sm">Tasdiqlash kodi</span>
+                <span className="label-text text-gray-300 font-medium text-sm">{t('verify.label')}</span>
               </label>
               <div className="relative">
                 <input 
@@ -116,10 +118,10 @@ function VerifyCodeContent() {
                   style={{ letterSpacing: '8px', textAlign: 'center' }}
                   className={`w-full bg-white text-gray-900 px-5 py-3.5 rounded-full outline-none focus:ring-2 focus:ring-primary transition-all text-xl font-bold ${errors.code ? 'ring-2 ring-error' : ''}`}
                   {...register('code', { 
-                    required: 'Kodni kiritish majburiy',
+                    required: t('verify.codeRequired'),
                     pattern: {
                       value: /^[0-9]{6}$/,
-                      message: 'Kod 6 xonali raqam bo\'lishi kerak'
+                      message: t('verify.codePattern')
                     }
                   })} 
                 />
@@ -136,7 +138,7 @@ function VerifyCodeContent() {
                 {loading ? (
                   <span className="loading loading-spinner loading-md"></span>
                 ) : (
-                  <>Tasdiqlash <span className="ml-2 font-bold">→</span></>
+                  <>{t('verify.submit')} <span className="ml-2 font-bold">→</span></>
                 )}
               </button>
             </div>
@@ -144,7 +146,7 @@ function VerifyCodeContent() {
             <div className="text-center pt-6">
               {timeLeft > 0 ? (
                 <p className="text-gray-400 text-sm">
-                  Qayta kod yuborish ({timeLeft}s)
+                  {t('verify.resend')} ({timeLeft}s)
                 </p>
               ) : (
                 <button 
@@ -153,14 +155,14 @@ function VerifyCodeContent() {
                   disabled={resendLoading}
                   className="text-indigo-400 hover:text-indigo-300 hover:underline text-sm font-medium transition-colors"
                 >
-                  {resendLoading ? 'Yuborilmoqda...' : 'Qayta kod yuborish'}
+                  {resendLoading ? t('verify.sending') : t('verify.resend')}
                 </button>
               )}
             </div>
 
             <div className="text-center pt-4">
               <Link href="/forgot-password" className="text-gray-400 hover:text-white hover:underline text-sm font-medium transition-colors">
-                ← Boshqa email ishlatish
+                {t('verify.useOther')}
               </Link>
             </div>
           </form>

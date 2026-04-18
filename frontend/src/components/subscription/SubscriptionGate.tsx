@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { selectInstagramSub, selectTelegramSub } from '@store/slices/subscriptionSlice'
 import InstagramVerify from './InstagramVerify'
 import TelegramVerify from './TelegramVerify'
+import { useLang } from '@context/LangContext'
 
 interface SubscriptionGateProps {
   isOpen: boolean
@@ -21,6 +22,7 @@ export default function SubscriptionGate({
 }: SubscriptionGateProps): JSX.Element | null {
   const instagram = useSelector(selectInstagramSub)
   const telegram = useSelector(selectTelegramSub)
+  const { t } = useLang()
   const successCalledRef = useRef(false)
   const onSuccessRef = useRef(onSuccess)
   onSuccessRef.current = onSuccess
@@ -64,10 +66,10 @@ export default function SubscriptionGate({
 
   const handleInstagramVerified = () => {
     if (needsTelegram) {
-      toast.success('Instagram tasdiqlandi! Endi Telegram obunasini tekshiring')
+      toast.success(t('gate.igDone'))
       setCurrentStep('telegram')
     } else {
-      toast.success('Instagram obunasi tasdiqlandi! Video ko\'rishga ruxsat berildi!')
+      toast.success(t('gate.allDone'))
       if (onSuccess && !successCalledRef.current) {
         successCalledRef.current = true
         setTimeout(() => {
@@ -81,7 +83,7 @@ export default function SubscriptionGate({
   const handleTelegramVerified = () => {
     if (!instagram?.subscribed) return // Instagram hali tasdiqlanmagan
 
-    toast.success('Barcha obunalar tasdiqlandi! Video ko\'rishga ruxsat berildi!')
+    toast.success(t('gate.allDone'))
 
     if (onSuccess && !successCalledRef.current) {
       successCalledRef.current = true
@@ -95,12 +97,12 @@ export default function SubscriptionGate({
   }
 
   const stepLabel = currentStep === 'instagram'
-    ? 'Instagram obunasi'
-    : 'Telegram obunasi'
+    ? t('gate.igLabel')
+    : t('gate.tgLabel')
 
   const stepDesc = currentStep === 'instagram'
-    ? 'Instagram sahifamizga obuna bo\'ling va tasdiqlang'
-    : 'Telegram kanalimizga obuna bo\'ling va tasdiqlang'
+    ? t('gate.igDesc')
+    : t('gate.tgDesc')
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
