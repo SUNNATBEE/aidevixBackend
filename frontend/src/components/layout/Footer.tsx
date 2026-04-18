@@ -23,27 +23,27 @@ export default function Footer() {
       title: t('footer.platform'),
       links: [
         { label: t('footer.fCourses'), to: ROUTES.COURSES },
-        { label: t('footer.fMentors'), to: '/mentors' },
-        { label: t('footer.fPricing'), to: '/pricing' },
-        { label: t('footer.fEnterprise'), to: '/enterprise' },
+        { label: t('footer.fMentors'), to: '#' },
+        { label: t('footer.fPricing'), to: '#' },
+        { label: t('footer.fEnterprise'), to: '#' },
       ],
     },
     {
       title: t('footer.company'),
       links: [
-        { label: t('footer.fAbout'), to: '/about' },
-        { label: t('footer.fBlog'), to: '/blog' },
-        { label: t('footer.fCareers'), to: '/careers' },
-        { label: t('footer.fContact'), to: '/contact' },
+        { label: t('footer.fAbout'), to: '#' },
+        { label: t('footer.fBlog'), to: '#' },
+        { label: t('footer.fCareers'), to: ROUTES.CAREERS },
+        { label: t('footer.fContact'), to: '#' },
       ],
     },
     {
       title: t('footer.resources'),
       links: [
-        { label: t('footer.fHelp'), to: '/help' },
-        { label: t('footer.fPrivacy'), to: '/privacy' },
-        { label: t('footer.fTerms'), to: '/terms' },
-        { label: t('footer.sitemap'), to: '/sitemap' },
+        { label: t('footer.fHelp'), to: '#' },
+        { label: t('footer.fPrivacy'), to: '#' },
+        { label: t('footer.fTerms'), to: '#' },
+        { label: t('footer.sitemap'), to: '#' },
       ],
     },
   ]

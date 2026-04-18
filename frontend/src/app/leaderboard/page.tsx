@@ -102,6 +102,11 @@ function PodiumCard({ user, rank }: { user: any, rank: number }) {
 }
 
 export default function LeaderboardPage() {
+  const [activeTab, setActiveTab] = useState('all')
+  const [pageNum, setPageNum]     = useState(1)
+  const [apiUsers, setApiUsers]   = useState<any[]>([])
+  const [loading, setLoading]     = useState(false)
+  const [pagination, setPagination] = useState<any>(null)
   const [userPosition, setUserPosition] = useState<any>(null)
   const [isMounted, setIsMounted]       = useState(false)
   const { t } = useLang();

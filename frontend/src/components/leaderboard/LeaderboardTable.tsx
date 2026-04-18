@@ -92,10 +92,12 @@ const LeaderboardTable = ({ users = [], currentUserId, loading }) => {
         })}
       </div>
 
-        <div className="text-center py-12 text-base-content/40">
-          <HiTrophy className="text-4xl mx-auto mb-2 opacity-20" />
-          <p className="text-sm">{t('courses.empty')}</p>
-        </div>
+        {users.length === 0 && (
+          <div className="text-center py-12 text-base-content/40">
+            <HiTrophy className="text-4xl mx-auto mb-2 opacity-20" />
+            <p className="text-sm">{t('courses.empty')}</p>
+          </div>
+        )}
     </div>
   )
 }
