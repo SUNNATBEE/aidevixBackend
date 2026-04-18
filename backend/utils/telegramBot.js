@@ -292,11 +292,11 @@ class AidevixBot {
 
   /** /postnews — Yangiliklarni kanalga qo'lda jo'natish (Admin) */
   async _cmdPostNews(chatId, userId) {
-    const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+    const adminChatId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '').trim();
     
     // Faqat admin ruxsat berish
-    if (!adminChatId || String(userId) !== String(adminChatId)) {
-      return this.sendMessage(chatId, "⛔ <b>Kirish taqiqlangan!</b>\nUshbu buyruq faqat bot admini uchun.", { parse_mode: 'HTML' });
+    if (!adminChatId || String(userId).trim() !== adminChatId) {
+      return this.sendMessage(chatId, `⛔ <b>Kirish taqiqlangan!</b>\nUshbu buyruq faqat bot admini uchun.\n\n<i>Debug: UserID=${userId}, AdminID=${adminChatId || 'NOT_SET'}</i>`, { parse_mode: 'HTML' });
     }
 
     try {
