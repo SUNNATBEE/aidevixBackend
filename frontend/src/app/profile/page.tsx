@@ -9,7 +9,7 @@ import { useSubscription } from '@hooks/useSubscription';
 import { fetchUserStats, updateProfileThunk } from '@store/slices/userStatsSlice';
 import { uploadApi } from '@api/uploadApi';
 import { toast } from 'react-hot-toast';
-import { useLang } from '@context/LangContext';
+import { useLang } from '@/context/LangContext';
 import {
   FiEdit2,
   FiMapPin,

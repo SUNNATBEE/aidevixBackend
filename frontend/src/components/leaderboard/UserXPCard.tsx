@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion'
 import { FaFire, FaTrophy } from 'react-icons/fa'
 import { HiSparkles } from 'react-icons/hi2'
-import { useLang } from '@context/LangContext'
+import { useLang } from '@/context/LangContext'
 
 const getLevelName = (lvl, t) => {
   if (!lvl) return t('lb.level.1')

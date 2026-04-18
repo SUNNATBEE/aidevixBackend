@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion'
 import { FaFire, FaMedal } from 'react-icons/fa'
 import { HiTrophy } from 'react-icons/hi2'
-import { useLang } from '@context/LangContext'
+import { useLang } from '@/context/LangContext'
 
 const getLevelName = (lvl, t) => {
   const keys = [1, 5, 10, 15, 20, 25, 30, 35, 40, 50].sort((a,b)=>b-a)

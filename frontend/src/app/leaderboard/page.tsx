@@ -9,7 +9,7 @@ import { FaTrophy } from 'react-icons/fa'
 import api from '@api/axiosInstance'
 import { useUserStats } from '@hooks/useUserStats'
 import { selectUser, selectIsLoggedIn } from '@store/slices/authSlice'
-import { useLang } from '@context/LangContext'
+import { useLang } from '@/context/LangContext'
 import LeaderboardTable from '@components/leaderboard/LeaderboardTable'
 import LevelUpModal from '@components/leaderboard/LevelUpModal'
 

@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 import { IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from 'react-icons/io5';
 import { FiRefreshCcw } from 'react-icons/fi';
 import { forgotPasswordApi } from '@api/forgotPasswordApi';
-import { useLang } from '@context/LangContext';
+import { useLang } from '@/context/LangContext';
 import gsap from 'gsap';
 
 function ResetPasswordContent() {

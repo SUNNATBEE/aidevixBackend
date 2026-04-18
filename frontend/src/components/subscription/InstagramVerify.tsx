@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { IoLogoInstagram, IoCheckmarkCircle, IoCloseCircle, IoWarning } from 'react-icons/io5'
 import toast from 'react-hot-toast'
-import { useLang } from '@context/LangContext'
+import { useLang } from '@/context/LangContext'
 import {
   verifyInstagram,
   selectInstagramSub,

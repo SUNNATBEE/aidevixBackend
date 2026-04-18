@@ -7,7 +7,7 @@ import { IoSearch, IoClose, IoOptions } from 'react-icons/io5'
 import { useCourses } from '@hooks/useCourses'
 import CourseGrid from '@components/courses/CourseGrid'
 import CourseFilter from '@components/courses/CourseFilter'
-import { useLang } from '@context/LangContext'
+import { useLang } from '@/context/LangContext'
 
 function useDebounce(value: any, delay: number) {
   const [d, setD] = useState(value)

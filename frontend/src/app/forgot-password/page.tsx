@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { forgotPasswordApi } from '@api/forgotPasswordApi';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
-import { useLang } from '@context/LangContext';
+import { useLang } from '@/context/LangContext';
 import gsap from 'gsap';
 
 export default function ForgotPasswordPage() {

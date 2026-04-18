@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { selectInstagramSub, selectTelegramSub } from '@store/slices/subscriptionSlice'
 import InstagramVerify from './InstagramVerify'
 import TelegramVerify from './TelegramVerify'
-import { useLang } from '@context/LangContext'
+import { useLang } from '@/context/LangContext'
 
 interface SubscriptionGateProps {
   isOpen: boolean

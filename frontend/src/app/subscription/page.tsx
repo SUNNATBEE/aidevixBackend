@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useSubscription } from '@hooks/useSubscription';
 import TelegramVerify from '@components/subscription/TelegramVerify';
 import InstagramVerify from '@components/subscription/InstagramVerify';
-import { useLang } from '@context/LangContext';
+import { useLang } from '@/context/LangContext';
 
 export default function SubscriptionPage() {
   const { allVerified, telegram, instagram, refetch } = useSubscription();

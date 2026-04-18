@@ -10,7 +10,7 @@ import {
 } from '@store/slices/subscriptionSlice'
 import { subscriptionApi } from '@api/subscriptionApi'
 import { SOCIAL_LINKS } from '@utils/constants'
-import { useLang } from '@context/LangContext'
+import { useLang } from '@/context/LangContext'
 
 const MAX_POLL_ATTEMPTS = 60 // 60 * 3s = 3 daqiqa
 const POLL_INTERVAL = 3000
