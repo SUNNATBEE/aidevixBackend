@@ -281,7 +281,7 @@ async function sendToChannel(botToken, channelUsername, message) {
 let lastPostedDate = null; // Kuniga faqat 1 marta
 
 function startNewsScheduler() {
-  const enabled = process.env.NEWS_ENABLED === 'true';
+  const enabled = process.env.NEWS_ENABLED === 'true' || process.env.SEND_NEWS === 'true';
   if (!enabled) {
     console.log('[News] Yangiliklar scheduler o\'chirilgan (NEWS_ENABLED=true qilib yoqing)');
     return;
