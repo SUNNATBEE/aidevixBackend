@@ -4,6 +4,7 @@ import { setFilter, selectFilters } from '@store/slices/courseSlice'
 import { CATEGORIES, SORT_OPTIONS } from '@utils/constants'
 import { useSound } from '@/context/SoundContext'
 import { useLang } from '@/context/LangContext'
+import { IoStar } from 'react-icons/io5'
 
 export default function CourseFilter() {
   const { t } = useLang()
