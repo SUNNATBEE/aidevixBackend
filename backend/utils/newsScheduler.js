@@ -8,7 +8,7 @@
  *
  * Env vars:
  *   NEWS_ENABLED=true          — yoqish/o'chirish (default: false)
- *   NEWS_HOUR=9                — Toshkent vaqtida soat (default: 9)
+ *   NEWS_HOUR=16               — Toshkent vaqtida soat (default: 16)
  *   NEWS_MAX_ITEMS=5           — nechta yangilik (default: 5)
  */
 
@@ -287,7 +287,7 @@ function startNewsScheduler() {
     return;
   }
 
-  const targetHour = parseInt(process.env.NEWS_HOUR) || 9;
+  const targetHour = parseInt(process.env.NEWS_HOUR) || 16;
   console.log(`[News] 📡 Yangiliklar scheduler ishga tushdi — har kuni soat ${targetHour}:00 (Toshkent vaqti)`);
 
   // Har 30 daqiqada tekshirish (aniqroq vaqtda post qilish uchun)

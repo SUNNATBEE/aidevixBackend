@@ -76,6 +76,7 @@ class AidevixBot {
       if (text.startsWith('/login'))  return this._cmdLogin(chatId, userId, firstName);
       if (text.startsWith('/help'))   return this._cmdHelp(chatId, firstName);
       if (text.startsWith('/stats'))  return this._cmdStats(chatId, userId, firstName);
+      if (text.startsWith('/postnews')) return this._cmdPostNews(chatId, userId);
     }
     // Callback query (inline tugma bosilganda)
     if (update.callback_query) {
@@ -230,6 +231,7 @@ class AidevixBot {
       `🔹 /id — Telegram ID raqamni ko'rish\n` +
       `🔹 /login — Parolsiz saytga kirish\n` +
       `🔹 /stats — O'z statistikangiz\n` +
+      `🔹 /postnews — Yangiliklarni yuborish (Admin)\n` +
       `🔹 /help — Ushbu yordam\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━\n` +
       `🌐 <b>Sayt:</b> aidevix.uz\n` +
@@ -285,6 +287,32 @@ class AidevixBot {
     } catch (error) {
       console.error('Stats error:', error.message);
       await this.sendMessage(chatId, `❌ Statistikani olishda xatolik yuz berdi.`);
+    }
+  }
+
+  /** /postnews — Yangiliklarni kanalga qo'lda jo'natish (Admin) */
+  async _cmdPostNews(chatId, userId) {
+    const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+    
+    // Faqat admin ruxsat berish
+    if (!adminChatId || String(userId) !== String(adminChatId)) {
+      return this.sendMessage(chatId, "⛔ <b>Kirish taqiqlangan!</b>\nUshbu buyruq faqat bot admini uchun.", { parse_mode: 'HTML' });
+    }
+
+    try {
+      await this.sendMessage(chatId, "⏳ <b>Yangiliklar yig'ilmoqda...</b>\nBu 10-20 soniya vaqt olishi mumkin.", { parse_mode: 'HTML' });
+      
+      const { postNewsToChannel } = require('./newsScheduler');
+      const success = await postNewsToChannel();
+
+      if (success) {
+        await this.sendMessage(chatId, "✅ <b>Muvaffaqiyat!</b>\nYangiliklar kanalga muvaffaqiyatli yuborildi.", { parse_mode: 'HTML' });
+      } else {
+        await this.sendMessage(chatId, "⚠️ <b>Natija yo'q:</b>\nBugun yangiliklar topilmadi yoki barcha yangiliklar relevant emas.", { parse_mode: 'HTML' });
+      }
+    } catch (error) {
+      console.error('Manual post news error:', error.message);
+      await this.sendMessage(chatId, `❌ <b>Xato:</b>\n${error.message}`, { parse_mode: 'HTML' });
     }
   }
 
