@@ -21,7 +21,8 @@
     "install:backend": "npm --prefix backend install",
     "install:frontend": "npm --prefix frontend install",
     "install:all": "npm run install:backend && npm run install:frontend",
-    "start": "npm --prefix backend start"
+    "start": "npm --prefix backend start",
+    "build": "echo 'No build step required' && exit 0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
