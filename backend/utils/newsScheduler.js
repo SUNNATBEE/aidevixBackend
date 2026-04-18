@@ -1,10 +1,10 @@
 /**
  * ═══════════════════════════════════════════════════════════════════
- * AIDEVIX PROFESSIONAL NEWS SCHEDULER — AI Powered
+ * AIDEVIX ADVANCED AI NEWS & TIPS SCHEDULER
  * ═══════════════════════════════════════════════════════════════════
  *
- * Kuniga 1 marta professional IT/AI yangilikni AI (Groq) orqali
- * o'zbek tiliga o'girib, rasm bilan @aidevix kanalga yuboradi.
+ * Kuniga 3 marta (10:00, 16:00, 20:00) eng so'nggi AI trendlar,
+ * Claude Code, Vibe Coding va Prompt Engineering bo'yicha maslahatlar yuboradi.
  */
 
 const RssParser = require('rss-parser');
@@ -12,7 +12,7 @@ const axios = require('axios');
 
 const parser = new RssParser({
   timeout: 15000,
-  headers: { 'User-Agent': 'Aidevix-NewsBot/2.0' },
+  headers: { 'User-Agent': 'Aidevix-NewsBot/3.0' },
 });
 
 const RSS_FEEDS = [
@@ -20,153 +20,128 @@ const RSS_FEEDS = [
   { name: 'The Verge AI', url: 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml', category: 'AI' },
   { name: 'Wired AI', url: 'https://www.wired.com/feed/tag/ai/latest/rss', category: 'AI' },
   { name: 'MIT Tech Review', url: 'https://www.technologyreview.com/feed/', category: 'IT' },
+  { name: 'OpenAI Blog', url: 'https://openai.com/news/rss.xml', category: 'AI' },
 ];
 
-/**
- * Matndan rasm linkini ajratib olish
- */
 function extractImage(item) {
   if (item.enclosure && item.enclosure.url) return item.enclosure.url;
-  
   const content = item.content || item.contentSnippet || '';
   const match = content.match(/<img[^>]+src="([^">]+)"/);
   if (match && match[1]) return match[1];
-  
-  // Custom media tags check (for some RSS)
-  if (item['media:content'] && item['media:content'].$) {
-    return item['media:content'].$.url;
-  }
-  
+  if (item['media:content'] && item['media:content'].$) return item['media:content'].$.url;
   return null;
 }
 
-/**
- * HTML teglarni tozalash
- */
 function stripHtml(html) {
   if (!html) return '';
   return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
 }
 
 /**
- * AI orqali professional tarjima qilish (Groq Llama 3)
+ * AI orqali trendlar va Prompt maslahatlar tayyorlash
  */
-async function translateWithAI(item) {
+async function generateAIPost(item) {
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    console.warn('[News] GROQ_API_KEY topilmadi, tarjima qilinmadi.');
-    return null;
-  }
+  if (!apiKey) return null;
 
   try {
-    const prompt = `Siz Aidevix platformasining professional IT jurnalistisiz. 
-    Quyidagi yangilikni o'zbek tiliga professional, qiziqarli va "high-tech" uslubda o'girib bering.
-    Faqat 1 ta eng muhim yangilik haqida gapiring.
+    const prompt = `Siz Aidevix platformasining professional AI va Dasturlash bo'yicha Senior ekspertisiz. 
+    Quyidagi yangilikni tahlil qiling va o'zbek tilida qiziqarli post tayyorlang.
     
-    Inglizcha sarlavha: ${item.title}
-    Inglizcha mazmuni: ${stripHtml(item.contentSnippet || item.content || '').substring(0, 500)}
+    MAVZU YO'NALISHI: Claude Code, AI Agentlar, Vibe Coding, Prompt Engineering yoki eng so'nggi AI trendlar.
     
-    Javobni FAQAT quyidagi JSON formatda bering:
+    Original Yangilik: ${item.title} - ${stripHtml(item.contentSnippet || '').substring(0, 400)}
+    
+    POST TUZILISHI:
+    1. Catchy va "High-tech" o'zbekcha sarlavha.
+    2. Yangilik haqida professional tahlil (Vibe coding yoki trendlar kontekstida).
+    3. 💡 PROMPT TIP: Foydalanuvchi ushbu texnologiyadan foydalanishi uchun 1 ta amaliy prompt maslahati.
+    
+    Javobni FAQAT ushbu JSON formatda bering:
     {
-      "uz_title": "O'zbekcha sarlavha",
-      "uz_summary": "Professional o'zbekcha qisqacha mazmun (250-400 belgi)"
+      "title": "Trend sarlavha",
+      "content": "Professional tahlil matni",
+      "prompt_tip": "💡 Prompt maslahati matni"
     }`;
 
     const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
       model: 'llama-3.3-70b-versatile',
       messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
-      temperature: 0.7
+      response_format: { type: 'json_object' }
     }, {
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' }
+      headers: { 'Authorization': `Bearer ${apiKey}` }
     });
 
     return JSON.parse(response.data.choices[0].message.content);
   } catch (error) {
-    console.error('[News] AI tarjima xatosi:', error.message);
+    console.error('[News] AI Post generation error:', error.message);
     return null;
   }
 }
 
-/**
- * Yangiliklarni yig'ish
- */
 async function fetchLatestNews() {
   const allItems = [];
   for (const feed of RSS_FEEDS) {
     try {
       const parsed = await parser.parseURL(feed.url);
-      const items = (parsed.items || []).map(item => ({
-        title: item.title,
-        content: item.content,
-        contentSnippet: item.contentSnippet,
-        link: item.link,
-        image: extractImage(item),
-        source: feed.name,
-        pubDate: new Date(item.pubDate || Date.now())
-      }));
-      allItems.push(...items);
-    } catch (err) {
-      console.error(`[News] ${feed.name} error:`, err.message);
-    }
+      allItems.push(...(parsed.items || []).map(i => ({
+        title: i.title,
+        content: i.content,
+        contentSnippet: i.contentSnippet,
+        link: i.link,
+        image: extractImage(i),
+        pubDate: new Date(i.pubDate || Date.now())
+      })));
+    } catch (err) {}
   }
-  // Eng yangi va rasmga ega yangilikni tanlash
-  return allItems
-    .filter(i => i.image) // Rasmi borlarini afzal ko'ramiz
-    .sort((a, b) => b.pubDate - a.pubDate);
+  return allItems.sort((a, b) => b.pubDate - a.pubDate);
 }
 
-/**
- * Kanalga yuborish
- */
 async function postNewsToChannel() {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const channel = process.env.TELEGRAM_CHANNEL_USERNAME;
-  
   if (!botToken || !channel) return false;
 
   try {
-    const news = await fetchLatestNews();
-    if (news.length === 0) return false;
+    const newsList = await fetchLatestNews();
+    if (newsList.length === 0) return false;
     
-    const item = news[0]; // Faqat 1 tasi
-    const aiData = await translateWithAI(item);
+    // Kunda 3 marta bo'lgani uchun har xil yangilik olish (time-based index)
+    const now = new Date();
+    const currentHour = (now.getUTCHours() + 5) % 24;
+    let index = 0;
+    if (currentHour >= 15) index = 1;
+    if (currentHour >= 19) index = 2;
     
-    const title = aiData ? aiData.uz_title : item.title;
-    const summary = aiData ? aiData.uz_summary : stripHtml(item.contentSnippet || '').substring(0, 200);
+    const item = newsList[index] || newsList[0];
+    const aiData = await generateAIPost(item);
+    
+    if (!aiData) return false;
 
     const message = 
-      `🔥 <b>${title}</b>\n\n` +
-      `${summary}\n\n` +
-      `🔗 <a href="${item.link}">Batafsil ma'lumot (EN)</a>\n\n` +
+      `🚀 <b>${aiData.title}</b>\n\n` +
+      `${aiData.content}\n\n` +
+      `${aiData.prompt_tip}\n\n` +
+      `🔗 <a href="${item.link}">To'liq o'qish</a>\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `🚀 <b>Aidevix</b> — Kelajak texnologiyalari markazi\n` +
-      `🌐 <a href="https://aidevix.uz">aidevix.uz</a> | @aidevix_bot\n\n` +
-      `#it #ai #texnologiya #yangiliklar`;
+      `🚀 <b>Aidevix</b> — Kelajak bilan birga bo'ling\n` +
+      `🌐 aidevix.uz | @aidevix_bot\n\n` +
+      `#ai #claudecode #vibecoding #prompt #yangiliklar`;
 
     const chatId = channel.startsWith('@') ? channel : `@${channel}`;
-
-    // Rasm bilan yuborish
+    
     if (item.image) {
       await axios.post(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-        chat_id: chatId,
-        photo: item.image,
-        caption: message,
-        parse_mode: 'HTML'
+        chat_id: chatId, photo: item.image, caption: message, parse_mode: 'HTML'
       });
     } else {
       await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        chat_id: chatId,
-        text: message,
-        parse_mode: 'HTML',
-        disable_web_page_preview: false
+        chat_id: chatId, text: message, parse_mode: 'HTML', disable_web_page_preview: false
       });
     }
-
-    console.log('[News] ✅ Professional yangilik yuborildi');
     return true;
   } catch (error) {
-    console.error('[News] Post xatosi:', error.response?.data || error.message);
+    console.error('[News] Post error:', error.message);
     return false;
   }
 }
@@ -175,33 +150,32 @@ function startNewsScheduler() {
   const enabled = process.env.NEWS_ENABLED === 'true' || process.env.SEND_NEWS === 'true';
   if (!enabled) return;
 
-  const targetHour = parseInt(process.env.NEWS_HOUR) || 16;
-  console.log(`[News] 📡 AI News Scheduler ishga tushdi — soat ${targetHour}:00`);
+  const scheduleHours = [10, 16, 20]; // Kuniga 3 marta
+  console.log(`[News] 📡 Kunlik 3 talik AI News ishga tushdi: ${scheduleHours.join(':00, ')}:00`);
 
-  let lastPostedDate = null;
+  let lastPostedDatePlusHour = '';
 
   setInterval(async () => {
     const now = new Date();
     const tashkentHour = (now.getUTCHours() + 5) % 24;
     const todayStr = now.toISOString().split('T')[0];
+    const currentSlot = `${todayStr}-${tashkentHour}`;
 
-    if (tashkentHour === targetHour && lastPostedDate !== todayStr) {
-      lastPostedDate = todayStr;
+    if (scheduleHours.includes(tashkentHour) && lastPostedDatePlusHour !== currentSlot) {
+      lastPostedDatePlusHour = currentSlot;
       await postNewsToChannel();
     }
-  }, 15 * 60 * 1000); // Har 15 daqiqada tekshirish
+  }, 10 * 60 * 1000); // Har 10 daqiqada tekshirish
 
   // Server restart debug
   setTimeout(async () => {
     const now = new Date();
     const tashkentHour = (now.getUTCHours() + 5) % 24;
     const todayStr = now.toISOString().split('T')[0];
-    if (tashkentHour >= targetHour && lastPostedDate !== todayStr) {
-       lastPostedDate = todayStr;
-       console.log('[News] Professional yangilik yuborilmoqda...');
-       await postNewsToChannel();
+    if (scheduleHours.some(h => tashkentHour >= h) && lastPostedDatePlusHour !== `${todayStr}-${tashkentHour}`) {
+       // Manual postnews or restart-logic can be here
     }
-  }, 10000);
+  }, 5000);
 }
 
 module.exports = { startNewsScheduler, postNewsToChannel };
