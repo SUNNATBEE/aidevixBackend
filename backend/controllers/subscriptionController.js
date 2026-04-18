@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const VerifyToken = require('../models/VerifyToken');
+const crypto = require('crypto');
 const { verifyInstagramSubscription, verifyTelegramSubscription, checkTelegramSubscription } = require('../utils/socialVerification');
 
 // Verify Instagram subscription
@@ -122,10 +124,23 @@ const verifyTelegram = async (req, res) => {
   }
 };
 
-// Get subscription status
+// Get subscription status (with real-time Telegram re-check)
 const getSubscriptionStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
+    const telegramData = user.socialSubscriptions?.telegram;
+    const telegramId = user.telegramUserId || telegramData?.telegramUserId;
+
+    // Agar Telegram oldin tasdiqlangan bo'lsa, real-time tekshiramiz
+    if (telegramData?.subscribed && telegramId) {
+      const result = await checkTelegramSubscription(telegramId);
+      // Faqat aniq "not subscribed" bo'lgandagina o'chiramiz, API xatoda DB qiymatini saqlaymiz
+      if (result.checked && !result.subscribed) {
+        user.socialSubscriptions.telegram.subscribed = false;
+        user.socialSubscriptions.telegram.verifiedAt = null;
+        await user.save();
+      }
+    }
 
     res.json({
       success: true,
@@ -162,12 +177,12 @@ const getRealtimeStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     const telegramId = user.telegramUserId || user.socialSubscriptions?.telegram?.telegramUserId;
-    const telegramOk = await checkTelegramSubscription(telegramId);
+    const result = await checkTelegramSubscription(telegramId);
     const instagramOk = user.socialSubscriptions?.instagram?.subscribed || false;
     res.json({
       success: true,
       data: {
-        telegram: telegramOk,
+        telegram: result.subscribed,
         instagram: instagramOk,
         telegramUserId: telegramId || null,
       },
@@ -177,10 +192,128 @@ const getRealtimeStatus = async (req, res) => {
   }
 };
 
+// ═══════════════════════════════════════════════════════════════
+// Avtomatik Telegram bog'lash uchun token yaratish (MongoDB persistent)
+// ═══════════════════════════════════════════════════════════════
+const generateVerifyToken = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Avvalgi tokenlarni o'chirish (shu user uchun)
+    await VerifyToken.deleteMany({ userId });
+
+    // Yangi token yaratish
+    const token = crypto.randomBytes(16).toString('hex');
+    await VerifyToken.create({ token, userId });
+
+    res.json({
+      success: true,
+      data: { token, botUsername: process.env.TELEGRAM_BOT_USERNAME || 'aidevix_bot' },
+    });
+  } catch (err) {
+    console.error('generateVerifyToken error:', err.message);
+    res.status(500).json({ success: false, message: 'Token yaratishda xato' });
+  }
+};
+
+// Bot tomonidan chaqiriladigan — tokenni Telegram ID bilan bog'lash
+const linkTelegramByToken = async (token, telegramUserId, telegramUsername) => {
+  try {
+    const entry = await VerifyToken.findOne({ token });
+    if (!entry) return false;
+
+    const user = await User.findById(entry.userId);
+    if (!user) return false;
+
+    // Telegram ID ni saqlash
+    user.telegramUserId = String(telegramUserId);
+    user.telegramChatId = String(telegramUserId);
+    user.socialSubscriptions.telegram.telegramUserId = String(telegramUserId);
+    user.socialSubscriptions.telegram.username = telegramUsername || 'telegram_user';
+
+    // Kanalga obuna bormi darhol tekshirish
+    const subResult = await checkTelegramSubscription(String(telegramUserId));
+    if (subResult.subscribed) {
+      user.socialSubscriptions.telegram.subscribed = true;
+      user.socialSubscriptions.telegram.verifiedAt = new Date();
+
+      // Admin bildirishnoma
+      try {
+        const { getBot } = require('../utils/telegramBot');
+        const bot = getBot();
+        if (bot) bot.notifySubscriptionVerified(user, 'telegram');
+      } catch (_) {}
+    }
+
+    await user.save();
+
+    // Tokenni "linked" qilib belgilash (polling uchun)
+    entry.linked = true;
+    entry.telegramUserId = String(telegramUserId);
+    entry.telegramUsername = telegramUsername;
+    await entry.save();
+
+    return true;
+  } catch (err) {
+    console.error('linkTelegramByToken error:', err.message);
+    return false;
+  }
+};
+
+// Frontend polling uchun — token bog'landimi va kanal obunasi bormi
+const checkVerifyToken = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const telegramId = user.telegramUserId || user.socialSubscriptions?.telegram?.telegramUserId;
+
+    if (!telegramId) {
+      // Token linked bo'lganini tekshirish (DB dan)
+      const pendingToken = await VerifyToken.findOne({ userId: user._id, linked: true });
+      if (pendingToken) {
+        // Token linked, lekin user hali saqlanmagan (race condition)
+        return res.json({ success: true, data: { linked: true, subscribed: false } });
+      }
+      return res.json({ success: true, data: { linked: false, subscribed: false } });
+    }
+
+    // Telegram kanalga obuna bormi tekshirish
+    const subResult = await checkTelegramSubscription(telegramId);
+
+    // Agar obuna bo'lsa DB ni yangilash
+    if (subResult.subscribed && !user.socialSubscriptions.telegram.subscribed) {
+      user.socialSubscriptions.telegram.subscribed = true;
+      user.socialSubscriptions.telegram.verifiedAt = new Date();
+      await user.save();
+
+      // Admin bildirishnoma
+      try {
+        const { getBot } = require('../utils/telegramBot');
+        const bot = getBot();
+        if (bot) bot.notifySubscriptionVerified(user, 'telegram');
+      } catch (_) {}
+    }
+
+    res.json({
+      success: true,
+      data: {
+        linked: true,
+        subscribed: subResult.subscribed,
+        telegram: user.socialSubscriptions.telegram,
+      },
+    });
+  } catch (err) {
+    console.error('checkVerifyToken error:', err.message);
+    res.status(500).json({ success: false, message: 'Tekshirishda xato' });
+  }
+};
+
 module.exports = {
   verifyInstagram,
   verifyTelegram,
   getSubscriptionStatus,
   setTelegramId,
   getRealtimeStatus,
+  generateVerifyToken,
+  linkTelegramByToken,
+  checkVerifyToken,
 };

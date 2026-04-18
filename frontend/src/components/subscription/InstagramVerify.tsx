@@ -113,7 +113,7 @@ export default function InstagramVerify({
 
   if (instagram?.subscribed) {
     return (
-      <div className="glass-card border border-success/30 p-6 rounded-xl">
+      <div className="glass-card border border-success/30 p-6 rounded-xl space-y-4">
         <div className="flex items-center gap-4">
           <IoCheckmarkCircle className="text-3xl text-success" />
           <div>
@@ -121,6 +121,12 @@ export default function InstagramVerify({
             <p className="text-zinc-400">@{instagram.username}</p>
           </div>
         </div>
+        <button
+          onClick={onVideoAccess}
+          className="w-full p-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
+        >
+          Keyingi qadam (Telegram) →
+        </button>
       </div>
     )
   }

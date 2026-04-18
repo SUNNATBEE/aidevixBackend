@@ -9,6 +9,7 @@ const {
   generateResetToken, 
   verifyResetToken 
 } = require('../utils/jwt');
+const crypto = require('crypto');
 const validator = require('validator');
 const { sendWelcomeEmail, sendResetCodeEmail } = require('../utils/emailService');
 const {
@@ -51,8 +52,6 @@ const sanitizeUser = (user) => ({
 });
 
 // @desc    Register new user
-const crypto = require('crypto');
-
 const register = asyncHandler(async (req, res, next) => {
   const { username, email, password, firstName, lastName, referralCode } = req.body;
   const normalizedEmail = normalizeEmail(email);
@@ -92,6 +91,15 @@ const register = asyncHandler(async (req, res, next) => {
       referrer.rankTitle = calculateRank(referrer.xp);
       referrer.referralsCount = (referrer.referralsCount || 0) + 1;
       await referrer.save();
+
+      // Referrer statsini ham yangilash
+      let referrerStats = await UserStats.findOne({ userId: referrer._id });
+      if (referrerStats) {
+        referrerStats.xp = (referrerStats.xp || 0) + 1000;
+        referrerStats.weeklyXp = (referrerStats.weeklyXp || 0) + 1000;
+        referrerStats.level = referrerStats.calculateLevel();
+        await referrerStats.save();
+      }
     }
   }
 
@@ -117,7 +125,7 @@ const register = asyncHandler(async (req, res, next) => {
   attachAuthCookies(res, accessToken, refreshToken);
 
   // Background
-  UserStats.create({ userId: user._id }).catch(() => {});
+  UserStats.create({ userId: user._id, xp: user.xp, weeklyXp: user.xp }).catch(() => {});
   sendWelcomeEmail(user.email, user.username).catch(() => {});
 
   // Telegram admin bildirishnoma
@@ -214,7 +222,6 @@ const getMe = asyncHandler(async (req, res, next) => {
   let user = await User.findById(req.user._id);
   
   if (!user.referralCode) {
-    const crypto = require('crypto');
     const newReferralCode = user.username.substring(0, 4).toUpperCase() + crypto.randomBytes(2).toString('hex').toUpperCase();
     user.referralCode = newReferralCode;
     await user.save();
@@ -271,15 +278,45 @@ const claimDailyReward = asyncHandler(async (req, res, next) => {
   }
 
   user.xp = (user.xp || 0) + 50
-  user.streak = (user.streak || 0) + 1
   user.lastClaimedDaily = now
   user.rankTitle = calculateRank(user.xp)
   await user.save()
 
-  res.json({ 
-    success: true, 
-    message: 'Kunlik mukofot qabul qilindi (+50 XP)', 
-    xp: user.xp, 
+  // UserStats ga ham XP qo'shish (leaderboard uchun)
+  let stats = await UserStats.findOne({ userId: user._id })
+  if (!stats) {
+    stats = await UserStats.create({ userId: user._id })
+  }
+  stats.xp += 50
+  stats.weeklyXp = (stats.weeklyXp || 0) + 50
+  stats.level = stats.calculateLevel()
+
+  // Streak yangilash
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (stats.lastActivityDate) {
+    const last = new Date(stats.lastActivityDate)
+    last.setHours(0, 0, 0, 0)
+    const diffDays = Math.floor((today - last) / (1000 * 60 * 60 * 24))
+    if (diffDays === 1) {
+      stats.streak += 1
+    } else if (diffDays > 1) {
+      stats.streak = 1
+    }
+  } else {
+    stats.streak = 1
+  }
+  stats.lastActivityDate = new Date()
+  await stats.save()
+
+  // User streak ni stats bilan sinxronlash
+  user.streak = stats.streak
+  await user.save()
+
+  res.json({
+    success: true,
+    message: 'Kunlik mukofot qabul qilindi (+50 XP)',
+    xp: user.xp,
     streak: user.streak,
     lastClaimedDaily: user.lastClaimedDaily
   })

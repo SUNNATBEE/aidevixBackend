@@ -31,9 +31,9 @@ export default function ClientLayoutWrapper({
     '/forgot-password',
     '/verify-code',
     '/reset-password',
-  ].includes(pathname || '');
+  ].includes(pathname || '') || (pathname || '').startsWith('/admin');
   const showAmbientWidgets = pathname === '/' || pathname?.startsWith('/courses');
-
+  
   useEffect(() => {
     if (!isMounted || hideLayout) {
       setShowEnhancements(false);

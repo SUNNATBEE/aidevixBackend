@@ -1,14 +1,9 @@
 const axios = require('axios');
 
 /**
- * Verify Instagram subscription (Real-time check)
- * Note: Instagram API requires proper setup and authentication
- * This is a placeholder - you'll need to implement based on your Instagram API setup
- */
-/**
  * Verify Instagram subscription (Professional Soft-Check Implementation)
- * Since direct Instagram followers API is heavily restricted, we use a 
- * "Soft-Verification" approach: If a username is provided, we tentatively 
+ * Since direct Instagram followers API is heavily restricted, we use a
+ * "Soft-Verification" approach: If a username is provided, we tentatively
  * mark as subscribed but store verification metadata for admin audit.
  */
 const verifyInstagramSubscription = async (username, userId) => {
@@ -80,20 +75,20 @@ const verifyTelegramSubscription = async (telegramUsername, telegramUserId, chan
           chat_id: `@${channelUsername}`,
           user_id: telegramUserId,
         },
+        timeout: 10000,
       }
     );
-    
+
     const status = response.data.result?.status;
     const isSubscribed = ['member', 'administrator', 'creator'].includes(status);
-    
+
     return {
       subscribed: isSubscribed,
       username: telegramUsername,
       verifiedAt: isSubscribed ? new Date() : null,
     };
   } catch (error) {
-    console.error('Telegram verification error:', error);
-    // If user is not found or not a member, API returns error
+    console.error('Telegram verification error:', error.message);
     return {
       subscribed: false,
       username: telegramUsername,
@@ -122,49 +117,63 @@ const checkTelegramSubscriptionRealTime = async (telegramUserId, channelUsername
           chat_id: `@${channelUsername}`,
           user_id: telegramUserId,
         },
+        timeout: 10000,
       }
     );
 
     const status = response.data.result?.status;
     const isSubscribed = ['member', 'administrator', 'creator'].includes(status);
-    
+
     return isSubscribed;
   } catch (error) {
-    console.error('Real-time Telegram check error:', error);
-    // If user is not found or not a member, API returns error
-    // In this case, user is not subscribed
+    console.error('Real-time Telegram check error:', error.message);
     return false;
   }
 };
 
 /**
  * Telegram obunasini ikki kanal uchun tekshirish
- * Xato bo'lsa false qaytaradi (exception otmaydi)
+ * API xato va "not subscribed" ni farqlaydi
+ * @returns {{ subscribed: boolean, checked: boolean }}
+ *   checked=true  — API muvaffaqiyatli javob berdi (natija ishonchli)
+ *   checked=false — API xato berdi (network, timeout) — DB fallback ishlatish kerak
  */
 const checkTelegramSubscription = async (telegramUserId) => {
-  if (!telegramUserId) return false;
+  if (!telegramUserId) return { subscribed: false, checked: false };
   try {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    if (!botToken) return false;
+    if (!botToken) return { subscribed: false, checked: false };
 
     const channels = [
       process.env.TELEGRAM_CHANNEL_USERNAME,
       process.env.TELEGRAM_PRIVATE_CHANNEL_USERNAME,
     ].filter(Boolean);
 
+    if (channels.length === 0) return { subscribed: false, checked: false };
+
     for (const channel of channels) {
       const response = await axios.get(
         `https://api.telegram.org/bot${botToken}/getChatMember`,
-        { params: { chat_id: `@${channel}`, user_id: telegramUserId } }
+        {
+          params: { chat_id: `@${channel}`, user_id: telegramUserId },
+          timeout: 10000,
+        }
       );
-      if (!response.data.ok) return false;
+      if (!response.data.ok) return { subscribed: false, checked: true };
       const status = response.data.result?.status;
-      if (!['member', 'administrator', 'creator'].includes(status)) return false;
+      if (!['member', 'administrator', 'creator'].includes(status)) {
+        return { subscribed: false, checked: true };
+      }
     }
-    return true;
+    return { subscribed: true, checked: true };
   } catch (err) {
+    // Telegram API "user not found" xatosi — bu aniq not subscribed
+    if (err.response?.status === 400) {
+      return { subscribed: false, checked: true };
+    }
+    // Network/timeout xatosi — ishonchli emas, DB fallback kerak
     console.error('Telegram check error:', err.message);
-    return false;
+    return { subscribed: false, checked: false };
   }
 };
 

@@ -410,6 +410,7 @@ module.exports = {
   getTopCourses,
   getCategories,
   getRecommendedCourses,
+  getUserRecommendedCourses,
   getAutocomplete,
   getFilterCounts,
   createCourse,

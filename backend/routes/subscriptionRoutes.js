@@ -19,5 +19,7 @@ router.post('/verify-telegram', authenticate, verifyTelegram);
 router.get('/status', authenticate, getSubscriptionStatus);
 router.get('/realtime-status', authenticate, getRealtimeStatus);
 router.post('/set-telegram-id', authenticate, setTelegramId);
+router.get('/generate-token', authenticate, require('../controllers/subscriptionController').generateVerifyToken);
+router.get('/check-token', authenticate, require('../controllers/subscriptionController').checkVerifyToken);
 
 module.exports = router;

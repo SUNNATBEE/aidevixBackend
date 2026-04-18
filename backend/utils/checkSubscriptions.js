@@ -38,10 +38,17 @@ const performSubscriptionCheck = async (user) => {
     const telegramUserId = user.socialSubscriptions.telegram.telegramUserId || null;
 
     if (telegramUserId && channelUsername) {
-      telegramSubscribed = await checkTelegramSubscriptionRealTime(
-        telegramUserId,
-        channelUsername
-      );
+      try {
+        const isSubscribed = await checkTelegramSubscriptionRealTime(
+          telegramUserId,
+          channelUsername
+        );
+        telegramSubscribed = isSubscribed;
+      } catch (err) {
+        // API xato bo'lsa DB qiymatini saqlaymiz (foydalanuvchini nohaq bloklash emas)
+        console.error('Telegram real-time check failed, using DB fallback:', err.message);
+        telegramSubscribed = user.socialSubscriptions.telegram.subscribed;
+      }
     } else {
       telegramSubscribed = user.socialSubscriptions.telegram.subscribed;
     }

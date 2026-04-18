@@ -1,24 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { FaTelegram } from 'react-icons/fa'
-import { IoCheckmarkCircle, IoCloseCircle } from 'react-icons/io5'
+import { FaTelegram, FaRobot, FaCheckCircle, FaSpinner } from 'react-icons/fa'
+import { IoCheckmarkCircle, IoCloseCircle, IoInformationCircle } from 'react-icons/io5'
 import toast from 'react-hot-toast'
 import {
-  verifyTelegram,
+  fetchSubscriptionStatus,
   selectTelegramSub,
   selectSubLoading,
 } from '@store/slices/subscriptionSlice'
+import { subscriptionApi } from '@api/subscriptionApi'
 import { SOCIAL_LINKS } from '@utils/constants'
 
-interface TelegramState {
-  subscribed: boolean
-  username: string
-}
-
-interface CheckResult {
-  isSubscribed: boolean
-  message: string
-}
+const MAX_POLL_ATTEMPTS = 60 // 60 * 3s = 3 daqiqa
+const POLL_INTERVAL = 3000
 
 interface TelegramVerifyProps {
   onTelegramVerified?: () => void
@@ -26,161 +20,213 @@ interface TelegramVerifyProps {
 
 export default function TelegramVerify({ onTelegramVerified }: TelegramVerifyProps): JSX.Element {
   const dispatch = useDispatch()
-  const telegram = useSelector(selectTelegramSub) as TelegramState
-  const loading = useSelector(selectSubLoading) as boolean
-  const [inputUserId, setInputUserId] = useState<string>('')
-  const [checkResult, setCheckResult] = useState<CheckResult | null>(null)
-  const [isChecking, setIsChecking] = useState<boolean>(false)
+  const telegram = useSelector(selectTelegramSub)
+  const loading = useSelector(selectSubLoading)
 
-  const checkTelegramSubscription = async (): Promise<void> => {
-    if (!inputUserId.trim()) {
-      toast.error('Telegram User ID ni kiriting')
-      return
+  const [isAutoChecking, setIsAutoChecking] = useState(false)
+  const [verifyData, setVerifyData] = useState<{ token: string; botUsername: string } | null>(null)
+  const [status, setStatus] = useState<{ linked: boolean; subscribed: boolean }>({ linked: false, subscribed: false })
+  const [pollCount, setPollCount] = useState(0)
+  const [pollError, setPollError] = useState<string | null>(null)
+
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pollCountRef = useRef(0)
+  const mountedRef = useRef(true)
+
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
     }
+  }, [])
 
-    const cleanUserId = inputUserId.trim()
-    setIsChecking(true)
-    setCheckResult(null)
-
+  // Token yaratish va botni ochish
+  const startAutoVerify = async () => {
     try {
-      const data = await (dispatch as any)(verifyTelegram({
-        telegramUserId: cleanUserId,
-        username: 'telegram_user',
-      })).unwrap()
+      setPollError(null)
+      setIsAutoChecking(true)
+      pollCountRef.current = 0
+      setPollCount(0)
 
-      if (data?.telegram?.subscribed) {
-        setCheckResult({
-          isSubscribed: true,
-          message: `ID: ${cleanUserId} Aidevix kanaliga obuna bo'lgan`,
-        })
-        toast.success('Obuna tasdiqlandi!')
-      } else {
-        setCheckResult({
-          isSubscribed: false,
-          message: `ID: ${cleanUserId} hali kanalga obuna bo'lmagan`,
-        })
-        toast.error('Obuna topilmadi. Iltimos, avval kanalga obuna bo\'ling')
+      const res = await subscriptionApi.generateToken()
+      if (res.data.success) {
+        setVerifyData(res.data.data)
+        // Botni ochish
+        const botUrl = `https://t.me/${res.data.data.botUsername}?start=${res.data.data.token}`
+        window.open(botUrl, '_blank')
+
+        // Pollingni boshlash
+        startPolling()
       }
-    } catch (error) {
-      console.error('Telegram API error:', error)
-      setCheckResult({
-        isSubscribed: false,
-        message: 'Server bilan bog\'lanishda muammo yuz berdi',
-      })
-      toast.error('Internet aloqasini tekshiring')
-    } finally {
-      setIsChecking(false)
+    } catch (err) {
+      toast.error('Token yaratishda xato yuz berdi')
+      setIsAutoChecking(false)
     }
   }
 
-  const handleVerify = async (): Promise<void> => {
-    if (!checkResult?.isSubscribed) {
-      toast.error('Avval obunani tekshiring')
-      return
-    }
+  const startPolling = () => {
+    stopPolling()
 
-    toast.success('Barcha obunalar muvaffaqiyatli tasdiqlandi!')
+    pollingRef.current = setInterval(async () => {
+      if (!mountedRef.current) {
+        stopPolling()
+        return
+      }
 
-    if (onTelegramVerified) {
-      onTelegramVerified()
-    }
+      pollCountRef.current += 1
+      setPollCount(pollCountRef.current)
+
+      // Maksimal urinishlar soni
+      if (pollCountRef.current >= MAX_POLL_ATTEMPTS) {
+        stopPolling()
+        setIsAutoChecking(false)
+        setPollError('Vaqt tugadi. Qaytadan urinib ko\'ring.')
+        toast.error('Vaqt tugadi. Iltimos, qaytadan urinib ko\'ring.')
+        return
+      }
+
+      try {
+        const res = await subscriptionApi.checkToken()
+        if (res.data.success) {
+          const { linked, subscribed } = res.data.data
+          setStatus({ linked, subscribed })
+
+          if (linked && subscribed) {
+            stopPolling()
+            setIsAutoChecking(false)
+            toast.success('Telegram muvaffaqiyatli tasdiqlandi!')
+            // Redux stateni yangilash
+            await dispatch(fetchSubscriptionStatus() as any)
+            if (onTelegramVerified) onTelegramVerified()
+          }
+        }
+      } catch (err) {
+        console.error('Polling error:', err)
+      }
+    }, POLL_INTERVAL)
   }
 
-  if (telegram?.subscribed) {
+  // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      stopPolling()
+    }
+  }, [stopPolling])
+
+  // Qayta urinish
+  const handleRetry = () => {
+    setPollError(null)
+    setStatus({ linked: false, subscribed: false })
+    setVerifyData(null)
+    startAutoVerify()
+  }
+
+  if (telegram?.subscribed || status.subscribed) {
     return (
-      <div className="glass-card border border-emerald-500/30 p-6 rounded-xl bg-emerald-500/5">
-        <div className="flex items-center gap-4">
-          <IoCheckmarkCircle className="text-3xl text-emerald-500" />
-          <div>
-            <h3 className="text-lg font-semibold text-white">Telegram hozir tasdiqlangan</h3>
-            <p className="text-zinc-400">Darslarni ko'rishda davom eting</p>
-          </div>
+      <div className="glass-card border border-emerald-500/30 p-8 rounded-2xl bg-emerald-500/5 text-center space-y-4">
+        <IoCheckmarkCircle className="text-6xl text-emerald-500 mx-auto" />
+        <div>
+          <h3 className="text-xl font-bold text-white">Telegram tasdiqlandi</h3>
+          <p className="text-zinc-400 mt-2">Endi darslarni ko'rishda davom etishga tayyorsiz!</p>
         </div>
+        <button
+          onClick={onTelegramVerified}
+          className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl transition-all shadow-xl shadow-emerald-500/20"
+        >
+          DAVOM ETTIRISH →
+        </button>
       </div>
     )
   }
 
   return (
-    <div className="glass-card p-6 rounded-xl space-y-6 bg-[#1a1c26] border border-white/5 shadow-2xl">
-      <div className="text-center space-y-2">
-        <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
-          <FaTelegram className="text-3xl text-blue-400" />
+    <div className="glass-card p-6 rounded-2xl space-y-6 bg-[#1a1c26] border border-white/5 shadow-2xl overflow-hidden relative">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
+
+      <div className="text-center space-y-3 relative z-10">
+        <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-blue-500/20 rotate-3">
+          <FaTelegram className="text-4xl text-white -rotate-3" />
         </div>
-        <h3 className="text-xl font-bold text-white">Telegram Verifikatsiya</h3>
-        <p className="text-sm text-zinc-400">Telegram kanalimizga obuna bo'lishingiz shart</p>
+        <h3 className="text-2xl font-black text-white tracking-tight">Telegram Verifikatsiya</h3>
+        <p className="text-sm text-zinc-400 max-w-xs mx-auto">Avtomatik tizim orqali 10 soniyada tasdiqlang</p>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex gap-4">
-          <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold shrink-0">1</div>
-          <div className="space-y-2 flex-1">
-            <p className="text-sm text-zinc-200 font-medium">Kanalga obuna bo'ling</p>
-            <a
-              href={SOCIAL_LINKS.telegram}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition-all shadow-lg shadow-blue-500/20"
-            >
-              KANALNI OCHISH →
-            </a>
+      <div className="space-y-4 relative z-10">
+        {/* Step 1: Subscribe */}
+        <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center gap-4 group hover:bg-white/10 transition-all">
+          <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold shrink-0 border border-blue-500/20">1</div>
+          <div className="flex-1">
+            <p className="text-sm text-zinc-200 font-bold">Kanalga obuna bo'ling</p>
+            <p className="text-xs text-zinc-500">Aidevix yangiliklarini o'tkazib yubormang</p>
           </div>
+          <a
+            href={SOCIAL_LINKS.telegram}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 bg-blue-500 text-white text-[10px] font-black rounded-lg hover:bg-blue-400 transition-all"
+          >
+            A'ZO BO'LISH
+          </a>
         </div>
 
-        <div className="flex gap-4">
-          <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold shrink-0">2</div>
-          <div className="space-y-2 flex-1">
-            <p className="text-sm text-zinc-200 font-medium">ID raqamingizni oling</p>
-            <div className="p-3 bg-zinc-900/50 rounded-lg border border-white/5">
-              <p className="text-xs text-zinc-400 italic">
-                Botimizga <code className="text-blue-400">/id</code> yoki <code className="text-blue-400">/start</code> yozing:
+        {/* Step 2: Auto Link */}
+        <div className={`p-5 border-2 rounded-2xl transition-all ${
+          status.linked ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-blue-500/5 border-blue-500/20'
+        }`}>
+          <div className="flex items-start gap-4">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border ${
+              status.linked ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-blue-500/20 border-blue-500/40 text-blue-400'
+            }`}>
+              {status.linked ? <FaCheckCircle /> : '2'}
+            </div>
+            <div className="flex-1">
+              <p className={`text-sm font-bold ${status.linked ? 'text-emerald-400' : 'text-zinc-200'}`}>
+                {status.linked ? 'Telegram bog\'landi' : 'Akkauntni ulaning'}
               </p>
-              <div className="mt-3 flex items-center gap-2">
-                <a href="https://t.me/aidevix_bot" target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-400 hover:underline">@aidevix_bot</a>
-              </div>
+              {!status.linked ? (
+                <button
+                  onClick={pollError ? handleRetry : startAutoVerify}
+                  disabled={isAutoChecking}
+                  className="mt-3 w-full py-3 bg-white text-black font-black text-xs rounded-xl hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-xl shadow-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isAutoChecking ? <FaSpinner className="animate-spin" /> : <FaRobot />}
+                  {pollError ? 'QAYTADAN URINISH' : 'BOT ORQALI BOG\'LASH'}
+                </button>
+              ) : (
+                <p className="text-xs text-emerald-500/70 mt-1 font-medium italic">Sizning Telegram ID aniqlandi</p>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="flex gap-4">
-          <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold shrink-0">3</div>
-          <div className="space-y-3 flex-1">
-            <p className="text-sm text-zinc-200 font-medium">ID ni kiriting</p>
-            <input
-              type="text"
-              placeholder="Masalan: 12345678"
-              value={inputUserId}
-              onChange={(e) => setInputUserId(e.target.value)}
-              className="w-full p-3 bg-zinc-900 border border-white/10 rounded-xl text-white placeholder-zinc-600 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
-            />
-
-            <button
-              onClick={checkTelegramSubscription}
-              disabled={isChecking || loading || !inputUserId.trim()}
-              className="w-full p-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              {isChecking || loading ? 'Tekshirilmoqda...' : 'OBUNANI TEKSHIRISH'}
-            </button>
-
-            {checkResult && (
-              <div className={`p-4 rounded-xl border flex items-center gap-3 ${
-                checkResult.isSubscribed
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                  : 'bg-red-500/10 border-red-500/20 text-red-400'
-              }`}>
-                {checkResult.isSubscribed ? <IoCheckmarkCircle className="text-xl" /> : <IoCloseCircle className="text-xl" />}
-                <span className="text-xs font-bold uppercase tracking-wider">{checkResult.message}</span>
-              </div>
-            )}
-
-            {checkResult?.isSubscribed && (
-              <button
-                onClick={handleVerify}
-                className="w-full p-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-blue-600/30"
-              >
-                TASDIQLASH VA DAVOM ETTIRISH
-              </button>
-            )}
+        {/* Status Indicator while waiting */}
+        {isAutoChecking && !status.subscribed && (
+          <div className="flex items-center justify-center gap-3 p-4 bg-zinc-900/50 rounded-xl border border-white/5">
+            <FaSpinner className="animate-spin text-blue-400" />
+            <div className="text-center">
+              <p className="text-xs text-zinc-400 font-medium">
+                {status.linked ? 'Kanal obunasi tekshirilmoqda...' : 'Botdan tasdiqlashingizni kutyapman...'}
+              </p>
+              <p className="text-[10px] text-zinc-600 mt-1">
+                {Math.max(0, Math.floor((MAX_POLL_ATTEMPTS - pollCount) * POLL_INTERVAL / 1000))} soniya qoldi
+              </p>
+            </div>
           </div>
+        )}
+
+        {/* Error state */}
+        {pollError && (
+          <div className="flex items-center gap-3 p-4 bg-red-500/10 rounded-xl border border-red-500/20">
+            <IoCloseCircle className="text-red-400 text-lg shrink-0" />
+            <p className="text-xs text-red-400 font-medium">{pollError}</p>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 px-2 text-[10px] text-zinc-500">
+          <IoInformationCircle className="text-sm shrink-0" />
+          <p>Botga o'tib <b>"START"</b> tugmasini bosishingiz kifoya, qolganini tizim o'zi bajaradi.</p>
         </div>
       </div>
     </div>

@@ -6,7 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:headed": "npx playwright test --headed",
+    "test:e2e:chromium": "npx playwright test --project=chromium",
+    "test:e2e:firefox": "npx playwright test --project=firefox",
+    "test:e2e:webkit": "npx playwright test --project=webkit",
+    "test:e2e:mobile": "npx playwright test --project=mobile-chrome --project=mobile-safari",
+    "test:e2e:report": "npx playwright show-report e2e/playwright-report",
+    "test:e2e:debug": "npx playwright test --debug"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -28,13 +37,12 @@
     "react-hook-form": "^7.53.0",
     "react-hot-toast": "^2.4.1",
     "react-icons": "^5.3.0",
-    "react-player": "^2.16.0",
-    "react-query": "^3.39.3",
     "react-redux": "^9.1.2",
     "swiper": "^11.1.12",
     "three": "^0.168.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

@@ -14,4 +14,10 @@ export const subscriptionApi = {
 
   /** GET /subscriptions/realtime-status - real-time check */
   check: () => api.get('subscriptions/realtime-status'),
+
+  /** GET /subscriptions/generate-token - generate verification token */
+  generateToken: () => api.get('subscriptions/generate-token'),
+
+  /** GET /subscriptions/check-token - poll for linking status */
+  checkToken: () => api.get('subscriptions/check-token'),
 }
