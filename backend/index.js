@@ -21,6 +21,9 @@ app.set('trust proxy', 1);
 connectDB().then(() => {
   const { initTelegramBot } = require('./utils/telegramBot');
   initTelegramBot();
+
+  const { startNewsScheduler } = require('./utils/newsScheduler');
+  startNewsScheduler();
 }).catch(err => {
   console.error('Failed to connect to database on startup');
   process.exit(1);

@@ -50,6 +50,21 @@ const subscriptionSlice = createSlice({
   initialState,
   reducers: {
     clearSubError: (state) => { state.error = null },
+    resetSubscription: (state, action) => {
+      const subs = action.payload?.subscriptions
+      if (subs) {
+        if (subs.instagram === false) {
+          state.instagram = { subscribed: false, username: state.instagram.username, verifiedAt: null }
+        }
+        if (subs.telegram === false) {
+          state.telegram = { subscribed: false, username: state.telegram.username, verifiedAt: null }
+        }
+      } else {
+        state.telegram  = { subscribed: false, username: state.telegram.username, verifiedAt: null }
+        state.instagram = { subscribed: false, username: state.instagram.username, verifiedAt: null }
+      }
+      state.allVerified = !!(state.telegram.subscribed && state.instagram.subscribed)
+    },
   },
   extraReducers: (builder) => {
     const setStatus = (state, action) => {
@@ -84,7 +99,7 @@ const subscriptionSlice = createSlice({
   },
 })
 
-export const { clearSubError } = subscriptionSlice.actions
+export const { clearSubError, resetSubscription } = subscriptionSlice.actions
 export default subscriptionSlice.reducer
 
 // Selectors

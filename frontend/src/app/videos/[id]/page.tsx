@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
 import { IoPlay, IoTime, IoEye, IoLockClosed, IoArrowBack, IoCodeSlash, IoStar } from 'react-icons/io5';
 import { selectIsLoggedIn } from '@/store/slices/authSlice';
-import { selectInstagramSub } from '@/store/slices/subscriptionSlice';
+import { selectInstagramSub, selectTelegramSub } from '@/store/slices/subscriptionSlice';
 import { useVideos } from '@hooks/useVideos';
 import { formatDuration } from '@utils/formatDuration';
 import { ROUTES } from '@utils/constants';
@@ -16,18 +16,28 @@ export default function VideoPage() {
   const { id }: { id: string } = useParams();
   const router = useRouter();
   const { current: video, videoLink, loading, error, fetchById } = useVideos();
-  const [modalOpen, setModalOpen] = useState(false);
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const instagram = useSelector(selectInstagramSub);
+  const telegram = useSelector(selectTelegramSub);
+  const isSubscribed = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed);
   const [showModal, setShowModal] = useState<boolean>(false);
+  const wasSubscribedRef = useRef(isSubscribed);
 
   useEffect(() => {
     if (id) fetchById(id);
   }, [id]);
 
+  // Obuna bekor qilinganda avtomatik gate ochish
+  useEffect(() => {
+    if (wasSubscribedRef.current && !isSubscribed && isLoggedIn) {
+      setShowModal(true);
+    }
+    wasSubscribedRef.current = isSubscribed;
+  }, [isSubscribed, isLoggedIn]);
+
   const handleVideoClick = (e: React.MouseEvent) => {
-    // Agar foydalanuvchi login qilmagan yoki Instagram tasdiqlanmagan bo'lsa
-    if (!isLoggedIn || !instagram?.subscribed) {
+    // Agar foydalanuvchi login qilmagan yoki obuna bo'lmagan bo'lsa
+    if (!isSubscribed) {
       e.preventDefault();
       setShowModal(true);
     }
@@ -116,7 +126,7 @@ export default function VideoPage() {
             Ushbu darsni ko&apos;rish uchun quyidagi tugmani bosing va biz taqdim etgan havola orqali videoga o&apos;ting.
           </p>
 
-          {videoLink && (isLoggedIn && instagram?.subscribed) ? (
+          {videoLink && isSubscribed ? (
              <a 
                href={videoLink.telegramLink} 
                target="_blank" 

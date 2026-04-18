@@ -135,6 +135,7 @@ export default function CourseDetailPage() {
   const telegram       = useSelector(selectTelegramSub)
   const isSubscribed   = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed)
   const [showGate, setShowGate] = useState(false)
+  const [showSubscribedModal, setShowSubscribedModal] = useState(false)
 
   if (loading) return <Skeleton />
   if (!course)  return null
@@ -149,8 +150,8 @@ export default function CourseDetailPage() {
   const catColor       = CAT_TEXT[course.category] || 'text-violet-400'
 
   const handleWatch = () => {
-    if (isSubscribed && courseVideos.length > 0) {
-      window.location.href = ROUTES.VIDEO(courseVideos[0]._id)
+    if (isSubscribed) {
+      setShowSubscribedModal(true)
     } else {
       setShowGate(true)
     }
@@ -401,11 +402,49 @@ export default function CourseDetailPage() {
         onClose={() => setShowGate(false)}
         onSuccess={() => {
           setShowGate(false)
-          if (courseVideos.length > 0) {
-            window.location.href = ROUTES.VIDEO(courseVideos[0]._id)
-          }
+          setShowSubscribedModal(true)
         }}
       />
+
+      {/* Obuna bo'lgan user uchun modal */}
+      {showSubscribedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowSubscribedModal(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative w-full max-w-sm mx-auto bg-base-200 rounded-2xl border border-base-content/10 p-6 text-center space-y-4"
+          >
+            <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
+              <IoCheckmarkCircle className="text-emerald-400 text-3xl" />
+            </div>
+            <h3 className="text-lg font-bold text-base-content">Siz obuna bo'lgansiz!</h3>
+            <p className="text-sm text-base-content/50">
+              Barcha obunalar tasdiqlangan. Videolarni ko'rishingiz mumkin.
+            </p>
+            <div className="flex flex-col gap-2 pt-2">
+              {courseVideos.length > 0 && (
+                <button
+                  onClick={() => window.location.href = ROUTES.VIDEO(courseVideos[0]._id)}
+                  className="btn btn-primary btn-block rounded-xl font-bold gap-2"
+                >
+                  <IoPlay className="text-base" />
+                  Video ko'rish
+                </button>
+              )}
+              <button
+                onClick={() => setShowSubscribedModal(false)}
+                className="btn btn-ghost btn-sm rounded-xl text-base-content/50"
+              >
+                Yopish
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }
