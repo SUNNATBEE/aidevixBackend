@@ -1,6 +1,6 @@
 const {
   checkInstagramSubscriptionRealTime,
-  checkTelegramSubscriptionRealTime,
+  checkTelegramSubscription,
 } = require('./socialVerification');
 
 /**
@@ -32,21 +32,18 @@ const performSubscriptionCheck = async (user) => {
     }
   }
 
-  // Telegram: real-time check if telegramUserId available, else DB fallback
+  // Telegram: public kanalni real-time tekshirish
   if (user.socialSubscriptions.telegram.username) {
-    const channelUsername = process.env.TELEGRAM_CHANNEL_USERNAME;
     const telegramUserId = user.socialSubscriptions.telegram.telegramUserId || null;
 
-    if (telegramUserId && channelUsername) {
-      try {
-        const isSubscribed = await checkTelegramSubscriptionRealTime(
-          telegramUserId,
-          channelUsername
-        );
-        telegramSubscribed = isSubscribed;
-      } catch (err) {
+    if (telegramUserId) {
+      const result = await checkTelegramSubscription(telegramUserId);
+      if (result.checked) {
+        // API muvaffaqiyatli javob berdi — natija ishonchli
+        telegramSubscribed = result.subscribed;
+      } else {
         // API xato bo'lsa DB qiymatini saqlaymiz (foydalanuvchini nohaq bloklash emas)
-        console.error('Telegram real-time check failed, using DB fallback:', err.message);
+        console.error('Telegram real-time check failed, using DB fallback');
         telegramSubscribed = user.socialSubscriptions.telegram.subscribed;
       }
     } else {

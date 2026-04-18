@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSelector } from 'react-redux'
 import { IoClose } from 'react-icons/io5'
 import toast from 'react-hot-toast'
@@ -22,6 +22,8 @@ export default function SubscriptionGate({
   const instagram = useSelector(selectInstagramSub)
   const telegram = useSelector(selectTelegramSub)
   const successCalledRef = useRef(false)
+  const onSuccessRef = useRef(onSuccess)
+  onSuccessRef.current = onSuccess
 
   // Qaysi obuna yo'qligini aniqlash
   const needsInstagram = !instagram?.subscribed
@@ -47,11 +49,11 @@ export default function SubscriptionGate({
 
   // Agar ikkala obuna ham tasdiqlangan bo'lsa, modal yopiladi (faqat bir marta)
   useEffect(() => {
-    if (instagram?.subscribed && telegram?.subscribed && onSuccess && !successCalledRef.current) {
+    if (isOpen && instagram?.subscribed && telegram?.subscribed && onSuccessRef.current && !successCalledRef.current) {
       successCalledRef.current = true
-      onSuccess()
+      onSuccessRef.current()
     }
-  }, [instagram?.subscribed, telegram?.subscribed, onSuccess])
+  }, [isOpen, instagram?.subscribed, telegram?.subscribed])
 
   if (!isOpen) return null
   if (instagram?.subscribed && telegram?.subscribed) return null

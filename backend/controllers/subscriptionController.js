@@ -131,14 +131,22 @@ const getSubscriptionStatus = async (req, res) => {
     const telegramData = user.socialSubscriptions?.telegram;
     const telegramId = user.telegramUserId || telegramData?.telegramUserId;
 
-    // Agar Telegram oldin tasdiqlangan bo'lsa, real-time tekshiramiz
-    if (telegramData?.subscribed && telegramId) {
+    // Telegram ID mavjud bo'lsa, har doim real-time tekshiramiz
+    if (telegramId) {
       const result = await checkTelegramSubscription(telegramId);
-      // Faqat aniq "not subscribed" bo'lgandagina o'chiramiz, API xatoda DB qiymatini saqlaymiz
-      if (result.checked && !result.subscribed) {
-        user.socialSubscriptions.telegram.subscribed = false;
-        user.socialSubscriptions.telegram.verifiedAt = null;
-        await user.save();
+      if (result.checked) {
+        const wasSubscribed = telegramData?.subscribed;
+        if (wasSubscribed && !result.subscribed) {
+          // Obuna bekor qilingan — DB ni yangilash
+          user.socialSubscriptions.telegram.subscribed = false;
+          user.socialSubscriptions.telegram.verifiedAt = null;
+          await user.save();
+        } else if (!wasSubscribed && result.subscribed) {
+          // Qayta obuna bo'lgan — DB ni yangilash
+          user.socialSubscriptions.telegram.subscribed = true;
+          user.socialSubscriptions.telegram.verifiedAt = new Date();
+          await user.save();
+        }
       }
     }
 
@@ -280,7 +288,7 @@ const checkVerifyToken = async (req, res) => {
     const subResult = await checkTelegramSubscription(telegramId);
 
     // Agar obuna bo'lsa DB ni yangilash
-    if (subResult.subscribed && !user.socialSubscriptions.telegram.subscribed) {
+    if (subResult.checked && subResult.subscribed && !user.socialSubscriptions.telegram.subscribed) {
       user.socialSubscriptions.telegram.subscribed = true;
       user.socialSubscriptions.telegram.verifiedAt = new Date();
       await user.save();
@@ -293,11 +301,16 @@ const checkVerifyToken = async (req, res) => {
       } catch (_) {}
     }
 
+    // API xato bo'lsa (checked=false) — DB dagi qiymatni qaytarish
+    const isSubscribed = subResult.checked
+      ? subResult.subscribed
+      : user.socialSubscriptions.telegram.subscribed;
+
     res.json({
       success: true,
       data: {
         linked: true,
-        subscribed: subResult.subscribed,
+        subscribed: isSubscribed,
         telegram: user.socialSubscriptions.telegram,
       },
     });

@@ -25,32 +25,48 @@ const buildSuggestions = (message: string): string[] => {
 
   if (/auth|login|kirish|register|token|session|cookie/.test(text)) {
     return [
-      'Auth flow ni cookie + `/api/auth/me` bilan tekshir.',
-      '401 response bo`lsa refresh flow ishlayotganini tekshir.',
-      'Frontend storage va backend cookie nomlari bir xil ekanini tekshir.',
+      'Auth flow qanday ishlaydi?',
+      '401 xato chiqyapti, nima qilishim kerak?',
+      'Cookie va token farqi nima?',
     ];
   }
 
   if (/theme|dark|light|mode|ui/.test(text)) {
     return [
-      'Root elementga theme class qo`llanayotganini tekshir.',
-      'Theme state faqat local state emas, global contextdan o`tsin.',
-      'Page reloaddan keyin `localStorage` dan tiklanishini tekshir.',
+      'Dark mode qo\'shish kerak',
+      'Theme global state orqali boshqarish',
+      'Tailwind dark mode sozlash',
     ];
   }
 
-  if (/lang|til|language|locale|i18n/.test(text)) {
+  if (/react|component|hook|state|redux/.test(text)) {
     return [
-      'Lang provider `html lang` va route-level renderingga ulanib tursin.',
-      'Translations faqat navbar emas, barcha sectionsga context orqali berilsin.',
-      'Fallback translation key yo`qolsa default til ishlasin.',
+      'React hook misolini ko\'rsat',
+      'Redux Toolkit qanday ishlaydi?',
+      'React video darslar',
+    ];
+  }
+
+  if (/node|express|backend|api|server/.test(text)) {
+    return [
+      'Node.js kurslarni ko\'rsat',
+      'Express middleware nima?',
+      'REST API qanday yaratiladi?',
+    ];
+  }
+
+  if (/kurs|course|video|dars|lesson/.test(text)) {
+    return [
+      'Qanday kurslar bor?',
+      'Bepul kurslar bormi?',
+      'React kursni ko\'rsat',
     ];
   }
 
   return [
-    'Muammoni 1 ta component, 1 ta state, 1 ta API flow ga bo`lib tekshir.',
-    'Console va Network tabda 401/404/500 ni alohida ajrat.',
-    'Agar server yo`q bo`lsa, UI da local fallback javobni qoldir.',
+    'Qanday kurslar bor?',
+    'React o\'rganmoqchiman',
+    'Kod yozishda yordam ber',
   ];
 };
 
@@ -59,22 +75,50 @@ export const generateCoachReply = (message: string): CoachReply => {
 
   if (!text) {
     return {
-      reply: 'Savol bo`sh. Qisqa qilib yozing: qaysi sahifa, qaysi xato va nimani kutgansiz.',
-      suggestions: ['Masalan: "auth login 401 qaytaryapti"', 'Masalan: "dark mode home pagega ta`sir qilmayapti"'],
+      reply: 'Savolingizni yozing — kurs, video yoki kodlash bo\'yicha yordam beraman.',
+      suggestions: ['Qanday kurslar bor?', 'React o\'rganmoqchiman'],
     };
   }
 
-  if (/salom|hello|hi|assalomu/.test(text)) {
+  if (/salom|hello|hi|assalomu|hey/.test(text)) {
     return {
-      reply: 'Salom. Men sizga UI, auth yoki backend flow bo`yicha amaliy yo`l beraman. Muammoni aniq yozing, men keyingi qadamni aytaman.',
+      reply: 'Salom! Men Aidevix AI ustozingizman. Sizga kurs topish, video dars ko\'rish yoki kodlashda yordam bera olaman. Nima haqida qiziqasiz?',
       suggestions: buildSuggestions(message),
     };
   }
 
-  if (/coach|assistant|reply|javob/.test(text)) {
+  if (/kurs|course/.test(text)) {
     return {
-      reply: 'Coach assistant hozir backendga bog`lanmagan bo`lsa ham, lokal fallback javob qaytaradi. Endi siz yozgan savolga mos tavsiya beraman.',
-      suggestions: buildSuggestions(message),
+      reply: 'Aidevix da turli kurslar mavjud — React, Node.js, JavaScript va boshqalar. Qaysi texnologiya sizni qiziqtiradi? Aniq yozsangiz, mos kurslarni topib beraman.',
+      suggestions: ['React kurslarni ko\'rsat', 'Node.js kurslar', 'Bepul kurslar bormi?'],
+    };
+  }
+
+  if (/video|dars|lesson|tutorial/.test(text)) {
+    return {
+      reply: 'Video darslar har bir kurs ichida mavjud. Qaysi mavzu bo\'yicha video qidiryapsiz? Masalan: "React video darslar" yoki "JavaScript asoslari" deb yozing.',
+      suggestions: ['React video darslar', 'JavaScript asoslari', 'Node.js darslar'],
+    };
+  }
+
+  if (/react/.test(text)) {
+    return {
+      reply: 'React — eng mashhur frontend kutubxona. Componentlar, hooks, state management (Redux) va boshqalarni o\'rganishingiz kerak. Aidevix da React kursi bor — boshlashni tavsiya qilaman.',
+      suggestions: ['React kursini ko\'rsat', 'React hooks nima?', 'Redux qanday ishlaydi?'],
+    };
+  }
+
+  if (/node|express|backend/.test(text)) {
+    return {
+      reply: 'Node.js + Express — backend uchun eng mashhur stack. REST API, middleware, database (MongoDB) bilan ishlashni o\'rganish kerak. Aidevix da Node.js kursi bor.',
+      suggestions: ['Node.js kursini ko\'rsat', 'Express middleware nima?', 'MongoDB asoslari'],
+    };
+  }
+
+  if (/javascript|js/.test(text)) {
+    return {
+      reply: 'JavaScript — web dasturlashning asosi. Variables, functions, async/await, DOM va ES6+ sintaksisini yaxshi bilish kerak. Boshlang\'ich darajadan boshlaymizmi?',
+      suggestions: ['JavaScript video darslar', 'ES6 nima?', 'Async/await tushuntiring'],
     };
   }
 
@@ -85,22 +129,22 @@ export const generateCoachReply = (message: string): CoachReply => {
     };
   }
 
-  if (/theme|dark|light|mode|ui/.test(text)) {
+  if (/obuna|subscribe|telegram|kanal/.test(text)) {
     return {
-      reply: 'Theme odatda faqat bitta componentda ishlatilganda butun saytga ta`sir qilmaydi. Root konteyner va global context orqali class qo`yish kerak.',
-      suggestions: buildSuggestions(message),
+      reply: 'Kurslarni ko\'rish uchun @aidevix Telegram kanaliga obuna bo\'lish kerak. Saytda "Telegram orqali bog\'lanish" tugmasini bosing va bot orqali akkauntni bog\'lang.',
+      suggestions: ['Obuna qanday tekshiriladi?', 'Bot ishlamayapti', 'Kurslarni ko\'rsat'],
     };
   }
 
-  if (/lang|til|language|locale|i18n/.test(text)) {
+  if (/xp|level|daraja|ball|coin/.test(text)) {
     return {
-      reply: 'Til almashish faqat navbarni emas, layout va barcha child componentlarni context orqali re-render qilishi kerak. html lang ham yangilanishi lozim.',
-      suggestions: buildSuggestions(message),
+      reply: 'Aidevix da XP tizimi bor — video ko\'rish, quiz yechish va har kunlik kirish uchun XP olasiz. Leaderboard da eng faol o\'quvchilar ko\'rinadi.',
+      suggestions: ['Leaderboard ko\'rsat', 'Qanday XP olish mumkin?', 'Sertifikat olish'],
     };
   }
 
   return {
-    reply: 'Muammoni qisqartirib beraman: avval user flow, keyin state flow, undan keyin API flow. Shu tartibda tekshirsangiz, xato tez topiladi.',
+    reply: 'Savolingizni tushundim. Aniqroq ma\'lumot bering — qaysi mavzu, qaysi muammo? Men kurs topib beraman, video dars ko\'rsataman yoki kodlashda yordam beraman.',
     suggestions: buildSuggestions(message),
   };
 };

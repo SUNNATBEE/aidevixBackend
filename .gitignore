@@ -55,6 +55,9 @@ debug.log
 coverage/
 .nyc_output/
 
+# News scheduler cache
+.sent_news.json
+
 # Temporary files
 *.tmp
 *.temp

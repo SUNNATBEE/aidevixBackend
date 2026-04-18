@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { FiGift, FiX } from 'react-icons/fi';
 import gsap from 'gsap';
@@ -9,6 +9,8 @@ import { useAuth } from '@hooks/useAuth';
 import { updateUser } from '@store/slices/authSlice';
 import { sounds } from '@utils/sounds';
 import { useLang } from '@/context/LangContext';
+
+const SESSION_KEY = 'daily_reward_dismissed';
 
 const isClaimAvailableToday = (lastClaimedDaily?: string | null) => {
   if (!lastClaimedDaily) {
@@ -20,7 +22,29 @@ const isClaimAvailableToday = (lastClaimedDaily?: string | null) => {
     return true;
   }
 
-  return new Date().toDateString() !== lastClaim.toDateString();
+  // UTC kun bo'yicha solishtirish (backend bilan bir xil)
+  const todayUTC = new Date().toISOString().slice(0, 10);
+  const lastClaimUTC = lastClaim.toISOString().slice(0, 10);
+  return todayUTC !== lastClaimUTC;
+};
+
+const isDismissedThisSession = () => {
+  try {
+    const val = sessionStorage.getItem(SESSION_KEY);
+    if (!val) return false;
+    // Bugungi kun uchun dismiss qilinganini tekshirish
+    return val === new Date().toISOString().slice(0, 10);
+  } catch {
+    return false;
+  }
+};
+
+const markDismissed = () => {
+  try {
+    sessionStorage.setItem(SESSION_KEY, new Date().toISOString().slice(0, 10));
+  } catch {
+    // sessionStorage not available
+  }
 };
 
 export default function DailyRewardModal() {
@@ -29,11 +53,16 @@ export default function DailyRewardModal() {
   const { t } = useLang();
   const [show, setShow] = useState(false);
   const [rewardClaimed, setRewardClaimed] = useState(false);
+  const [claiming, setClaiming] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!isLoggedIn || !isClaimAvailableToday(user?.lastClaimedDaily)) {
+    if (
+      !isLoggedIn ||
+      !isClaimAvailableToday(user?.lastClaimedDaily) ||
+      isDismissedThisSession()
+    ) {
       setShow(false);
       return;
     }
@@ -58,7 +87,8 @@ export default function DailyRewardModal() {
     );
   }, [show]);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
+    markDismissed();
     if (modalRef.current) {
       gsap.to(modalRef.current, {
         opacity: 0,
@@ -69,16 +99,18 @@ export default function DailyRewardModal() {
     }
 
     setShow(false);
-  };
+  }, []);
 
   const handleClaim = async () => {
-    if (rewardClaimed) {
+    if (rewardClaimed || claiming) {
       return;
     }
 
+    setClaiming(true);
     try {
       const { data } = await api.post('/auth/daily-reward');
       setRewardClaimed(true);
+      markDismissed();
       sounds.coin();
 
       dispatch(
@@ -102,6 +134,8 @@ export default function DailyRewardModal() {
     } catch (error) {
       console.error(error);
       closeModal();
+    } finally {
+      setClaiming(false);
     }
   };
 
@@ -141,7 +175,8 @@ export default function DailyRewardModal() {
         ) : (
           <button
             onClick={handleClaim}
-            className="w-full rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 py-4 text-lg font-black text-black shadow-[0_0_20px_rgba(252,211,77,0.4)] transition-transform active:scale-95 hover:to-yellow-400"
+            disabled={claiming}
+            className="w-full rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 py-4 text-lg font-black text-black shadow-[0_0_20px_rgba(252,211,77,0.4)] transition-transform active:scale-95 hover:to-yellow-400 disabled:opacity-60"
           >
             {t('daily.claim')}
           </button>

@@ -80,7 +80,6 @@ export default function InstagramVerify({
       return
     }
 
-    toast.success('Instagram obuna tasdiqlandi!')
     setInputUsername('')
     setCheckResult(null)
 

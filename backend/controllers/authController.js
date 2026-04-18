@@ -265,15 +265,14 @@ const claimDailyReward = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.user._id)
   const now = new Date()
 
-  // 24 soat o'tganini tekshirish
+  // Bugun allaqachon olganini tekshirish (UTC kun bo'yicha)
   if (user.lastClaimedDaily) {
     const lastClaim = new Date(user.lastClaimedDaily)
-    const diffMs = now.getTime() - lastClaim.getTime()
-    const diffHours = diffMs / (1000 * 60 * 60)
+    const todayUTC = now.toISOString().slice(0, 10)
+    const lastClaimUTC = lastClaim.toISOString().slice(0, 10)
 
-    if (diffHours < 24) {
-      const waitHours = Math.ceil(24 - diffHours)
-      return next(new ErrorResponse(`Bugun mukofot olib bo'ldingiz. Iltimos, yana ${waitHours} soatdan keyin urunib ko'ring.`, 400))
+    if (todayUTC === lastClaimUTC) {
+      return next(new ErrorResponse('Bugun mukofot allaqachon olingan. Ertaga qayta urunib ko\'ring.', 400))
     }
   }
 

@@ -42,6 +42,7 @@ export default function TelegramVerify({ onTelegramVerified }: TelegramVerifyPro
 
   // Token yaratish va botni ochish
   const startAutoVerify = async () => {
+    if (isAutoChecking) return // Allaqachon tekshirilmoqda — ikkinchi marta bosishni oldini olish
     try {
       setPollError(null)
       setIsAutoChecking(true)

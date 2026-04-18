@@ -1,181 +1,158 @@
 const axios = require('axios');
 
+// ─── Telegram Bot API bilan ishlash uchun yordamchi ───────────────────────────
+
+const VALID_MEMBER_STATUSES = ['member', 'administrator', 'creator'];
+
 /**
- * Verify Instagram subscription (Professional Soft-Check Implementation)
- * Since direct Instagram followers API is heavily restricted, we use a
- * "Soft-Verification" approach: If a username is provided, we tentatively
- * mark as subscribed but store verification metadata for admin audit.
+ * Telegram Bot API orqali foydalanuvchi kanalda a'zo ekanligini tekshiradi.
+ * @param {string} botToken
+ * @param {string} chatId   — "@username" yoki numeric "-100..."
+ * @param {string|number} userId
+ * @returns {Promise<{isMember: boolean, status: string|null}>}
+ */
+const getChatMemberStatus = async (botToken, chatId, userId) => {
+  const { data } = await axios.get(
+    `https://api.telegram.org/bot${botToken}/getChatMember`,
+    {
+      params: { chat_id: chatId, user_id: userId },
+      timeout: 10000,
+    }
+  );
+
+  const status = data.result?.status || null;
+  return {
+    isMember: VALID_MEMBER_STATUSES.includes(status),
+    status,
+  };
+};
+
+// ─── Instagram ────────────────────────────────────────────────────────────────
+
+/**
+ * Instagram obunasini soft-verify qilish.
+ * Instagram API cheklovlari sababli haqiqiy tekshiruv imkonsiz —
+ * username berilsa, tasdiqlanadi va admin audit uchun metadata saqlanadi.
  */
 const verifyInstagramSubscription = async (username, userId) => {
-  try {
-    if (!username || username.length < 3) {
-      return { subscribed: false, username: null, verifiedAt: null };
-    }
-
-    return {
-      subscribed: true, // Soft-verification orqali vaqtinchalik tasdiqlaymiz
-      username: username.trim().toLowerCase(),
-      verifiedAt: new Date(),
-      verificationSource: 'soft_check'
-    };
-  } catch (error) {
-    console.error('Instagram verification error:', error);
-    return { subscribed: false, username, verifiedAt: null };
+  if (!username || username.trim().length < 3) {
+    return { subscribed: false, username: null, verifiedAt: null };
   }
+
+  return {
+    subscribed: true,
+    username: username.trim().toLowerCase(),
+    verifiedAt: new Date(),
+    verificationSource: 'soft_check',
+  };
 };
 
 /**
- * Real-time Instagram subscription check
+ * Instagram real-time tekshiruvi (soft-check — har doim true).
  */
-const checkInstagramSubscriptionRealTime = async (username, userId) => {
-  try {
-    if (!username) return false;
-    return true; // Aslida API cheklovlari borligi sabab soft-check true beramiz
-  } catch (error) {
-    console.error('Real-time Instagram check error:', error);
-    return false;
-  }
+const checkInstagramSubscriptionRealTime = async (username) => {
+  return !!username;
 };
 
+// ─── Telegram ─────────────────────────────────────────────────────────────────
+
 /**
- * Verify Telegram subscription
- * Note: Telegram Bot API can check if user is member of a channel
+ * Telegram obunasini birinchi marta verify qilish (bitta kanal).
+ * Foydalanuvchi ro'yxatdan o'tganda yoki verify-telegram endpoint chaqirilganda.
  */
 const verifyTelegramSubscription = async (telegramUsername, telegramUserId, channelUsername) => {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) {
+    console.warn('[TG Verify] TELEGRAM_BOT_TOKEN sozlanmagan');
+    return { subscribed: false, username: telegramUsername, verifiedAt: null };
+  }
+
+  const channel = channelUsername || process.env.TELEGRAM_CHANNEL_USERNAME;
+  if (!channel) {
+    console.warn('[TG Verify] TELEGRAM_CHANNEL_USERNAME sozlanmagan');
+    return { subscribed: false, username: telegramUsername, verifiedAt: null };
+  }
+
   try {
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    if (!botToken) {
-      console.warn('TELEGRAM_BOT_TOKEN not set');
-      return {
-        subscribed: false,
-        username: telegramUsername,
-        verifiedAt: null,
-      };
-    }
-
-    // Use real-time check to verify subscription
-    if (!channelUsername) {
-      channelUsername = process.env.TELEGRAM_CHANNEL_USERNAME;
-    }
-
-    if (!channelUsername) {
-      console.warn('TELEGRAM_CHANNEL_USERNAME not set');
-      return {
-        subscribed: false,
-        username: telegramUsername,
-        verifiedAt: null,
-      };
-    }
-
-    // Real-time verification using Telegram Bot API
-    const response = await axios.get(
-      `https://api.telegram.org/bot${botToken}/getChatMember`,
-      {
-        params: {
-          chat_id: `@${channelUsername}`,
-          user_id: telegramUserId,
-        },
-        timeout: 10000,
-      }
-    );
-
-    const status = response.data.result?.status;
-    const isSubscribed = ['member', 'administrator', 'creator'].includes(status);
+    const chatId = /^-?\d+$/.test(channel) ? channel : `@${channel}`;
+    const { isMember } = await getChatMemberStatus(botToken, chatId, telegramUserId);
 
     return {
-      subscribed: isSubscribed,
+      subscribed: isMember,
       username: telegramUsername,
-      verifiedAt: isSubscribed ? new Date() : null,
+      verifiedAt: isMember ? new Date() : null,
     };
   } catch (error) {
-    console.error('Telegram verification error:', error.message);
-    return {
-      subscribed: false,
-      username: telegramUsername,
-      verifiedAt: null,
-    };
+    console.error('[TG Verify] Xatolik:', error.message);
+    return { subscribed: false, username: telegramUsername, verifiedAt: null };
   }
 };
 
 /**
- * Real-time Telegram subscription check
- * This function should be called every time before allowing video access
+ * Real-time Telegram subscription check (bitta kanal, boolean).
+ * Video access oldidan chaqiriladi.
  */
 const checkTelegramSubscriptionRealTime = async (telegramUserId, channelUsername) => {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) return false;
+
   try {
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    if (!botToken) {
-      console.warn('TELEGRAM_BOT_TOKEN not set');
-      return false;
-    }
-
-    // Real-time check using Telegram Bot API
-    const response = await axios.get(
-      `https://api.telegram.org/bot${botToken}/getChatMember`,
-      {
-        params: {
-          chat_id: `@${channelUsername}`,
-          user_id: telegramUserId,
-        },
-        timeout: 10000,
-      }
-    );
-
-    const status = response.data.result?.status;
-    const isSubscribed = ['member', 'administrator', 'creator'].includes(status);
-
-    return isSubscribed;
-  } catch (error) {
-    console.error('Real-time Telegram check error:', error.message);
+    const chatId = /^-?\d+$/.test(channelUsername) ? channelUsername : `@${channelUsername}`;
+    const { isMember } = await getChatMemberStatus(botToken, chatId, telegramUserId);
+    return isMember;
+  } catch {
     return false;
   }
 };
 
 /**
- * Telegram obunasini ikki kanal uchun tekshirish
- * API xato va "not subscribed" ni farqlaydi
- * @returns {{ subscribed: boolean, checked: boolean }}
- *   checked=true  — API muvaffaqiyatli javob berdi (natija ishonchli)
- *   checked=false — API xato berdi (network, timeout) — DB fallback ishlatish kerak
+ * Telegram obunasini public kanal uchun real-time tekshirish.
+ *
+ * API xato va "not subscribed" ni aniq farqlaydi:
+ *   checked = true  → API javob berdi, natija ishonchli
+ *   checked = false → API xato (network/timeout), DB fallback kerak
+ *
+ * @param {string|number} telegramUserId
+ * @returns {Promise<{subscribed: boolean, checked: boolean}>}
  */
 const checkTelegramSubscription = async (telegramUserId) => {
   if (!telegramUserId) return { subscribed: false, checked: false };
+
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) {
+    console.warn('[TG Check] TELEGRAM_BOT_TOKEN sozlanmagan');
+    return { subscribed: false, checked: false };
+  }
+
+  const channel = process.env.TELEGRAM_CHANNEL_USERNAME;
+  if (!channel) {
+    console.warn('[TG Check] TELEGRAM_CHANNEL_USERNAME sozlanmagan');
+    return { subscribed: false, checked: false };
+  }
+
   try {
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    if (!botToken) return { subscribed: false, checked: false };
+    const chatId = /^-?\d+$/.test(channel) ? channel : `@${channel}`;
+    const { isMember, status } = await getChatMemberStatus(botToken, chatId, telegramUserId);
 
-    const channels = [
-      process.env.TELEGRAM_CHANNEL_USERNAME,
-      process.env.TELEGRAM_PRIVATE_CHANNEL_USERNAME,
-    ].filter(Boolean);
-
-    if (channels.length === 0) return { subscribed: false, checked: false };
-
-    for (const channel of channels) {
-      const response = await axios.get(
-        `https://api.telegram.org/bot${botToken}/getChatMember`,
-        {
-          params: { chat_id: `@${channel}`, user_id: telegramUserId },
-          timeout: 10000,
-        }
-      );
-      if (!response.data.ok) return { subscribed: false, checked: true };
-      const status = response.data.result?.status;
-      if (!['member', 'administrator', 'creator'].includes(status)) {
-        return { subscribed: false, checked: true };
-      }
+    if (!isMember) {
+      console.log(`[TG Check] User ${telegramUserId} — status: ${status} (not subscribed)`);
     }
-    return { subscribed: true, checked: true };
+
+    return { subscribed: isMember, checked: true };
   } catch (err) {
-    // Telegram API "user not found" xatosi — bu aniq not subscribed
+    // 400 = user not found / kicked — aniq not subscribed
     if (err.response?.status === 400) {
+      console.log(`[TG Check] User ${telegramUserId} — API 400 (not found in channel)`);
       return { subscribed: false, checked: true };
     }
-    // Network/timeout xatosi — ishonchli emas, DB fallback kerak
-    console.error('Telegram check error:', err.message);
+
+    // Network / timeout — ishonchli emas, DB fallback ishlatiladi
+    console.error('[TG Check] API xatolik:', err.message);
     return { subscribed: false, checked: false };
   }
 };
+
+// ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
   verifyInstagramSubscription,

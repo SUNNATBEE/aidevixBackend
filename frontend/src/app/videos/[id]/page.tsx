@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useSelector } from 'react-redux';
 import { IoPlay, IoTime, IoEye, IoArrowBack, IoCodeSlash, IoStar, IoDocumentText } from 'react-icons/io5';
 import { selectIsLoggedIn } from '@/store/slices/authSlice';
-import { selectInstagramSub } from '@/store/slices/subscriptionSlice';
+import { selectInstagramSub, selectTelegramSub } from '@/store/slices/subscriptionSlice';
 import { useVideos } from '@hooks/useVideos';
 import { useSubscription } from '@hooks/useSubscription';
 import { formatDuration } from '@utils/formatDuration';
@@ -17,6 +17,7 @@ export default function VideoPage() {
   const { id }: { id: string } = useParams();
   const router = useRouter();
   const { current: video, videoLink, loading, error, fetchById } = useVideos();
+<<<<<<< HEAD
   useSubscription();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const instagram = useSelector(selectInstagramSub);
@@ -26,11 +27,20 @@ export default function VideoPage() {
   // Progress tracking: har 10 soniyada POST /api/videos/{id}/progress
   const watchedSecondsRef = useRef<number>(0);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+=======
+  const isLoggedIn = useSelector(selectIsLoggedIn);
+  const instagram = useSelector(selectInstagramSub);
+  const telegram = useSelector(selectTelegramSub);
+  const isSubscribed = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const wasSubscribedRef = useRef(isSubscribed);
+>>>>>>> 0ed9880c2f0b6596a249939f605ab6aa8441ccd1
 
   useEffect(() => {
     if (id) fetchById(id);
   }, [id]);
 
+<<<<<<< HEAD
   // Video ko'rilayotganda progress saqlash (faqat login + obuna bo'lsa)
   useEffect(() => {
     const canWatch = isLoggedIn && instagram?.subscribed && videoLink?.embedUrl;
@@ -45,10 +55,19 @@ export default function VideoPage() {
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     };
   }, [id, isLoggedIn, instagram?.subscribed, videoLink?.embedUrl]);
+=======
+  // Obuna bekor qilinganda avtomatik gate ochish
+  useEffect(() => {
+    if (wasSubscribedRef.current && !isSubscribed && isLoggedIn) {
+      setShowModal(true);
+    }
+    wasSubscribedRef.current = isSubscribed;
+  }, [isSubscribed, isLoggedIn]);
+>>>>>>> 0ed9880c2f0b6596a249939f605ab6aa8441ccd1
 
   const handleVideoClick = (e: React.MouseEvent) => {
-    // Agar foydalanuvchi login qilmagan yoki Instagram tasdiqlanmagan bo'lsa
-    if (!isLoggedIn || !instagram?.subscribed) {
+    // Agar foydalanuvchi login qilmagan yoki obuna bo'lmagan bo'lsa
+    if (!isSubscribed) {
       e.preventDefault();
       setShowModal(true);
     }
@@ -149,6 +168,7 @@ export default function VideoPage() {
           </div>
         </div>
 
+<<<<<<< HEAD
         {/* Video Player Section */}
         <div className="rounded-[2.5rem] overflow-hidden aspect-video relative bg-black border border-white/5 shadow-2xl">
           {videoLink?.embedUrl && (isLoggedIn && instagram?.subscribed) ? (
@@ -158,6 +178,32 @@ export default function VideoPage() {
               allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
+=======
+        {/* Video Player Section (Placeholder for now) */}
+        <div className="bg-black/40 border border-white/5 rounded-[2.5rem] overflow-hidden aspect-video flex flex-col items-center justify-center relative group">
+          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 via-transparent to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+          
+          <div className="w-24 h-24 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mb-6 shadow-2xl group-hover:scale-110 transition-transform duration-500">
+             <div className="w-16 h-16 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40">
+                <IoPlay size={32} className="ml-1" />
+             </div>
+          </div>
+          
+          <h2 className="text-2xl font-bold text-white mb-2">Video Telegram&apos;da joylashgan</h2>
+          <p className="text-gray-400 text-center px-8 max-w-md mb-8">
+            Ushbu darsni ko&apos;rish uchun quyidagi tugmani bosing va biz taqdim etgan havola orqali videoga o&apos;ting.
+          </p>
+
+          {videoLink && isSubscribed ? (
+             <a 
+               href={videoLink.telegramLink} 
+               target="_blank" 
+               rel="noopener noreferrer"
+               className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-10 h-14 font-bold text-lg shadow-xl shadow-indigo-500/20"
+             >
+               ▶ Videoni ko&apos;rish
+             </a>
+>>>>>>> 0ed9880c2f0b6596a249939f605ab6aa8441ccd1
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e] group">
               <div className="w-24 h-24 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mb-6 shadow-2xl group-hover:scale-110 transition-transform duration-500">

@@ -61,6 +61,18 @@ api.interceptors.response.use(
       }
     }
 
+    // Obuna bekor qilingan bo'lsa — Redux state ni yangilash
+    // Lazy import — circular dependency oldini olish (axiosInstance → store → slice → api → axiosInstance)
+    if (error.response?.status === 403 && error.response?.data?.isSubscriptionError) {
+      import('@store/index').then(({ dispatch }) => {
+        import('@store/slices/subscriptionSlice').then(({ resetSubscription }) => {
+          dispatch(resetSubscription({
+            subscriptions: error.response.data.subscriptions,
+          }))
+        })
+      })
+    }
+
     return Promise.reject(error)
   },
 )
