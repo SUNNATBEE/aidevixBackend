@@ -152,10 +152,13 @@ const checkTelegramSubscription = async (telegramUserId) => {
     if (channels.length === 0) return { subscribed: false, checked: false };
 
     for (const channel of channels) {
+      // Agar channel raqam bilan yoki '-' bilan boshlansa — numeric chat_id (private kanal)
+      // Aks holda @username format (public kanal)
+      const chatId = /^-?\d+$/.test(channel) ? channel : `@${channel}`;
       const response = await axios.get(
         `https://api.telegram.org/bot${botToken}/getChatMember`,
         {
-          params: { chat_id: `@${channel}`, user_id: telegramUserId },
+          params: { chat_id: chatId, user_id: telegramUserId },
           timeout: 10000,
         }
       );
