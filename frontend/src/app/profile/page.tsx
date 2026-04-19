@@ -31,9 +31,46 @@ export default function ProfilePage() {
   const sub = useSubscription();
   const { t } = useLang();
 
-  const TABS = [t('profile.tab.info'), t('profile.tab.subs'), t('profile.tab.achievements')];
+  const AI_TOOLS = [
+    { name: 'Claude Code', icon: '🤖', color: 'from-orange-500/10 to-amber-500/10 border-orange-500/20 text-orange-300' },
+    { name: 'Cursor', icon: '⚡', color: 'from-blue-500/10 to-cyan-500/10 border-blue-500/20 text-blue-300' },
+    { name: 'GitHub Copilot', icon: '🐙', color: 'from-slate-500/10 to-gray-500/10 border-slate-500/20 text-slate-300' },
+    { name: 'ChatGPT', icon: '💬', color: 'from-emerald-500/10 to-teal-500/10 border-emerald-500/20 text-emerald-300' },
+    { name: 'Gemini', icon: '✨', color: 'from-violet-500/10 to-purple-500/10 border-violet-500/20 text-violet-300' },
+    { name: 'Windsurf', icon: '🌊', color: 'from-sky-500/10 to-blue-500/10 border-sky-500/20 text-sky-300' },
+    { name: 'Devin', icon: '🦾', color: 'from-red-500/10 to-rose-500/10 border-red-500/20 text-red-300' },
+    { name: 'Replit AI', icon: '🔁', color: 'from-pink-500/10 to-fuchsia-500/10 border-pink-500/20 text-pink-300' },
+    { name: 'Codeium', icon: '🔮', color: 'from-indigo-500/10 to-blue-500/10 border-indigo-500/20 text-indigo-300' },
+    { name: 'Other', icon: '🛠️', color: 'from-zinc-500/10 to-neutral-500/10 border-zinc-500/20 text-zinc-300' },
+  ];
+
+  const TABS = [t('profile.tab.info'), t('profile.tab.subs'), t('profile.tab.achievements'), 'AI Stack'];
 
   const [activeTab, setActiveTab] = useState(TABS[0]);
+  const [selectedTools, setSelectedTools] = useState<string[]>(user?.aiStack || []);
+  const [savingStack, setSavingStack] = useState(false);
+
+  useEffect(() => {
+    if (user?.aiStack) setSelectedTools(user.aiStack);
+  }, [user?.aiStack]);
+
+  const toggleTool = (tool: string) => {
+    setSelectedTools(prev =>
+      prev.includes(tool) ? prev.filter(t => t !== tool) : [...prev, tool]
+    );
+  };
+
+  const handleSaveStack = async () => {
+    try {
+      setSavingStack(true);
+      await dispatch(updateProfileThunk({ aiStack: selectedTools })).unwrap();
+      toast.success('AI Stack saqlandi! ✅');
+    } catch {
+      toast.error('Saqlashda xato');
+    } finally {
+      setSavingStack(false);
+    }
+  };
   const avatarInputRef = useRef(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -324,6 +361,69 @@ export default function ProfilePage() {
                )) : (
                  <div className="col-span-full py-20 text-center text-slate-500">{t('profile.noAchievements')}</div>
                )}
+            </motion.div>
+          )}
+
+          {activeTab === 'AI Stack' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+              <div className="bg-[#0d101a] border border-white/5 rounded-3xl p-8 shadow-xl">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                    <span className="text-2xl">⚡</span> Siz ishlatiydigan AI Tools
+                  </h3>
+                  <span className="text-xs text-slate-500">{selectedTools.length} / {AI_TOOLS.length} tanlangan</span>
+                </div>
+                <p className="text-sm text-slate-500 mb-8">Qaysi AI coding toollardan foydalanishingizni belgilang — leaderboard'da ko'rinadi.</p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
+                  {AI_TOOLS.map((tool) => {
+                    const active = selectedTools.includes(tool.name);
+                    return (
+                      <button
+                        key={tool.name}
+                        onClick={() => toggleTool(tool.name)}
+                        className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border bg-gradient-to-br transition-all duration-200 ${
+                          active
+                            ? `${tool.color} scale-[1.03] shadow-lg`
+                            : 'border-white/5 bg-white/3 text-slate-500 hover:border-white/10 hover:bg-white/5'
+                        }`}
+                      >
+                        {active && (
+                          <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center">
+                            <span className="text-[8px] text-white font-black">✓</span>
+                          </div>
+                        )}
+                        <span className="text-3xl">{tool.icon}</span>
+                        <span className="text-xs font-bold text-center leading-tight">{tool.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={handleSaveStack}
+                  disabled={savingStack}
+                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold uppercase text-xs tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {savingStack ? 'Saqlanmoqda...' : 'AI Stack ni saqlash'}
+                </button>
+              </div>
+
+              {selectedTools.length > 0 && (
+                <div className="bg-[#0d101a] border border-white/5 rounded-3xl p-8">
+                  <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Sizning Stack'ingiz</h4>
+                  <div className="flex flex-wrap gap-3">
+                    {selectedTools.map(tool => {
+                      const t = AI_TOOLS.find(a => a.name === tool);
+                      return (
+                        <span key={tool} className={`flex items-center gap-2 px-4 py-2 rounded-xl border bg-gradient-to-r text-sm font-bold ${t?.color || 'border-white/10 text-slate-300'}`}>
+                          <span>{t?.icon}</span> {tool}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

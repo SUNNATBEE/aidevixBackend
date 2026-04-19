@@ -68,4 +68,5 @@ export const ROUTES = {
   CHALLENGES:   '/challenges',
   LEADERBOARD:  '/leaderboard',
   REFERRAL:     '/referral',
+  PROMPTS:      '/prompts',
 }

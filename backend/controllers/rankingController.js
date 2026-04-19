@@ -71,7 +71,7 @@ const getTopUsers = async (req, res) => {
       .sort({ xp: -1, level: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('userId', 'username email createdAt')
+      .populate('userId', 'username email createdAt avatar aiStack')
       .select('userId xp level streak badges videosWatched quizzesCompleted avatar bio skills');
 
     // Rank raqami va unvon qo'shish
@@ -88,6 +88,7 @@ const getTopUsers = async (req, res) => {
       avatar:           u.avatar,
       bio:              u.bio,
       skills:           u.skills,
+      aiStack:          u.userId?.aiStack || [],
     }));
 
     res.json({

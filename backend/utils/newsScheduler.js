@@ -1,15 +1,16 @@
 /**
  * AIDEVIX AI NEWS & TIPS SCHEDULER
  *
- * Kuniga 3 marta (10:00, 16:00, 20:00 Toshkent vaqti) eng so'nggi AI/IT
- * yangiliklar va Prompt Engineering maslahatlarini Telegram kanalga yuboradi.
+ * Har bir kanal/guruh O'Z jadvaliga ko'ra post oladi:
+ *   - scheduleHours: [10, 16, 20]  → kuniga 3 marta (default)
+ *   - scheduleHours: [9, 18]       → kuniga 2 marta
+ *   - scheduleHours: [12]          → kuniga 1 marta
  *
- * Xususiyatlar:
- * - 15+ sifatli RSS manba (AI, IT, Developer)
- * - Dublikat himoyasi (yuborilgan linklar saqlanadi)
- * - Faqat oxirgi 24 soatdagi yangiliklar
- * - Har safar boshqa manbadan tanlash (kategoriya balans)
- * - Groq AI orqali o'zbek tiliga tahliliy post tayyorlash
+ * Har kanal o'z mavzusini (topics) va post turini (postTypes) ham tanlaydi.
+ *
+ * Manba filtri: faqat Claude/Codex/Cursor/AI tools professional yangiliklari.
+ * AI tahlil: Groq llama-3.3-70b → o'zbekcha professional post.
+ * Dublikat himoya: .sent_news.json (7 kun saqlanadi).
  */
 
 const RssParser = require('rss-parser');
@@ -22,40 +23,47 @@ const parser = new RssParser({
   headers: { 'User-Agent': 'Aidevix-NewsBot/4.0' },
 });
 
-// Yuborilgan yangiliklar faylga saqlanadi (dublikat oldini olish)
 const SENT_FILE = path.join(__dirname, '..', '.sent_news.json');
 
-const RSS_FEEDS = [
-  // --- AI Core ---
-  { name: 'TechCrunch AI', url: 'https://techcrunch.com/category/artificial-intelligence/feed/', category: 'AI' },
-  { name: 'The Verge AI', url: 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml', category: 'AI' },
-  { name: 'Wired AI', url: 'https://www.wired.com/feed/tag/ai/latest/rss', category: 'AI' },
-  { name: 'OpenAI Blog', url: 'https://openai.com/news/rss.xml', category: 'AI' },
-  { name: 'Anthropic Blog', url: 'https://www.anthropic.com/feed', category: 'AI' },
-  { name: 'Google AI Blog', url: 'https://blog.google/technology/ai/rss/', category: 'AI' },
-  { name: 'Hugging Face Blog', url: 'https://huggingface.co/blog/feed.xml', category: 'AI' },
-
-  // --- IT / Tech ---
-  { name: 'MIT Tech Review', url: 'https://www.technologyreview.com/feed/', category: 'IT' },
-  { name: 'Ars Technica', url: 'https://feeds.arstechnica.com/arstechnica/technology-lab', category: 'IT' },
-  { name: 'The Next Web', url: 'https://thenextweb.com/feed', category: 'IT' },
-
-  // --- Developer ---
-  { name: 'Dev.to', url: 'https://dev.to/feed/tag/ai', category: 'DEV' },
-  { name: 'Hacker News Best', url: 'https://hnrss.org/best?q=AI+OR+LLM+OR+GPT+OR+Claude', category: 'DEV' },
-  { name: 'GitHub Blog', url: 'https://github.blog/feed/', category: 'DEV' },
-  { name: 'InfoQ AI', url: 'https://feed.infoq.com/ai-ml-data-eng/', category: 'DEV' },
+// Kalit so'zlar — shu so'zlar bo'lsa QABUL qilinadi
+const FOCUS_KEYWORDS = [
+  'claude', 'anthropic', 'codex', 'openai', 'cursor', 'antigravity',
+  'copilot', 'github copilot', 'chatgpt', 'gpt-4', 'gpt-5', 'o3', 'o4',
+  'gemini', 'llm', 'vibe coding', 'ai coding', 'ai code', 'code generation',
+  'ai agent', 'agentic', 'mcp', 'model context protocol', 'prompt engineering',
+  'ai tools', 'ai ide', 'devin', 'windsurf', 'replit ai', 'codeium',
 ];
 
-// --- Dublikat boshqaruvi ---
+const RSS_FEEDS = [
+  // --- Claude / Anthropic ---
+  { name: 'Anthropic Blog',  url: 'https://www.anthropic.com/feed',                                                         category: 'CLAUDE' },
+  { name: 'TechCrunch AI',   url: 'https://techcrunch.com/category/artificial-intelligence/feed/',                          category: 'CLAUDE' },
+  { name: 'The Verge AI',    url: 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml',                      category: 'CLAUDE' },
+
+  // --- OpenAI / Codex ---
+  { name: 'OpenAI Blog',     url: 'https://openai.com/news/rss.xml',                                                        category: 'CODEX' },
+  { name: 'Wired AI',        url: 'https://www.wired.com/feed/tag/ai/latest/rss',                                           category: 'CODEX' },
+
+  // --- Cursor / AI Coding Tools ---
+  { name: 'GitHub Blog',     url: 'https://github.blog/feed/',                                                              category: 'CURSOR' },
+  { name: 'HN AI Tools',     url: 'https://hnrss.org/newest?q=Cursor+OR+Codex+OR+Claude+OR+Copilot+OR+Antigravity&points=50', category: 'CURSOR' },
+  { name: 'Dev.to AI',       url: 'https://dev.to/feed/tag/ai',                                                             category: 'CURSOR' },
+
+  // --- Professional AI Skills ---
+  { name: 'Hugging Face',    url: 'https://huggingface.co/blog/feed.xml',                                                   category: 'SKILLS' },
+  { name: 'InfoQ AI',        url: 'https://feed.infoq.com/ai-ml-data-eng/',                                                 category: 'SKILLS' },
+  { name: 'Ars Technica',    url: 'https://feeds.arstechnica.com/arstechnica/technology-lab',                               category: 'SKILLS' },
+  { name: 'MIT Tech Review', url: 'https://www.technologyreview.com/feed/',                                                 category: 'SKILLS' },
+];
+
+// ─── Dublikat boshqaruvi ───────────────────────────────────────────────────
 
 function loadSentLinks() {
   try {
     if (fs.existsSync(SENT_FILE)) {
       const data = JSON.parse(fs.readFileSync(SENT_FILE, 'utf8'));
-      // Faqat oxirgi 7 kunlik linklar saqlanadi (tozalash)
       const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      const filtered = data.filter(entry => entry.ts > weekAgo);
+      const filtered = data.filter(e => e.ts > weekAgo);
       if (filtered.length !== data.length) {
         fs.writeFileSync(SENT_FILE, JSON.stringify(filtered, null, 2));
       }
@@ -70,9 +78,7 @@ function loadSentLinks() {
 function markAsSent(link) {
   try {
     let data = [];
-    if (fs.existsSync(SENT_FILE)) {
-      data = JSON.parse(fs.readFileSync(SENT_FILE, 'utf8'));
-    }
+    if (fs.existsSync(SENT_FILE)) data = JSON.parse(fs.readFileSync(SENT_FILE, 'utf8'));
     data.push({ link, ts: Date.now() });
     fs.writeFileSync(SENT_FILE, JSON.stringify(data, null, 2));
   } catch (err) {
@@ -80,14 +86,21 @@ function markAsSent(link) {
   }
 }
 
-// --- Yordamchi funksiyalar ---
+// ─── Kalit so'z filtri ────────────────────────────────────────────────────
+
+function isRelevantItem(item) {
+  const text = `${item.title || ''} ${item.contentSnippet || ''}`.toLowerCase();
+  return FOCUS_KEYWORDS.some(kw => text.includes(kw));
+}
+
+// ─── Yordamchi funksiyalar ────────────────────────────────────────────────
 
 function extractImage(item) {
-  if (item.enclosure && item.enclosure.url) return item.enclosure.url;
+  if (item.enclosure?.url) return item.enclosure.url;
   const content = item.content || item.contentSnippet || '';
   const match = content.match(/<img[^>]+src="([^">]+)"/);
-  if (match && match[1]) return match[1];
-  if (item['media:content'] && item['media:content'].$) return item['media:content'].$.url;
+  if (match?.[1]) return match[1];
+  if (item['media:content']?.$) return item['media:content'].$.url;
   return null;
 }
 
@@ -96,7 +109,25 @@ function stripHtml(html) {
   return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
 }
 
-// --- AI Post generatsiya ---
+// ─── News cache (30 daqiqa) ───────────────────────────────────────────────
+
+let _newsCache = null;
+let _newsCacheTime = 0;
+const CACHE_TTL = 30 * 60 * 1000;
+
+async function getNewsCache() {
+  if (_newsCache && Date.now() - _newsCacheTime < CACHE_TTL) return _newsCache;
+  _newsCache = await fetchLatestNews();
+  _newsCacheTime = Date.now();
+  return _newsCache;
+}
+
+function invalidateNewsCache() {
+  _newsCache = null;
+  _newsCacheTime = 0;
+}
+
+// ─── AI Post generatsiya ──────────────────────────────────────────────────
 
 async function generateAIPost(item) {
   const apiKey = process.env.GROQ_API_KEY;
@@ -104,25 +135,16 @@ async function generateAIPost(item) {
 
   try {
     const snippet = stripHtml(item.contentSnippet || '').substring(0, 500);
-    const prompt = `Sen Aidevix platformasining AI va dasturlash bo'yicha ekspertisan.
-Quyidagi yangilikni tahlil qilib, o'zbek tilida Telegram kanal uchun qiziqarli post tayyorla.
-
-MAVZU: AI, LLM, Claude, GPT, Vibe Coding, Prompt Engineering yoki eng so'nggi IT trendlar.
-
-Original: ${item.title} - ${snippet}
-Manba: ${item.source}
-
-POST FORMATI:
-1. Qiziqarli o'zbekcha sarlavha (emoji bilan)
-2. Yangilik tahlili — nimaga muhim, dasturchilar uchun qanday foyda (3-5 jumla)
-3. PROMPT TIP: Shu texnologiyadan foydalanish uchun 1 ta amaliy maslahat
-
-Javobni FAQAT JSON formatda ber:
-{
-  "title": "Sarlavha",
-  "content": "Tahlil matni",
-  "prompt_tip": "💡 Amaliy maslahat"
-}`;
+    const prompt =
+      `Sen Aidevix platformasining professional AI tools ekspertisan.\n` +
+      `Vazifang: Claude, Codex, Cursor, Antigravity, GitHub Copilot va professional AI tools yangiliklari haqida o'zbek tilida Telegram kanal uchun post yozish.\n\n` +
+      `Yangilik:\nSarlavha: ${item.title}\nTafsilot: ${snippet}\nManba: ${item.source}\n\n` +
+      `POST FORMATI (qat'iy):\n` +
+      `1. Qiziqarli o'zbekcha sarlavha (emoji bilan)\n` +
+      `2. Tahlil — bu yangilik nima beradi (3-4 jumla, aniq, professional)\n` +
+      `3. Amaliy skill/tip — 1 ta konkret maslahat\n\n` +
+      `Javobni FAQAT JSON formatda ber:\n` +
+      `{"title":"...","content":"...","prompt_tip":"💡 ..."}`;
 
     const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
       model: 'llama-3.3-70b-versatile',
@@ -130,7 +152,7 @@ Javobni FAQAT JSON formatda ber:
       response_format: { type: 'json_object' },
       temperature: 0.7,
     }, {
-      headers: { 'Authorization': `Bearer ${apiKey}` },
+      headers: { Authorization: `Bearer ${apiKey}` },
       timeout: 30000,
     });
 
@@ -141,10 +163,9 @@ Javobni FAQAT JSON formatda ber:
   }
 }
 
-// --- RSS dan yangiliklar olish ---
+// ─── RSS fetch ────────────────────────────────────────────────────────────
 
 async function fetchLatestNews() {
-  const allItems = [];
   const results = await Promise.allSettled(
     RSS_FEEDS.map(async (feed) => {
       try {
@@ -165,151 +186,256 @@ async function fetchLatestNews() {
     })
   );
 
-  for (const result of results) {
-    if (result.status === 'fulfilled') {
-      allItems.push(...result.value);
-    }
+  const allItems = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+
+  const relevant = allItems.filter(isRelevantItem);
+  const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+  const recent = relevant.filter(i => i.pubDate > twoDaysAgo);
+
+  if (recent.length < 2) {
+    return allItems.filter(i => i.pubDate > twoDaysAgo).sort((a, b) => b.pubDate - a.pubDate);
   }
-
-  // Faqat oxirgi 24 soatdagi yangiliklar
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const recent = allItems.filter(item => item.pubDate > oneDayAgo);
-
-  // Agar 24 soatda kam bo'lsa, oxirgi 48 soatni olish
-  if (recent.length < 3) {
-    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-    const extended = allItems.filter(item => item.pubDate > twoDaysAgo);
-    return extended.sort((a, b) => b.pubDate - a.pubDate);
-  }
-
   return recent.sort((a, b) => b.pubDate - a.pubDate);
 }
 
-// --- Yangilik tanlash (dublikatsiz, kategoriya balans) ---
+// ─── Yangilik tanlash ─────────────────────────────────────────────────────
 
 function pickBestItem(newsList, sentLinks) {
-  // Yuborilmaganlarni filtrlash
   const unsent = newsList.filter(item => !sentLinks.has(item.link));
   if (unsent.length === 0) return newsList[0] || null;
 
-  // Kategoriyalar bo'yicha guruhlash
   const byCategory = {};
   for (const item of unsent) {
     if (!byCategory[item.category]) byCategory[item.category] = [];
     byCategory[item.category].push(item);
   }
 
-  // Har safar boshqa kategoriyadan olish (soatga qarab)
   const categories = Object.keys(byCategory);
   if (categories.length === 0) return unsent[0];
 
-  const now = new Date();
-  const tashkentHour = (now.getUTCHours() + 5) % 24;
-  const catIndex = tashkentHour % categories.length;
-  const selectedCategory = categories[catIndex];
-
+  const tashkentHour = (new Date().getUTCHours() + 5) % 24;
+  const selectedCategory = categories[tashkentHour % categories.length];
   return byCategory[selectedCategory][0];
 }
 
-// --- Kanalga post yuborish ---
+// ─── Faol kanallar (topic + jadval sozlamalari bilan) ─────────────────────
+
+async function getNewsChannels() {
+  try {
+    const BotChannel = require('../models/BotChannel');
+    const dbChannels = await BotChannel.find({ isActive: true });
+    const result = dbChannels.filter(c => c.wantsNews());
+
+    // Asosiy kanal DB da yo'q bo'lsa ham fallback sifatida qo'shamiz
+    const mainCh = process.env.TELEGRAM_CHANNEL_USERNAME;
+    if (mainCh) {
+      const mainId = mainCh.startsWith('@') ? mainCh : `@${mainCh}`;
+      if (!result.find(c => c.chatId === mainId || c.chatId === mainCh)) {
+        result.unshift({
+          chatId: mainId,
+          title: 'Asosiy kanal',
+          scheduleHours: [10, 16, 20],
+          wantsTopic: () => true,
+        });
+      }
+    }
+    return result;
+  } catch {
+    const ch = process.env.TELEGRAM_CHANNEL_USERNAME;
+    return ch
+      ? [{ chatId: ch.startsWith('@') ? ch : `@${ch}`, scheduleHours: [10, 16, 20], wantsTopic: () => true }]
+      : [];
+  }
+}
+
+// ─── Bitta kanalga post yuborish ──────────────────────────────────────────
+
+async function sendNewsToChat(botToken, chatId, item, aiData) {
+  const tgChannel     = process.env.TELEGRAM_CHANNEL_USERNAME || 'aidevix';
+  const tgChannelLink = `https://t.me/${tgChannel.replace('@', '')}`;
+  const igLink        = process.env.INSTAGRAM_URL || 'https://instagram.com/aidevix.uz';
+  const siteLink      = process.env.SITE_URL || 'https://aidevix.uz';
+
+  const message =
+    `🚀 <b>${aiData.title}</b>\n\n` +
+    `${aiData.content}\n\n` +
+    `${aiData.prompt_tip}\n\n` +
+    `🔗 <a href="${item.link}">To'liq o'qish</a> | 📡 ${item.source}\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `<b>Aidevix</b> — AI & Dasturlash O'quv Platformasi 🇺🇿\n\n` +
+    `📢 Kanal: <a href="${tgChannelLink}">@${tgChannel.replace('@', '')}</a>\n` +
+    `📸 Instagram: <a href="${igLink}">@aidevix.uz</a>\n` +
+    `🌐 Sayt: <a href="${siteLink}">aidevix.uz</a>\n\n` +
+    `#Claude #Codex #Cursor #Copilot #AItools #vibecoding #yangiliklar`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: '🔥', callback_data: 'news_react_fire' },
+        { text: '🚀', callback_data: 'news_react_rocket' },
+        { text: '💡', callback_data: 'news_react_bulb' },
+      ],
+      [
+        { text: "📢 Kanalga obuna bo'l", url: tgChannelLink },
+        { text: '📸 Instagram', url: igLink },
+      ],
+      [{ text: '🎓 Kurslar — aidevix.uz', url: siteLink }],
+      [{ text: "↗️ Do'stlarga ulash", url: `https://t.me/share/url?url=${encodeURIComponent(item.link)}&text=${encodeURIComponent(aiData.title + ' | Aidevix')}` }],
+    ],
+  };
+
+  if (item.image) {
+    await axios.post(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+      chat_id: chatId, photo: item.image, caption: message,
+      parse_mode: 'HTML', reply_markup: keyboard,
+    });
+  } else {
+    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      chat_id: chatId, text: message, parse_mode: 'HTML',
+      disable_web_page_preview: false, reply_markup: keyboard,
+    });
+  }
+}
+
+// ─── Per-channel scheduler tick ───────────────────────────────────────────
+
+// Har kanal uchun oxirgi post slot kuzatiladi (restart'dan keyin sıfırlanadi)
+const lastPostedSlots = new Map(); // chatId → 'YYYY-MM-DD-HH'
+
+async function runSchedulerTick() {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) return;
+
+  const now = new Date();
+  const tashkentHour = (now.getUTCHours() + 5) % 24;
+  const todayStr     = now.toISOString().split('T')[0];
+
+  const channels = await getNewsChannels();
+  if (channels.length === 0) return;
+
+  // Hozirgi soatda post kutayotgan kanallar
+  const pending = channels.filter(ch => {
+    const hours    = ch.scheduleHours?.length > 0 ? ch.scheduleHours : [10, 16, 20];
+    const slotKey  = `${todayStr}-${tashkentHour}`;
+    return hours.includes(tashkentHour) && lastPostedSlots.get(ch.chatId) !== slotKey;
+  });
+
+  if (pending.length === 0) return;
+
+  let newsList;
+  try {
+    newsList = await getNewsCache();
+  } catch (err) {
+    console.error('[News] RSS fetch error:', err.message);
+    return;
+  }
+
+  if (!newsList || newsList.length === 0) {
+    console.log('[News] Yangilik topilmadi');
+    return;
+  }
+
+  const sentLinks = loadSentLinks();
+
+  for (const channel of pending) {
+    const slotKey = `${todayStr}-${tashkentHour}`;
+    lastPostedSlots.set(channel.chatId, slotKey); // oldin belgilab qo'yamiz (retry spam oldini olish)
+
+    try {
+      const filtered = newsList.filter(item => channel.wantsTopic(item.category));
+      const pool     = filtered.length > 0 ? filtered : newsList;
+      const item     = pickBestItem(pool, sentLinks);
+
+      if (!item) {
+        console.log(`[News] ${channel.chatId}: yuborish uchun yangilik yo'q`);
+        continue;
+      }
+
+      const aiData = await generateAIPost(item);
+      if (!aiData) continue;
+
+      await sendNewsToChat(botToken, channel.chatId, item, aiData);
+      markAsSent(item.link);
+      sentLinks.add(item.link); // lokal set ham yangilash (bir tickda dublikat oldini olish)
+
+      const hours = channel.scheduleHours?.length > 0 ? channel.scheduleHours : [10, 16, 20];
+      console.log(`[News] ✅ ${channel.title || channel.chatId} (${tashkentHour}:00, jadval: ${hours.join('/')}:00) → "${item.title.substring(0, 50)}..." [${item.category}]`);
+
+      await new Promise(r => setTimeout(r, 1500));
+    } catch (err) {
+      console.error(`[News] ❌ ${channel.chatId}:`, err.response?.data?.description || err.message);
+    }
+  }
+}
+
+// ─── Manual trigger (bot /postnews buyrug'i uchun) ────────────────────────
 
 async function postNewsToChannel() {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const channel = process.env.TELEGRAM_CHANNEL_USERNAME;
-  if (!botToken || !channel) return false;
+  if (!botToken) return false;
+
+  const channels = await getNewsChannels();
+  if (channels.length === 0) return false;
 
   try {
-    const newsList = await fetchLatestNews();
-    if (newsList.length === 0) {
+    invalidateNewsCache();
+    const newsList = await getNewsCache();
+
+    if (!newsList || newsList.length === 0) {
       console.log('[News] Yangilik topilmadi');
       return false;
     }
 
     const sentLinks = loadSentLinks();
-    const item = pickBestItem(newsList, sentLinks);
-    if (!item) {
-      console.log('[News] Barcha yangiliklar allaqachon yuborilgan');
-      return false;
+    let totalSent = 0;
+
+    for (const channel of channels) {
+      try {
+        const filtered = newsList.filter(item => channel.wantsTopic(item.category));
+        const pool     = filtered.length > 0 ? filtered : newsList;
+        const item     = pickBestItem(pool, sentLinks);
+
+        if (!item) {
+          console.log(`[News] ${channel.chatId}: yangilik yo'q`);
+          continue;
+        }
+
+        const aiData = await generateAIPost(item);
+        if (!aiData) continue;
+
+        await sendNewsToChat(botToken, channel.chatId, item, aiData);
+        markAsSent(item.link);
+        sentLinks.add(item.link);
+        totalSent++;
+        console.log(`[News] ✅ ${channel.title || channel.chatId} → "${item.title.substring(0, 50)}..." [${item.category}]`);
+
+        await new Promise(r => setTimeout(r, 1500));
+      } catch (err) {
+        console.error(`[News] ❌ ${channel.chatId}:`, err.response?.data?.description || err.message);
+      }
     }
 
-    const aiData = await generateAIPost(item);
-    if (!aiData) return false;
-
-    const message =
-      `🚀 <b>${aiData.title}</b>\n\n` +
-      `${aiData.content}\n\n` +
-      `${aiData.prompt_tip}\n\n` +
-      `🔗 <a href="${item.link}">To'liq o'qish</a> | 📡 ${item.source}\n\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `🚀 <b>Aidevix</b> — Kelajak bilan birga bo'ling\n` +
-      `🌐 aidevix.uz | @aidevix_bot\n\n` +
-      `#ai #claudecode #vibecoding #prompt #yangiliklar`;
-
-    const chatId = channel.startsWith('@') ? channel : `@${channel}`;
-
-    const keyboard = {
-      inline_keyboard: [
-        [
-          { text: '🔥', callback_data: 'news_react_fire' },
-          { text: '🚀', callback_data: 'news_react_rocket' },
-          { text: '💡', callback_data: 'news_react_bulb' },
-        ],
-        [
-          { text: '📢 Do\'stlarga ulashish', url: `https://t.me/share/url?url=${encodeURIComponent(item.link)}&text=${encodeURIComponent(aiData.title)}` },
-        ],
-      ],
-    };
-
-    if (item.image) {
-      await axios.post(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-        chat_id: chatId,
-        photo: item.image,
-        caption: message,
-        parse_mode: 'HTML',
-        reply_markup: keyboard,
-      });
-    } else {
-      await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        chat_id: chatId,
-        text: message,
-        parse_mode: 'HTML',
-        disable_web_page_preview: false,
-        reply_markup: keyboard,
-      });
-    }
-
-    // Yuborilgan deb belgilash
-    markAsSent(item.link);
-    console.log(`[News] Yuborildi: "${item.title}" (${item.source})`);
-    return true;
+    console.log(`[News] Jami: ${totalSent}/${channels.length} kanalga yuborildi`);
+    return totalSent > 0;
   } catch (error) {
     console.error('[News] Post error:', error.message);
     return false;
   }
 }
 
-// --- Scheduler ---
+// ─── Scheduler ───────────────────────────────────────────────────────────
 
 function startNewsScheduler() {
   const enabled = process.env.NEWS_ENABLED === 'true' || process.env.SEND_NEWS === 'true';
   if (!enabled) return;
 
-  const scheduleHours = [10, 16, 20];
-  console.log(`[News] Kunlik AI News ishga tushdi: ${scheduleHours.join(':00, ')}:00 (Toshkent)`);
+  console.log('[News] Kunlik AI News ishga tushdi (har kanal o\'z jadvaliga ko\'ra, har 10 daqiqada tekshiriladi)');
 
-  let lastPostedSlot = '';
+  // Ishga tushganda 15 soniya kutib tekshiramiz
+  setTimeout(runSchedulerTick, 15000);
 
-  setInterval(async () => {
-    const now = new Date();
-    const tashkentHour = (now.getUTCHours() + 5) % 24;
-    const todayStr = now.toISOString().split('T')[0];
-    const currentSlot = `${todayStr}-${tashkentHour}`;
-
-    if (scheduleHours.includes(tashkentHour) && lastPostedSlot !== currentSlot) {
-      lastPostedSlot = currentSlot;
-      await postNewsToChannel();
-    }
-  }, 10 * 60 * 1000);
+  // Har 10 daqiqada tick
+  setInterval(runSchedulerTick, 10 * 60 * 1000);
 }
 
 module.exports = { startNewsScheduler, postNewsToChannel };

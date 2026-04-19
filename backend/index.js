@@ -36,6 +36,14 @@ connectDB().then(async () => {
   } catch (newsError) {
     console.error('⚠️ News Scheduler initialization failed:', newsError.message);
   }
+
+  // Daily Challenge Scheduler
+  try {
+    const { startChallengeScheduler } = require('./utils/challengeScheduler');
+    startChallengeScheduler();
+  } catch (challengeError) {
+    console.error('⚠️ Challenge Scheduler initialization failed:', challengeError.message);
+  }
 }).catch(err => {
   console.error('❌ CRITICAL: Failed to connect to database or initialize core services');
   console.error('   Reason:', err.message);
@@ -206,6 +214,7 @@ app.use('/api/certificates', require('./routes/certificateRoutes'));
 app.use('/api/sections',     require('./routes/sectionRoutes'));
 app.use('/api/follow',       require('./routes/followRoutes'));
 app.use('/api/challenges',   require('./routes/challengeRoutes'));
+app.use('/api/prompts',      require('./routes/promptRoutes'));
 app.use('/api/payments',     require('./routes/paymentRoutes'));
 app.use('/api/admin',        require('./routes/adminRoutes'));
 app.use('/api/upload',       require('./routes/uploadRoutes'));

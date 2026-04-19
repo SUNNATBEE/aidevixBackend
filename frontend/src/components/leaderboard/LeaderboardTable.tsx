@@ -76,16 +76,30 @@ const LeaderboardTable = ({ users = [], currentUserId, loading }) => {
                 <span className="text-xs text-base-content/40 ml-0.5">XP</span>
               </div>
 
-              {/* Badges */}
-              <div className="flex items-center justify-center gap-1">
-                {u.streak > 0 && <FaFire className="text-orange-400 text-sm" />}
-                {u.badges?.length > 0 && (
-                  <span className="flex items-center gap-0.5 text-yellow-400 text-sm">
-                    <HiTrophy />
-                    <span className="text-xs text-base-content/50">{u.badges.length}</span>
-                  </span>
+              {/* Badges + AI Stack */}
+              <div className="flex flex-col items-center justify-center gap-1">
+                <div className="flex items-center gap-1">
+                  {u.streak > 0 && <FaFire className="text-orange-400 text-sm" />}
+                  {u.badges?.length > 0 && (
+                    <span className="flex items-center gap-0.5 text-yellow-400 text-sm">
+                      <HiTrophy />
+                      <span className="text-xs text-base-content/50">{u.badges.length}</span>
+                    </span>
+                  )}
+                  {!u.streak && !u.badges?.length && <FaMedal className="text-base-content/20 text-sm" />}
+                </div>
+                {u.aiStack?.length > 0 && (
+                  <div className="flex gap-0.5 flex-wrap justify-center" title={u.aiStack.join(', ')}>
+                    {u.aiStack.slice(0, 3).map((tool: string) => {
+                      const icons: Record<string, string> = {
+                        'Claude Code': '🤖', 'Cursor': '⚡', 'GitHub Copilot': '🐙',
+                        'ChatGPT': '💬', 'Gemini': '✨', 'Windsurf': '🌊',
+                        'Devin': '🦾', 'Replit AI': '🔁', 'Codeium': '🔮', 'Other': '🛠️',
+                      }
+                      return <span key={tool} className="text-[10px]">{icons[tool] || '🔧'}</span>
+                    })}
+                  </div>
                 )}
-                {!u.streak && !u.badges?.length && <FaMedal className="text-base-content/20 text-sm" />}
               </div>
             </motion.div>
           )

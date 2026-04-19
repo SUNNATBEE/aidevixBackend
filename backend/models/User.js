@@ -166,6 +166,11 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  // --- AI TOOLS STACK ---
+  aiStack: [{
+    type: String,
+    enum: ['Claude Code', 'Cursor', 'GitHub Copilot', 'ChatGPT', 'Gemini', 'Windsurf', 'Devin', 'Replit AI', 'Codeium', 'Other'],
+  }],
 }, {
   timestamps: true,
 });

@@ -1,139 +1,113 @@
-# Render Deployment Guide
+# Deploy Qo'llanmasi
 
-## Render'ga Deploy Qilish
+Backend → **Railway** | Frontend → **Vercel**
 
-### 1. GitHub Repository Yaratish
+---
 
-```bash
-# Git init (agar yo'q bo'lsa)
-git init
-git add .
-git commit -m "Initial commit"
+## Backend — Railway
 
-# GitHub'da yangi repository yarating, keyin:
-git remote add origin https://github.com/YOUR_USERNAME/aidevix-backend.git
-git branch -M main
-git push -u origin main
-```
-
-### 2. Render'da Web Service Yaratish
-
-1. **Render.com** ga kiring va sign up qiling
-2. **Dashboard** → **New +** → **Web Service**
-3. GitHub repository'ni ulang va tanlang
-4. Quyidagi sozlamalarni kiriting:
-
-   - **Name:** `aidevix-backend`
-   - **Region:** Eng yaqin region (masalan: Singapore)
-   - **Branch:** `main`
-   - **Root Directory:** (bo'sh qoldiring)
-   - **Environment:** `Node`
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-   - **Plan:** `Free` (yoki istalgan plan)
-
-### 3. Environment Variables Qo'shish
-
-Render dashboard'da **Environment** bo'limiga quyidagilarni qo'shing:
-
-| Key | Value | Description |
-|-----|-------|-------------|
-| `NODE_ENV` | `production` | Production mode |
-| `MONGODB_URI` | `mongodb+srv://...` | MongoDB Atlas connection string |
-| `ACCESS_TOKEN_SECRET` | `kuchli-secret-key-32+` | JWT access token secret (min 32 chars) |
-| `REFRESH_TOKEN_SECRET` | `kuchli-secret-key-32+` | JWT refresh token secret (min 32 chars) |
-| `ACCESS_TOKEN_EXPIRE` | `15m` | Access token expiration |
-| `REFRESH_TOKEN_EXPIRE` | `7d` | Refresh token expiration |
-| `TELEGRAM_BOT_TOKEN` | `8668053876:AAF...` | Telegram bot token |
-| `TELEGRAM_CHANNEL_USERNAME` | `aidevix` | Obuna tekshiruvi kanali |
-| `TELEGRAM_PRIVATE_CHANNEL_USERNAME` | `sunnatbee_lessons` | Video linklar kanali |
-| `FRONTEND_URL` | `*` yoki `https://your-frontend.com` | Frontend URL (CORS uchun) |
-
-**Muhim:** 
-- `ACCESS_TOKEN_SECRET` va `REFRESH_TOKEN_SECRET` kuchli bo'lishi kerak (min 32 belgi)
-- `FRONTEND_URL` ni frontend domain'ingizga moslashtiring
-- Yoki `*` qo'ying (barcha domain'lar uchun, lekin production'da tavsiya etilmaydi)
-
-### 4. MongoDB Atlas Sozlash
-
-1. **MongoDB Atlas** → **Network Access**
-2. **Add IP Address** → **Allow Access from Anywhere** (`0.0.0.0/0`)
-3. Yoki Render server IP'ni qo'shing
-
-### 5. Deploy
-
-1. **Create Web Service** tugmasini bosing
-2. Render avtomatik deploy qiladi (5-10 daqiqa)
-3. Deploy tugagandan keyin URL olasiz:
-   ```
-   https://aidevix-backend.onrender.com
-   ```
-
-### 6. Tekshirish
-
-Deploy qilingandan keyin:
+### Avtomatik Deploy
 
 ```bash
-# Health check
-curl https://aidevix-backend.onrender.com/health
-
-# Yoki browser'da
-https://aidevix-backend.onrender.com/health
+git push origin main   # Railway main branchga push bo'lganda avtomatik deploy qiladi
 ```
 
-### 7. Frontend'da Ishlatish
+### Birinchi Marta Setup
 
-React yoki boshqa frontend'da:
+1. [railway.app](https://railway.app) ga kiring
+2. **New Project** → **Deploy from GitHub repo**
+3. `AidevixBackend` reponi tanlang
+4. **Root Directory:** `backend` (yoki `railway.toml` dan o'qiydi)
+5. **Start Command:** `npm start`
 
-```javascript
-const API_URL = 'https://aidevix-backend.onrender.com';
+### Environment Variables (Railway Dashboard)
 
-// Misol
-fetch(`${API_URL}/api/courses`)
-  .then(res => res.json())
-  .then(data => console.log(data));
+```
+NODE_ENV=production
+PORT=5000
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/aidevix
+JWT_SECRET=<min 32 belgi, random>
+
+FRONTEND_URL=https://aidevix.uz
+
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHANNEL_USERNAME=aidevix
+TELEGRAM_PRIVATE_CHANNEL_USERNAME=
+TELEGRAM_ADMIN_CHAT_ID=697727022
+
+GROQ_API_KEY=
+NEWS_ENABLED=true
+CHALLENGE_SCHEDULER_ENABLED=true
+
+BUNNY_STREAM_API_KEY=
+BUNNY_LIBRARY_ID=
+BUNNY_CDN_HOSTNAME=
+
+PAYME_MERCHANT_ID=
+PAYME_SECRET_KEY=
+CLICK_SERVICE_ID=
+CLICK_MERCHANT_ID=
+CLICK_SECRET_KEY=
+
+SMTP_HOST=
+SMTP_USER=
+SMTP_PASS=
+
+SWAGGER_USERNAME=Aidevix
+SWAGGER_PASSWORD=<swagger parol>
 ```
 
-## Custom Domain (Ixtiyoriy)
+### Tekshirish
 
-1. Render dashboard → **Settings** → **Custom Domains**
-2. Domain'ingizni qo'shing
-3. DNS sozlamalarini qiling (Render ko'rsatadi)
+```bash
+curl https://aidevix-backend-production.up.railway.app/health
+```
 
-## Monitoring
+---
 
-- **Logs:** Render dashboard → **Logs** bo'limida ko'rasiz
-- **Metrics:** CPU, Memory, Network ko'rsatkichlari
-- **Events:** Deploy, restart va boshqa event'lar
+## Frontend — Vercel
+
+```bash
+cd frontend
+npx vercel --prod   # aidevix.uz ga deploy
+```
+
+### Vercel Env Vars
+
+```
+NEXT_PUBLIC_API_BASE_URL=https://aidevix-backend-production.up.railway.app
+NEXT_PUBLIC_TELEGRAM_CHANNEL=https://t.me/aidevix
+NEXT_PUBLIC_TELEGRAM_BOT=https://t.me/aidevix_bot
+```
+
+---
+
+## MongoDB Atlas
+
+1. **Network Access** → **Allow Access from Anywhere** (`0.0.0.0/0`)
+   - Yoki Railway static IP ni qo'shing (Railway dashboard → Settings)
+2. Database user credentials to'g'ri ekanligini tekshiring
+
+---
 
 ## Troubleshooting
 
-### Server ishlamayapti:
-1. Logs'ni tekshiring (Render dashboard)
-2. Environment variables to'g'ri ekanligini tekshiring
-3. MongoDB Atlas Network Access tekshiring
+| Muammo | Yechim |
+|--------|--------|
+| Server ishlamayapti | Railway Logs → env vars tekshiring |
+| DB ulanmayapti | Atlas Network Access → 0.0.0.0/0 |
+| CORS xatosi | `FRONTEND_URL` to'g'ri ekanligini tekshiring |
+| Bot ishlamayapti | `TELEGRAM_BOT_TOKEN` to'g'ri ekanligini tekshiring |
+| News/Challenge kelmayyapti | `NEWS_ENABLED=true`, `GROQ_API_KEY` tekshiring |
 
-### Database ulanmayapti:
-1. MongoDB Atlas → Network Access → `0.0.0.0/0` qo'shilganini tekshiring
-2. Connection string to'g'ri ekanligini tekshiring
-3. Database user credentials to'g'ri ekanligini tekshiring
+---
 
-### CORS xatosi:
-1. `FRONTEND_URL` environment variable to'g'ri sozlanganini tekshiring
-2. Frontend URL Render'da sozlangan URL bilan mos kelishini tekshiring
+## Production Checklist
 
-## Production Best Practices
-
-1. ✅ Kuchli JWT secrets ishlating (min 32 belgi, random)
-2. ✅ `FRONTEND_URL` ni maxsus domain'ga sozlang (`*` emas)
-3. ✅ MongoDB Atlas'da Network Access'ni cheklang (faqat Render IP)
-4. ✅ Regular backup qiling
-5. ✅ Monitoring sozlang
-6. ✅ Error logging qo'shing
-
-## Support
-
-Agar muammo bo'lsa:
-- Render Logs'ni tekshiring
-- MongoDB Atlas Logs'ni tekshiring
-- Environment variables'ni tekshiring
+- [ ] `JWT_SECRET` kuchli va unikal (min 32 belgi)
+- [ ] `FRONTEND_URL` aniq domain (`*` emas)
+- [ ] MongoDB Atlas Network Access sozlangan
+- [ ] `GROQ_API_KEY` mavjud (news + AI coach uchun)
+- [ ] `TELEGRAM_BOT_TOKEN` va `TELEGRAM_CHANNEL_USERNAME` to'g'ri
+- [ ] Swagger parol o'rnatilgan
+- [ ] Health check ishlayapti
