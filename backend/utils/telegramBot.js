@@ -14,6 +14,7 @@ class AidevixBot {
     this.token = token;
     this.apiUrl = `https://api.telegram.org/bot${token}`;
     this.offset = 0;
+    this.channelCache = []; // inline panel uchun kanal indekslari
   }
 
   /** Long Polling ishga tushirish */
@@ -69,6 +70,7 @@ class AidevixBot {
         case '/toggle':  await this._cmdToggle(chatId, userId, args); break;
         case '/status':  await this._cmdStatus(chatId, userId); break;
         case '/logs':    await this._cmdLogs(chatId, userId, args); break;
+        case '/admin':   await this._cmdAdminPanel(chatId, userId); break;
         case '/help': await this._cmdHelp(chatId, firstName); break;
       }
     }
@@ -84,6 +86,12 @@ class AidevixBot {
       const userId = from.id;
       const firstName = from.first_name;
 
+      // Admin inline panel callbacklari
+      if (data && data.startsWith('adm_')) {
+        await this._handleAdminCallback(id, data, chatId, userId, message);
+        return;
+      }
+
       switch (data) {
         case 'cb_magic_login': await this._cmdLogin(chatId, userId, firstName); break;
         case 'cb_get_stats': await this._cmdStats(chatId, userId, firstName); break;
@@ -92,7 +100,7 @@ class AidevixBot {
         case 'news_react_rocket': await this.answerCallbackQuery(id, 'Rahmat! 🚀'); break;
         case 'news_react_bulb': await this.answerCallbackQuery(id, 'Foydali bo\'ldi! 💡'); break;
       }
-      await this.answerCallbackQuery(id, ''); 
+      await this.answerCallbackQuery(id, '');
     }
   }
 
@@ -562,6 +570,321 @@ class AidevixBot {
     );
   }
 
+  // ═══════════════════════════ ADMIN PANEL ═══════════════════════════
+
+  /** /admin — Inline admin panel */
+  async _cmdAdminPanel(chatId, userId) {
+    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    if (String(userId) !== adminId) return;
+    const { text, keyboard } = await this._buildAdminHome();
+    await this.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: keyboard });
+  }
+
+  /** Admin home panel matn + klaviatura */
+  async _buildAdminHome() {
+    const state = schedulerState.getState();
+    const newsOn      = state.newsEnabled;
+    const challengeOn = state.challengeEnabled;
+
+    let channelInfo = '—';
+    try {
+      const BotChannel = require('../models/BotChannel');
+      const total  = await BotChannel.countDocuments();
+      const active = await BotChannel.countDocuments({ isActive: true });
+      channelInfo = `${active} faol / ${total} jami`;
+    } catch {}
+
+    const logs = schedulerState.getLogs(3);
+    const logsPreview = logs.length > 0
+      ? logs.map(l => `${l.success ? '✅' : '❌'} ${l.type === 'news' ? '📰' : '🏆'} ${l.title.substring(0, 38)}`).join('\n')
+      : 'Hali habar yuborilmagan';
+
+    const text =
+      `🎛 <b>Aidevix Admin Panel</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `📰 News: <b>${newsOn ? '✅ YOQIQ' : '❌ O\'CHIQ'}</b>\n` +
+      `🏆 Challenge: <b>${challengeOn ? '✅ YOQIQ' : '❌ O\'CHIQ'}</b>\n` +
+      `📡 Kanallar: <b>${channelInfo}</b>\n\n` +
+      `📋 <b>So'nggi habarlar:</b>\n${logsPreview}`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: `📰 News: ${newsOn ? 'O\'CHIR ❌' : 'YOQ ✅'}`, callback_data: 'adm_toggle_news' },
+          { text: `🏆 Challenge: ${challengeOn ? 'O\'CHIR ❌' : 'YOQ ✅'}`, callback_data: 'adm_toggle_challenge' },
+        ],
+        [
+          { text: '📰 Yangilik yuborish', callback_data: 'adm_postnews' },
+          { text: '📋 Loglar', callback_data: 'adm_logs' },
+        ],
+        [
+          { text: '📡 Kanallar', callback_data: 'adm_channels' },
+          { text: '🔄 Yangilashtirish', callback_data: 'adm_home' },
+        ],
+      ],
+    };
+    return { text, keyboard };
+  }
+
+  /** Barcha adm_* callbacklarni boshqarish */
+  async _handleAdminCallback(queryId, data, chatId, userId, message) {
+    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    if (String(userId) !== adminId) {
+      return this.answerCallbackQuery(queryId, '⛔ Kirish taqiqlangan');
+    }
+
+    const msgId = message?.message_id;
+
+    // ── NOOP (ajratuvchi tugmalar) ──
+    if (data === 'adm_noop') {
+      return this.answerCallbackQuery(queryId, '');
+    }
+
+    // ── HOME ──
+    if (data === 'adm_home') {
+      const { text, keyboard } = await this._buildAdminHome();
+      await this.editMessage(chatId, msgId, text, { parse_mode: 'HTML', reply_markup: keyboard });
+      return this.answerCallbackQuery(queryId, '');
+    }
+
+    // ── TOGGLE NEWS ──
+    if (data === 'adm_toggle_news') {
+      const was = schedulerState.getState().newsEnabled;
+      schedulerState.setNewsEnabled(!was);
+      const { text, keyboard } = await this._buildAdminHome();
+      await this.editMessage(chatId, msgId, text, { parse_mode: 'HTML', reply_markup: keyboard });
+      return this.answerCallbackQuery(queryId, !was ? '📰 News yoqildi ✅' : '📰 News o\'chirildi ❌');
+    }
+
+    // ── TOGGLE CHALLENGE ──
+    if (data === 'adm_toggle_challenge') {
+      const was = schedulerState.getState().challengeEnabled;
+      schedulerState.setChallengeEnabled(!was);
+      const { text, keyboard } = await this._buildAdminHome();
+      await this.editMessage(chatId, msgId, text, { parse_mode: 'HTML', reply_markup: keyboard });
+      return this.answerCallbackQuery(queryId, !was ? '🏆 Challenge yoqildi ✅' : '🏆 Challenge o\'chirildi ❌');
+    }
+
+    // ── POST NEWS NOW ──
+    if (data === 'adm_postnews') {
+      await this.answerCallbackQuery(queryId, '⏳ Yuborilmoqda...');
+      try {
+        const { postNewsToChannel } = require('./newsScheduler');
+        const ok = await postNewsToChannel();
+        const { text, keyboard } = await this._buildAdminHome();
+        await this.editMessage(chatId, msgId, text, { parse_mode: 'HTML', reply_markup: keyboard });
+        await this.sendMessage(chatId, ok ? '✅ Yangilik muvaffaqiyatli yuborildi!' : '⚠️ Yuborish uchun yangilik topilmadi.');
+      } catch (e) {
+        await this.sendMessage(chatId, '❌ Xatolik: ' + e.message);
+      }
+      return;
+    }
+
+    // ── LOGS ──
+    if (data === 'adm_logs') {
+      const logs = schedulerState.getLogs(20);
+      const backKeyboard = { inline_keyboard: [[{ text: '◀️ Bosh panel', callback_data: 'adm_home' }]] };
+      if (logs.length === 0) {
+        await this.editMessage(chatId, msgId,
+          '📭 <b>Hali hech qanday habar yuborilmagan.</b>\n\nServer qayta ishga tushsa log tozalanadi.',
+          { parse_mode: 'HTML', reply_markup: backKeyboard }
+        );
+        return this.answerCallbackQuery(queryId, '');
+      }
+      const lines = logs.map((l, i) => {
+        const icon      = l.success ? '✅' : '❌';
+        const typeLabel = l.type === 'news' ? '📰' : '🏆';
+        const time      = l.ts.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+        return `${icon} ${typeLabel} <b>${time}</b> — ${l.title.substring(0, 45)}`;
+      });
+      await this.editMessage(chatId, msgId,
+        `📋 <b>Habarlar tarixi (${logs.length} ta)</b>\n━━━━━━━━━━━━━━━━━━━━━━\n\n` + lines.join('\n'),
+        { parse_mode: 'HTML', reply_markup: backKeyboard }
+      );
+      return this.answerCallbackQuery(queryId, '');
+    }
+
+    // ── CHANNEL LIST ──
+    if (data === 'adm_channels') {
+      await this._adminShowChannels(chatId, msgId, queryId);
+      return;
+    }
+
+    // ── CHANNEL DETAIL ──
+    if (data.startsWith('adm_ch_')) {
+      const idx = parseInt(data.replace('adm_ch_', ''), 10);
+      await this._adminShowChannelDetail(chatId, msgId, queryId, idx);
+      return;
+    }
+
+    // ── SET POST TYPE ──
+    // format: adm_type_{type}_{idx}
+    if (data.startsWith('adm_type_')) {
+      const parts = data.split('_'); // ['adm','type',type,idx]
+      const type  = parts[2];
+      const idx   = parseInt(parts[3], 10);
+      await this._adminSetChannelType(chatId, msgId, queryId, idx, type);
+      return;
+    }
+
+    // ── SET SCHEDULE PRESET ──
+    // format: adm_sched_{1|2|3}_{idx}
+    if (data.startsWith('adm_sched_')) {
+      const parts  = data.split('_'); // ['adm','sched',preset,idx]
+      const preset = parseInt(parts[2], 10);
+      const idx    = parseInt(parts[3], 10);
+      await this._adminSetSchedule(chatId, msgId, queryId, idx, preset);
+      return;
+    }
+
+    // ── TOGGLE CHANNEL ACTIVE ──
+    // format: adm_active_{idx}
+    if (data.startsWith('adm_active_')) {
+      const idx = parseInt(data.replace('adm_active_', ''), 10);
+      await this._adminToggleActive(chatId, msgId, queryId, idx);
+      return;
+    }
+
+    this.answerCallbackQuery(queryId, '');
+  }
+
+  /** Kanallar ro'yxati paneli */
+  async _adminShowChannels(chatId, msgId, queryId) {
+    try {
+      const BotChannel = require('../models/BotChannel');
+      const channels = await BotChannel.find().sort({ addedAt: -1 }).limit(20);
+      this.channelCache = channels;
+
+      const backRow = [{ text: '◀️ Bosh panel', callback_data: 'adm_home' }];
+
+      if (channels.length === 0) {
+        await this.editMessage(chatId, msgId,
+          '📭 <b>Hali hech qanday kanal yo\'q.</b>\n\nBotni kanalga admin qiling — avtomatik ro\'yxatga qo\'shiladi.',
+          { parse_mode: 'HTML', reply_markup: { inline_keyboard: [backRow] } }
+        );
+        return this.answerCallbackQuery(queryId, '');
+      }
+
+      const lines = channels.map((c, i) => {
+        const status = c.isActive ? '✅' : '❌';
+        const types  = (c.postTypes || ['all']).join(',');
+        const hours  = (c.scheduleHours?.length ? c.scheduleHours : [10, 16, 20]).map(h => `${h}:00`).join(',');
+        return `${i + 1}. ${status} <b>${c.title}</b>\n   ${c.username || c.chatId} | ${types} | ${hours}`;
+      });
+
+      const chButtons = channels.map((c, i) => [{ text: `⚙️ ${c.title}`, callback_data: `adm_ch_${i}` }]);
+
+      await this.editMessage(chatId, msgId,
+        `📡 <b>Kanallar ro'yxati</b> (${channels.length} ta)\n━━━━━━━━━━━━━━━━━━━━━━\n\n` + lines.join('\n\n'),
+        { parse_mode: 'HTML', reply_markup: { inline_keyboard: [...chButtons, backRow] } }
+      );
+      return this.answerCallbackQuery(queryId, '');
+    } catch (e) {
+      return this.answerCallbackQuery(queryId, '❌ ' + e.message);
+    }
+  }
+
+  /** Bitta kanal sozlamalari paneli */
+  async _adminShowChannelDetail(chatId, msgId, queryId, idx) {
+    const ch = this.channelCache?.[idx];
+    if (!ch) {
+      return this.answerCallbackQuery(queryId, '❌ Kanal topilmadi. Kanallar ro\'yxatini qayta oching.');
+    }
+
+    const status  = ch.isActive ? '✅ Faol' : '❌ Nofaol';
+    const types   = (ch.postTypes || ['all']).join(', ');
+    const topics  = (ch.topics   || ['all']).join(', ');
+    const hours   = (ch.scheduleHours?.length ? ch.scheduleHours : [10, 16, 20]).map(h => `${h}:00`).join(', ');
+
+    const isAll       = ch.postTypes?.includes('all')        || ch.postTypes?.length === 0;
+    const isNewsOnly  = !isAll && ch.postTypes?.includes('news') && !ch.postTypes?.includes('challenges');
+    const isChalOnly  = !isAll && ch.postTypes?.includes('challenges') && !ch.postTypes?.includes('news');
+
+    const text =
+      `⚙️ <b>${ch.title}</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `🆔 ID: <code>${ch.chatId}</code>\n` +
+      `📊 Holat: ${status}\n` +
+      `🎯 Post turi: <code>${types}</code>\n` +
+      `📰 Mavzu: <code>${topics}</code>\n` +
+      `🕐 Jadval: <code>${hours}</code>\n\n` +
+      `Quyidagi tugmalar orqali tez sozlang:`;
+
+    const keyboard = {
+      inline_keyboard: [
+        // Post turi
+        [{ text: '── Post turi ──────────', callback_data: 'adm_noop' }],
+        [
+          { text: `${isAll ? '✅ ' : ''}📰🏆 Hammasi`, callback_data: `adm_type_all_${idx}` },
+          { text: `${isNewsOnly ? '✅ ' : ''}📰 Faqat news`, callback_data: `adm_type_news_${idx}` },
+          { text: `${isChalOnly ? '✅ ' : ''}🏆 Faqat vazifa`, callback_data: `adm_type_challenges_${idx}` },
+        ],
+        // Jadval presetlari
+        [{ text: '── Jadval ─────────────', callback_data: 'adm_noop' }],
+        [
+          { text: '🕐 1x (12:00)', callback_data: `adm_sched_1_${idx}` },
+          { text: '🕑 2x (9,18)', callback_data: `adm_sched_2_${idx}` },
+          { text: '🕒 3x (10,16,20)', callback_data: `adm_sched_3_${idx}` },
+        ],
+        // Faollashtirish
+        [
+          ch.isActive
+            ? { text: '❌ Kanalga yuborishni to\'xtat', callback_data: `adm_active_${idx}` }
+            : { text: '✅ Kanalga yuborishni yoq', callback_data: `adm_active_${idx}` },
+        ],
+        [{ text: '◀️ Kanallar', callback_data: 'adm_channels' }],
+      ],
+    };
+
+    await this.editMessage(chatId, msgId, text, { parse_mode: 'HTML', reply_markup: keyboard });
+    if (queryId) this.answerCallbackQuery(queryId, '');
+  }
+
+  async _adminSetChannelType(chatId, msgId, queryId, idx, type) {
+    const ch = this.channelCache?.[idx];
+    if (!ch) return this.answerCallbackQuery(queryId, '❌ Kanal topilmadi');
+    try {
+      const BotChannel = require('../models/BotChannel');
+      const postTypes = type === 'all' ? ['all'] : type === 'news' ? ['news'] : ['challenges'];
+      const updated = await BotChannel.findOneAndUpdate({ chatId: ch.chatId }, { postTypes }, { new: true });
+      if (updated) {
+        this.channelCache[idx] = updated;
+        await this._adminShowChannelDetail(chatId, msgId, null, idx);
+        return this.answerCallbackQuery(queryId, `✅ Post turi: ${postTypes.join(',')}`);
+      }
+    } catch (e) { return this.answerCallbackQuery(queryId, '❌ ' + e.message); }
+  }
+
+  async _adminSetSchedule(chatId, msgId, queryId, idx, preset) {
+    const ch = this.channelCache?.[idx];
+    if (!ch) return this.answerCallbackQuery(queryId, '❌ Kanal topilmadi');
+    const PRESETS = { 1: [12], 2: [9, 18], 3: [10, 16, 20] };
+    const scheduleHours = PRESETS[preset] || [10, 16, 20];
+    try {
+      const BotChannel = require('../models/BotChannel');
+      const updated = await BotChannel.findOneAndUpdate({ chatId: ch.chatId }, { scheduleHours }, { new: true });
+      if (updated) {
+        this.channelCache[idx] = updated;
+        await this._adminShowChannelDetail(chatId, msgId, null, idx);
+        return this.answerCallbackQuery(queryId, `✅ Jadval: ${scheduleHours.map(h => h + ':00').join(', ')}`);
+      }
+    } catch (e) { return this.answerCallbackQuery(queryId, '❌ ' + e.message); }
+  }
+
+  async _adminToggleActive(chatId, msgId, queryId, idx) {
+    const ch = this.channelCache?.[idx];
+    if (!ch) return this.answerCallbackQuery(queryId, '❌ Kanal topilmadi');
+    try {
+      const BotChannel = require('../models/BotChannel');
+      const updated = await BotChannel.findOneAndUpdate({ chatId: ch.chatId }, { isActive: !ch.isActive }, { new: true });
+      if (updated) {
+        this.channelCache[idx] = updated;
+        await this._adminShowChannelDetail(chatId, msgId, null, idx);
+        return this.answerCallbackQuery(queryId, updated.isActive ? '✅ Yoqildi' : '❌ O\'chirildi');
+      }
+    } catch (e) { return this.answerCallbackQuery(queryId, '❌ ' + e.message); }
+  }
+
   /** /help — Barcha buyruqlar */
   async _cmdHelp(chatId) {
     const msg =
@@ -581,6 +904,7 @@ class AidevixBot {
       `   news | challenges | all\n` +
       `🔹 /setschedule [@kanal] [soatlar] — Jadval sozlash\n` +
       `   Misol: 10,16,20 (3 marta) | 9,18 (2 marta) | 12 (1 marta)\n\n` +
+      `🎛 /admin — Inline admin panel (tavsiya etiladi)\n\n` +
       `🔄 <b>Nazorat buyruqlari:</b>\n` +
       `🔹 /toggle [news|challenge|all] — Habarlarni yoq/o'chir\n` +
       `🔹 /status — Barcha schedulerlar holati\n` +
@@ -683,6 +1007,12 @@ class AidevixBot {
 
   async sendMessage(chatId, text, opts = {}) {
     try { await axios.post(`${this.apiUrl}/sendMessage`, { chat_id: chatId, text, ...opts }); } catch (e) {}
+  }
+
+  async editMessage(chatId, messageId, text, opts = {}) {
+    try {
+      await axios.post(`${this.apiUrl}/editMessageText`, { chat_id: chatId, message_id: messageId, text, ...opts });
+    } catch (e) {}
   }
 
   async answerCallbackQuery(id, text) {
