@@ -1,4 +1,5 @@
 const axios = require('axios');
+const schedulerState = require('./schedulerState');
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -65,6 +66,9 @@ class AidevixBot {
         case '/settopic':    await this._cmdSetTopic(chatId, userId, args); break;
         case '/settype':     await this._cmdSetType(chatId, userId, args); break;
         case '/setschedule': await this._cmdSetSchedule(chatId, userId, args); break;
+        case '/toggle':  await this._cmdToggle(chatId, userId, args); break;
+        case '/status':  await this._cmdStatus(chatId, userId); break;
+        case '/logs':    await this._cmdLogs(chatId, userId, args); break;
         case '/help': await this._cmdHelp(chatId, firstName); break;
       }
     }
@@ -446,6 +450,118 @@ class AidevixBot {
     }
   }
 
+  /**
+   * /toggle [news|challenge|all] — Scheduler yoqish/o'chirish
+   */
+  async _cmdToggle(chatId, userId, args) {
+    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    if (String(userId) !== adminId) return;
+
+    const target = (args[0] || '').toLowerCase();
+    if (!['news', 'challenge', 'all'].includes(target)) {
+      return this.sendMessage(chatId,
+        `⚠️ <b>Foydalanish:</b>\n` +
+        `<code>/toggle news</code> — Yangiliklar on/off\n` +
+        `<code>/toggle challenge</code> — Kunlik vazifalar on/off\n` +
+        `<code>/toggle all</code> — Ikkalasi birga`,
+        { parse_mode: 'HTML' }
+      );
+    }
+
+    const state = schedulerState.getState();
+    let lines = [];
+
+    if (target === 'news' || target === 'all') {
+      const next = !state.newsEnabled;
+      schedulerState.setNewsEnabled(next);
+      lines.push(`📰 <b>Yangiliklar (news):</b> ${next ? '✅ YOQILDI' : '❌ O\'CHIRILDI'}`);
+    }
+    if (target === 'challenge' || target === 'all') {
+      const next = !state.challengeEnabled;
+      schedulerState.setChallengeEnabled(next);
+      lines.push(`🏆 <b>Kunlik vazifalar (challenge):</b> ${next ? '✅ YOQILDI' : '❌ O\'CHIRILDI'}`);
+    }
+
+    await this.sendMessage(chatId,
+      `🔄 <b>Holat yangilandi</b>\n\n${lines.join('\n')}\n\n` +
+      `ℹ️ Server qayta ishga tushsa env sozlamasiga qaytadi.`,
+      { parse_mode: 'HTML' }
+    );
+  }
+
+  /**
+   * /status — Barcha scheduler holati
+   */
+  async _cmdStatus(chatId, userId) {
+    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    if (String(userId) !== adminId) return;
+
+    const state = schedulerState.getState();
+    const newsIcon      = state.newsEnabled      ? '✅' : '❌';
+    const challengeIcon = state.challengeEnabled ? '✅' : '❌';
+
+    let channelInfo = '';
+    try {
+      const BotChannel = require('../models/BotChannel');
+      const total  = await BotChannel.countDocuments();
+      const active = await BotChannel.countDocuments({ isActive: true });
+      channelInfo = `📡 Kanallar: <b>${active} faol</b> / ${total} jami\n`;
+    } catch {}
+
+    const logs = schedulerState.getLogs(5);
+    let logSection = '';
+    if (logs.length > 0) {
+      logSection = `\n\n📋 <b>So'nggi habarlar:</b>\n` +
+        logs.map(l => {
+          const icon = l.success ? '✅' : '❌';
+          const time = l.ts.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+          const typeLabel = l.type === 'news' ? '📰' : '🏆';
+          return `${icon} ${typeLabel} ${time} — ${l.title.substring(0, 40)}`;
+        }).join('\n');
+    }
+
+    await this.sendMessage(chatId,
+      `📊 <b>Aidevix Bot Status</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `${newsIcon} <b>News scheduler:</b> ${state.newsEnabled ? 'YOQIQ' : 'O\'CHIQ'}\n` +
+      `${challengeIcon} <b>Challenge scheduler:</b> ${state.challengeEnabled ? 'YOQIQ' : 'O\'CHIQ'}\n\n` +
+      channelInfo +
+      `\n💡 Yoqish/o'chirish: /toggle [news|challenge|all]` +
+      logSection,
+      { parse_mode: 'HTML' }
+    );
+  }
+
+  /**
+   * /logs [n] — So'nggi yuborilgan habarlar
+   * Misol: /logs 10
+   */
+  async _cmdLogs(chatId, userId, args) {
+    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    if (String(userId) !== adminId) return;
+
+    const limit = Math.min(parseInt(args[0]) || 15, 50);
+    const logs  = schedulerState.getLogs(limit);
+
+    if (logs.length === 0) {
+      return this.sendMessage(chatId, '📭 Hali hech qanday habar yuborilmagan (server qayta ishga tushdi).', { parse_mode: 'HTML' });
+    }
+
+    const lines = logs.map((l, i) => {
+      const icon      = l.success ? '✅' : '❌';
+      const typeLabel = l.type === 'news' ? '📰 News' : '🏆 Challenge';
+      const time      = l.ts.toLocaleString('uz-UZ', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      return `${i + 1}. ${icon} ${typeLabel}\n   📅 ${time}\n   📢 ${l.channelId}\n   📝 ${l.title}`;
+    });
+
+    await this.sendMessage(chatId,
+      `📋 <b>Habarlar logi (so'nggi ${logs.length} ta)</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      lines.join('\n\n'),
+      { parse_mode: 'HTML' }
+    );
+  }
+
   /** /help — Barcha buyruqlar */
   async _cmdHelp(chatId) {
     const msg =
@@ -465,6 +581,10 @@ class AidevixBot {
       `   news | challenges | all\n` +
       `🔹 /setschedule [@kanal] [soatlar] — Jadval sozlash\n` +
       `   Misol: 10,16,20 (3 marta) | 9,18 (2 marta) | 12 (1 marta)\n\n` +
+      `🔄 <b>Nazorat buyruqlari:</b>\n` +
+      `🔹 /toggle [news|challenge|all] — Habarlarni yoq/o'chir\n` +
+      `🔹 /status — Barcha schedulerlar holati\n` +
+      `🔹 /logs [n] — So'nggi yuborilgan habarlar\n\n` +
       `🌐 aidevix.uz | @aidevix`;
     await this.sendMessage(chatId, msg, { parse_mode: 'HTML' });
   }

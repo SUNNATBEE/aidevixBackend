@@ -17,6 +17,7 @@ const RssParser = require('rss-parser');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const schedulerState = require('./schedulerState');
 
 const parser = new RssParser({
   timeout: 15000,
@@ -303,6 +304,7 @@ async function sendNewsToChat(botToken, chatId, item, aiData) {
 const lastPostedSlots = new Map(); // chatId → 'YYYY-MM-DD-HH'
 
 async function runSchedulerTick() {
+  if (!schedulerState.isNewsEnabled()) return;
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) return;
 
@@ -357,12 +359,14 @@ async function runSchedulerTick() {
       await sendNewsToChat(botToken, channel.chatId, item, aiData);
       markAsSent(item.link);
       sentLinks.add(item.link); // lokal set ham yangilash (bir tickda dublikat oldini olish)
+      schedulerState.addLog('news', channel.chatId, item.title, true);
 
       const hours = channel.scheduleHours?.length > 0 ? channel.scheduleHours : [10, 16, 20];
       console.log(`[News] ✅ ${channel.title || channel.chatId} (${tashkentHour}:00, jadval: ${hours.join('/')}:00) → "${item.title.substring(0, 50)}..." [${item.category}]`);
 
       await new Promise(r => setTimeout(r, 1500));
     } catch (err) {
+      schedulerState.addLog('news', channel.chatId, 'Xatolik: ' + (err.response?.data?.description || err.message), false);
       console.error(`[News] ❌ ${channel.chatId}:`, err.response?.data?.description || err.message);
     }
   }
@@ -407,10 +411,12 @@ async function postNewsToChannel() {
         markAsSent(item.link);
         sentLinks.add(item.link);
         totalSent++;
+        schedulerState.addLog('news', channel.chatId, item.title, true);
         console.log(`[News] ✅ ${channel.title || channel.chatId} → "${item.title.substring(0, 50)}..." [${item.category}]`);
 
         await new Promise(r => setTimeout(r, 1500));
       } catch (err) {
+        schedulerState.addLog('news', channel.chatId, 'Xatolik: ' + (err.response?.data?.description || err.message), false);
         console.error(`[News] ❌ ${channel.chatId}:`, err.response?.data?.description || err.message);
       }
     }
@@ -426,8 +432,10 @@ async function postNewsToChannel() {
 // ─── Scheduler ───────────────────────────────────────────────────────────
 
 function startNewsScheduler() {
-  const enabled = process.env.NEWS_ENABLED === 'true' || process.env.SEND_NEWS === 'true';
-  if (!enabled) return;
+  // State env dan boshlanib, runtime da /toggle bilan o'zgartiriladi
+  if (!schedulerState.isNewsEnabled()) {
+    console.log('[News] Scheduler o\'chirilgan (NEWS_ENABLED=false). /toggle news bilan yoqish mumkin.');
+  }
 
   console.log('[News] Kunlik AI News ishga tushdi (har kanal o\'z jadvaliga ko\'ra, har 10 daqiqada tekshiriladi)');
 

@@ -13,6 +13,7 @@
  */
 
 const axios = require('axios');
+const schedulerState = require('./schedulerState');
 
 // Kunlik challenge variantlari (navbat bilan)
 const CHALLENGE_POOL = [
@@ -181,7 +182,9 @@ async function sendChallengeToChannel(challenge) {
         chat_id: chatId, text: message, parse_mode: 'HTML', reply_markup: keyboard,
       });
       sentCount++;
+      schedulerState.addLog('challenge', chatId, challenge.title, true);
     } catch (err) {
+      schedulerState.addLog('challenge', chatId, 'Xatolik: ' + (err.response?.data?.description || err.message), false);
       console.error(`[ChallengeScheduler] Kanal xatosi (${chatId}):`, err.response?.data?.description || err.message);
     }
   }
@@ -189,17 +192,21 @@ async function sendChallengeToChannel(challenge) {
 }
 
 function startChallengeScheduler() {
-  const enabled = process.env.CHALLENGE_SCHEDULER_ENABLED !== 'false';
-  if (!enabled) return;
+  if (!schedulerState.isChallengeEnabled()) {
+    console.log('[ChallengeScheduler] O\'chirilgan (CHALLENGE_SCHEDULER_ENABLED=false). /toggle challenge bilan yoqish mumkin.');
+  }
 
   console.log('[ChallengeScheduler] Kunlik challenge scheduler ishga tushdi (00:05 Toshkent)');
 
   // Ishga tushganda darhol tekshirish (agar kechagi process restart bo'lgan bo'lsa)
-  setTimeout(() => createDailyChallenge(), 5000);
+  setTimeout(() => {
+    if (schedulerState.isChallengeEnabled()) createDailyChallenge();
+  }, 5000);
 
   // Har 10 daqiqada tekshirish — Toshkent 00:00-00:10 oralig'ida yaratish
   let lastCreatedDate = '';
   setInterval(async () => {
+    if (!schedulerState.isChallengeEnabled()) return;
     const hour = getTashkentHour();
     const todayStr = getTodayStr();
 
