@@ -56,6 +56,7 @@ api.interceptors.response.use(
         refreshQueue = []
 
         if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          console.log('[Axios] Redirecting to /login due to auth failure');
           window.location.href = '/login'
         }
 

@@ -75,7 +75,6 @@ const authSlice = createSlice({
     clearError: (state) => { state.error = null },
     updateUser: (state, action) => {
       state.user = { ...(state.user || {}), ...action.payload }
-      tokenStorage.setUser(state.user)
     },
   },
   extraReducers: (builder) => {
@@ -84,7 +83,6 @@ const authSlice = createSlice({
     const clearSession = (state) => {
       state.user = null
       state.isLoggedIn = false
-      tokenStorage.clearTokens()
     }
     const registerFulfilled = (state, action) => {
       state.loading = false

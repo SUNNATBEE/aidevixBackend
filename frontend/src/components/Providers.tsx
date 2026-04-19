@@ -9,10 +9,19 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { SoundProvider } from '@/context/SoundContext';
 import { checkAuthStatus } from '@/store/slices/authSlice';
 
+import { useDispatch } from 'react-redux';
+import { useRef } from 'react';
+
 function AuthBootstrap() {
+  const dispatch = useDispatch();
+  const hasInitialized = useRef(false);
+
   useEffect(() => {
-    store.dispatch(checkAuthStatus() as any);
-  }, []);
+    if (!hasInitialized.current) {
+      dispatch(checkAuthStatus() as any);
+      hasInitialized.current = true;
+    }
+  }, [dispatch]);
 
   return null;
 }
