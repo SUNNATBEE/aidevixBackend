@@ -55,7 +55,7 @@ api.interceptors.response.use(
         refreshQueue.forEach((cb) => cb.reject(refreshError))
         refreshQueue = []
 
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
           window.location.href = '/login'
         }
 
