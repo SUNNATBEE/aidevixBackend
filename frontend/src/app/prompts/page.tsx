@@ -1,9 +1,11 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector } from 'react-redux';
-import { selectUser, selectIsAuthenticated } from '@store/slices/authSlice';
+import { selectUser, selectIsLoggedIn } from '@store/slices/authSlice';
 import { promptApi, type Prompt } from '@api/promptApi';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
@@ -234,7 +236,7 @@ function PromptCard({ prompt, userId, onLike }: { prompt: Prompt; userId?: strin
 
 export default function PromptsPage() {
   const user = useSelector(selectUser);
-  const isAuth = useSelector(selectIsAuthenticated);
+  const isAuth = useSelector(selectIsLoggedIn);
 
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [featured, setFeatured] = useState<Prompt[]>([]);
