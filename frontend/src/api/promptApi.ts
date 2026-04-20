@@ -25,20 +25,20 @@ export interface PromptsResponse {
 
 export const promptApi = {
   getAll: (params?: Record<string, string | number>) =>
-    axiosInstance.get<{ success: boolean; data: PromptsResponse }>('/api/prompts', { params }),
+    axiosInstance.get<{ success: boolean; data: PromptsResponse }>('prompts', { params }),
 
   getFeatured: () =>
-    axiosInstance.get<{ success: boolean; data: Prompt[] }>('/api/prompts/featured'),
+    axiosInstance.get<{ success: boolean; data: Prompt[] }>('prompts/featured'),
 
   getOne: (id: string) =>
-    axiosInstance.get<{ success: boolean; data: Prompt }>(`/api/prompts/${id}`),
+    axiosInstance.get<{ success: boolean; data: Prompt }>(`prompts/${id}`),
 
   create: (data: { title: string; content: string; description?: string; category: string; tool: string; tags?: string[] }) =>
-    axiosInstance.post<{ success: boolean; data: Prompt; message: string }>('/api/prompts', data),
+    axiosInstance.post<{ success: boolean; data: Prompt; message: string }>('prompts', data),
 
   like: (id: string) =>
-    axiosInstance.post<{ success: boolean; liked: boolean; likesCount: number }>(`/api/prompts/${id}/like`),
+    axiosInstance.post<{ success: boolean; liked: boolean; likesCount: number }>(`prompts/${id}/like`),
 
   delete: (id: string) =>
-    axiosInstance.delete<{ success: boolean }>(`/api/prompts/${id}`),
+    axiosInstance.delete<{ success: boolean }>(`prompts/${id}`),
 };
