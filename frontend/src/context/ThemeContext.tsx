@@ -44,7 +44,21 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(readInitialTheme);
+  // Start with SSR-safe value ('dark') to avoid hydration mismatch.
+  // readInitialTheme reads localStorage which is unavailable on the server,
+  // causing React error #422. Update the real value in useEffect after mount.
+  const [theme, setTheme] = useState<Theme>('dark');
+
+  useEffect(() => {
+    // On mount, read the real theme from localStorage and sync
+    const saved = readInitialTheme();
+    if (saved !== theme) {
+      setTheme(saved);
+    } else {
+      syncDocumentTheme(theme);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     syncDocumentTheme(theme);

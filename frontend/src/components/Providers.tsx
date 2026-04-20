@@ -10,16 +10,18 @@ import { SoundProvider } from '@/context/SoundContext';
 import { checkAuthStatus } from '@/store/slices/authSlice';
 
 import { useDispatch } from 'react-redux';
-import { useRef } from 'react';
+
+// Module-level flag — survives component remounts caused by hydration errors.
+// useRef resets on remount; this does not.
+let authCheckDispatched = false;
 
 function AuthBootstrap() {
   const dispatch = useDispatch();
-  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    if (!hasInitialized.current) {
+    if (!authCheckDispatched) {
+      authCheckDispatched = true;
       dispatch(checkAuthStatus() as any);
-      hasInitialized.current = true;
     }
   }, [dispatch]);
 
