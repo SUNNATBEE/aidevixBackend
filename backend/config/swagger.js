@@ -154,6 +154,10 @@ Frontend показывает его в \`<iframe>\` — не через Telegra
         description: '❤️ Saqlangan kurslar / Список желаний',
       },
       {
+        name: 'Prompt Library',
+        description: '⚡ AI Prompt kutubxonasi — yaratish, like, featured / Библиотека AI промптов',
+      },
+      {
         name: 'Challenges',
         description: '🎯 Kunlik vazifalar / Ежедневные задания',
       },
@@ -247,6 +251,41 @@ Format: \`Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\`
             },
             subscriptions: {
               $ref: '#/components/schemas/Subscriptions',
+            },
+            xp: {
+              type: 'number',
+              example: 4250,
+              description: 'Jami XP / Всего XP',
+            },
+            streak: {
+              type: 'number',
+              example: 7,
+              description: 'Ketma-ket faol kunlar / Дней подряд',
+            },
+            rankTitle: {
+              type: 'string',
+              enum: ['AMATEUR', 'CANDIDATE', 'JUNIOR', 'MIDDLE', 'SENIOR', 'MASTER', 'LEGEND'],
+              example: 'MIDDLE',
+              description: 'Rank darajasi / Ранг',
+            },
+            aiStack: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['Claude Code', 'Cursor', 'GitHub Copilot', 'ChatGPT', 'Gemini', 'Windsurf', 'Devin', 'Replit AI', 'Codeium', 'Other'],
+              },
+              example: ['Claude Code', 'Cursor', 'GitHub Copilot'],
+              description: 'Foydalanuvchi ishlataydigan AI toollar / AI инструменты пользователя',
+            },
+            avatar: {
+              type: 'string',
+              example: 'https://res.cloudinary.com/aidevix/image/upload/v1/avatars/user.jpg',
+              nullable: true,
+            },
+            referralCode: {
+              type: 'string',
+              example: 'A1B2C3',
+              description: 'Unikal referral kodi / Уникальный реферальный код',
             },
             createdAt: {
               type: 'string',
@@ -742,6 +781,73 @@ const { video, player } = response.data.data
           },
         },
 
+        // ─── PROMPT ──────────────────────────────────────────────
+        Prompt: {
+          type: 'object',
+          description: 'AI Prompt modeli / Модель AI промпта',
+          properties: {
+            _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0f0' },
+            title: {
+              type: 'string',
+              example: 'React componentni lazy load qilish',
+              description: 'Prompt sarlavhasi (max 150) / Заголовок (макс. 150)',
+            },
+            content: {
+              type: 'string',
+              example: 'Menga React componentni React.lazy va Suspense bilan lazy load qilib beruvchi kod yoz...',
+              description: 'Prompt matni (max 5000) / Текст промпта (макс. 5000)',
+            },
+            description: {
+              type: 'string',
+              example: 'React.lazy va Suspense yordamida performance yaxshilash',
+              description: 'Qisqa tavsif (max 300) / Краткое описание (макс. 300)',
+            },
+            category: {
+              type: 'string',
+              enum: ['coding', 'debugging', 'vibe_coding', 'claude', 'cursor', 'copilot', 'architecture', 'refactoring', 'testing', 'documentation', 'other'],
+              example: 'coding',
+            },
+            tool: {
+              type: 'string',
+              enum: ['Claude Code', 'Cursor', 'GitHub Copilot', 'ChatGPT', 'Gemini', 'Windsurf', 'Any'],
+              example: 'Claude Code',
+            },
+            tags: {
+              type: 'array',
+              maxItems: 5,
+              items: { type: 'string' },
+              example: ['react', 'lazy-load', 'performance'],
+            },
+            author: {
+              type: 'object',
+              description: 'Prompt muallifi / Автор промпта',
+              properties: {
+                _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d1' },
+                username: { type: 'string', example: 'jasurbek_dev' },
+                firstName: { type: 'string', example: 'Jasurbek' },
+                avatar: { type: 'string', example: 'https://res.cloudinary.com/aidevix/image/upload/v1/avatars/user.jpg', nullable: true },
+                rankTitle: { type: 'string', example: 'MIDDLE' },
+                aiStack: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  example: ['Claude Code', 'Cursor'],
+                },
+              },
+            },
+            likes: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Like bosgan user ID lari / ID пользователей, поставивших лайк',
+            },
+            likesCount: { type: 'number', example: 15 },
+            viewsCount: { type: 'number', example: 142 },
+            isPublic: { type: 'boolean', example: true },
+            isFeatured: { type: 'boolean', example: false },
+            createdAt: { type: 'string', format: 'date-time', example: '2026-04-15T10:00:00.000Z' },
+            updatedAt: { type: 'string', format: 'date-time', example: '2026-04-20T14:30:00.000Z' },
+          },
+        },
+
         // ─── DAILY CHALLENGE ─────────────────────────────────────
         DailyChallenge: {
           type: 'object',
@@ -750,7 +856,7 @@ const { video, player } = response.data.data
             _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0e0' },
             title: { type: 'string', example: '3 ta video ko\'r' },
             description: { type: 'string', example: 'Bugun kamida 3 ta video ko\'ring' },
-            type: { type: 'string', enum: ['watch_video', 'complete_quiz', 'streak', 'enroll_course', 'rate_course'], example: 'watch_video' },
+            type: { type: 'string', enum: ['watch_video', 'complete_quiz', 'streak', 'enroll_course', 'rate_course', 'use_ai_tool', 'share_prompt'], example: 'watch_video' },
             targetCount: { type: 'number', example: 3 },
             xpReward: { type: 'number', example: 100 },
             date: { type: 'string', example: '2026-03-26', description: 'YYYY-MM-DD formatda' },
@@ -822,6 +928,12 @@ const { video, player } = response.data.data
             videosWatched: { type: 'number', example: 450 },
             quizzesCompleted: { type: 'number', example: 120 },
             skills: { type: 'array', items: { type: 'string' }, example: ['javascript', 'react'] },
+            aiStack: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['Claude Code', 'Cursor', 'GitHub Copilot'],
+              description: 'AI toollar (leaderboard da icon sifatida ko\'rinadi) / AI инструменты (отображаются как иконки)',
+            },
           },
         },
 
