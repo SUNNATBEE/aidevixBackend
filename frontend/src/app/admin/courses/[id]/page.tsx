@@ -5,6 +5,7 @@ import {
   getCourseById, updateCourse,
   getCourseVideos, createVideo, updateVideo, deleteVideo,
   getUploadCredentials, getVideoStatus, linkVideoToBunny,
+  uploadThumbnail,
   unwrapAdmin,
 } from '@/api/adminApi';
 import { useParams } from 'next/navigation';
@@ -66,10 +67,12 @@ function fmtDur(secs: number) {
 export default function EditCoursePage() {
   const { id } = useParams<{ id: string }>();
 
-  const [course, setCourse]   = useState<any>(null);
-  const [videos, setVideos]   = useState<VideoRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving]   = useState(false);
+  const [course, setCourse]       = useState<any>(null);
+  const [videos, setVideos]       = useState<VideoRow[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [saving, setSaving]       = useState(false);
+  const [thumbUploading, setThumbUploading] = useState(false);
+  const thumbRef = useRef<HTMLInputElement>(null);
 
   // Course form
   const [form, setForm] = useState({
@@ -294,6 +297,22 @@ export default function EditCoursePage() {
     }
   };
 
+  // ── Thumbnail upload ───────────────────────────────────────────────────────
+  const handleThumbUpload = async (file: File) => {
+    setThumbUploading(true);
+    try {
+      const res = await uploadThumbnail(id, file);
+      const url = (res.data as { data?: { url?: string }; url?: string })?.data?.url
+               || (res.data as { url?: string })?.url;
+      if (url) setCourse((c: any) => ({ ...c, thumbnail: url }));
+      toast.success('Thumbnail yuklandi');
+    } catch {
+      toast.error("Thumbnail yuklab bo'lmadi");
+    } finally {
+      setThumbUploading(false);
+    }
+  };
+
   // ── Phase labels ───────────────────────────────────────────────────────────
   const phaseLabel: Record<UploadPhase, string> = {
     idle:       'Yuklashni boshlash',
@@ -387,6 +406,45 @@ export default function EditCoursePage() {
                 </label>
               </div>
             </form>
+          </div>
+
+          {/* Thumbnail */}
+          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-5 shadow-xl">
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Muqova (Thumbnail)</p>
+            <div className="flex items-center gap-4">
+              <div className="h-20 w-32 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-900">
+                {course?.thumbnail ? (
+                  <img
+                    src={typeof course.thumbnail === 'string' ? course.thumbnail : course.thumbnail?.url}
+                    alt="thumbnail"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-slate-600 text-xs">Rasm yo'q</div>
+                )}
+              </div>
+              <div>
+                <input
+                  ref={thumbRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleThumbUpload(f); }}
+                />
+                <button
+                  type="button"
+                  onClick={() => thumbRef.current?.click()}
+                  disabled={thumbUploading}
+                  className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-900 px-4 py-2 text-sm text-slate-200 transition hover:border-amber-500/40 disabled:opacity-50"
+                >
+                  {thumbUploading
+                    ? <span className="loading loading-spinner loading-xs" />
+                    : <FiUploadCloud className="h-4 w-4" />}
+                  {thumbUploading ? 'Yuklanmoqda…' : 'Rasm yuklash'}
+                </button>
+                <p className="mt-1 text-xs text-slate-600">JPG, PNG, WebP — max 5MB</p>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -1,29 +1,131 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiMenu, FiX, FiExternalLink, FiShield } from 'react-icons/fi';
+import { FiMenu, FiX, FiExternalLink, FiShield, FiSearch } from 'react-icons/fi';
 import { useSelector } from 'react-redux';
 import { selectUser } from '@store/slices/authSlice';
 import AdminRoute from '@/components/auth/AdminRoute';
 import { ADMIN_NAV } from '@/config/adminNav';
+import { globalSearch } from '@/api/adminApi';
+
+type SearchResults = {
+  users: { _id: string; username: string; email: string }[];
+  courses: { _id: string; title: string }[];
+  videos: { _id: string; title: string }[];
+};
+
+function GlobalSearch() {
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState<SearchResults | null>(null);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (q.length < 2) { setResults(null); setOpen(false); return; }
+    setLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await globalSearch(q);
+        setResults((res.data as { data: SearchResults }).data);
+        setOpen(true);
+      } catch { /* silent */ } finally { setLoading(false); }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const hasAny = results && (
+    results.users.length + results.courses.length + results.videos.length > 0
+  );
+
+  return (
+    <div ref={ref} className="relative hidden w-72 sm:block">
+      <FiSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Qidiruv..."
+        className="w-full rounded-xl border border-slate-700 bg-slate-950 py-2 pl-9 pr-3 text-sm text-white placeholder:text-slate-600 focus:border-amber-500/50 focus:outline-none"
+      />
+      {loading && (
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 loading loading-spinner loading-xs text-amber-400" />
+      )}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0f121c] shadow-2xl"
+          >
+            {!hasAny ? (
+              <p className="px-4 py-6 text-center text-sm text-slate-500">Hech narsa topilmadi</p>
+            ) : (
+              <div className="divide-y divide-white/5 text-sm">
+                {results!.users.length > 0 && (
+                  <div>
+                    <p className="px-4 pt-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Foydalanuvchilar</p>
+                    {results!.users.map((u) => (
+                      <button
+                        key={u._id}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-white/5"
+                        onClick={() => { router.push(`/admin/users/${u._id}`); setOpen(false); setQ(''); }}
+                      >
+                        <span className="font-medium text-white">{u.username}</span>
+                        <span className="truncate text-xs text-slate-500">{u.email}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {results!.courses.length > 0 && (
+                  <div>
+                    <p className="px-4 pt-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Kurslar</p>
+                    {results!.courses.map((c) => (
+                      <button
+                        key={c._id}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-white/5"
+                        onClick={() => { router.push(`/admin/courses/${c._id}`); setOpen(false); setQ(''); }}
+                      >
+                        <span className="font-medium text-white">{c.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {results!.videos.length > 0 && (
+                  <div>
+                    <p className="px-4 pt-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Videolar</p>
+                    {results!.videos.map((v) => (
+                      <div key={v._id} className="px-4 py-2">
+                        <span className="text-slate-300">{v.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 function NavLink({
-  href,
-  label,
-  hint,
-  icon,
-  active,
-  onNavigate,
+  href, label, hint, icon, active, onNavigate,
 }: {
-  href: string;
-  label: string;
-  hint: string;
-  icon: React.ReactNode;
-  active: boolean;
-  onNavigate?: () => void;
+  href: string; label: string; hint: string; icon: React.ReactNode; active: boolean; onNavigate?: () => void;
 }) {
   return (
     <Link
@@ -31,10 +133,8 @@ function NavLink({
       onClick={onNavigate}
       title={hint}
       className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium transition-all ${
-        active
-          ? 'text-white'
-          : 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
-      } `}
+        active ? 'text-white' : 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
+      }`}
     >
       {active && (
         <motion.div
@@ -70,7 +170,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const pageTitle =
     ADMIN_NAV.flatMap((s) => s.items).find((i) => i.href === pathname)?.label ||
-    (pathname?.includes('/admin/courses/') ? 'Kurs tahriri' : 'Admin');
+    (pathname?.includes('/admin/courses/') ? 'Kurs tahriri' :
+     pathname?.includes('/admin/users/') ? 'Foydalanuvchi' : 'Admin');
 
   const sidebar = (
     <div className="flex h-full flex-col border-r border-white/10 bg-[#0a0c14]/95 backdrop-blur-xl">
@@ -133,10 +234,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         />
 
         <div className="relative z-10 flex min-h-screen">
-          {/* Desktop sidebar */}
           <aside className="sticky top-0 hidden h-screen w-72 shrink-0 lg:block">{sidebar}</aside>
 
-          {/* Mobile drawer */}
           <AnimatePresence>
             {mobileOpen && (
               <motion.div
@@ -175,10 +274,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </button>
                 <div>
                   <h1 className="font-display text-lg font-bold text-white sm:text-xl">{pageTitle}</h1>
-                  <p className="hidden text-xs text-slate-500 sm:block">Barcha o‘zgarishlar API orqali saqlanadi</p>
+                  <p className="hidden text-xs text-slate-500 sm:block">Barcha o'zgarishlar API orqali saqlanadi</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
+                <GlobalSearch />
                 <span className="hidden items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-300 sm:inline-flex">
                   <FiShield className="h-3.5 w-3.5" />
                   {user?.role === 'admin' ? 'Administrator' : user?.role}

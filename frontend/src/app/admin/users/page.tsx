@@ -2,8 +2,9 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { getUsers, updateUser, deleteUser, unwrapAdmin } from '@/api/adminApi';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { FiSearch, FiTrash2, FiShield, FiUser } from 'react-icons/fi';
+import { FiSearch, FiTrash2, FiShield, FiUser, FiEye } from 'react-icons/fi';
 
 type UserRow = {
   _id: string;
@@ -170,6 +171,13 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-1">
+                        <Link
+                          href={`/admin/users/${u._id}`}
+                          title="Batafsil"
+                          className="rounded-lg p-2 text-sky-400 hover:bg-sky-500/10"
+                        >
+                          <FiEye className="h-4 w-4" />
+                        </Link>
                         <button
                           type="button"
                           title="Rolni almashtirish"

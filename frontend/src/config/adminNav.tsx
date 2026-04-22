@@ -6,6 +6,8 @@ import {
   FiSettings,
   FiUsers,
   FiDollarSign,
+  FiBarChart2,
+  FiTool,
 } from 'react-icons/fi';
 
 export type AdminNavItem = {
@@ -24,7 +26,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
       {
         href: '/admin',
         label: 'Umumiy panel',
-        hint: 'Statistika va tezkor ko‘rinish',
+        hint: "Statistika, grafiklar, tezkor ko'rinish",
         icon: <FiHome className="h-5 w-5" />,
       },
       {
@@ -36,13 +38,13 @@ export const ADMIN_NAV: AdminNavSection[] = [
       {
         href: '/admin/users',
         label: 'Foydalanuvchilar',
-        hint: 'Rol, faollik, qidiruv',
+        hint: 'Rol, faollik, batafsil profil',
         icon: <FiUsers className="h-5 w-5" />,
       },
       {
         href: '/admin/payments',
         label: "To'lovlar",
-        hint: 'So‘nggi tranzaksiyalar',
+        hint: "So'nggi tranzaksiyalar, CSV eksport",
         icon: <FiDollarSign className="h-5 w-5" />,
       },
     ],
@@ -52,9 +54,9 @@ export const ADMIN_NAV: AdminNavSection[] = [
     items: [
       {
         href: '/admin/tools',
-        label: 'Kunlik vazifalar',
-        hint: 'Challenge yaratish (admin API)',
-        icon: <FiActivity className="h-5 w-5" />,
+        label: 'Vositalar',
+        hint: 'Challenge, Telegram, Bunny bulk',
+        icon: <FiTool className="h-5 w-5" />,
       },
     ],
   },
@@ -64,7 +66,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
       {
         href: '/admin/settings',
         label: 'Sozlamalar va hujjatlar',
-        hint: 'API, Swagger, yo‘riqnoma',
+        hint: "API, Swagger, yo'riqnoma",
         icon: <FiSettings className="h-5 w-5" />,
       },
     ],

@@ -2,23 +2,38 @@ const express = require('express');
 const router  = express.Router();
 const {
   getDashboardStats, getTopStudents, getCoursesStats,
-  getRecentPayments, getUsers, updateUser, deleteUser
+  getRecentPayments, getUsers, updateUser, deleteUser,
+  getUserDetail, globalSearch, getAnalytics,
+  sendTelegramMessage, bulkLinkBunny, reorderVideos, getCourseEnrollmentStats,
 } = require('../controllers/adminController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
+const guard = [authenticate, requireAdmin];
 
-router.get('/stats', authenticate, requireAdmin, getDashboardStats);
+// Dashboard
+router.get('/stats',          ...guard, getDashboardStats);
+router.get('/top-students',   ...guard, getTopStudents);
+router.get('/analytics',      ...guard, getAnalytics);
 
-router.get('/top-students', authenticate, requireAdmin, getTopStudents);
+// Courses
+router.get('/courses/stats',              ...guard, getCoursesStats);
+router.get('/courses/:id/enrollments',    ...guard, getCourseEnrollmentStats);
 
-router.get('/courses/stats', authenticate, requireAdmin, getCoursesStats);
+// Payments
+router.get('/payments', ...guard, getRecentPayments);
 
-router.get('/payments', authenticate, requireAdmin, getRecentPayments);
+// Users
+router.get('/users',      ...guard, getUsers);
+router.get('/users/:id',  ...guard, getUserDetail);
+router.put('/users/:id',  ...guard, updateUser);
+router.delete('/users/:id', ...guard, deleteUser);
 
-router.get('/users', authenticate, requireAdmin, getUsers);
+// Search
+router.get('/search', ...guard, globalSearch);
 
-router.put('/users/:id', authenticate, requireAdmin, updateUser);
-
-router.delete('/users/:id', authenticate, requireAdmin, deleteUser);
+// Tools
+router.post('/telegram',          ...guard, sendTelegramMessage);
+router.post('/videos/bulk-link',  ...guard, bulkLinkBunny);
+router.put('/videos/reorder',     ...guard, reorderVideos);
 
 module.exports = router;

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getAllCourses, deleteCourse, createCourse, unwrapAdmin } from '@/api/adminApi';
+import { getAllCourses, deleteCourse, createCourse, updateCourse, unwrapAdmin } from '@/api/adminApi';
 import Link from 'next/link';
 import { FiEdit2, FiTrash2, FiPlus, FiBook, FiSearch } from 'react-icons/fi';
 import toast from 'react-hot-toast';
@@ -25,6 +25,16 @@ export default function AdminCoursesPage() {
       .then((res) => setCourses(unwrapAdmin<{ courses: any[] }>(res).courses || []))
       .catch(err => toast.error('Failed to load courses'))
       .finally(() => setLoading(false));
+  };
+
+  const togglePublish = async (course: any) => {
+    try {
+      await updateCourse(course._id, { isPublished: !course.isPublished });
+      setCourses(prev => prev.map(c => c._id === course._id ? { ...c, isPublished: !c.isPublished } : c));
+      toast.success(course.isPublished ? "Chop etish bekor qilindi" : 'Chop etildi');
+    } catch {
+      toast.error("O'zgartirib bo'lmadi");
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -152,9 +162,14 @@ export default function AdminCoursesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2.5 py-1 text-xs font-semibold rounded-md ${course.isPublished ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                      <button
+                        type="button"
+                        onClick={() => togglePublish(course)}
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-md transition hover:opacity-80 ${course.isPublished ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}
+                        title="Bosish bilan almashtirish"
+                      >
                         {course.isPublished ? 'Published' : 'Draft'}
-                      </span>
+                      </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex justify-end gap-2">

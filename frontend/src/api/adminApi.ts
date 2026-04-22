@@ -33,6 +33,40 @@ export const getUploadCredentials  = (id)                => axiosInstance.get(`v
 export const getVideoStatus        = (id)                => axiosInstance.get(`videos/${id}/status`)
 export const linkVideoToBunny      = (id, bunnyVideoId)  => axiosInstance.patch(`videos/${id}/link-bunny`, { bunnyVideoId })
 
+// ─── Users (detail) ──────────────────────────────────────────────────────────
+export const getUserDetail = (id: string) => axiosInstance.get(`admin/users/${id}`)
+
+// ─── Analytics ───────────────────────────────────────────────────────────────
+export const getAnalytics = () => axiosInstance.get('admin/analytics')
+
+// ─── Global search ───────────────────────────────────────────────────────────
+export const globalSearch = (q: string) => axiosInstance.get('admin/search', { params: { q } })
+
+// ─── Course enrollment stats ─────────────────────────────────────────────────
+export const getCourseEnrollmentStats = (courseId: string) =>
+  axiosInstance.get(`admin/courses/${courseId}/enrollments`)
+
+// ─── Telegram ────────────────────────────────────────────────────────────────
+export const sendTelegramMessage = (message: string, parseMode?: string) =>
+  axiosInstance.post('admin/telegram', { message, parseMode })
+
+// ─── Bulk Bunny GUID link ─────────────────────────────────────────────────────
+export const bulkLinkBunny = (links: { videoId: string; bunnyVideoId: string }[]) =>
+  axiosInstance.post('admin/videos/bulk-link', { links })
+
+// ─── Reorder videos ──────────────────────────────────────────────────────────
+export const reorderVideos = (videos: { id: string; order: number }[]) =>
+  axiosInstance.put('admin/videos/reorder', { videos })
+
+// ─── Thumbnail upload ─────────────────────────────────────────────────────────
+export const uploadThumbnail = (courseId: string, file: File) => {
+  const fd = new FormData()
+  fd.append('thumbnail', file)
+  return axiosInstance.post(`upload/thumbnail/${courseId}`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
 // ─── Challenges (admin) ─────────────────────────────────────────────────────
 export const createDailyChallenge = (body: {
   title: string

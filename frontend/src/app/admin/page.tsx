@@ -5,9 +5,10 @@ import {
   getDashboardStats,
   getTopStudents,
   getCoursesStats,
+  getAnalytics,
   unwrapAdmin,
 } from '@/api/adminApi';
-import { FiUsers, FiBookOpen, FiVideo, FiDollarSign, FiTrendingUp, FiAward, FiLayers } from 'react-icons/fi';
+import { FiUsers, FiBookOpen, FiVideo, FiDollarSign, FiTrendingUp, FiAward, FiLayers, FiBarChart2 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
@@ -21,12 +22,78 @@ type DashboardData = {
 
 type StudentRow = { _id: string; username?: string; email?: string; xp: number; level: number };
 
+type AnalyticsSeries = { label: string; value: number }[];
+type AnalyticsData = {
+  revenue: AnalyticsSeries;
+  signups: AnalyticsSeries;
+  enrollments: { _id: string; title: string; count: number }[];
+};
+
+function LineChart({ data, color }: { data: AnalyticsSeries; color: string }) {
+  const max = Math.max(...data.map((d) => d.value), 1);
+  const W = 400;
+  const H = 100;
+  const pad = { l: 4, r: 4, t: 8, b: 20 };
+  const iW = W - pad.l - pad.r;
+  const iH = H - pad.t - pad.b;
+  const pts = data.map((d, i) => {
+    const x = pad.l + (i / Math.max(data.length - 1, 1)) * iW;
+    const y = pad.t + iH - (d.value / max) * iH;
+    return `${x},${y}`;
+  });
+  const polyline = pts.join(' ');
+  const fill = `${pts.join(' ')} ${pad.l + iW},${pad.t + iH} ${pad.l},${pad.t + iH}`;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
+      <defs>
+        <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={fill} fill={`url(#grad-${color})`} />
+      <polyline points={polyline} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+      {data.map((d, i) => {
+        const x = pad.l + (i / Math.max(data.length - 1, 1)) * iW;
+        const y = pad.t + iH - (d.value / max) * iH;
+        return (
+          <g key={d.label}>
+            <circle cx={x} cy={y} r="3" fill={color} />
+            <text x={x} y={H - 4} textAnchor="middle" fontSize="8" fill="#64748b">
+              {d.label}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function BarChart({ data, color }: { data: { label: string; count: number }[]; color: string }) {
+  const max = Math.max(...data.map((d) => d.count), 1);
+  return (
+    <div className="flex h-28 items-end gap-1.5">
+      {data.map((d) => (
+        <div key={d._id || d.label} className="group flex flex-1 flex-col items-center gap-1">
+          <div
+            className="w-full rounded-t-sm transition-all"
+            style={{ height: `${Math.max(4, (d.count / max) * 96)}px`, background: color, opacity: 0.85 }}
+            title={`${d.label}: ${d.count}`}
+          />
+          <span className="truncate text-[9px] text-slate-500 max-w-full px-0.5">{d.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardData | null>(null);
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [courses, setCourses] = useState<
     { title: string; viewCount?: number; studentsCount?: number; price?: number; isFree?: boolean }[]
   >([]);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -36,24 +103,24 @@ export default function AdminDashboardPage() {
       setLoading(true);
       setErr(null);
       try {
-        const [sRes, tRes, cRes] = await Promise.all([
+        const [sRes, tRes, cRes, aRes] = await Promise.all([
           getDashboardStats(),
           getTopStudents(),
           getCoursesStats(),
+          getAnalytics(),
         ]);
         if (cancelled) return;
         setStats(unwrapAdmin<DashboardData>(sRes));
         setStudents(unwrapAdmin<{ students: StudentRow[] }>(tRes).students || []);
         setCourses(unwrapAdmin<{ courses: typeof courses }>(cRes).courses || []);
-      } catch (e: unknown) {
+        setAnalytics(unwrapAdmin<AnalyticsData>(aRes));
+      } catch {
         if (!cancelled) setErr("Ma'lumot yuklanmadi. Tarmoq yoki loginni tekshiring.");
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const formatMoney = (n: number) =>
@@ -112,9 +179,9 @@ export default function AdminDashboardPage() {
     <div className="space-y-10">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <h2 className="font-display text-3xl font-bold tracking-tight text-white">Umumiy ko‘rinish</h2>
+          <h2 className="font-display text-3xl font-bold tracking-tight text-white">Umumiy ko'rinish</h2>
           <p className="mt-1 max-w-xl text-sm text-slate-400">
-            Platformaning asosiy ko‘rsatkichlari: auditoriya, kontent hajmi va tushum. Ma’lumotlar backend
+            Platformaning asosiy ko'rsatkichlari. Ma'lumotlar{' '}
             <code className="mx-1 rounded bg-slate-800 px-1.5 py-0.5 text-xs">/api/admin/*</code>
             dan keladi.
           </p>
@@ -124,7 +191,7 @@ export default function AdminDashboardPage() {
             href="/admin/courses"
             className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-200 transition hover:bg-amber-500/20"
           >
-            Kurs qo‘shish
+            Kurs qo'shish
           </Link>
           <Link
             href="/admin/users"
@@ -135,6 +202,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* Stat cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card, i) => (
           <motion.div
@@ -166,12 +234,13 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
+      {/* Summary bar */}
       {stats && (
         <div className="grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-[#0f121c] p-6 md:grid-cols-3">
           <div className="flex items-center gap-3">
             <FiLayers className="h-8 w-8 text-amber-400/90" />
             <div>
-              <p className="text-xs uppercase text-slate-500">Ro‘yxatdan o‘tishlar</p>
+              <p className="text-xs uppercase text-slate-500">Ro'yxatdan o'tishlar</p>
               <p className="font-display text-2xl font-bold text-white">{formatMoney(stats.enrollments.total)}</p>
             </div>
           </div>
@@ -192,10 +261,53 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
+      {/* Analytics charts */}
+      {analytics && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6">
+            <div className="mb-3 flex items-center gap-2">
+              <FiBarChart2 className="text-amber-400" />
+              <h3 className="font-display text-base font-bold text-white">Daromad (6 oy, UZS)</h3>
+            </div>
+            {analytics.revenue.every((d) => d.value === 0) ? (
+              <p className="py-8 text-center text-sm text-slate-500">Daromad ma'lumoti yo'q</p>
+            ) : (
+              <LineChart data={analytics.revenue} color="#f59e0b" />
+            )}
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6">
+            <div className="mb-3 flex items-center gap-2">
+              <FiUsers className="text-sky-400" />
+              <h3 className="font-display text-base font-bold text-white">Yangi a'zolar (6 oy)</h3>
+            </div>
+            {analytics.signups.every((d) => d.value === 0) ? (
+              <p className="py-8 text-center text-sm text-slate-500">Ro'yxatdan o'tish ma'lumoti yo'q</p>
+            ) : (
+              <LineChart data={analytics.signups} color="#38bdf8" />
+            )}
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6">
+            <div className="mb-3 flex items-center gap-2">
+              <FiBookOpen className="text-emerald-400" />
+              <h3 className="font-display text-base font-bold text-white">Top kurslar (enrollment)</h3>
+            </div>
+            {analytics.enrollments.length === 0 ? (
+              <p className="py-8 text-center text-sm text-slate-500">Enrollment ma'lumoti yo'q</p>
+            ) : (
+              <BarChart
+                data={analytics.enrollments.map((e) => ({ _id: e._id, label: e.title, count: e.count }))}
+                color="#34d399"
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tables */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-display text-lg font-bold text-white">Top o‘quvchilar (XP)</h3>
+            <h3 className="font-display text-lg font-bold text-white">Top o'quvchilar (XP)</h3>
             <span className="text-xs text-slate-500">10 nafar</span>
           </div>
           <div className="overflow-x-auto">
@@ -212,7 +324,7 @@ export default function AdminDashboardPage() {
                 {students.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-slate-500">
-                      Hozircha statistika yo‘q
+                      Hozircha statistika yo'q
                     </td>
                   </tr>
                 ) : (
@@ -235,7 +347,7 @@ export default function AdminDashboardPage() {
 
         <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-display text-lg font-bold text-white">Eng ko‘p ko‘rilgan kurslar</h3>
+            <h3 className="font-display text-lg font-bold text-white">Eng ko'p ko'rilgan kurslar</h3>
             <Link href="/admin/courses" className="text-xs font-medium text-amber-400 hover:text-amber-300">
               Barchasi →
             </Link>
@@ -248,11 +360,13 @@ export default function AdminDashboardPage() {
               >
                 <span className="min-w-0 flex-1 truncate font-medium text-slate-100">{c.title}</span>
                 <span className="shrink-0 text-xs text-slate-500">
-                  {c.viewCount ?? 0} ko‘rish · {c.isFree ? 'Bepul' : `${formatMoney(c.price ?? 0)} UZS`}
+                  {c.viewCount ?? 0} ko'rish · {c.isFree ? 'Bepul' : `${formatMoney(c.price ?? 0)} UZS`}
                 </span>
               </li>
             ))}
-            {courses.length === 0 && <li className="py-6 text-center text-slate-500">Kurslar ro‘yxati bo‘sh</li>}
+            {courses.length === 0 && (
+              <li className="py-6 text-center text-slate-500">Kurslar ro'yxati bo'sh</li>
+            )}
           </ul>
         </div>
       </div>

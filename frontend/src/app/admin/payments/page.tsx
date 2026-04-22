@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getRecentPayments, unwrapAdmin } from '@/api/adminApi';
 import toast from 'react-hot-toast';
+import { FiDownload } from 'react-icons/fi';
 
 type Pay = {
   _id: string;
@@ -45,13 +46,47 @@ export default function AdminPaymentsPage() {
   const fmt = (n: number) => new Intl.NumberFormat('uz-UZ').format(n || 0);
   const pages = Math.max(1, Math.ceil(total / limit));
 
+  const exportCSV = () => {
+    const header = "Sana,Foydalanuvchi,Email,Kurs,Provayder,Holat,Summa (UZS)";
+    const rows = payments.map((p) =>
+      [
+        p.createdAt ? new Date(p.createdAt).toLocaleDateString('uz-UZ') : '',
+        p.user?.username || '',
+        p.user?.email || '',
+        p.course?.title || '',
+        p.provider || '',
+        p.status,
+        p.amount,
+      ].join(',')
+    );
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payments-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="font-display text-2xl font-bold text-white">To‘lovlar</h2>
-        <p className="mt-1 text-sm text-slate-400">
-          Yakunlangan va boshqa holatdagi tranzaksiyalar. Summa — backend bo‘yicha UZS.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-display text-2xl font-bold text-white">To’lovlar</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Yakunlangan va boshqa holatdagi tranzaksiyalar. Summa — backend bo’yicha UZS.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={exportCSV}
+          disabled={payments.length === 0}
+          className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-600 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-emerald-500/50 hover:text-emerald-300 disabled:opacity-40"
+        >
+          <FiDownload className="h-4 w-4" />
+          CSV eksport
+        </button>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f121c] shadow-xl">
