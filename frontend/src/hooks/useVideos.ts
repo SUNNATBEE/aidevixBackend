@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import {
   selectCourseVideos, selectTopVideos, selectCurrentVideo,
-  selectVideoLink, selectVideoLoading, selectVideoError,
+  selectVideoLink, selectVideoPlayer, selectVideoLoading, selectVideoError,
   fetchCourseVideos, fetchVideo, fetchTopVideos, clearCurrentVideo,
 } from '@store/slices/videoSlice'
 
@@ -14,6 +14,7 @@ export function useVideos() {
     topVideos:     useSelector(selectTopVideos),
     current:       useSelector(selectCurrentVideo),
     videoLink:     useSelector(selectVideoLink),
+    player:        useSelector(selectVideoPlayer),
     loading:       useSelector(selectVideoLoading),
     error:         useSelector(selectVideoError),
 
@@ -25,12 +26,12 @@ export function useVideos() {
 }
 
 export function useVideo(id) {
-  const { current, videoLink, loading, error, fetchById, clearCurrent } = useVideos()
+  const { current, videoLink, player, loading, error, fetchById, clearCurrent } = useVideos()
 
   useEffect(() => {
     if (id) fetchById(id)
     return () => clearCurrent()
   }, [id])
 
-  return { video: current, videoLink, loading, error }
+  return { video: current, videoLink, player, loading, error }
 }

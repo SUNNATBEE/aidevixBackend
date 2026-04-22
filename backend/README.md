@@ -38,10 +38,11 @@ GROQ_API_KEY=
 NEWS_ENABLED=true
 CHALLENGE_SCHEDULER_ENABLED=true
 
-# Bunny.net Video
-BUNNY_STREAM_API_KEY=
-BUNNY_LIBRARY_ID=
-BUNNY_CDN_HOSTNAME=
+# Bunny.net Stream (video — backend/utils/bunny.js)
+BUNNY_STREAM_API_KEY=   # Stream → Library → API → API Key
+BUNNY_LIBRARY_ID=       # Stream → Library → API → Video Library ID
+BUNNY_TOKEN_KEY=        # Stream → Library → Security → Token Authentication
+# Eslatma: Stream o‘zi vz-xxxx.b-cdn.net kabi CDN beradi; alohida env shart emas.
 
 # Payment
 PAYME_MERCHANT_ID=

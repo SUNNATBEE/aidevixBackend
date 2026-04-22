@@ -15,7 +15,8 @@ import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 export default function VideoPage() {
   const { id }: { id: string } = useParams();
   const router = useRouter();
-  const { current: video, videoLink, loading, error, fetchById } = useVideos();
+  const { current: video, videoLink, player, loading, error, fetchById } = useVideos();
+  const embedUrl = player && typeof player === 'object' && 'embedUrl' in player ? (player as { embedUrl?: string }).embedUrl : undefined;
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const instagram = useSelector(selectInstagramSub);
   const telegram = useSelector(selectTelegramSub);
@@ -102,7 +103,9 @@ export default function VideoPage() {
             </div>
             <div className="flex items-center gap-2 text-gray-400">
               <IoEye className="text-indigo-400" />
-              <span className="text-sm font-medium">{video.views?.toLocaleString() || 0} marta ko'rilgan</span>
+              <span className="text-sm font-medium">
+                {(video.viewCount ?? video.views ?? 0).toLocaleString()} marta ko'rilgan
+              </span>
             </div>
             <div className="flex items-center gap-2 text-gray-400">
               <IoStar className="text-yellow-400" />
@@ -111,39 +114,57 @@ export default function VideoPage() {
           </div>
         </div>
 
-        {/* Video Player Section (Placeholder for now) */}
-        <div className="bg-black/40 border border-white/5 rounded-[2.5rem] overflow-hidden aspect-video flex flex-col items-center justify-center relative group">
-          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 via-transparent to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-          
-          <div className="w-24 h-24 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mb-6 shadow-2xl group-hover:scale-110 transition-transform duration-500">
-             <div className="w-16 h-16 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40">
-                <IoPlay size={32} className="ml-1" />
-             </div>
+        {/* Video: Bunny Stream iframe yoki Telegram havola */}
+        {embedUrl ? (
+          <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black shadow-2xl">
+            <div className="aspect-video w-full">
+              <iframe
+                title={video.title}
+                src={embedUrl}
+                className="h-full w-full"
+                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+            <p className="border-t border-white/10 bg-[#0d1224]/80 px-4 py-3 text-center text-xs text-slate-400">
+              Player Bunny.net Stream orqali. Havola muddatli imzo bilan himoyalangan.
+            </p>
           </div>
-          
-          <h2 className="text-2xl font-bold text-white mb-2">Video Telegram&apos;da joylashgan</h2>
-          <p className="text-gray-400 text-center px-8 max-w-md mb-8">
-            Ushbu darsni ko&apos;rish uchun quyidagi tugmani bosing va biz taqdim etgan havola orqali videoga o&apos;ting.
-          </p>
+        ) : (
+          <div className="relative flex aspect-video flex-col items-center justify-center overflow-hidden rounded-[2.5rem] border border-white/5 bg-black/40 group">
+            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 via-transparent to-purple-500/10 opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
 
-          {videoLink && isSubscribed ? (
-             <a 
-               href={videoLink.telegramLink} 
-               target="_blank" 
-               rel="noopener noreferrer"
-               className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-10 h-14 font-bold text-lg shadow-xl shadow-indigo-500/20"
-             >
-               ▶ Videoni ko&apos;rish
-             </a>
-          ) : (
-             <button
-               onClick={handleVideoClick}
-               className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-10 h-14 font-bold text-lg shadow-xl shadow-indigo-500/20"
-             >
-               ▶ Videoni ko&apos;rish
-             </button>
-          )}
-        </div>
+            <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-600/20 shadow-2xl transition-transform duration-500 group-hover:scale-110">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg shadow-indigo-500/40">
+                <IoPlay size={32} className="ml-1" />
+              </div>
+            </div>
+
+            <h2 className="mb-2 text-2xl font-bold text-white">Video Telegram&apos;da joylashgan</h2>
+            <p className="mb-8 max-w-md px-8 text-center text-gray-400">
+              Ushbu darsni ko&apos;rish uchun quyidagi tugmani bosing va biz taqdim etgan havola orqali videoga o&apos;ting.
+            </p>
+
+            {videoLink && isSubscribed ? (
+              <a
+                href={videoLink.telegramLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary h-14 rounded-full border-none bg-indigo-500 px-10 text-lg font-bold shadow-xl shadow-indigo-500/20 hover:bg-indigo-600"
+              >
+                ▶ Videoni ko&apos;rish
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={handleVideoClick}
+                className="btn btn-primary h-14 rounded-full border-none bg-indigo-500 px-10 text-lg font-bold shadow-xl shadow-indigo-500/20 hover:bg-indigo-600"
+              >
+                ▶ Videoni ko&apos;rish
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Playground Redirect */}
         <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 p-8 bg-indigo-500/5 border border-indigo-500/10 rounded-3xl">

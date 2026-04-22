@@ -1,4 +1,10 @@
 import axiosInstance from './axiosInstance'
+import type { AxiosResponse } from 'axios'
+
+/** Backend javobi: { success, data: T } */
+export function unwrapAdmin<T>(res: AxiosResponse<{ success?: boolean; data: T }>): T {
+  return res.data.data
+}
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export const getDashboardStats  = ()       => axiosInstance.get('admin/stats')
@@ -26,3 +32,13 @@ export const deleteVideo           = (id)                => axiosInstance.delete
 export const getUploadCredentials  = (id)                => axiosInstance.get(`videos/${id}/upload-credentials`)
 export const getVideoStatus        = (id)                => axiosInstance.get(`videos/${id}/status`)
 export const linkVideoToBunny      = (id, bunnyVideoId)  => axiosInstance.patch(`videos/${id}/link-bunny`, { bunnyVideoId })
+
+// ─── Challenges (admin) ─────────────────────────────────────────────────────
+export const createDailyChallenge = (body: {
+  title: string
+  description?: string
+  type: string
+  targetCount?: number
+  xpReward?: number
+  date: string
+}) => axiosInstance.post('challenges/admin', body)

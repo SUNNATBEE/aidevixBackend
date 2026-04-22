@@ -303,6 +303,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     // ─── Subscription ───
     'sub.title': 'Ijtimoiy tarmoqlarga obuna',
     'sub.desc': "Kurslarni ko'rish uchun ijtimoiy tarmoqlarimizga a'zo bo'ling va accessni tasdiqlang.",
+    'sub.successTitle': 'Tabriklaymiz!',
     'sub.done': 'Tayyor!',
     'sub.congrats': 'Tabriklaymiz!',
     'sub.successDesc': "Barcha obunalar muvaffaqiyatli tasdiqlandi. Endi siz platformamizdan to'liq foydalana olasiz.",

@@ -1,365 +1,689 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { getCourseById, updateCourse, getCourseVideos, createVideo, updateVideo, deleteVideo } from '@/api/adminApi';
-import { useParams, useRouter } from 'next/navigation';
-import { FiSave, FiArrowLeft, FiPlus, FiTrash2, FiEdit2, FiVideo, FiClock, FiCheckCircle } from 'react-icons/fi';
-import toast from 'react-hot-toast';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  getCourseById, updateCourse,
+  getCourseVideos, createVideo, updateVideo, deleteVideo,
+  getUploadCredentials, getVideoStatus, linkVideoToBunny,
+  unwrapAdmin,
+} from '@/api/adminApi';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import toast from 'react-hot-toast';
+import {
+  FiArrowLeft, FiSave, FiPlus, FiTrash2, FiEdit2,
+  FiVideo, FiUploadCloud, FiClock, FiRefreshCw, FiLink,
+} from 'react-icons/fi';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+type VideoRow = {
+  _id: string;
+  title: string;
+  description?: string;
+  order: number;
+  duration: number;
+  bunnyVideoId: string | null;
+  bunnyStatus: string;
+};
+
+type UploadPhase = 'idle' | 'creating' | 'uploading' | 'processing' | 'done' | 'error';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const inp =
+  'w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-amber-500/50 focus:outline-none transition';
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-medium text-slate-400">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const cls =
+    status === 'ready' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+    : status === 'failed' || status === 'error' ? 'border-red-500/30 bg-red-500/10 text-red-300'
+    : status === 'encoding' || status === 'processing' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+    : 'border-slate-600/30 bg-slate-700/20 text-slate-400';
+  return (
+    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${cls}`}>
+      {status || 'pending'}
+    </span>
+  );
+}
+
+function fmtDur(secs: number) {
+  if (!secs) return '—';
+  const m = Math.floor(secs / 60);
+  const s = String(secs % 60).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function EditCoursePage() {
-  const { id } = useParams();
-  const router = useRouter();
-  
-  const [course, setCourse] = useState<any>(null);
-  const [videos, setVideos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { id } = useParams<{ id: string }>();
 
-  // Form State
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: 0,
-    level: '',
-    category: '',
-    isPublished: false,
+  const [course, setCourse]   = useState<any>(null);
+  const [videos, setVideos]   = useState<VideoRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+
+  // Course form
+  const [form, setForm] = useState({
+    title: '', description: '', price: 0,
+    level: '', category: '', isPublished: false,
   });
 
-  // Video Form
-  const [activeVideoForm, setActiveVideoForm] = useState<string | null>(null);
-  const [videoData, setVideoData] = useState({ title: '', description: '', url: '', duration: 0, order: 0, isFree: false });
+  // Upload panel
+  const [showUpload, setShowUpload] = useState(false);
+  const [phase, setPhase]           = useState<UploadPhase>('idle');
+  const [progress, setProgress]     = useState(0);
+  const [topic, setTopic]           = useState('');
+  const [desc, setDesc]             = useState('');
+  const [file, setFile]             = useState<File | null>(null);
+  const [dragOver, setDragOver]     = useState(false);
+  const fileRef  = useRef<HTMLInputElement>(null);
+  const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [id]);
+  // Edit modal
+  const [editVid, setEditVid] = useState<VideoRow | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: '', description: '', order: 0, durationMin: 0, bunnyGuid: '',
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+  const fetchData = useCallback(async () => {
     try {
-      const [cRes, vRes] = await Promise.all([
-        getCourseById(id),
-        getCourseVideos(id)
-      ]);
-      const c = cRes.data;
+      const [cRes, vRes] = await Promise.all([getCourseById(id), getCourseVideos(id)]);
+      const c = unwrapAdmin<{ course: any }>(cRes).course;
       setCourse(c);
-      setFormData({
-        title: c.title || '',
-        description: c.description || '',
-        price: c.price || 0,
-        level: c.level || '',
-        category: c.category || '',
-        isPublished: c.isPublished || false,
+      setForm({
+        title: c.title || '', description: c.description || '',
+        price: c.price || 0, level: c.level || '',
+        category: c.category || '', isPublished: c.isPublished || false,
       });
-      setVideos(vRes.data?.videos || []);
-    } catch (err) {
-      toast.error('Failed to load course details');
+      const sorted = (unwrapAdmin<{ videos: VideoRow[] }>(vRes).videos || [])
+        .sort((a, b) => a.order - b.order);
+      setVideos(sorted);
+    } catch {
+      toast.error("Ma'lumot yuklanmadi");
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const handleSaveCourse = async (e: React.FormEvent) => {
+  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+
+  // ── Course save ────────────────────────────────────────────────────────────
+  const saveCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await updateCourse(id, formData);
-      toast.success('Course updated successfully!');
-    } catch (error) {
-      toast.error('Failed to update course');
+      await updateCourse(id, form);
+      toast.success('Kurs saqlandi');
+    } catch {
+      toast.error("Saqlab bo'lmadi");
     } finally {
       setSaving(false);
     }
   };
 
-  const openVideoModal = (vid?: any) => {
-    if (vid) {
-      setActiveVideoForm(vid._id);
-      setVideoData({
-        title: vid.title,
-        description: vid.description || '',
-        url: vid.url || '',
-        duration: vid.duration || 0,
-        order: vid.order || 0,
-        isFree: vid.isFree || false
-      });
-    } else {
-      setActiveVideoForm('new');
-      setVideoData({
-        title: '',
-        description: '',
-        url: '',
+  // ── Upload flow ────────────────────────────────────────────────────────────
+  const nextOrder  = videos.length;            // 0-indexed order for next video
+  const nextLesson = videos.length + 1;        // human-readable lesson number
+  const autoTitle  = topic.trim() ? `${nextLesson}-Dars: ${topic.trim()}` : '';
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files[0];
+    if (f?.type.startsWith('video/')) setFile(f);
+    else toast.error('Faqat video fayl qabul qilinadi');
+  };
+
+  const startUpload = async () => {
+    if (!file || !autoTitle) {
+      toast.error('Fayl va mavzu nomi majburiy');
+      return;
+    }
+
+    setPhase('creating');
+    setProgress(0);
+
+    try {
+      // 1️⃣ DB + Bunny slot yaratish
+      const cRes = await createVideo({
+        title: autoTitle,
+        description: desc.trim() || `${autoTitle} — mashg'ulot`,
+        courseId: id,
+        order: nextOrder,
         duration: 0,
-        order: videos.length + 1,
-        isFree: false
       });
-    }
-  };
+      const payload = unwrapAdmin<{
+        video: { _id: string };
+        upload: { uploadUrl: string; headers: Record<string, string> } | null;
+      }>(cRes);
 
-  const handleSaveVideo = async () => {
-    try {
-      if (activeVideoForm === 'new') {
-        await createVideo({ ...videoData, course: id });
-        toast.success('Video added!');
-      } else {
-        await updateVideo(activeVideoForm, videoData);
-        toast.success('Video updated!');
+      const videoId = payload.video._id;
+      const upload  = payload.upload;
+
+      if (!upload?.uploadUrl) {
+        toast.error('Bunny upload URL olishda xato — BUNNY_STREAM_API_KEY tekshiring');
+        setPhase('error');
+        return;
       }
-      setActiveVideoForm(null);
-      fetchData(); // Refresh list
-    } catch (error) {
-      toast.error('Failed to save video');
+
+      // 2️⃣ Faylni Bunny ga to'g'ridan-to'g'ri yuklash (XHR — progress uchun)
+      setPhase('uploading');
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', upload.uploadUrl, true);
+        Object.entries(upload.headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100));
+        };
+        xhr.onload  = () => (xhr.status < 300 ? resolve() : reject(new Error(`Bunny ${xhr.status}`)));
+        xhr.onerror = () => reject(new Error("Tarmoq xatosi — CORS bloklagan bo'lishi mumkin"));
+        xhr.send(file);
+      });
+
+      // 3️⃣ Bunny encoding tugashini kutish (har 5 sekundda tekshirish)
+      setPhase('processing');
+      await new Promise<void>((resolve, reject) => {
+        let attempts = 0;
+        pollRef.current = setInterval(async () => {
+          attempts++;
+          try {
+            const sRes = await getVideoStatus(videoId);
+            const d = unwrapAdmin<{ bunnyStatus: string; isReady: boolean }>(sRes);
+            setVideos(prev =>
+              prev.map(v => v._id === videoId ? { ...v, bunnyStatus: d.bunnyStatus } : v)
+            );
+            if (d.isReady || d.bunnyStatus === 'ready') {
+              clearInterval(pollRef.current!);
+              resolve();
+            } else if (d.bunnyStatus === 'failed' || d.bunnyStatus === 'error') {
+              clearInterval(pollRef.current!);
+              reject(new Error('Bunny encoding muvaffaqiyatsiz'));
+            } else if (attempts > 72) {
+              clearInterval(pollRef.current!);
+              reject(new Error('Timeout — 6 daqiqa kutildi'));
+            }
+          } catch {
+            if (attempts > 72) { clearInterval(pollRef.current!); reject(new Error('Timeout')); }
+          }
+        }, 5000);
+      });
+
+      setPhase('done');
+      toast.success(`${autoTitle} — muvaffaqiyatli yuklandi!`);
+      setTopic(''); setDesc(''); setFile(null);
+      setShowUpload(false);
+      setTimeout(() => setPhase('idle'), 1500);
+      fetchData();
+    } catch (err: any) {
+      setPhase('error');
+      toast.error(err.message || 'Yuklashda xato');
     }
   };
 
-  const handleDeleteVideo = async (vidId: string) => {
-    if (!confirm('Delete this video?')) return;
+  // ── Edit ───────────────────────────────────────────────────────────────────
+  const openEdit = (vid: VideoRow) => {
+    setEditVid(vid);
+    setEditForm({
+      title: vid.title,
+      description: vid.description || '',
+      order: vid.order,
+      durationMin: vid.duration ? Math.round(vid.duration / 60) : 0,
+      bunnyGuid: vid.bunnyVideoId || '',
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editVid) return;
     try {
-      await deleteVideo(vidId);
-      toast.success('Video deleted');
-      setVideos(prev => prev.filter(v => v._id !== vidId));
-    } catch (error) {
-      toast.error('Failed to delete video');
+      await updateVideo(editVid._id, {
+        title: editForm.title,
+        description: editForm.description,
+        order: editForm.order,
+        duration: Math.round((Number(editForm.durationMin) || 0) * 60),
+      });
+      const newGuid = editForm.bunnyGuid.trim();
+      if (newGuid && newGuid !== editVid.bunnyVideoId) {
+        await linkVideoToBunny(editVid._id, newGuid);
+      }
+      toast.success('Video yangilandi');
+      setEditVid(null);
+      fetchData();
+    } catch {
+      toast.error("Saqlab bo'lmadi");
     }
   };
 
-  if (loading) {
-    return <div className="p-12 text-center text-indigo-500"><span className="loading loading-spinner loading-lg text-indigo-500"></span></div>;
-  }
+  // ── Delete ─────────────────────────────────────────────────────────────────
+  const handleDelete = async (vid: VideoRow) => {
+    if (!confirm(`"${vid.title}" ni o'chirish?`)) return;
+    try {
+      await deleteVideo(vid._id);
+      setVideos(prev => prev.filter(v => v._id !== vid._id));
+      toast.success("O'chirildi");
+    } catch {
+      toast.error("O'chirib bo'lmadi");
+    }
+  };
+
+  // ── Refresh single video status ────────────────────────────────────────────
+  const refreshStatus = async (vid: VideoRow) => {
+    try {
+      const res = await getVideoStatus(vid._id);
+      const d   = unwrapAdmin<{ bunnyStatus: string; duration?: number }>(res);
+      setVideos(prev =>
+        prev.map(v =>
+          v._id === vid._id
+            ? { ...v, bunnyStatus: d.bunnyStatus, duration: d.duration ?? v.duration }
+            : v
+        )
+      );
+      toast.success(`Status: ${d.bunnyStatus}`);
+    } catch {
+      toast.error('Status olishda xato');
+    }
+  };
+
+  // ── Phase labels ───────────────────────────────────────────────────────────
+  const phaseLabel: Record<UploadPhase, string> = {
+    idle:       'Yuklashni boshlash',
+    creating:   'Slot yaratilmoqda…',
+    uploading:  `Yuklanmoqda ${progress}%`,
+    processing: 'Bunny kodlayapti…',
+    done:       '✓ Tayyor!',
+    error:      'Qayta urinish',
+  };
+
+  // ── Loading ────────────────────────────────────────────────────────────────
+  if (loading) return (
+    <div className="flex h-64 items-center justify-center">
+      <span className="loading loading-spinner loading-lg text-amber-400" />
+    </div>
+  );
+
+  const busy = phase === 'creating' || phase === 'uploading' || phase === 'processing';
 
   return (
-    <div className="space-y-8 pb-32">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/courses" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition">
-            <FiArrowLeft className="text-slate-300" />
+    <div className="space-y-8 pb-20">
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-white/10 bg-[#0f121c] p-5 shadow-xl">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/courses"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-amber-500/40"
+          >
+            <FiArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white leading-tight">Edit "{course?.title}"</h1>
-            <p className="text-sm text-slate-400 mt-1">Make changes to course information and manage its video lessons.</p>
+            <h1 className="font-display text-lg font-bold leading-tight text-white">{course?.title}</h1>
+            <p className="mt-0.5 text-xs text-slate-500">{videos.length} ta dars</p>
           </div>
         </div>
-        <button 
-          onClick={handleSaveCourse}
+        <button
+          onClick={saveCourse}
           disabled={saving}
-          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-lg flex items-center gap-2 w-full md:w-auto justify-center"
+          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-2.5 font-semibold text-slate-950 shadow-lg shadow-amber-500/20 transition disabled:opacity-50 hover:shadow-amber-500/40"
         >
-          {saving ? <span className="loading loading-spinner loading-sm" /> : <FiSave />}
-          Save Changes
+          {saving ? <span className="loading loading-spinner loading-xs" /> : <FiSave className="h-4 w-4" />}
+          Kursni saqlash
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Left Col: Course Info */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-lg font-semibold text-white mb-6 border-b border-slate-800 pb-4">Basic Information</h2>
-            
-            <form className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1.5">Course Title</label>
-                <input 
-                  type="text" 
-                  value={formData.title} 
-                  onChange={e => setFormData({...formData, title: e.target.value})}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
-                />
-              </div>
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
 
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1.5">Description</label>
-                <textarea 
-                  rows={4}
-                  value={formData.description}
-                  onChange={e => setFormData({...formData, description: e.target.value})}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm custom-scrollbar leading-relaxed"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1.5">Price ($)</label>
-                  <input 
-                    type="number" 
-                    value={formData.price}
-                    onChange={e => setFormData({...formData, price: Number(e.target.value)})}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1.5">Level</label>
-                  <select 
-                    value={formData.level}
-                    onChange={e => setFormData({...formData, level: e.target.value})}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-all"
-                  >
-                    <option value="">Select Level</option>
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
+        {/* ── Kurs ma'lumotlari ───────────────────────────────────────────── */}
+        <div className="lg:col-span-2">
+          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-xl">
+            <p className="mb-5 border-b border-white/10 pb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+              Kurs ma'lumotlari
+            </p>
+            <form onSubmit={saveCourse} className="space-y-4">
+              <Field label="Sarlavha">
+                <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className={inp} />
+              </Field>
+              <Field label="Tavsif">
+                <textarea rows={4} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={`${inp} resize-none`} />
+              </Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Narx (UZS)">
+                  <input type="number" value={form.price} onChange={e => setForm({ ...form, price: Number(e.target.value) })} className={inp} />
+                </Field>
+                <Field label="Daraja">
+                  <select value={form.level} onChange={e => setForm({ ...form, level: e.target.value })} className={inp}>
+                    <option value="">Tanlang</option>
+                    <option>Beginner</option>
+                    <option>Intermediate</option>
+                    <option>Advanced</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1.5">Category</label>
-                  <input 
-                    type="text" 
-                    value={formData.category}
-                    onChange={e => setFormData({...formData, category: e.target.value})}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-all"
-                  />
-                </div>
+                </Field>
               </div>
-
-              <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
+              <Field label="Kategoriya">
+                <input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inp} />
+              </Field>
+              <div className="flex items-center justify-between rounded-xl border border-white/5 bg-slate-950/50 px-4 py-3">
                 <div>
-                  <h4 className="text-white font-medium">Publish Course</h4>
-                  <p className="text-slate-500 text-sm mt-0.5">Make this course visible to students</p>
+                  <p className="text-sm font-medium text-white">Chop etish</p>
+                  <p className="text-xs text-slate-500">O'quvchilarga ko'rinadi</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" checked={formData.isPublished} onChange={e => setFormData({...formData, isPublished: e.target.checked})} />
-                  <div className="w-14 h-7 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={form.isPublished}
+                    onChange={e => setForm({ ...form, isPublished: e.target.checked })}
+                  />
+                  <div className="h-6 w-11 rounded-full bg-slate-700 transition after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-amber-500 peer-checked:after:translate-x-full" />
                 </label>
               </div>
             </form>
           </div>
         </div>
 
-        {/* Right Col: Video Manager */}
-        <div className="space-y-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl h-full flex flex-col">
-            <div className="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
-              <h2 className="text-lg font-semibold text-white">Course Curriculum</h2>
-              <button onClick={() => openVideoModal()} className="text-sm bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors font-medium border border-indigo-500/20 hover:border-indigo-500">
-                <FiPlus /> Add Video
+        {/* ── Video manager ───────────────────────────────────────────────── */}
+        <div className="space-y-5 lg:col-span-3">
+
+          {/* Upload panel */}
+          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                Yangi dars yuklash
+              </p>
+              <button
+                onClick={() => { setShowUpload(p => !p); setPhase('idle'); }}
+                className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-medium transition ${
+                  showUpload
+                    ? 'border-slate-700 bg-slate-800 text-slate-300'
+                    : 'border-amber-500/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'
+                }`}
+              >
+                <FiPlus className="h-4 w-4" />
+                {showUpload ? 'Yopish' : "Video qo'shish"}
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
-              {videos.length === 0 ? (
-                <div className="text-center py-10 bg-slate-950/50 rounded-xl border border-dashed border-slate-800">
-                  <FiVideo className="w-8 h-8 mx-auto text-slate-600 mb-3" />
-                  <p className="text-slate-500 text-sm">No videos found. <br/>Upload your first lesson.</p>
-                </div>
-              ) : (
-                videos.map((vid, idx) => (
-                  <div key={vid._id} className="group relative bg-slate-950 border border-slate-800 rounded-xl p-3 flex gap-3 hover:border-indigo-500/50 transition-colors">
-                    <div className="w-20 h-14 bg-slate-800 rounded-lg flex items-center justify-center shrink-0 border border-slate-700">
-                      <FiVideo className="text-slate-500" />
+            <AnimatePresence>
+              {showUpload && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="space-y-4 pt-1">
+
+                    {/* Auto-numbering + topic */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <Field label={`Dars № (avtomatik)`}>
+                        <input
+                          value={nextLesson}
+                          disabled
+                          className={`${inp} cursor-not-allowed font-mono opacity-50`}
+                        />
+                      </Field>
+                      <Field label="Mavzu nomi *">
+                        <input
+                          value={topic}
+                          onChange={e => setTopic(e.target.value)}
+                          placeholder="Sarlovha teglari"
+                          className={inp}
+                          disabled={busy}
+                        />
+                      </Field>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-semibold text-slate-200 truncate pr-8">{vid.order}. {vid.title}</h4>
-                      <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500 font-medium">
-                        <span className="flex items-center"><FiClock className="mr-1"/> {vid.duration || 0}m</span>
-                        {vid.isFree ? <span className="text-emerald-400">Free Preview</span> : <span className="text-amber-400">Premium</span>}
+
+                    {/* Auto-title preview */}
+                    {autoTitle && (
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2 text-xs text-amber-200">
+                        Sarlavha: <strong className="text-amber-100">{autoTitle}</strong>
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    <Field label="Vazifa / Tavsif">
+                      <textarea
+                        rows={2}
+                        value={desc}
+                        onChange={e => setDesc(e.target.value)}
+                        placeholder="Bu darsda nima o'rganasiz..."
+                        className={`${inp} resize-none`}
+                        disabled={busy}
+                      />
+                    </Field>
+
+                    {/* Drop zone */}
+                    <div
+                      onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={handleDrop}
+                      onClick={() => !busy && fileRef.current?.click()}
+                      className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 text-center transition ${
+                        busy ? 'cursor-not-allowed opacity-50'
+                        : dragOver ? 'border-amber-400 bg-amber-500/10'
+                        : 'border-slate-700 bg-slate-950/50 hover:border-amber-500/50'
+                      }`}
+                    >
+                      <FiUploadCloud className={`h-10 w-10 transition ${dragOver ? 'text-amber-400' : 'text-slate-600'}`} />
+                      {file ? (
+                        <div>
+                          <p className="font-medium text-white">{file.name}</p>
+                          <p className="text-xs text-slate-400">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-sm font-medium text-slate-300">Video faylni shu yerga tashlang</p>
+                          <p className="text-xs text-slate-500">yoki bosib tanlang — MP4, MOV, WebM</p>
+                        </div>
+                      )}
+                      <input
+                        ref={fileRef}
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        onChange={e => setFile(e.target.files?.[0] || null)}
+                      />
+                    </div>
+
+                    {/* Progress bar */}
+                    {(phase === 'uploading' || phase === 'processing' || phase === 'creating') && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs text-slate-400">
+                          <span>{phaseLabel[phase]}</span>
+                          {phase === 'uploading' && <span>{progress}%</span>}
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
+                          <motion.div
+                            className={`h-full rounded-full ${phase === 'processing' ? 'animate-pulse bg-amber-400' : 'bg-gradient-to-r from-amber-500 to-orange-500'}`}
+                            animate={{ width: phase === 'uploading' ? `${progress}%` : phase === 'processing' ? '100%' : '8%' }}
+                            transition={{ duration: 0.4 }}
+                          />
+                        </div>
+                        {phase === 'processing' && (
+                          <p className="text-center text-xs text-slate-500">
+                            Bunny.net video kodlayapti — 1–3 daqiqa kuting…
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={startUpload}
+                      disabled={!file || !autoTitle || busy}
+                      className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 py-3 font-semibold text-slate-950 shadow-lg shadow-amber-500/20 transition disabled:opacity-40 hover:shadow-amber-500/40"
+                    >
+                      {phaseLabel[phase]}
+                    </button>
+
+                    {phase === 'error' && (
+                      <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-center text-xs text-red-300">
+                        Xato yuz berdi. CORS bloklagan bo'lsa — backend orqali yuklashni yoqish kerak.
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Video list */}
+          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-xl">
+            <p className="mb-5 border-b border-white/10 pb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+              Darslar ({videos.length})
+            </p>
+
+            {videos.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                <FiVideo className="h-10 w-10 text-slate-700" />
+                <p className="text-sm text-slate-500">Hali darslar yo'q.<br />Yuqoridan video qo'shing.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {videos.map(vid => (
+                  <div
+                    key={vid._id}
+                    className="group flex items-center gap-4 rounded-xl border border-white/5 bg-slate-950/50 px-4 py-3 transition hover:border-white/10"
+                  >
+                    {/* Lesson badge */}
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 font-mono text-xs font-bold text-amber-200">
+                      {vid.order + 1}
+                    </span>
+
+                    {/* Info */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-white">{vid.title}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <span className="flex items-center gap-1 text-xs text-slate-500">
+                          <FiClock className="h-3 w-3" />
+                          {fmtDur(vid.duration)}
+                        </span>
+                        <StatusBadge status={vid.bunnyStatus || 'pending'} />
+                        {vid.bunnyVideoId && (
+                          <span className="font-mono text-[10px] text-slate-600">
+                            {vid.bunnyVideoId.slice(0, 8)}…
+                          </span>
+                        )}
                       </div>
                     </div>
-                    {/* Floating Actions */}
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-950/80 backdrop-blur-sm p-1 rounded-lg">
-                      <button onClick={() => openVideoModal(vid)} className="p-1.5 text-indigo-400 hover:bg-indigo-500/20 rounded hover:text-indigo-300">
-                        <FiEdit2 size={14} />
+
+                    {/* Actions */}
+                    <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                      {(vid.bunnyStatus === 'encoding' || vid.bunnyStatus === 'processing') && (
+                        <button
+                          onClick={() => refreshStatus(vid)}
+                          title="Statusni yangilash"
+                          className="rounded-lg p-2 text-amber-400 hover:bg-amber-500/10"
+                        >
+                          <FiRefreshCw className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {!vid.bunnyVideoId && (
+                        <button
+                          onClick={() => openEdit(vid)}
+                          title="Bunny GUID ulash"
+                          className="rounded-lg p-2 text-sky-400 hover:bg-sky-500/10"
+                        >
+                          <FiLink className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      <button onClick={() => openEdit(vid)} className="rounded-lg p-2 text-slate-300 hover:bg-white/5">
+                        <FiEdit2 className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => handleDeleteVideo(vid._id)} className="p-1.5 text-red-500 hover:bg-red-500/20 rounded hover:text-red-400">
-                        <FiTrash2 size={14} />
+                      <button onClick={() => handleDelete(vid)} className="rounded-lg p-2 text-red-400 hover:bg-red-500/10">
+                        <FiTrash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-
       </div>
 
-      {/* Video Modal */}
+      {/* ── Edit modal ──────────────────────────────────────────────────────── */}
       <AnimatePresence>
-        {activeVideoForm && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl p-6"
+        {editVid && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-2xl"
             >
-              <h3 className="text-xl font-bold text-white mb-6">
-                {activeVideoForm === 'new' ? 'Add New Lesson' : 'Edit Lesson'}
+              <h3 className="mb-5 font-display text-lg font-bold text-white">
+                Darsni tahrirlash
               </h3>
-              
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1">Video Title</label>
-                  <input 
-                    type="text" 
-                    value={videoData.title}
-                    onChange={e => setVideoData({...videoData, title: e.target.value})}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 text-sm"
+                <Field label="Sarlavha">
+                  <input
+                    value={editForm.title}
+                    onChange={e => setEditForm({ ...editForm, title: e.target.value })}
+                    className={inp}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1">Video URL / BunnyID</label>
-                  <input 
-                    type="text" 
-                    value={videoData.url}
-                    onChange={e => setVideoData({...videoData, url: e.target.value})}
-                    placeholder="Bunny Video ID or URL"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 text-sm font-mono"
+                </Field>
+                <Field label="Vazifa / Tavsif">
+                  <textarea
+                    rows={3}
+                    value={editForm.description}
+                    onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                    className={`${inp} resize-none`}
                   />
-                </div>
+                </Field>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Duration (min)</label>
-                    <input 
-                      type="number" 
-                      value={videoData.duration}
-                      onChange={e => setVideoData({...videoData, duration: Number(e.target.value)})}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 text-sm"
+                  <Field label="Tartib raqami (0 dan)">
+                    <input
+                      type="number"
+                      value={editForm.order}
+                      onChange={e => setEditForm({ ...editForm, order: Number(e.target.value) })}
+                      className={inp}
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Order</label>
-                    <input 
-                      type="number" 
-                      value={videoData.order}
-                      onChange={e => setVideoData({...videoData, order: Number(e.target.value)})}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 text-sm"
+                  </Field>
+                  <Field label="Davomiylik (daqiqa)">
+                    <input
+                      type="number"
+                      value={editForm.durationMin}
+                      onChange={e => setEditForm({ ...editForm, durationMin: Number(e.target.value) })}
+                      className={inp}
                     />
-                  </div>
+                  </Field>
                 </div>
-                
-                <div className="flex items-center gap-3 pt-2">
-                  <input 
-                    type="checkbox" 
-                    id="isFreePreview" 
-                    checked={videoData.isFree}
-                    onChange={e => setVideoData({...videoData, isFree: e.target.checked})}
-                    className="w-4 h-4 rounded text-indigo-600 bg-slate-950 border-slate-700"
+                <Field label="Bunny GUID (ulash yoki yangilash)">
+                  <input
+                    value={editForm.bunnyGuid}
+                    onChange={e => setEditForm({ ...editForm, bunnyGuid: e.target.value })}
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    className={`${inp} font-mono text-xs`}
                   />
-                  <label htmlFor="isFreePreview" className="text-sm font-medium text-slate-300">Set as Free Preview</label>
-                </div>
+                </Field>
               </div>
-
-              <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-slate-800">
-                <button 
-                  onClick={() => setActiveVideoForm(null)}
-                  className="px-5 py-2.5 rounded-xl font-medium text-slate-300 hover:bg-slate-800 transition-colors"
+              <div className="mt-6 flex justify-end gap-3 border-t border-white/10 pt-5">
+                <button
+                  onClick={() => setEditVid(null)}
+                  className="rounded-xl border border-slate-700 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-800"
                 >
-                  Cancel
+                  Bekor
                 </button>
-                <button 
-                  onClick={handleSaveVideo}
-                  className="px-6 py-2.5 rounded-xl font-medium text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/20 transition-all"
+                <button
+                  onClick={saveEdit}
+                  className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-amber-500/20 transition hover:shadow-amber-500/40"
                 >
-                  Save Video
+                  Saqlash
                 </button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }

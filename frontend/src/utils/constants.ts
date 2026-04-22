@@ -1,3 +1,9 @@
+/** Brauzerda admin havolalari uchun (Swagger / admin-docs). Localda NEXT_PUBLIC_BACKEND_URL qo‘ying. */
+export const BACKEND_ORIGIN = (
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_ORIGIN ||
+  'https://aidevix-backend-production.up.railway.app'
+).replace(/\/$/, '')
 
 const base = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/proxy'
 const withLeading = base.startsWith('/') ? base : `/${base}`

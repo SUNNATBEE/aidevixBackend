@@ -23,6 +23,11 @@ export const test = base.extend<{
   loggedInPage: typeof base['prototype'];
 }>({
   withMockedAPIs: [async ({ page }, use) => {
+    await page.addInitScript(() => {
+      // Prevent DailyRewardModal from blocking pointer events in tests.
+      sessionStorage.setItem('daily_reward_dismissed', new Date().toISOString().slice(0, 10));
+    });
+
     // Mock all common API endpoints
     await page.route('**/api/**/courses/top*', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_TOP_COURSES) }),
@@ -39,9 +44,49 @@ export const test = base.extend<{
     await page.route('**/api/**/courses', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_COURSES) }),
     );
-    await page.route('**/api/**/videos/**', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_VIDEOS) }),
-    );
+    // List/search mocks return `data.videos`; GET /videos/:id must return `data.video` + `videoLink`.
+    await page.route('**/api/**/videos/**', (route) => {
+      const url = route.request().url();
+      const method = route.request().method();
+      if (method !== 'GET') {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: {} }),
+        });
+      }
+      if (url.includes('/videos/top')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_TOP_VIDEOS) });
+      }
+      if (url.includes('/videos/course/')) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: { videos: [] } }),
+        });
+      }
+      if (url.includes('/videos/search')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_VIDEOS) });
+      }
+      if (url.includes('/rating') || url.includes('/rate') || url.includes('/link/')) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: {} }),
+        });
+      }
+      const m = url.match(/\/videos\/([^/?]+)/);
+      const id = m?.[1];
+      if (id && !['top', 'search', 'course'].includes(id)) {
+        const video = MOCK_VIDEOS.data.videos.find((v) => v._id === id) ?? MOCK_VIDEOS.data.videos[0];
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: { video, videoLink: null } }),
+        });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_VIDEOS) });
+    });
     await page.route('**/api/**/subscriptions/status*', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SUBSCRIPTION_STATUS) }),
     );
@@ -51,15 +96,43 @@ export const test = base.extend<{
     await page.route('**/api/**/auth/me*', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { user: MOCK_USER } }) }),
     );
+    await page.route('**/api/**/auth/refresh-token*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { accessToken: 'refreshed-token' } }),
+      }),
+    );
     await page.route('**/api/**/xp/stats*', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_USER_STATS) }),
     );
     await page.route('**/api/**/ranking*', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_LEADERBOARD) }),
     );
+    await page.route('**/api/**/projects/course/**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { projects: [] } }),
+      }),
+    );
+    await page.route('**/api/**/videos/course/**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { videos: [] } }),
+      }),
+    );
+    await page.route('**/api/**/courses/**/recommended*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { courses: [] } }),
+      }),
+    );
 
     await use();
-  }, { auto: false }],
+  }, { auto: true }],
 
   loggedInPage: async ({ page }, use) => {
     // Set up auth cookies + localStorage for logged-in state
@@ -87,6 +160,9 @@ export const test = base.extend<{
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_USER_STATS) }),
     );
     await page.route('**/api/**/subscriptions/status*', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SUBSCRIPTION_STATUS) }),
+    );
+    await page.route('**/api/**/subscriptions/realtime-status*', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SUBSCRIPTION_STATUS) }),
     );
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getAllCourses, deleteCourse, createCourse } from '@/api/adminApi';
+import { getAllCourses, deleteCourse, createCourse, unwrapAdmin } from '@/api/adminApi';
 import Link from 'next/link';
 import { FiEdit2, FiTrash2, FiPlus, FiBook, FiSearch } from 'react-icons/fi';
 import toast from 'react-hot-toast';
@@ -22,7 +22,7 @@ export default function AdminCoursesPage() {
   const fetchCourses = () => {
     setLoading(true);
     getAllCourses({ limit: 100 })
-      .then(res => setCourses(res.data?.courses || []))
+      .then((res) => setCourses(unwrapAdmin<{ courses: any[] }>(res).courses || []))
       .catch(err => toast.error('Failed to load courses'))
       .finally(() => setLoading(false));
   };
@@ -44,7 +44,8 @@ export default function AdminCoursesPage() {
     try {
       const res = await createCourse({ title: newTitle, description: 'New course description', price: 0 });
       toast.success('Course created!');
-      setCourses([res.data?.course, ...courses]);
+      const created = unwrapAdmin<{ course: any }>(res).course;
+      setCourses([created, ...courses]);
       setNewTitle('');
       setIsCreating(false);
     } catch (error: any) {
@@ -144,7 +145,9 @@ export default function AdminCoursesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
-                        <span className="font-bold text-emerald-400">{course.price === 0 ? 'Free' : `$${course.price}`}</span>
+                        <span className="font-bold text-emerald-400">
+                          {course.price === 0 || course.isFree ? 'Bepul' : `${Number(course.price).toLocaleString('uz-UZ')} UZS`}
+                        </span>
                         <span className="text-xs text-slate-500">{course.level || 'All Levels'}</span>
                       </div>
                     </td>

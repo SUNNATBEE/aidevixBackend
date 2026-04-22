@@ -4,7 +4,7 @@
  *   - name: Follow
  *     description: 👥 Foydalanuvchilar o'rtasida obuna / Подписки между пользователями
  * 
- * /api/follow/{id}:
+ * /api/follow/{userId}:
  *   post:
  *     summary: Boshqa foydalanuvchiga obuna bo'lish / Подписаться на пользователя
  *     tags: [Follow]
@@ -12,7 +12,7 @@
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: userId
  *         required: true
  *         schema:
  *           type: string
@@ -26,7 +26,7 @@
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: userId
  *         required: true
  *         schema:
  *           type: string
@@ -34,13 +34,13 @@
  *       200:
  *         description: Unfollowed successfully
  * 
- * /api/follow/{id}/followers:
+ * /api/follow/{userId}/stats:
  *   get:
- *     summary: Foydalanuvchining obunachilarini olish / Получить подписчиков
+ *     summary: Foydalanuvchi obuna statistikasi / Статистика подписок
  *     tags: [Follow]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: userId
  *         required: true
  *         schema:
  *           type: string
@@ -48,16 +48,22 @@
  *       200:
  *         description: Success
  * 
- * /api/follow/{id}/following:
+ * /api/follow/my/followers:
  *   get:
- *     summary: Foydalanuvchi kuzatayotganlarni olish / На кого подписан
+ *     summary: Mening obunachilarim / Мои подписчики
  *     tags: [Follow]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ * 
+ * /api/follow/my/following:
+ *   get:
+ *     summary: Men kuzatayotganlar / На кого я подписан
+ *     tags: [Follow]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Success

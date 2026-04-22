@@ -6,10 +6,11 @@ const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 export default defineConfig({
   testDir: './e2e',
   outputDir: './e2e/test-results',
-  fullyParallel: true,
+  // Next.js dev server + route mocking is significantly more stable in serial mode locally.
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : 2,
+  workers: 1,
   reporter: process.env.CI
     ? [['html', { outputFolder: 'e2e/playwright-report' }], ['github']]
     : [['html', { outputFolder: 'e2e/playwright-report', open: 'never' }], ['list']],
@@ -63,7 +64,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
     stdout: 'pipe',
     stderr: 'pipe',
