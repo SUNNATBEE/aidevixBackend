@@ -44,6 +44,7 @@ api.interceptors.response.use(
           {
             withCredentials: true,
             headers: { 'Content-Type': 'application/json' },
+            timeout: 10000,
           },
         )
 
@@ -54,6 +55,11 @@ api.interceptors.response.use(
         tokenStorage.clearTokens()
         refreshQueue.forEach((cb) => cb.reject(refreshError))
         refreshQueue = []
+
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          console.log('[Axios] Redirecting to /login due to auth failure');
+          window.location.href = '/login'
+        }
 
         return Promise.reject(error)
       } finally {

@@ -36,8 +36,10 @@ export default function Navbar() {
 
   const NAV_LINKS = [
     { label: t('nav.courses'), to: ROUTES.COURSES },
+    { label: '⚡ Prompts', to: ROUTES.PROMPTS },
     { label: t('nav.challenges'), to: ROUTES.CHALLENGES },
     { label: t('nav.leaderboard'), to: ROUTES.LEADERBOARD },
+    { label: '🗺 Roadmap', to: ROUTES.ROADMAP },
     { label: t('nav.careers'), to: ROUTES.CAREERS },
   ]
 
@@ -150,7 +152,7 @@ export default function Navbar() {
                 onClick={() => setIsSoundEnabled(!isSoundEnabled)}
                 onMouseEnter={playHoverSound}
                 className={`rounded-full border p-3 transition-all duration-300 ${surface} ${isDark ? 'text-slate-400 hover:text-indigo-400' : 'text-slate-500 hover:text-indigo-600'}`}
-                title={isSoundEnabled ? "Ovozni o'chirish" : "Ovozni yoqish"}
+                title={isSoundEnabled ? t('nav.soundOff') : t('nav.soundOn')}
               >
                 {isSoundEnabled ? <HiVolumeUp size={18} /> : <HiVolumeOff size={18} />}
               </button>

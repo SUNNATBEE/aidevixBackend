@@ -5,6 +5,8 @@ import Script from 'next/script';
 import { Manrope, Space_Grotesk } from 'next/font/google';
 import { Providers } from '@components/Providers';
 import ClientLayoutWrapper from '@components/layout/ClientLayoutWrapper';
+import ExitIntentModal from '@components/common/ExitIntentModal';
+import PWAInstallPrompt from '@components/common/PWAInstallPrompt';
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -120,10 +122,17 @@ export default function RootLayout({
       <body className={`${manrope.variable} ${spaceGrotesk.variable} antialiased selection:bg-indigo-500/30`}>
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
         <Script id="theme-and-lang-bootstrap" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeAndLangBootstrap }} />
+        <Script id="sw-register" strategy="afterInteractive">{`
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+          }
+        `}</Script>
         <Providers>
           <ClientLayoutWrapper>
             {children}
           </ClientLayoutWrapper>
+          <ExitIntentModal />
+          <PWAInstallPrompt />
         </Providers>
       </body>
     </html>

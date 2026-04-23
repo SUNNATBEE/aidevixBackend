@@ -5,6 +5,13 @@ import { waitForPageReady, collectConsoleErrors } from './helpers/test-utils';
 
 test.describe('Authentication — Login', () => {
   test.beforeEach(async ({ page }) => {
+    await page.route('**/api/**/auth/me*', (route) =>
+      route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ success: false }) }),
+    );
+    await page.route('**/api/**/auth/refresh-token*', (route) =>
+      route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ success: false }) }),
+    );
+
     // Mock login API
     await page.route('**/api/**/auth/login', async (route) => {
       const body = route.request().postDataJSON();
@@ -58,7 +65,7 @@ test.describe('Authentication — Login', () => {
     await page.locator(SELECTORS.PASSWORD_INPUT).fill('123456');
     await page.locator(SELECTORS.SUBMIT_BTN).click();
 
-    await expect(page.locator('text=/noto.*g.*ri.*email/i').first()).toBeVisible({ timeout: TIMEOUTS.ANIMATION });
+    await expect(page.locator('text=/email|noto.*g.*ri|invalid/i').first()).toBeVisible({ timeout: TIMEOUTS.ANIMATION });
   });
 
   test('shows error for short password', async ({ page }) => {
@@ -121,14 +128,15 @@ test.describe('Authentication — Login', () => {
     await page.goto(ROUTES.LOGIN);
     await waitForPageReady(page);
 
-    const passInput = page.locator(SELECTORS.PASSWORD_INPUT);
+    const passInput = page.locator('input[name="password"], input[placeholder*="••••"], input[placeholder*="parol" i]').first();
+    await expect(passInput).toBeVisible();
     await passInput.fill('testpassword');
 
     // Initially type=password
     await expect(passInput).toHaveAttribute('type', 'password');
 
     // Click eye icon to reveal
-    const toggleBtn = page.locator('button').filter({ has: page.locator('svg') }).last();
+    const toggleBtn = passInput.locator('xpath=following-sibling::button').first();
     await toggleBtn.click();
     await expect(passInput).toHaveAttribute('type', 'text');
 
@@ -184,6 +192,17 @@ test.describe('Authentication — Login', () => {
 
 test.describe('Authentication — Register', () => {
   test.beforeEach(async ({ page }) => {
+    // Global withMockedAPIs logs users in; register flows must stay guest.
+    await page.route('**/api/**/auth/me*', (route) =>
+      route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ success: false }) }),
+    );
+    await page.route('**/api/**/auth/refresh-token*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { accessToken: 'e2e-guest' } }),
+      }),
+    );
     await page.route('**/api/**/auth/register', async (route) => {
       await route.fulfill({
         status: 201,

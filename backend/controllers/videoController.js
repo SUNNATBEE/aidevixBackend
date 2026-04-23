@@ -222,7 +222,7 @@ const createVideo = async (req, res) => {
       duration: duration || 0,
       thumbnail,
       bunnyVideoId,
-      bunnyStatus: bunnyVideoId ? 'pending' : 'pending',
+      bunnyStatus: 'pending',
     });
 
     // Kursga video qo'shish
@@ -336,6 +336,9 @@ const askQuestion = async (req, res) => {
     if (!question || question.trim().length === 0) {
       return res.status(400).json({ success: false, message: 'Savol matni kiritilishi shart' });
     }
+    if (question.trim().length > 2000) {
+      return res.status(400).json({ success: false, message: 'Savol 2000 belgidan oshmasligi kerak' });
+    }
 
     const video = await Video.findById(videoId);
     if (!video || !video.isActive) {
@@ -392,6 +395,9 @@ const answerQuestion = async (req, res) => {
 
     if (!answer || answer.trim().length === 0) {
       return res.status(400).json({ success: false, message: 'Javob matni kiritilishi shart' });
+    }
+    if (answer.trim().length > 5000) {
+      return res.status(400).json({ success: false, message: 'Javob 5000 belgidan oshmasligi kerak' });
     }
 
     const qa = await VideoQuestion.findById(questionId);

@@ -45,4 +45,13 @@ const otpLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-module.exports = { apiLimiter, authLimiter, paymentLimiter, uploadLimiter, otpLimiter };
+// Daily reward limiter — foydalanuvchi bazaga spam bosmaslik uchun
+const dailyRewardLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 daqiqa
+  max: 5,
+  message: { success: false, message: 'Juda ko\'p so\'rov. 1 daqiqadan so\'ng qayta urinib ko\'ring.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+module.exports = { apiLimiter, authLimiter, paymentLimiter, uploadLimiter, otpLimiter, dailyRewardLimiter };

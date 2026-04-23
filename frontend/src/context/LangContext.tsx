@@ -41,7 +41,20 @@ const LangContext = createContext<LangContextType>({
 });
 
 export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(readInitialLang);
+  // SSR-safe initial value — localStorage is unavailable on the server.
+  // Real value is read from localStorage in useEffect after mount.
+  const [lang, setLangState] = useState<Lang>('uz');
+
+  useEffect(() => {
+    // On mount, sync real lang from localStorage
+    const saved = readInitialLang();
+    if (saved !== lang) {
+      setLangState(saved);
+    } else {
+      syncDocumentLang(lang);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     syncDocumentLang(lang);

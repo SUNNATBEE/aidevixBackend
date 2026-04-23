@@ -73,6 +73,8 @@ const initialState = {
   topVideos:    [],
   current:      null,
   videoLink:    null,
+  /** Bunny.net Stream: { embedUrl, expiresAt } */
+  player:       null,
   loading:      false,
   linkLoading:  false,
   error:        null,
@@ -86,6 +88,7 @@ const videoSlice = createSlice({
     clearCurrentVideo: (state) => {
       state.current   = null
       state.videoLink = null
+      state.player     = null
       state.error     = null
     },
     clearVideoError: (state) => { state.error = null },
@@ -106,7 +109,8 @@ const videoSlice = createSlice({
         state.loading   = false
         state.current   = action.payload.video
         // API returns { video, player: { embedUrl, expiresAt } }
-        state.videoLink = action.payload.player ?? action.payload.videoLink ?? null
+        state.videoLink = action.payload.videoLink ?? null
+        state.player    = action.payload.player ?? null
       })
       .addCase(fetchVideo.rejected,  (state, action) => {
         state.loading = false; state.error = action.payload
@@ -135,6 +139,7 @@ export const selectCourseVideos = (state) => state.videos.courseVideos
 export const selectTopVideos    = (state) => state.videos.topVideos
 export const selectCurrentVideo = (state) => state.videos.current
 export const selectVideoLink    = (state) => state.videos.videoLink
+export const selectVideoPlayer  = (state) => state.videos.player
 export const selectVideoLoading = (state) => state.videos.loading
 export const selectVideoError   = (state) => state.videos.error
 export const selectRatings      = (state) => state.videos.ratings

@@ -1,6 +1,12 @@
+/** Brauzerda admin havolalari uchun (Swagger / admin-docs). Localda NEXT_PUBLIC_BACKEND_URL qo‘ying. */
+export const BACKEND_ORIGIN = (
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_ORIGIN ||
+  'https://aidevix-backend-production.up.railway.app'
+).replace(/\/$/, '')
 
 const base = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/proxy'
-const withLeading = base.startsWith('/') ? base : `/${base}`
+const withLeading = (base.startsWith('/') || base.startsWith('http')) ? base : `/${base}`
 export const API_BASE_URL = withLeading.endsWith('/') ? withLeading : `${withLeading}/`
 
 
@@ -55,17 +61,20 @@ export const STORAGE_KEYS = {
 
 
 export const ROUTES = {
-  HOME:         '/',
-  COURSES:      '/courses',
-  COURSE:       (id: string) => `/courses/${id}`,
-  VIDEO:        (id: string) => `/videos/${id}`,
-  TOP:          '/top',
-  LOGIN:        '/login',
-  REGISTER:     '/register',
-  PROFILE:      '/profile',
-  SUBSCRIPTION: '/subscription',
-  CAREERS:      '/careers',
-  CHALLENGES:   '/challenges',
-  LEADERBOARD:  '/leaderboard',
-  REFERRAL:     '/referral',
+  HOME:           '/',
+  COURSES:        '/courses',
+  COURSE:         (id: string) => `/courses/${id}`,
+  VIDEO:          (id: string) => `/videos/${id}`,
+  TOP:            '/top',
+  LOGIN:          '/login',
+  REGISTER:       '/register',
+  PROFILE:        '/profile',
+  SUBSCRIPTION:   '/subscription',
+  CAREERS:        '/careers',
+  CHALLENGES:     '/challenges',
+  LEADERBOARD:    '/leaderboard',
+  REFERRAL:       '/referral',
+  PROMPTS:        '/prompts',
+  ROADMAP:        '/roadmap',
+  PUBLIC_PROFILE: (username: string) => `/u/${username}`,
 }

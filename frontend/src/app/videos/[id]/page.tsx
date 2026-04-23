@@ -12,13 +12,14 @@ import { useSubscription } from '@hooks/useSubscription';
 import { formatDuration } from '@utils/formatDuration';
 import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 import { videoApi } from '@/api/videoApi';
-
 import { motion } from 'framer-motion';
+import VideoComments from '@/components/videos/VideoComments';
 
 export default function VideoPage() {
   const { id }: { id: string } = useParams();
   const router = useRouter();
-  const { current: video, videoLink, loading, error, fetchById } = useVideos();
+  const { current: video, videoLink, player, loading, error, fetchById } = useVideos();
+  const embedUrl = player && typeof player === 'object' && 'embedUrl' in player ? (player as { embedUrl?: string }).embedUrl : undefined;
   useSubscription();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const instagram = useSelector(selectInstagramSub);
@@ -187,7 +188,9 @@ export default function VideoPage() {
             </div>
             <div className="flex items-center gap-2 text-gray-400">
               <IoEye className="text-indigo-400" />
-              <span className="text-sm font-medium">{video.views?.toLocaleString() || 0} marta ko'rilgan</span>
+              <span className="text-sm font-medium">
+                {(video.viewCount ?? video.views ?? 0).toLocaleString()} marta ko'rilgan
+              </span>
             </div>
             <div className="flex items-center gap-2 text-gray-400">
               <IoStar className="text-yellow-400" />
@@ -203,14 +206,7 @@ export default function VideoPage() {
           transition={{ delay: 0.2 }}
           className="rounded-[2.5rem] overflow-hidden aspect-video relative bg-black border border-white/5 shadow-2xl group"
         >
-          {videoLink?.embedUrl && isSubscribed ? (
-            <iframe
-              src={videoLink.embedUrl}
-              className="absolute inset-0 w-full h-full"
-              allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          ) : !isLoggedIn ? (
+          {!isLoggedIn ? (
             /* Not logged in */
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e]">
               <div className="w-24 h-24 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mb-6 shadow-2xl">
@@ -245,15 +241,44 @@ export default function VideoPage() {
                 🔓 Obuna bo&apos;lish
               </button>
             </div>
+          ) : embedUrl ? (
+            /* Subscribed + Bunny Stream */
+            <iframe
+              src={embedUrl}
+              className="absolute inset-0 w-full h-full"
+              allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (videoLink as any)?.telegramLink ? (
+            /* Subscribed + Telegram link */
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e]">
+              <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-600/20 shadow-2xl transition-transform duration-500 group-hover:scale-110">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg shadow-indigo-500/40">
+                  <IoPlay size={32} className="ml-1" />
+                </div>
+              </div>
+              <h2 className="mb-2 text-2xl font-bold text-white">Video Telegram&apos;da joylashgan</h2>
+              <p className="mb-8 max-w-md px-8 text-center text-gray-400">
+                Ushbu darsni ko&apos;rish uchun quyidagi tugmani bosing va biz taqdim etgan havola orqali videoga o&apos;ting.
+              </p>
+              <a
+                href={(videoLink as any).telegramLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary h-14 rounded-full border-none bg-indigo-500 px-10 text-lg font-bold shadow-xl shadow-indigo-500/20 hover:bg-indigo-600"
+              >
+                ▶ Videoni ko&apos;rish
+              </a>
+            </div>
           ) : (
-            /* Subscribed but no embedUrl — video processing */
+            /* Subscribed but no link — video processing */
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e]">
               <div className="w-20 h-20 rounded-full bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center mb-6">
                 <span className="text-3xl">⏳</span>
               </div>
               <h2 className="text-xl font-bold text-white mb-2">Video tayyorlanmoqda</h2>
               <p className="text-gray-400 text-center px-8 max-w-md mb-6">
-                Video Bunny.net da hali ishlanmoqda. Iltimos, bir oz kuting.
+                Video hali ishlanmoqda. Iltimos, bir oz kuting.
               </p>
               <button
                 onClick={() => window.location.reload()}
@@ -349,6 +374,9 @@ export default function VideoPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Q&A Comments Section */}
+      <VideoComments videoId={id} />
 
       {/* Instagram Verification Modal */}
       <SubscriptionGate

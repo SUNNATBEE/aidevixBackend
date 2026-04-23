@@ -49,4 +49,24 @@ export const userApi = {
    */
   updateProfile: (data) =>
     axiosInstance.put('xp/profile', data),
+
+  /** Ochiq profil sahifasi uchun */
+  getPublicProfile: (username: string) =>
+    axiosInstance.get(`users/${username}/public`),
+
+  /** Streak freeze ishlatish (1 ta sarflaydi) */
+  useStreakFreeze: () =>
+    axiosInstance.post('xp/streak-freeze'),
+
+  /** Davom ettirilayotgan kurs va keyingi video */
+  getContinueLearning: () =>
+    axiosInstance.get('enrollments/continue'),
+
+  /** Haftalik turnir ma'lumotlari + prizes */
+  getWeeklyPrizes: () =>
+    axiosInstance.get('ranking/weekly/prizes'),
+
+  /** Streak holati */
+  getStreakStatus: () =>
+    axiosInstance.get('xp/streak-status'),
 }

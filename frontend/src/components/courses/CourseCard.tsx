@@ -8,6 +8,7 @@ import { IoPlay, IoTime, IoBookOutline, IoStar } from 'react-icons/io5';
 import { ROUTES } from '@/utils/constants';
 import { formatDurationText } from '@/utils/formatDuration';
 import { useSound } from '@/context/SoundContext';
+import { useLang } from '@/context/LangContext';
 
 const CAT = {
   html:       { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400',  label: 'HTML',   glow: 'hover:shadow-orange-500/10'  },
@@ -30,6 +31,7 @@ interface CourseProps {
 export default function CourseCard({ course, index = 0, className = '' }: CourseProps) {
   const cardRef = useRef(null)
   const { playSound } = useSound()
+  const { t } = useLang()
 
   useEffect(() => {
     if (!cardRef.current) return
@@ -105,13 +107,13 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
         <div className="absolute top-4 left-4 flex gap-2">
           {isNew && (
             <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/90 text-white backdrop-blur-md shadow-lg shadow-emerald-500/20">
-              YANGI
+              {t('courses.newBadge')}
             </span>
           )}
         </div>
 
         <div className={'absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md ' + cat.bg + ' ' + cat.text + ' ' + cat.border}>
-          {cat.label}
+          {t(`cat.${course.category}`) || cat.label}
         </div>
       </div>
 
@@ -121,7 +123,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
           <div className="flex items-center gap-3 text-[10px] font-medium tracking-wide text-white/30">
             <span className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/5 px-2.5 py-1">
               <IoBookOutline className="text-xs" />
-              {videoCount} dars
+              {videoCount} {t('courses.lessons')}
             </span>
             {totalSecs > 0 && (
               <span className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/5 px-2.5 py-1">
@@ -160,7 +162,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
           
           <span className="text-xs font-semibold text-indigo-300 flex items-center gap-1">
             <IoPlay className="text-xs" />
-            Ko'rish
+            {t('courses.view')}
           </span>
         </div>
       </div>

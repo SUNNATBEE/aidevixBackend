@@ -14,6 +14,10 @@ import HomeSkeleton from '@/components/home/HomeSkeleton';
 import { useLang } from '@/context/LangContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useSound } from '@/context/SoundContext';
+import { useSelector } from 'react-redux';
+import { selectIsLoggedIn } from '@/store/slices/authSlice';
+import { userApi } from '@/api/userApi';
+import { IoPlay, IoArrowForward, IoSchool } from 'react-icons/io5';
 import { HiArrowRight, HiOutlineDesktopComputer, HiOutlineServer, HiOutlineDeviceMobile, HiOutlineDatabase } from 'react-icons/hi';
 import { SiPython, SiFigma } from 'react-icons/si';
 
@@ -30,14 +34,22 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
   const { t } = useLang();
   const { isDark } = useTheme();
   const { playSound } = useSound();
+  const [continueLearning, setContinueLearning] = useState<any>(null);
+  const isLoggedIn = useSelector(selectIsLoggedIn);
   const statsRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
-    // Instant rendering instead of artificial timeout
     setIsReady(true);
   }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    userApi.getContinueLearning()
+      .then(({ data }) => setContinueLearning(data?.data || null))
+      .catch(() => {});
+  }, [isLoggedIn]);
 
   useEffect(() => {
     if (!isMounted || !isReady) return;
@@ -263,6 +275,42 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
           </motion.aside>
         </div>
       </section>
+
+      {/* Continue Learning Widget — faqat login qilgan foydalanuvchilar uchun */}
+      {isLoggedIn && continueLearning && (
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="relative z-20 mx-auto mt-4 max-w-7xl px-4"
+        >
+          <div className={`flex flex-col sm:flex-row items-start sm:items-center gap-5 rounded-[2rem] border p-6 md:p-8 ${isDark ? 'border-indigo-500/20 bg-indigo-500/5' : 'border-indigo-200 bg-indigo-50'}`}>
+            <div className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'}`}>
+              <IoSchool className="text-2xl text-indigo-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className={`text-xs uppercase tracking-widest mb-1 ${mutedText}`}>Davom ettiramizmi?</div>
+              <h3 className="font-semibold text-lg truncate">{continueLearning.course?.title}</h3>
+              <p className={`text-sm mt-1 ${mutedText}`}>{continueLearning.nextVideo?.title}</p>
+              <div className="mt-3 flex items-center gap-3">
+                <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden max-w-xs">
+                  <div
+                    className="h-full bg-indigo-500 rounded-full"
+                    style={{ width: `${continueLearning.progressPercent || 0}%` }}
+                  />
+                </div>
+                <span className={`text-xs font-semibold ${mutedText}`}>{continueLearning.progressPercent || 0}%</span>
+              </div>
+            </div>
+            <Link
+              href={`/videos/${continueLearning.nextVideo?._id}`}
+              className="flex items-center gap-2 flex-shrink-0 h-12 rounded-full bg-indigo-500 px-6 text-sm font-semibold text-white hover:bg-indigo-400 transition-all hover:-translate-y-0.5"
+            >
+              <IoPlay className="text-base" /> Davom ettirish
+            </Link>
+          </div>
+        </motion.section>
+      )}
 
       <section ref={statsRef} data-direction="up" className="relative z-20 mx-auto mt-2 max-w-7xl px-4 reveal-section">
         <div className={`grid gap-px overflow-hidden rounded-[2rem] border ${hairline} ${softSurface} backdrop-blur-2xl md:grid-cols-4`}>

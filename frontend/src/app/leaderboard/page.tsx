@@ -9,8 +9,10 @@ import { FaTrophy } from 'react-icons/fa'
 import api from '@api/axiosInstance'
 import { useUserStats } from '@hooks/useUserStats'
 import { selectUser, selectIsLoggedIn } from '@store/slices/authSlice'
+import { useLang } from '@/context/LangContext'
 import LeaderboardTable from '@components/leaderboard/LeaderboardTable'
 import LevelUpModal from '@components/leaderboard/LevelUpModal'
+import { userApi } from '@api/userApi'
 
 const TABS = [
   { key:'all',        label:'GLOBAL'     },
@@ -27,17 +29,11 @@ const XP_ENGINE = [
   { label:'Challenge',     xp:'+500 XP', color:'text-orange-400', dot:'bg-orange-500' },
 ]
 
-const LEVEL_NAMES = {
-  1:'Yangi Boshlovchi',5:'Qiziquvchan',10:'Izlanuvchi',
-  15:'Bilimdon',20:'Ekspert',25:'Mantiq Ustasi',
-  30:'Grandmaster',35:'Ustoz',40:'Afsonaviy',50:'Immortal',
-}
-
-const getLevelName = (lvl: number) => {
-  if (!lvl) return 'Yangi Boshlovchi'
-  const keys = Object.keys(LEVEL_NAMES).map(Number).sort((a,b)=>b-a)
+const getLevelName = (lvl: number, t: any) => {
+  if (!lvl) return t('lb.level.1')
+  const keys = [1, 5, 10, 15, 20, 25, 30, 35, 40, 50].sort((a,b)=>b-a)
   const found = keys.find(k=>lvl>=k)
-  return found ? LEVEL_NAMES[found as keyof typeof LEVEL_NAMES] : 'Yangi Boshlovchi'
+  return found ? t(`lb.level.${found}`) : t('lb.level.1')
 }
 const getInitials = (name='') =>
   name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)
@@ -55,8 +51,9 @@ const MOCK: any = {
 }
 
 function PodiumCard({ user, rank }: { user: any, rank: number }) {
+  const { t } = useLang();
   if (!user) return null
-  const username = user.user?.username || user.username || 'Foydalanuvchi'
+  const username = user.user?.username || user.username || t('auth.register.username')
   const sList: any = {
     1:{ wrap:'order-2 z-10 scale-110', card:'border-yellow-500/60 bg-[#1c1500]', shadow:'0 0 40px rgba(234,179,8,0.25)', badge:'bg-yellow-500', ab:'border-yellow-500', sz:'w-[72px] h-[72px]' },
     2:{ wrap:'order-1', card:'border-gray-500/30 bg-[#111318]', shadow:'none', badge:'bg-gray-400', ab:'border-gray-400/60', sz:'w-14 h-14' },
@@ -83,17 +80,17 @@ function PodiumCard({ user, rank }: { user: any, rank: number }) {
         <p className={`${rank===1?'text-base font-black':'text-sm font-bold'} mt-2 text-center truncate w-full`}>{username}</p>
         {rank===1 ? (
           <>
-            <span className="mt-1 px-2 py-0.5 rounded bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[10px] font-black tracking-wider">GRANDMASTER</span>
+            <span className="mt-1 px-2 py-0.5 rounded bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[10px] font-black tracking-wider">{t('lb.level.30').toUpperCase()}</span>
             <p className="text-yellow-400 font-black text-base mt-2">{(user.xp||0).toLocaleString()} XP</p>
             <div className="flex gap-3 mt-2 text-xs">
-              <span className="flex flex-col items-center"><span className="text-white/40 text-[9px]">LEVEL</span><b className="text-white">{user.level??99}</b></span>
-              <span className="flex flex-col items-center"><span className="text-white/40 text-[9px]">QUIZZES</span><b className="text-white">{user.quizzesCompleted??450}</b></span>
-              <span className="flex flex-col items-center"><span className="text-white/40 text-[9px]">STREAK</span><b className="text-orange-400">{user.streak??84}🔥</b></span>
+              <span className="flex flex-col items-center"><span className="text-white/40 text-[9px]">{t('profile.stat.level').toUpperCase()}</span><b className="text-white">{user.level??99}</b></span>
+              <span className="flex flex-col items-center"><span className="text-white/40 text-[9px]">{t('lb.xp.quizzes').toUpperCase()}</span><b className="text-white">{user.quizzesCompleted??450}</b></span>
+              <span className="flex flex-col items-center"><span className="text-white/40 text-[9px]">{t('general.streak').toUpperCase()}</span><b className="text-orange-400">{user.streak??84}🔥</b></span>
             </div>
           </>
         ) : (
           <>
-            <p className="text-xs text-base-content/40 mt-0.5">{getLevelName(user.level||1)}</p>
+            <p className="text-xs text-base-content/40 mt-0.5">{getLevelName(user.level||1, t)}</p>
             <p className="text-primary font-bold text-sm mt-1">{(user.xp||0).toLocaleString()} XP</p>
             <div className="w-full h-1 bg-base-300 rounded-full mt-2 overflow-hidden">
               <div className="h-full bg-primary/60 rounded-full" style={{width:'55%'}} />
@@ -106,13 +103,31 @@ function PodiumCard({ user, rank }: { user: any, rank: number }) {
 }
 
 export default function LeaderboardPage() {
-  const [activeTab, setActiveTab]       = useState('all')
-  const [pageNum, setPageNum]           = useState(1)
-  const [apiUsers, setApiUsers]         = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [pagination, setPagination]     = useState<any>(null)
+  const [activeTab, setActiveTab] = useState('all')
+  const [pageNum, setPageNum]     = useState(1)
+  const [apiUsers, setApiUsers]   = useState<any[]>([])
+  const [loading, setLoading]     = useState(false)
+  const [pagination, setPagination] = useState<any>(null)
   const [userPosition, setUserPosition] = useState<any>(null)
   const [isMounted, setIsMounted]       = useState(false)
+  const [weeklyData, setWeeklyData]     = useState<any>(null)
+  const [countdown, setCountdown]       = useState('')
+  const { t } = useLang();
+
+  const TABS = [
+    { key:'all',        label: t('filter.all').toUpperCase() },
+    { key:'javascript', label:'JAVASCRIPT' },
+    { key:'react',      label:'REACT'      },
+    { key:'python',     label:'PYTHON'     },
+    { key:'ui/ux',      label:'UI/UX'      },
+  ]
+
+  const XP_ENGINE = [
+    { label: t('lb.xp.videos'),  xp:'+50 XP',  color:'text-blue-400',   dot:'bg-blue-500'   },
+    { label: t('lb.xp.quizzes'), xp:'+100 XP', color:'text-purple-400', dot:'bg-purple-500' },
+    { label: t('lb.xp.practice'),xp:'+150 XP', color:'text-indigo-400', dot:'bg-indigo-500' },
+    { label: 'Challenge',        xp:'+500 XP', color:'text-orange-400', dot:'bg-orange-500' },
+  ]
 
   const isLoggedIn  = useSelector(selectIsLoggedIn)
   const currentUser = useSelector(selectUser)
@@ -146,10 +161,26 @@ export default function LeaderboardPage() {
     } catch {}
   }
 
-  useEffect(() => { 
+  useEffect(() => {
     setIsMounted(true)
-    fetchUsers(1, true) 
+    fetchUsers(1, true)
+    userApi.getWeeklyPrizes().then(({ data }) => setWeeklyData(data?.data)).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!weeklyData?.nextReset) return
+    const update = () => {
+      const ms = new Date(weeklyData.nextReset).getTime() - Date.now()
+      if (ms <= 0) { setCountdown('0d 0h 0m'); return }
+      const d = Math.floor(ms / 86400000)
+      const h = Math.floor((ms % 86400000) / 3600000)
+      const m = Math.floor((ms % 3600000) / 60000)
+      setCountdown(`${d}k ${h}s ${m}d`)
+    }
+    update()
+    const id = setInterval(update, 60000)
+    return () => clearInterval(id)
+  }, [weeklyData?.nextReset])
 
   useEffect(() => { if (isMounted) fetchPosition() }, [isLoggedIn, currentUser?._id, isMounted])
 
@@ -170,7 +201,7 @@ export default function LeaderboardPage() {
       <LevelUpModal
         isOpen={justLeveledUp}
         level={newLevel}
-        levelName={getLevelName(newLevel)}
+        levelName={getLevelName(newLevel, t)}
         xp={xp}
         quizResult={quizResult}
         onClose={dismissLevelUp}
@@ -188,13 +219,13 @@ export default function LeaderboardPage() {
               <div className="flex-shrink-0 w-12 h-12 rounded-lg flex flex-col items-center justify-center"
                 style={{background:'rgba(99,102,241,0.3)',border:'1px solid rgba(99,102,241,0.5)'}}>
                 <span className="text-xl font-black text-white leading-none">{rank??'—'}</span>
-                <span className="text-[8px] text-indigo-300/60 uppercase">o'rin</span>
+                <span className="text-[8px] text-indigo-300/60 uppercase">{t('lb.rank')}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="text-xs font-bold text-white">SIZNING REYTINGINGIZ</span>
+                  <span className="text-xs font-bold text-white uppercase">{t('lb.myRating')}</span>
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/30 text-indigo-300 border border-indigo-500/30">
-                    {getLevelName(level).toUpperCase()}
+                    {getLevelName(level, t).toUpperCase()}
                   </span>
                   {topPercent && <span className="text-[10px] text-primary font-semibold">Top {topPercent}%</span>}
                 </div>
@@ -213,11 +244,11 @@ export default function LeaderboardPage() {
                 </div>
               </div>
               <div className="flex-shrink-0 text-right px-3 border-l border-white/10">
-                <p className="text-[10px] text-white/40 uppercase">Jami XP</p>
+                <p className="text-[10px] text-white/40 uppercase">{t('lb.totalXp')}</p>
                 <p className="font-black text-primary text-sm">{xp.toLocaleString()}</p>
               </div>
               <div className="flex-shrink-0 text-center px-3 border-l border-white/10">
-                <p className="text-[10px] text-white/40 uppercase">STREAK</p>
+                <p className="text-[10px] text-white/40 uppercase">{t('general.streak').toUpperCase()}</p>
                 <p className="font-bold text-sm text-orange-400">🔥 {streak}</p>
               </div>
               <div className="flex-shrink-0 text-center px-3 border-l border-white/10">
@@ -286,7 +317,7 @@ export default function LeaderboardPage() {
               <div className="text-center py-4">
                 <button onClick={() => { setPageNum(p => p+1); fetchUsers(pageNum+1, false) }} disabled={loading} className="btn btn-outline btn-sm px-10 gap-2 font-bold tracking-wider">
                   {loading && <span className="loading loading-spinner loading-xs" />}
-                  + YANA YUKLASH
+                  {t('lb.loadMore')}
                 </button>
               </div>
             )}
@@ -319,20 +350,43 @@ export default function LeaderboardPage() {
 
             <motion.div
               initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} transition={{delay:0.35}}
-              className="rounded-xl border border-primary/20 bg-primary/5 p-4"
+              className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 overflow-hidden"
             >
-              <p className="text-[10px] text-base-content/40 uppercase tracking-widest mb-3">Haftalik Missiya</p>
-              <div className="bg-base-200/80 rounded-xl p-3">
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <p className="font-bold text-sm">JavaScript Master</p>
-                  <span className="badge badge-primary badge-xs whitespace-nowrap flex-shrink-0">3 kun qoldi</span>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-yellow-500/10">
+                <div className="flex items-center gap-2">
+                  <FaTrophy className="text-yellow-400 text-base" />
+                  <span className="font-bold text-sm tracking-wide">HAFTALIK TURNIR</span>
                 </div>
-                <p className="text-xs text-base-content/40 leading-relaxed">5 ta JavaScript quizini 100% natija bilan yakunlang.</p>
-                <div className="w-full h-1.5 bg-base-300 rounded-full mt-3 overflow-hidden">
-                  <motion.div initial={{width:0}} animate={{width:'40%'}} transition={{delay:0.6,duration:0.8}} className="h-full bg-primary rounded-full" />
-                </div>
-                <p className="text-[10px] text-base-content/30 mt-1 text-right">2/5 bajarildi</p>
+                {countdown && (
+                  <span className="text-[10px] font-bold text-yellow-400/70 bg-yellow-500/10 px-2 py-1 rounded-lg">
+                    ⏱ {countdown}
+                  </span>
+                )}
               </div>
+              <div className="p-3 space-y-1.5">
+                {(weeklyData?.prizes || [
+                  { rank:1, xp:500, badge:'🥇 Hafta Chempioni',  color:'text-yellow-400' },
+                  { rank:2, xp:300, badge:'🥈 Kumush O\'rin',    color:'text-slate-300' },
+                  { rank:3, xp:150, badge:'🥉 Bronza O\'rin',    color:'text-amber-600' },
+                ]).map((prize: any) => (
+                  <div key={prize.rank} className="flex items-center justify-between px-3 py-2 rounded-lg bg-base-300/20">
+                    <span className="text-sm">{prize.badge}</span>
+                    <span className="font-black text-sm text-primary">+{prize.xp} XP</span>
+                  </div>
+                ))}
+              </div>
+              {weeklyData?.leaderboard?.length > 0 && (
+                <div className="px-3 pb-3 space-y-1">
+                  <p className="text-[10px] text-base-content/30 uppercase tracking-widest px-3 pt-2">Bu hafta top</p>
+                  {weeklyData.leaderboard.slice(0, 3).map((u: any, i: number) => (
+                    <div key={u.user?._id || i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg">
+                      <span className="text-xs font-black text-base-content/30 w-4">{i+1}</span>
+                      <span className="text-sm font-semibold flex-1 truncate">{u.user?.username || '—'}</span>
+                      <span className="text-xs font-bold text-yellow-400">{(u.weeklyXp||0).toLocaleString()} XP</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           </div>
         </div>

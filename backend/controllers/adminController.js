@@ -162,4 +162,188 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { getDashboardStats, getTopStudents, getCoursesStats, getRecentPayments, getUsers, updateUser, deleteUser };
+/** @desc  User detail | @route GET /api/admin/users/:id | @access Admin */
+const getUserDetail = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password -refreshToken');
+    if (!user) return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
+
+    const [stats, enrollments, payments] = await Promise.all([
+      UserStats.findOne({ userId: req.params.id }),
+      Enrollment.find({ userId: req.params.id })
+        .populate('courseId', 'title thumbnail category')
+        .sort({ createdAt: -1 })
+        .limit(20),
+      Payment.find({ userId: req.params.id }).sort({ createdAt: -1 }).limit(10),
+    ]);
+
+    res.json({ success: true, data: { user, stats, enrollments, payments } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @desc  Global qidiruv | @route GET /api/admin/search?q= | @access Admin */
+const globalSearch = async (req, res) => {
+  try {
+    const q = (req.query.q || '').trim();
+    if (q.length < 2) return res.json({ success: true, data: { users: [], courses: [], videos: [] } });
+
+    const regex = { $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+
+    const [users, courses, videos] = await Promise.all([
+      User.find({ $or: [{ username: regex }, { email: regex }] })
+        .select('username email role isActive avatar').limit(6),
+      Course.find({ title: regex, isActive: true })
+        .select('title category isPublished studentsCount thumbnail').limit(6),
+      Video.find({ title: regex, isActive: true })
+        .select('title bunnyStatus course duration')
+        .populate('course', 'title').limit(6),
+    ]);
+
+    res.json({ success: true, data: { users, courses, videos } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @desc  Analytics grafik ma'lumotlari | @route GET /api/admin/analytics | @access Admin */
+const getAnalytics = async (req, res) => {
+  try {
+    const now = new Date();
+    const sixAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+    const [revenueRaw, signupRaw, enrollData] = await Promise.all([
+      Payment.aggregate([
+        { $match: { status: 'completed', createdAt: { $gte: sixAgo } } },
+        { $group: { _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } }, total: { $sum: '$amount' } } },
+        { $sort: { '_id.y': 1, '_id.m': 1 } },
+      ]),
+      User.aggregate([
+        { $match: { createdAt: { $gte: sixAgo } } },
+        { $group: { _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } }, count: { $sum: 1 } } },
+        { $sort: { '_id.y': 1, '_id.m': 1 } },
+      ]),
+      Enrollment.aggregate([
+        { $group: { _id: '$courseId', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 8 },
+        { $lookup: { from: 'courses', localField: '_id', foreignField: '_id', as: 'c' } },
+        { $unwind: '$c' },
+        { $project: { title: '$c.title', count: 1 } },
+      ]),
+    ]);
+
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      return { key: `${d.getFullYear()}-${d.getMonth() + 1}`, label: d.toLocaleString('en', { month: 'short' }) };
+    });
+
+    const toSeries = (raw, field) => {
+      const map = {};
+      raw.forEach(r => { map[`${r._id.y}-${r._id.m}`] = r[field]; });
+      return months.map(m => ({ label: m.label, value: map[m.key] || 0 }));
+    };
+
+    res.json({
+      success: true,
+      data: {
+        revenue:     toSeries(revenueRaw, 'total'),
+        signups:     toSeries(signupRaw, 'count'),
+        enrollments: enrollData,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @desc  Telegram kanalga xabar | @route POST /api/admin/telegram | @access Admin */
+const sendTelegramMessage = async (req, res) => {
+  try {
+    const { message, parseMode = 'HTML' } = req.body;
+    if (!message?.trim()) return res.status(400).json({ success: false, message: 'Xabar matni kiritilishi shart' });
+
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const channel  = process.env.TELEGRAM_CHANNEL_USERNAME || 'aidevix';
+    if (!botToken) return res.status(500).json({ success: false, message: 'TELEGRAM_BOT_TOKEN sozlanmagan' });
+
+    const axios = require('axios');
+    const tgRes = await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      chat_id: `@${channel}`,
+      text: message.trim(),
+      parse_mode: parseMode,
+      disable_web_page_preview: false,
+    });
+
+    res.json({ success: true, message: `@${channel} kanaliga yuborildi`, data: { messageId: tgRes.data.result?.message_id } });
+  } catch (err) {
+    const detail = err.response?.data?.description || err.message;
+    res.status(500).json({ success: false, message: `Telegram xato: ${detail}` });
+  }
+};
+
+/** @desc  Bulk Bunny GUID ulash | @route POST /api/admin/videos/bulk-link | @access Admin */
+const bulkLinkBunny = async (req, res) => {
+  try {
+    const { links } = req.body;
+    if (!Array.isArray(links) || links.length === 0)
+      return res.status(400).json({ success: false, message: 'links massivi bo\'sh' });
+
+    const { getBunnyVideoInfo, parseBunnyStatus } = require('../utils/bunny');
+
+    const results = await Promise.allSettled(
+      links.map(async ({ videoId, bunnyVideoId }) => {
+        const info   = await getBunnyVideoInfo(bunnyVideoId);
+        const status = parseBunnyStatus(info.status);
+        await Video.findByIdAndUpdate(videoId, { bunnyVideoId, bunnyStatus: status, duration: info.length || 0 });
+        return { videoId, bunnyVideoId, status };
+      })
+    );
+
+    const succeeded = results.filter(r => r.status === 'fulfilled').map(r => r.value);
+    const failed    = results.filter(r => r.status === 'rejected').map((r, i) => ({ index: i, error: r.reason?.message }));
+
+    res.json({ success: true, data: { succeeded, failed, total: links.length } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @desc  Videolarni qayta tartiblash | @route PUT /api/admin/videos/reorder | @access Admin */
+const reorderVideos = async (req, res) => {
+  try {
+    const { videos } = req.body;
+    if (!Array.isArray(videos)) return res.status(400).json({ success: false, message: 'videos massivi kerak' });
+
+    await Promise.all(videos.map(({ id, order }) => Video.findByIdAndUpdate(id, { order })));
+    res.json({ success: true, message: 'Tartib yangilandi' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @desc  Kurs enrollment statistikasi | @route GET /api/admin/courses/:id/enrollments | @access Admin */
+const getCourseEnrollmentStats = async (req, res) => {
+  try {
+    const [enrollments, total, completed] = await Promise.all([
+      Enrollment.find({ courseId: req.params.id })
+        .populate('userId', 'username email avatar')
+        .sort({ createdAt: -1 })
+        .limit(50),
+      Enrollment.countDocuments({ courseId: req.params.id }),
+      Enrollment.countDocuments({ courseId: req.params.id, isCompleted: true }),
+    ]);
+
+    res.json({ success: true, data: { enrollments, total, completed } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = {
+  getDashboardStats, getTopStudents, getCoursesStats, getRecentPayments,
+  getUsers, updateUser, deleteUser,
+  getUserDetail, globalSearch, getAnalytics,
+  sendTelegramMessage, bulkLinkBunny, reorderVideos, getCourseEnrollmentStats,
+};

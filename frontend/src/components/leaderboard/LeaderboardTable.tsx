@@ -2,38 +2,35 @@
 import { motion } from 'framer-motion'
 import { FaFire, FaMedal } from 'react-icons/fa'
 import { HiTrophy } from 'react-icons/hi2'
+import { useLang } from '@/context/LangContext'
 
-const LEVEL_NAMES = {
-  1: 'Yangi Boshlovchi', 5: 'Qiziquvchan', 10: 'Izlanuvchi',
-  15: 'Bilimdon', 20: 'Ekspert', 25: 'Mantiq Ustasi',
-  30: 'Grandmaster', 35: 'Ustoz', 40: 'Afsonaviy', 50: 'Immortal',
-}
-const getLevelName = (lvl) => {
-  const keys = Object.keys(LEVEL_NAMES).map(Number).sort((a, b) => b - a)
-  return LEVEL_NAMES[keys.find((k) => lvl >= k)] || 'Yangi Boshlovchi'
+const getLevelName = (lvl, t) => {
+  const keys = [1, 5, 10, 15, 20, 25, 30, 35, 40, 50].sort((a,b)=>b-a)
+  return t(`lb.level.${keys.find((k) => lvl >= k)}`) || t('lb.level.1')
 }
 const getInitials = (name = '') =>
   name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
 
 const LeaderboardTable = ({ users = [], currentUserId, loading }) => {
+  const { t } = useLang()
   if (loading) return null
 
   return (
     <div className="rounded-xl overflow-hidden border border-base-300 bg-base-200">
       {/* Header */}
       <div className="grid grid-cols-[56px_1fr_72px_110px_72px] gap-2 px-4 py-2 text-[11px] text-base-content/40 uppercase tracking-wider border-b border-base-300 bg-base-300/40">
-        <span>Rank</span>
-        <span>O'yinchi</span>
-        <span className="text-center">Level</span>
-        <span className="text-center">XP</span>
+        <span>{t('lb.rank')}</span>
+        <span>{t('courses.badge')}</span>
+        <span className="text-center">{t('profile.stat.level')}</span>
+        <span className="text-center">{t('profile.stat.xp').split(' ')[0]}</span>
         <span className="text-center">Badges</span>
       </div>
 
       <div className="divide-y divide-base-300/60">
         {users.map((u, i) => {
           const isMe     = u.user?._id === currentUserId
-          const username = u.user?.username || u.user?.name || 'Foydalanuvchi'
-          const lvlName  = getLevelName(u.level || 1)
+          const username = u.user?.username || u.user?.name || t('auth.register.username')
+          const lvlName  = getLevelName(u.level || 1, t)
 
           return (
             <motion.div
@@ -62,7 +59,7 @@ const LeaderboardTable = ({ users = [], currentUserId, loading }) => {
                 <div className="min-w-0">
                   <p className={`font-semibold text-sm truncate ${isMe ? 'text-primary' : ''}`}>
                     {username}
-                    {isMe && <span className="text-xs text-primary/60 ml-1">(Siz)</span>}
+                    {isMe && <span className="text-xs text-primary/60 ml-1">({t('auth.register.refBonus').includes('bonus') ? 'You' : 'Siz'})</span>}
                   </p>
                   <p className="text-xs text-base-content/40 truncate">{lvlName}</p>
                 </div>
@@ -79,28 +76,42 @@ const LeaderboardTable = ({ users = [], currentUserId, loading }) => {
                 <span className="text-xs text-base-content/40 ml-0.5">XP</span>
               </div>
 
-              {/* Badges */}
-              <div className="flex items-center justify-center gap-1">
-                {u.streak > 0 && <FaFire className="text-orange-400 text-sm" />}
-                {u.badges?.length > 0 && (
-                  <span className="flex items-center gap-0.5 text-yellow-400 text-sm">
-                    <HiTrophy />
-                    <span className="text-xs text-base-content/50">{u.badges.length}</span>
-                  </span>
+              {/* Badges + AI Stack */}
+              <div className="flex flex-col items-center justify-center gap-1">
+                <div className="flex items-center gap-1">
+                  {u.streak > 0 && <FaFire className="text-orange-400 text-sm" />}
+                  {u.badges?.length > 0 && (
+                    <span className="flex items-center gap-0.5 text-yellow-400 text-sm">
+                      <HiTrophy />
+                      <span className="text-xs text-base-content/50">{u.badges.length}</span>
+                    </span>
+                  )}
+                  {!u.streak && !u.badges?.length && <FaMedal className="text-base-content/20 text-sm" />}
+                </div>
+                {u.aiStack?.length > 0 && (
+                  <div className="flex gap-0.5 flex-wrap justify-center" title={u.aiStack.join(', ')}>
+                    {u.aiStack.slice(0, 3).map((tool: string) => {
+                      const icons: Record<string, string> = {
+                        'Claude Code': '🤖', 'Cursor': '⚡', 'GitHub Copilot': '🐙',
+                        'ChatGPT': '💬', 'Gemini': '✨', 'Windsurf': '🌊',
+                        'Devin': '🦾', 'Replit AI': '🔁', 'Codeium': '🔮', 'Other': '🛠️',
+                      }
+                      return <span key={tool} className="text-[10px]">{icons[tool] || '🔧'}</span>
+                    })}
+                  </div>
                 )}
-                {!u.streak && !u.badges?.length && <FaMedal className="text-base-content/20 text-sm" />}
               </div>
             </motion.div>
           )
         })}
       </div>
 
-      {users.length === 0 && (
-        <div className="text-center py-12 text-base-content/40">
-          <HiTrophy className="text-4xl mx-auto mb-2 opacity-20" />
-          <p className="text-sm">Ma'lumot topilmadi</p>
-        </div>
-      )}
+        {users.length === 0 && (
+          <div className="text-center py-12 text-base-content/40">
+            <HiTrophy className="text-4xl mx-auto mb-2 opacity-20" />
+            <p className="text-sm">{t('courses.empty')}</p>
+          </div>
+        )}
     </div>
   )
 }

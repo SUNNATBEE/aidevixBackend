@@ -11,7 +11,7 @@ const {
 } = require('../utils/jwt');
 const crypto = require('crypto');
 const validator = require('validator');
-const { sendWelcomeEmail, sendResetCodeEmail } = require('../utils/emailService');
+const { sendWelcomeEmail, sendResetCodeEmail, sendEmailVerificationCode } = require('../utils/emailService');
 const {
   attachAuthCookies,
   clearAuthCookies,
@@ -49,6 +49,7 @@ const sanitizeUser = (user) => ({
   referralCode: user.referralCode || null,
   referralsCount: user.referralsCount || 0,
   lastClaimedDaily: user.lastClaimedDaily || null,
+  emailVerified: user.emailVerified ?? true, // eski userlar verified hisoblanadi
 });
 
 // @desc    Register new user
@@ -124,8 +125,16 @@ const register = asyncHandler(async (req, res, next) => {
   await user.save();
   attachAuthCookies(res, accessToken, refreshToken);
 
-  // Background
+  // Background tasks
   UserStats.create({ userId: user._id, xp: user.xp, weeklyXp: user.xp }).catch(() => {});
+
+  // Email verification code yuborish (background)
+  const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+  User.findByIdAndUpdate(user._id, {
+    emailVerificationCode: hashToken(verifyCode),
+    emailVerificationExpire: new Date(Date.now() + 24 * 60 * 60 * 1000),
+  }).exec();
+  sendEmailVerificationCode(user.email, user.username, verifyCode).catch(() => {});
   sendWelcomeEmail(user.email, user.username).catch(() => {});
 
   // Telegram admin bildirishnoma
@@ -220,13 +229,17 @@ const logout = asyncHandler(async (req, res, next) => {
 // @desc    Get Me
 const getMe = asyncHandler(async (req, res, next) => {
   let user = await User.findById(req.user._id);
-  
+
+  // Backfill: eski userlar uchun bir martalik referralCode yaratish
   if (!user.referralCode) {
     const newReferralCode = user.username.substring(0, 4).toUpperCase() + crypto.randomBytes(2).toString('hex').toUpperCase();
-    user.referralCode = newReferralCode;
-    await user.save();
+    user = await User.findByIdAndUpdate(
+      user._id,
+      { referralCode: newReferralCode },
+      { new: true }
+    );
   }
-  
+
   res.json({ success: true, data: sanitizeUser(user) });
 });
 
@@ -279,7 +292,6 @@ const claimDailyReward = asyncHandler(async (req, res, next) => {
   user.xp = (user.xp || 0) + 50
   user.lastClaimedDaily = now
   user.rankTitle = calculateRank(user.xp)
-  await user.save()
 
   // UserStats ga ham XP qo'shish (leaderboard uchun)
   let stats = await UserStats.findOne({ userId: user._id })
@@ -308,7 +320,7 @@ const claimDailyReward = asyncHandler(async (req, res, next) => {
   stats.lastActivityDate = new Date()
   await stats.save()
 
-  // User streak ni stats bilan sinxronlash
+  // User streak ni stats bilan sinxronlash (bitta save)
   user.streak = stats.streak
   await user.save()
 
@@ -383,6 +395,45 @@ const resetPassword = asyncHandler(async (req, res, next) => {
   res.json({ success: true, message: 'Password updated' });
 });
 
+// @desc    Email tasdiqlash
+const verifyEmail = asyncHandler(async (req, res, next) => {
+  const { code } = req.body;
+  if (!code) return next(new ErrorResponse('Kod kiritilmadi', 400));
+
+  const user = await User.findOne({
+    _id: req.user._id,
+    emailVerificationCode: hashToken(code),
+    emailVerificationExpire: { $gt: Date.now() },
+  }).select('+emailVerificationCode +emailVerificationExpire');
+
+  if (!user) return next(new ErrorResponse('Kod noto\'g\'ri yoki muddati o\'tgan', 400));
+
+  user.emailVerified = true;
+  user.emailVerificationCode = null;
+  user.emailVerificationExpire = null;
+  await user.save();
+
+  res.json({ success: true, message: 'Email muvaffaqiyatli tasdiqlandi' });
+});
+
+// @desc    Verification kodni qayta yuborish
+const resendVerification = asyncHandler(async (req, res, next) => {
+  const user = await User.findById(req.user._id);
+
+  if (user.emailVerified) {
+    return next(new ErrorResponse('Email allaqachon tasdiqlangan', 400));
+  }
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  user.emailVerificationCode = hashToken(code);
+  user.emailVerificationExpire = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  await user.save();
+
+  sendEmailVerificationCode(user.email, user.username, code).catch(() => {});
+
+  res.json({ success: true, message: 'Tasdiqlash kodi yuborildi' });
+});
+
 module.exports = {
   register,
   login,
@@ -394,4 +445,6 @@ module.exports = {
   forgotPassword,
   verifyCode,
   resetPassword,
+  verifyEmail,
+  resendVerification,
 };

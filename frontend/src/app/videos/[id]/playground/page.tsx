@@ -56,7 +56,7 @@ print(f"Yosh: {yosh}, Bal: {bal}")
 export default function VideoPlaygroundPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { current: video, videoLink, loading, fetchById } = useVideos();
+  const { current: video, player, loading, fetchById } = useVideos();
   const { xp } = useUserStats();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const { instagram, telegram, allVerified } = useSubscription();
@@ -235,9 +235,9 @@ export default function VideoPlaygroundPage() {
 
           {/* Video Player — Bunny.net iframe */}
           <div className="mx-5 rounded-2xl overflow-hidden bg-black aspect-video relative border border-white/5 shadow-xl shrink-0">
-            {videoLink?.embedUrl ? (
+            {player?.embedUrl ? (
               <iframe
-                src={videoLink.embedUrl}
+                src={player.embedUrl}
                 className="absolute inset-0 w-full h-full"
                 allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen

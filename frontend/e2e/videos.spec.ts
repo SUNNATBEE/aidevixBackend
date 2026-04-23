@@ -1,6 +1,11 @@
 import { test, expect } from './fixtures/test-fixtures';
 import { ROUTES, SELECTORS, TIMEOUTS } from './helpers/constants';
-import { MOCK_VIDEOS, MOCK_TOP_VIDEOS, MOCK_SUBSCRIPTION_UNVERIFIED, MOCK_SUBSCRIPTION_STATUS } from './fixtures/mock-data';
+import {
+  MOCK_VIDEOS,
+  MOCK_TOP_VIDEOS,
+  MOCK_SUBSCRIPTION_UNVERIFIED,
+  MOCK_VIDEO_BY_ID_RESPONSE,
+} from './fixtures/mock-data';
 import { waitForPageReady } from './helpers/test-utils';
 
 test.describe('Videos Page', () => {
@@ -52,13 +57,16 @@ test.describe('Video Detail — Subscription Gate', () => {
     await page.route('**/api/**/subscriptions/realtime-status*', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SUBSCRIPTION_UNVERIFIED) }),
     );
-    await page.route('**/api/**/videos/video-1*', (route) =>
-      route.fulfill({
-        status: 403,
+    await page.route('**/api/**/videos/video-1*', (route) => {
+      if (route.request().method() !== 'GET') {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: {} }) });
+      }
+      return route.fulfill({
+        status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: false, message: 'Obuna talab qilinadi' }),
-      }),
-    );
+        body: JSON.stringify(MOCK_VIDEO_BY_ID_RESPONSE),
+      });
+    });
     await page.route('**/api/**/xp/stats*', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: {} }) }),
     );
@@ -73,12 +81,18 @@ test.describe('Video Detail — Subscription Gate', () => {
     await page.goto('/videos/video-1');
     await waitForPageReady(page);
 
-    // Should show subscription gate or redirect
-    await page.waitForTimeout(3000);
-    const hasGate = await page.locator('text=/obuna|telegram|instagram|verify/i').first().isVisible().catch(() => false);
-    const redirected = page.url().includes('/subscription') || page.url().includes('/login');
-
-    expect(hasGate || redirected).toBeTruthy();
+    await expect(page.getByRole('heading', { name: /telegram/i })).toBeVisible({ timeout: TIMEOUTS.PAGE_LOAD });
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('button')].find((b) =>
+        (b.textContent || '').toLowerCase().includes('videoni'),
+      ) as HTMLButtonElement | undefined;
+      btn?.click();
+    });
+    const gate = page.locator('.fixed.inset-0.z-50');
+    await expect(gate).toBeVisible({ timeout: TIMEOUTS.API_RESPONSE });
+    await expect(
+      gate.getByText(/Instagram obunasi|Telegram obunasi|Instagram subscription|Telegram subscription|Подписка/i),
+    ).toBeVisible({ timeout: TIMEOUTS.API_RESPONSE });
   });
 
   test('verified user can access video', async ({ loggedInPage }) => {
@@ -88,7 +102,14 @@ test.describe('Video Detail — Subscription Gate', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { video: MOCK_VIDEOS.data.videos[0] },
+          data: {
+            video: MOCK_VIDEOS.data.videos[0],
+            videoLink: null,
+            player: {
+              embedUrl: 'https://iframe.mediadelivery.net/embed/test-lib/test-video-id',
+              expiresAt: new Date(Date.now() + 7200000).toISOString(),
+            },
+          },
         }),
       }),
     );
@@ -99,8 +120,7 @@ test.describe('Video Detail — Subscription Gate', () => {
     await loggedInPage.goto('/videos/video-1');
     await waitForPageReady(loggedInPage);
 
-    // Should not be blocked — page should load without subscription gate
-    await loggedInPage.waitForTimeout(2000);
+    await expect(loggedInPage.locator('iframe[title]')).toBeVisible({ timeout: TIMEOUTS.API_RESPONSE });
     const url = loggedInPage.url();
     expect(url).toContain('/videos/video-1');
   });

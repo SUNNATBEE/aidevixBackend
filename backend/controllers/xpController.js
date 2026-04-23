@@ -331,6 +331,7 @@ const updateProfile = async (req, res) => {
     if (ism !== undefined) { user.firstName = ism; userUpdated = true; }
     if (familiya !== undefined) { user.lastName = familiya; userUpdated = true; }
     if (kasb !== undefined) { user.jobTitle = kasb; userUpdated = true; }
+    if (req.body.aiStack !== undefined) { user.aiStack = req.body.aiStack; userUpdated = true; }
 
     if (userUpdated) {
       await user.save();

@@ -24,10 +24,10 @@ test.describe('Courses Page', () => {
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: {} }) }),
     );
     await page.route('**/api/**/auth/me*', (route) =>
-      route.fulfill({ status: 401, body: JSON.stringify({ success: false }) }),
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { user: { _id: 'e2e-user' } } }) }),
     );
     await page.route('**/api/**/auth/refresh-token*', (route) =>
-      route.fulfill({ status: 401, body: JSON.stringify({ success: false }) }),
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { accessToken: 'token' } }) }),
     );
   });
 
@@ -54,8 +54,9 @@ test.describe('Courses Page', () => {
   test('search input is functional', async ({ page }) => {
     await page.goto(ROUTES.COURSES);
     await waitForPageReady(page);
+    await expect(page).toHaveURL(/\/courses/);
 
-    const searchInput = page.locator('input[placeholder*="qidirish"], input[placeholder*="Kurs"]').first();
+    const searchInput = page.locator('input[placeholder*="qidirish" i], input[placeholder*="search" i], input[type="search"]').first();
     await expect(searchInput).toBeVisible({ timeout: TIMEOUTS.SKELETON });
 
     await searchInput.fill('React');
@@ -85,8 +86,10 @@ test.describe('Courses Page', () => {
 
     await page.goto(ROUTES.COURSES);
     await waitForPageReady(page);
+    await expect(page).toHaveURL(/\/courses/);
 
-    const searchInput = page.locator('input[placeholder*="qidirish"], input[placeholder*="Kurs"]').first();
+    const searchInput = page.locator('input[placeholder*="qidirish" i], input[placeholder*="search" i], input[type="search"]').first();
+    await expect(searchInput).toBeVisible({ timeout: TIMEOUTS.SKELETON });
     await searchInput.fill('nonexistent');
     await page.waitForTimeout(600);
 
@@ -116,7 +119,7 @@ test.describe('Courses Page', () => {
     await waitForPageReady(page);
 
     // Filter button should be visible on mobile
-    const filterBtn = page.locator('button').filter({ hasText: /filter/i }).first();
+    const filterBtn = page.locator('button').filter({ hasText: /filter|filtr/i }).first();
     if (await filterBtn.isVisible().catch(() => false)) {
       await filterBtn.click();
       await page.waitForTimeout(500);
@@ -175,10 +178,10 @@ test.describe('Course Detail Page', () => {
       }),
     );
     await page.route('**/api/**/auth/me*', (route) =>
-      route.fulfill({ status: 401, body: JSON.stringify({ success: false }) }),
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { user: { _id: 'e2e-user' } } }) }),
     );
     await page.route('**/api/**/auth/refresh-token*', (route) =>
-      route.fulfill({ status: 401, body: JSON.stringify({ success: false }) }),
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { accessToken: 'token' } }) }),
     );
   });
 

@@ -1,24 +1,17 @@
 const ErrorResponse = require('../utils/errorResponse');
+const logger = require('../utils/logger');
 
 const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
 
-  const logPayload = {
-    message: err.message,
-    path: req.originalUrl,
+  logger.error(err.message, {
+    name:   err.name,
+    path:   req.originalUrl,
     method: req.method,
-    name: err.name,
-  };
-
-  if (process.env.NODE_ENV === 'development') {
-    console.error('SYSTEM ERROR LOG:', {
-      ...logPayload,
-      stack: err.stack,
-    });
-  } else {
-    console.error('SYSTEM ERROR:', logPayload);
-  }
+    status: err.statusCode || 500,
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
+  });
 
   if (err.name === 'CastError') {
     const message = `Resource not found with id of ${err.value}`;
@@ -31,7 +24,9 @@ const errorHandler = (err, req, res, next) => {
   }
 
   if (err.name === 'ValidationError') {
-    const message = Object.values(err.errors).map((val) => val.message);
+    const message = err.errors
+      ? Object.values(err.errors).map((val) => val.message).join(', ')
+      : err.message;
     error = new ErrorResponse(message, 400);
   }
 

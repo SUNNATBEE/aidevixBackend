@@ -1,6 +1,10 @@
 import { test, expect } from './fixtures/test-fixtures';
 import { ROUTES, TIMEOUTS } from './helpers/constants';
-import { MOCK_SUBSCRIPTION_STATUS, MOCK_SUBSCRIPTION_UNVERIFIED, MOCK_USER } from './fixtures/mock-data';
+import {
+  MOCK_SUBSCRIPTION_STATUS,
+  MOCK_SUBSCRIPTION_UNVERIFIED,
+  MOCK_VIDEO_BY_ID_RESPONSE,
+} from './fixtures/mock-data';
 import { waitForPageReady } from './helpers/test-utils';
 
 test.describe('Subscription Verification', () => {
@@ -33,16 +37,15 @@ test.describe('Subscription Verification', () => {
 
     await loggedInPage.goto(ROUTES.SUBSCRIPTION);
     await waitForPageReady(loggedInPage);
+    await loggedInPage.waitForResponse(
+      (r) => r.url().includes('subscriptions/status') && r.status() === 200,
+      { timeout: TIMEOUTS.PAGE_LOAD },
+    ).catch(() => {});
 
-    await loggedInPage.waitForTimeout(2000);
-
-    // Should show verified indicators, redirect away, or show subscription page content
-    const hasVerified = await loggedInPage.locator('text=/tasdiqlangan|verified|✓|✅|tekshirilgan/i').first().isVisible().catch(() => false);
-    const url = loggedInPage.url();
-    const hasContent = await loggedInPage.locator('text=/telegram|instagram|obuna/i').first().isVisible().catch(() => false);
-
-    // Page loaded successfully - verified status shown, redirected, or subscription content visible
-    expect(hasVerified || !url.includes('/subscription') || hasContent).toBeTruthy();
+    // Success card (avoid nav duplicate "Kurslar" links)
+    await expect(loggedInPage.getByRole('heading', { name: /tabriklaymiz|congratulations|поздравляем/i })).toBeVisible({
+      timeout: TIMEOUTS.PAGE_LOAD,
+    });
   });
 
   test('Telegram verify button submits username', async ({ loggedInPage }) => {
@@ -162,21 +165,38 @@ test.describe('Subscription Gate Component', () => {
     await page.route('**/api/**/subscriptions/status*', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SUBSCRIPTION_UNVERIFIED) }),
     );
+    await page.route('**/api/**/subscriptions/realtime-status*', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SUBSCRIPTION_UNVERIFIED) }),
+    );
     await page.route('**/api/**/xp/stats*', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: {} }) }),
     );
-    await page.route('**/api/**/videos/**', (route) =>
-      route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ success: false, message: 'Obuna talab qilinadi' }) }),
-    );
+    await page.route('**/api/**/videos/video-1*', (route) => {
+      if (route.request().method() !== 'GET') {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: {} }) });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_VIDEO_BY_ID_RESPONSE),
+      });
+    });
 
     await page.goto('/videos/video-1');
     await waitForPageReady(page);
-    await page.waitForTimeout(3000);
 
-    // Should show gate or redirect
-    const gateVisible = await page.locator('text=/obuna|telegram|instagram|subscribe/i').first().isVisible().catch(() => false);
-    const redirected = page.url().includes('/subscription') || page.url().includes('/login');
-
-    expect(gateVisible || redirected).toBeTruthy();
+    await expect(page.getByRole('heading', { name: /telegram/i })).toBeVisible({ timeout: TIMEOUTS.PAGE_LOAD });
+    // Decorative `absolute inset-0` layer sits above the button; synthetic DOM click is reliable.
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('button')].find((b) =>
+        (b.textContent || '').toLowerCase().includes('videoni'),
+      ) as HTMLButtonElement | undefined;
+      btn?.click();
+    });
+    const gate = page.locator('.fixed.inset-0.z-50');
+    await expect(gate).toBeVisible({ timeout: TIMEOUTS.API_RESPONSE });
+    await expect(
+      gate.getByText(/Instagram obunasi|Telegram obunasi|Instagram subscription|Telegram subscription|Подписка/i),
+    ).toBeVisible({ timeout: TIMEOUTS.API_RESPONSE });
   });
 });

@@ -71,7 +71,7 @@ const getTopUsers = async (req, res) => {
       .sort({ xp: -1, level: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('userId', 'username email createdAt')
+      .populate('userId', 'username email createdAt avatar aiStack')
       .select('userId xp level streak badges videosWatched quizzesCompleted avatar bio skills');
 
     // Rank raqami va unvon qo'shish
@@ -88,6 +88,7 @@ const getTopUsers = async (req, res) => {
       avatar:           u.avatar,
       bio:              u.bio,
       skills:           u.skills,
+      aiStack:          u.userId?.aiStack || [],
     }));
 
     res.json({
@@ -179,4 +180,51 @@ const getWeeklyLeaderboard = async (req, res) => {
   }
 };
 
-module.exports = { getTopCourses, getTopUsers, getUserPosition, getWeeklyLeaderboard };
+/**
+ * @desc  Haftalik turnir mukofotlari va countdown
+ * @route GET /api/ranking/weekly/prizes
+ * @access Public
+ */
+const getWeeklyPrizes = async (req, res) => {
+  try {
+    const now = new Date();
+    const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
+    const nextReset = new Date(now);
+    nextReset.setDate(now.getDate() + daysUntilSunday);
+    nextReset.setHours(19, 0, 0, 0); // Yakshanba 00:00 Toshkent = 19:00 UTC
+
+    const prizes = [
+      { rank: 1, xp: 500, badge: '🥇 Hafta Chempioni',   color: 'gold'   },
+      { rank: 2, xp: 300, badge: '🥈 Kumush O\'rin',     color: 'silver' },
+      { rank: 3, xp: 150, badge: '🥉 Bronza O\'rin',     color: 'bronze' },
+    ];
+
+    const top = await UserStats.find({ weeklyXp: { $gt: 0 } })
+      .sort({ weeklyXp: -1 })
+      .limit(10)
+      .populate('userId', 'username avatar aiStack')
+      .lean();
+
+    const leaderboard = top.map((u, i) => ({
+      rank:     i + 1,
+      user:     u.userId,
+      weeklyXp: u.weeklyXp || 0,
+      level:    u.level,
+      avatar:   u.avatar,
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        prizes,
+        leaderboard,
+        nextReset: nextReset.toISOString(),
+        msUntilReset: nextReset.getTime() - Date.now(),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { getTopCourses, getTopUsers, getUserPosition, getWeeklyLeaderboard, getWeeklyPrizes };

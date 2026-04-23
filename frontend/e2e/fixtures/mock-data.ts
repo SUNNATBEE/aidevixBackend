@@ -141,8 +141,8 @@ export const MOCK_USER_STATS = {
 export const MOCK_SUBSCRIPTION_STATUS = {
   success: true,
   data: {
-    telegram: { verified: true, username: 'testuser_tg' },
-    instagram: { verified: true, username: 'testuser_ig' },
+    telegram: { subscribed: true, verified: true, username: 'testuser_tg' },
+    instagram: { subscribed: true, verified: true, username: 'testuser_ig' },
     allVerified: true,
   },
 };
@@ -150,9 +150,18 @@ export const MOCK_SUBSCRIPTION_STATUS = {
 export const MOCK_SUBSCRIPTION_UNVERIFIED = {
   success: true,
   data: {
-    telegram: { verified: false, username: '' },
-    instagram: { verified: false, username: '' },
+    telegram: { subscribed: false, verified: false, username: '' },
+    instagram: { subscribed: false, verified: false, username: '' },
     allVerified: false,
+  },
+};
+
+/** GET /videos/:id — Redux expects `data.data.video` + `videoLink` */
+export const MOCK_VIDEO_BY_ID_RESPONSE = {
+  success: true,
+  data: {
+    video: MOCK_VIDEOS.data.videos[0],
+    videoLink: null,
   },
 };
 

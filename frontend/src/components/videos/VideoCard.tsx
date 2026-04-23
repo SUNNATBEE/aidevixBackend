@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { IoPlay, IoTime, IoEye, IoLockClosed, IoStar } from 'react-icons/io5';
 import { selectIsLoggedIn } from '@/store/slices/authSlice';
 import { selectAllVerified } from '@/store/slices/subscriptionSlice';
+import { useLang } from '@/context/LangContext';
 import { formatDurationText } from '@/utils/formatDuration';
 import { ROUTES } from '@/utils/constants';
 
@@ -23,6 +24,7 @@ interface VideoProps {
 export default function VideoCard({ video, index = 0 }: VideoProps) {
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const allVerified = useSelector(selectAllVerified);
+  const { t } = useLang();
 
   // canWatch logic: for now let's assume we need to be logged in and verified
   // but some might be free. If video has isFree, we should check that.
@@ -73,7 +75,7 @@ export default function VideoCard({ video, index = 0 }: VideoProps) {
             {video.title}
           </h3>
           <p className="mt-1 line-clamp-1 text-xs text-slate-500">
-            {video.description || "Video darslik tafsilotlari"}
+            {video.description || t('videos.noDesc')}
           </p>
         </div>
 

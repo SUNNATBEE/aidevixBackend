@@ -18,14 +18,35 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Connect to database (async - won't block server start)
-connectDB().then(() => {
-  const { initTelegramBot } = require('./utils/telegramBot');
-  initTelegramBot();
+connectDB().then(async () => {
+  console.log('📦 Starting background services...');
+  
+  // Telegram Bot initialization
+  try {
+    const { initTelegramBot } = require('./utils/telegramBot');
+    initTelegramBot();
+  } catch (botError) {
+    console.error('⚠️ Telegram Bot initialization failed:', botError.message);
+  }
 
-  const { startNewsScheduler } = require('./utils/newsScheduler');
-  startNewsScheduler();
+  // News Scheduler initialization
+  try {
+    const { startNewsScheduler } = require('./utils/newsScheduler');
+    startNewsScheduler();
+  } catch (newsError) {
+    console.error('⚠️ News Scheduler initialization failed:', newsError.message);
+  }
+
+  // Daily Challenge Scheduler
+  try {
+    const { startChallengeScheduler } = require('./utils/challengeScheduler');
+    startChallengeScheduler();
+  } catch (challengeError) {
+    console.error('⚠️ Challenge Scheduler initialization failed:', challengeError.message);
+  }
 }).catch(err => {
-  console.error('Failed to connect to database on startup');
+  console.error('❌ CRITICAL: Failed to connect to database or initialize core services');
+  console.error('   Reason:', err.message);
   process.exit(1);
 });
 
@@ -114,6 +135,18 @@ app.use((req, res, next) => {
   next();
 });
 
+// HTTP request logger (production-ready structured logs)
+const logger = require('./utils/logger');
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    if (req.path !== '/health') {
+      logger.request(req, res.statusCode, Date.now() - start);
+    }
+  });
+  next();
+});
+
 // Global API rate limiter
 app.use('/api/', apiLimiter);
 
@@ -181,9 +214,11 @@ app.use('/api/certificates', require('./routes/certificateRoutes'));
 app.use('/api/sections',     require('./routes/sectionRoutes'));
 app.use('/api/follow',       require('./routes/followRoutes'));
 app.use('/api/challenges',   require('./routes/challengeRoutes'));
+app.use('/api/prompts',      require('./routes/promptRoutes'));
 app.use('/api/payments',     require('./routes/paymentRoutes'));
 app.use('/api/admin',        require('./routes/adminRoutes'));
 app.use('/api/upload',       require('./routes/uploadRoutes'));
+app.use('/api/users',        require('./routes/userRoutes'));
 
 // Health check route
 /**

@@ -167,8 +167,41 @@ const sendResetCodeEmail = async (email, username, code) => {
   });
 };
 
+const sendEmailVerificationCode = async (email, username, code) => {
+  const html = `<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#f4f7fa;font-family:Arial,sans-serif">
+  <div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.05)">
+    <div style="background:#6366f1;padding:40px;text-align:center">
+      <h1 style="color:#fff;margin:0;font-size:24px">Email manzilini tasdiqlang</h1>
+    </div>
+    <div style="padding:40px">
+      <p style="color:#475569;font-size:16px">Salom, <strong>${username}</strong>!</p>
+      <p style="color:#475569;font-size:16px">Aidevix hisobingizni aktivlashtirish uchun quyidagi kodni kiriting:</p>
+      <div style="background:#f1f5f9;border-radius:12px;padding:24px;text-align:center;margin:32px 0">
+        <div style="font-size:40px;font-weight:bold;letter-spacing:10px;color:#4f46e5">${code}</div>
+        <p style="color:#64748b;font-size:13px;margin-top:12px">Kod 24 soat davomida amal qiladi</p>
+      </div>
+      <p style="color:#64748b;font-size:14px">Agar bu so'rovni siz yubormagan bo'lsangiz, ushbu xabarga e'tibor bermang.</p>
+    </div>
+    <div style="background:#f8fafc;padding:24px;text-align:center;border-top:1px solid #e2e8f0">
+      <p style="color:#94a3b8;font-size:12px;margin:0">© 2024 Aidevix Learning Platform</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await transporter.sendMail({
+    from: FROM,
+    to: email,
+    subject: `✅ Email tasdiqlash kodi: ${code} — Aidevix`,
+    html,
+  });
+};
+
 module.exports = {
   sendWelcomeEmail,
+  sendEmailVerificationCode,
   sendLevelUpEmail,
   sendCertificateEmail,
   sendEnrollmentEmail,

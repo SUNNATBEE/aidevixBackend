@@ -129,6 +129,12 @@ const getCategories = async (req, res) => {
  */
 const getCourse = async (req, res) => {
   try {
+    // Avval mavjudligini tekshirish (populate dan oldin)
+    const exists = await Course.findOne({ _id: req.params.id, isActive: true }).select('_id').lean();
+    if (!exists) {
+      return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
+    }
+
     const course = await Course.findById(req.params.id)
       .populate('instructor', 'username email jobTitle position')
       .populate({
@@ -139,7 +145,7 @@ const getCourse = async (req, res) => {
       })
       .lean();
 
-    if (!course || !course.isActive) {
+    if (!course) {
       return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
     }
 

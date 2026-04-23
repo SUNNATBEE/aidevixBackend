@@ -9,10 +9,21 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { SoundProvider } from '@/context/SoundContext';
 import { checkAuthStatus } from '@/store/slices/authSlice';
 
+import { useDispatch } from 'react-redux';
+
+// Module-level flag — survives component remounts caused by hydration errors.
+// useRef resets on remount; this does not.
+let authCheckDispatched = false;
+
 function AuthBootstrap() {
+  const dispatch = useDispatch();
+
   useEffect(() => {
-    store.dispatch(checkAuthStatus() as any);
-  }, []);
+    if (!authCheckDispatched) {
+      authCheckDispatched = true;
+      dispatch(checkAuthStatus() as any);
+    }
+  }, [dispatch]);
 
   return null;
 }
