@@ -70,6 +70,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+span,
+a,
+button,
+label {
+  overflow-wrap: anywhere;
+}
+
 html[data-theme='light'] body,
 html.light-mode body,
 html[data-theme='dark'] body,
@@ -184,5 +205,31 @@ canvas {
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
+  }
+}
+
+@media (max-width: 360px) {
+  html {
+    font-size: 14px;
+  }
+
+  .section-container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .btn {
+    min-height: 2.5rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    font-size: 0.78rem;
+    line-height: 1.15;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .badge {
+    font-size: 0.62rem;
+    line-height: 1.1;
   }
 }

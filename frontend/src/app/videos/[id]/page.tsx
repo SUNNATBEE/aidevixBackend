@@ -31,6 +31,7 @@ export default function VideoPage() {
   const [question, setQuestion] = useState('');
   const [isMounted, setIsMounted] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(1024);
   const wasSubscribedRef = useRef(isSubscribed);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
@@ -42,6 +43,13 @@ export default function VideoPage() {
     setIsMounted(true);
     if (id) fetchById(id);
   }, [id]);
+
+  useEffect(() => {
+    const updateWidth = () => setViewportWidth(window.innerWidth);
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
   // Video ko'rilayotganda progress saqlash (faqat login + obuna bo'lsa)
   useEffect(() => {
@@ -160,7 +168,7 @@ export default function VideoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0E1A] text-white pt-24 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0A0E1A] text-white pt-20 sm:pt-24 pb-16 sm:pb-20 px-3 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background gradients */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600 rounded-full blur-[120px]"></div>
@@ -173,7 +181,7 @@ export default function VideoPage() {
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           onClick={() => router.back()} 
-          className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8 group"
+          className="mb-6 flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white sm:mb-8 sm:text-base group"
         >
           <IoArrowBack className="group-hover:-translate-x-1 transition-transform" />
           <span>Orqaga</span>
@@ -183,23 +191,23 @@ export default function VideoPage() {
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="bg-[#0d1224]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 sm:p-10 mb-10 shadow-2xl"
+          className="mb-8 rounded-2xl border border-white/5 bg-[#0d1224]/60 p-4 shadow-2xl backdrop-blur-md sm:mb-10 sm:rounded-3xl sm:p-10"
         >
           <div className="flex flex-wrap gap-3 mb-6">
-            <span className="badge badge-primary badge-outline font-bold text-[10px] uppercase tracking-widest px-3">
+            <span className="badge badge-primary badge-outline px-2 sm:px-3 font-bold text-[10px] uppercase tracking-wider">
               Kurs: {video.course?.title || 'Dars'}
             </span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl font-black text-white mb-4 leading-tight tracking-tight">
+          <h1 className="mb-3 text-2xl font-black leading-tight tracking-tight text-white sm:mb-4 sm:text-4xl">
             {video.title}
           </h1>
 
-          <p className="text-gray-400 text-lg leading-relaxed mb-8 max-w-2xl">
+          <p className="mb-6 max-w-2xl text-sm leading-relaxed text-gray-400 sm:mb-8 sm:text-lg">
             {video.description || "Ushbu dars haqida hozircha tavsif qo'shilmagan."}
           </p>
 
-          <div className="flex flex-wrap items-center gap-6 pt-6 border-t border-white/5">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-6 pt-5 sm:pt-6 border-t border-white/5">
             <div className="flex items-center gap-2 text-gray-400">
               <IoTime className="text-indigo-400" />
               <span className="text-sm font-medium">{formatDuration(video.duration)}</span>
@@ -218,7 +226,7 @@ export default function VideoPage() {
         </motion.div>
 
         {/* Video Player Section */}
-        <div ref={videoContainerRef} className="aspect-video mb-10">
+        <div ref={videoContainerRef} className="mb-8 sm:mb-10 aspect-video">
           <motion.div 
             layout
             initial={{ scale: 0.95, opacity: 0 }}
@@ -228,8 +236,8 @@ export default function VideoPage() {
               position: 'fixed',
               bottom: 24,
               right: 24,
-              width: typeof window !== 'undefined' && window.innerWidth < 640 ? 200 : 320,
-              height: typeof window !== 'undefined' && window.innerWidth < 640 ? 112 : 180,
+              width: viewportWidth < 360 ? 156 : viewportWidth < 640 ? 200 : 320,
+              height: viewportWidth < 360 ? 88 : viewportWidth < 640 ? 112 : 180,
               zIndex: 100,
               boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5)'
             } : { 
@@ -247,35 +255,35 @@ export default function VideoPage() {
           >
           {!isLoggedIn ? (
             /* Not logged in */
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e]">
-              <div className="w-24 h-24 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mb-6 shadow-2xl">
-                <div className="w-16 h-16 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e] px-3 text-center">
+              <div className="mb-4 sm:mb-6 flex h-16 w-16 sm:h-24 sm:w-24 rounded-full border border-indigo-500/30 bg-indigo-600/20 items-center justify-center shadow-2xl">
+                <div className="flex h-10 w-10 sm:h-16 sm:w-16 rounded-full bg-indigo-500 items-center justify-center text-white shadow-lg shadow-indigo-500/40">
                   <IoPlay size={32} className="ml-1" />
                 </div>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Tizimga kiring</h2>
-              <p className="text-gray-400 text-center px-8 max-w-md mb-8">
+              <h2 className="mb-2 text-xl sm:text-2xl font-bold text-white">Tizimga kiring</h2>
+              <p className="mb-5 sm:mb-8 max-w-md px-2 sm:px-8 text-sm sm:text-base text-gray-400">
                 Videoni ko&apos;rish uchun avval tizimga kiring.
               </p>
-              <Link href="/login" className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-10 h-14 font-bold text-lg shadow-xl shadow-indigo-500/20">
+              <Link href="/login" className="btn btn-primary border-none bg-indigo-500 hover:bg-indigo-600 rounded-full px-5 sm:px-10 h-11 sm:h-14 font-bold text-sm sm:text-lg shadow-xl shadow-indigo-500/20">
                 Kirish
               </Link>
             </div>
           ) : !isSubscribed ? (
             /* Logged in but not subscribed */
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e] group">
-              <div className="w-24 h-24 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mb-6 shadow-2xl group-hover:scale-110 transition-transform duration-500">
-                <div className="w-16 h-16 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e] group px-3 text-center">
+              <div className="mb-4 sm:mb-6 flex h-16 w-16 sm:h-24 sm:w-24 rounded-full border border-indigo-500/30 bg-indigo-600/20 items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-500">
+                <div className="flex h-10 w-10 sm:h-16 sm:w-16 rounded-full bg-indigo-500 items-center justify-center text-white shadow-lg shadow-indigo-500/40">
                   <IoPlay size={32} className="ml-1" />
                 </div>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Obuna talab qilinadi</h2>
-              <p className="text-gray-400 text-center px-8 max-w-md mb-8">
+              <h2 className="mb-2 text-xl sm:text-2xl font-bold text-white">Obuna talab qilinadi</h2>
+              <p className="mb-5 sm:mb-8 max-w-md px-2 sm:px-8 text-sm sm:text-base text-gray-400">
                 Ushbu darsni ko&apos;rish uchun Telegram va Instagram kanallarimizga obuna bo&apos;ling.
               </p>
               <button
                 onClick={handleVideoClick}
-                className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-10 h-14 font-bold text-lg shadow-xl shadow-indigo-500/20 active:scale-95 transition-all"
+                className="btn btn-primary border-none bg-indigo-500 hover:bg-indigo-600 rounded-full px-5 sm:px-10 h-11 sm:h-14 font-bold text-sm sm:text-lg shadow-xl shadow-indigo-500/20 active:scale-95 transition-all"
               >
                 🔓 Obuna bo&apos;lish
               </button>
@@ -290,21 +298,21 @@ export default function VideoPage() {
             />
           ) : (videoLink as any)?.telegramLink ? (
             /* Subscribed + Telegram link */
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e]">
-              <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-600/20 shadow-2xl transition-transform duration-500 group-hover:scale-110">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg shadow-indigo-500/40">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e] px-3 text-center">
+              <div className="mb-4 sm:mb-6 flex h-16 w-16 sm:h-24 sm:w-24 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-600/20 shadow-2xl transition-transform duration-500 group-hover:scale-110">
+                <div className="flex h-10 w-10 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg shadow-indigo-500/40">
                   <IoPlay size={32} className="ml-1" />
                 </div>
               </div>
-              <h2 className="mb-2 text-2xl font-bold text-white">Video Telegram&apos;da joylashgan</h2>
-              <p className="mb-8 max-w-md px-8 text-center text-gray-400">
+              <h2 className="mb-2 text-xl sm:text-2xl font-bold text-white">Video Telegram&apos;da joylashgan</h2>
+              <p className="mb-5 sm:mb-8 max-w-md px-2 sm:px-8 text-sm sm:text-base text-gray-400">
                 Ushbu darsni ko&apos;rish uchun quyidagi tugmani bosing va biz taqdim etgan havola orqali videoga o&apos;ting.
               </p>
               <a
                 href={(videoLink as any).telegramLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn btn-primary h-14 rounded-full border-none bg-indigo-500 px-10 text-lg font-bold shadow-xl shadow-indigo-500/20 hover:bg-indigo-600"
+                className="btn btn-primary h-11 sm:h-14 rounded-full border-none bg-indigo-500 px-5 sm:px-10 text-sm sm:text-lg font-bold shadow-xl shadow-indigo-500/20 hover:bg-indigo-600"
               >
                 ▶ Videoni ko&apos;rish
               </a>
@@ -352,7 +360,7 @@ export default function VideoPage() {
           </motion.div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8 mt-10 sm:mt-12">
           {/* Materials */}
           {video?.materials && video.materials.length > 0 && (
             <motion.div 

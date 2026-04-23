@@ -129,6 +129,7 @@ export default function VideoPlaygroundPage() {
   const [question, setQuestion] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [layoutMode, setLayoutMode] = useState<'vertical' | 'horizontal'>('vertical');
+  const [isCompact, setIsCompact] = useState(false);
   const watchedSecondsRef = useRef<number>(0);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
@@ -178,6 +179,20 @@ export default function VideoPlaygroundPage() {
     setIsMounted(true);
     if (id) fetchById(id);
   }, [id]);
+
+  useEffect(() => {
+    const updateCompact = () => setIsCompact(window.innerWidth < 1024);
+    updateCompact();
+    window.addEventListener('resize', updateCompact);
+    return () => window.removeEventListener('resize', updateCompact);
+  }, []);
+
+  useEffect(() => {
+    if (isCompact) {
+      setIsSidebarOpen(false);
+      setLayoutMode('vertical');
+    }
+  }, [isCompact]);
 
   // Track watch progress every 10s and save to backend
   useEffect(() => {
@@ -298,22 +313,22 @@ export default function VideoPlaygroundPage() {
   const videoTitle = video?.title || 'Dars';
 
   return (
-    <div className="flex flex-col h-screen bg-[#0d0f1a] overflow-hidden text-zinc-100 font-sans selection:bg-indigo-500/30">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#0d0f1a] font-sans text-zinc-100 selection:bg-indigo-500/30">
       <style dangerouslySetInnerHTML={{ __html: SCROLLBAR_STYLE }} />
 
       {/* ── TOP NAVBAR ── */}
-      <header className="h-16 shrink-0 border-b border-white/5 bg-[#10121f]/80 backdrop-blur-xl flex items-center justify-between px-6 z-50">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 group">
+      <header className="z-50 flex h-14 sm:h-16 shrink-0 items-center justify-between border-b border-white/5 bg-[#10121f]/80 px-2 sm:px-4 lg:px-6 backdrop-blur-xl">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4 lg:gap-6">
+          <Link href="/" className="group flex min-w-0 items-center gap-2">
             <div className="w-9 h-9 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
               <span className="text-white font-black text-lg italic">A</span>
             </div>
-            <span className="text-lg font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-400">
-              Aidevix <span className="text-indigo-400 font-medium text-sm ml-1 uppercase tracking-widest">Lab</span>
+            <span className="truncate bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-base font-black tracking-tight text-transparent sm:text-lg">
+              Aidevix <span className="ml-1 hidden text-xs sm:text-sm font-medium uppercase tracking-widest text-indigo-400 sm:inline">Lab</span>
             </span>
           </Link>
-          <div className="h-6 w-px bg-white/10" />
-          <div className="flex items-center gap-3">
+          <div className="hidden h-6 w-px bg-white/10 sm:block" />
+          <div className="hidden items-center gap-3 sm:flex">
              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Live Session</span>
@@ -321,15 +336,15 @@ export default function VideoPlaygroundPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+        <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2 rounded-xl sm:rounded-2xl bg-indigo-500/10 border border-indigo-500/20 px-2 sm:px-4 py-1.5 sm:py-2">
             <BsLightningChargeFill className="text-yellow-400" size={14} />
-            <span className="text-xs font-black text-indigo-100">{xp} XP</span>
+            <span className="text-[11px] sm:text-xs font-black text-indigo-100">{xp} XP</span>
           </div>
-          <button className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all text-zinc-400 hover:text-white">
+          <button className="hidden sm:flex w-10 h-10 rounded-2xl bg-white/5 border border-white/10 items-center justify-center hover:bg-white/10 transition-all text-zinc-400 hover:text-white">
             <IoShareSocial size={18} />
           </button>
-          <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-[1px] cursor-pointer hover:scale-105 transition-transform">
+          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-[1px] cursor-pointer hover:scale-105 transition-transform">
              <div className="w-full h-full rounded-[15px] bg-[#10121f] flex items-center justify-center">
                 <span className="text-xs font-bold text-white">M</span>
              </div>
@@ -338,27 +353,27 @@ export default function VideoPlaygroundPage() {
       </header>
 
       {/* ── MAIN CONTENT ── */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="relative flex flex-1 flex-col overflow-hidden lg:flex-row">
  
         {/* ── LEFT PANEL: Video + Info ── */}
         <AnimatePresence>
           {isSidebarOpen && (
             <motion.div 
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: '45%', opacity: 1 }}
+              animate={{ width: isCompact ? '100%' : '45%', opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              className="flex flex-col border-r border-white/5 overflow-y-auto shrink-0 scrollbar-hide"
+              className="scrollbar-hide flex w-full shrink-0 flex-col overflow-y-auto border-white/5 lg:w-auto lg:border-r"
             >
 
           {/* Breadcrumb */}
-          <div className="flex items-center gap-2 px-5 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500 shrink-0 overflow-hidden whitespace-nowrap">
+          <div className="flex shrink-0 items-center gap-2 overflow-hidden whitespace-nowrap px-3 sm:px-5 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
             <span className="hover:text-white cursor-pointer transition-colors shrink-0">{courseTitle}</span>
             <IoChevronForward size={8} className="shrink-0" />
             <span className="text-white truncate">{videoTitle}</span>
           </div>
 
           {/* Video Player — Bunny.net iframe */}
-          <div className="mx-5 rounded-2xl overflow-hidden bg-black aspect-video relative border border-white/5 shadow-xl shrink-0">
+          <div className="relative mx-3 sm:mx-5 rounded-2xl overflow-hidden bg-black aspect-video border border-white/5 shadow-xl shrink-0">
             {player?.embedUrl ? (
               <iframe
                 src={player.embedUrl}
@@ -385,16 +400,16 @@ export default function VideoPlaygroundPage() {
           </div>
 
           {/* Lesson Title + Actions */}
-          <div className="flex flex-col gap-4 px-6 py-6 shrink-0 border-b border-white/5 bg-white/[0.01]">
+          <div className="flex flex-col gap-3 sm:gap-4 px-3 sm:px-6 py-4 sm:py-6 shrink-0 border-b border-white/5 bg-white/[0.01]">
             <div>
-              <h1 className="text-xl font-black text-white leading-tight tracking-tight">{videoTitle}</h1>
+              <h1 className="text-lg sm:text-xl font-black text-white leading-tight tracking-tight">{videoTitle}</h1>
               <p className="text-xs text-zinc-400 mt-2 leading-relaxed max-w-lg">
                 {video?.description || 'Ushbu darsda dasturlashning asosiy tushunchalarini o\'rganamiz va amaliy mashqlar bajaramiz.'}
               </p>
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
                 {xpAdded && (
                   <motion.span 
                     initial={{ scale: 0.5, opacity: 0 }}
@@ -412,19 +427,19 @@ export default function VideoPlaygroundPage() {
               </div>
               
               <div className="flex items-center gap-2">
-                <button className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all text-zinc-400 hover:text-white">
+                <button className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all text-zinc-400 hover:text-white">
                   <IoBookmark size={16} />
                 </button>
                 {!xpAdded ? (
                   <button 
                     onClick={handleMarkWatched}
-                    className="flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-all text-xs font-bold text-white shadow-lg shadow-indigo-600/20"
+                    className="flex items-center gap-2 px-3 sm:px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-all text-[11px] sm:text-xs font-bold text-white shadow-lg shadow-indigo-600/20"
                   >
                     <IoPlay size={14} className="fill-current" />
                     Yakunladim
                   </button>
                 ) : (
-                  <div className="px-5 py-2 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold">
+                  <div className="px-3 sm:px-5 py-2 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[11px] sm:text-xs font-bold">
                     ✓ Tugallandi
                   </div>
                 )}
@@ -433,7 +448,7 @@ export default function VideoPlaygroundPage() {
           </div>
 
           {/* Resources + Next Lesson */}
-          <div className="flex flex-col gap-3 px-5 py-4 shrink-0">
+          <div className="flex flex-col gap-3 px-3 sm:px-5 py-4 shrink-0">
             {/* Resources */}
             <div className="bg-[#13152a] border border-white/5 rounded-2xl p-4">
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Resurslar</p>
@@ -453,7 +468,7 @@ export default function VideoPlaygroundPage() {
                       <div className="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center">
                         <IoDocumentText size={12} className="text-primary" />
                       </div>
-                      <span className="text-xs text-zinc-300 truncate max-w-[110px]">{mat.name}</span>
+                      <span className="text-xs text-zinc-300 truncate max-w-[120px] sm:max-w-[180px]">{mat.name}</span>
                     </div>
                     <span className="text-[10px] text-zinc-600">{mat.size || ''}</span>
                   </a>
@@ -483,7 +498,7 @@ export default function VideoPlaygroundPage() {
           </div>
 
           {/* Q&A */}
-          <div className="mx-5 mb-5 bg-[#13152a] border border-white/5 rounded-2xl p-4 shrink-0">
+          <div className="mx-3 sm:mx-5 mb-5 bg-[#13152a] border border-white/5 rounded-2xl p-3 sm:p-4 shrink-0">
             <h3 className="text-sm font-bold text-white mb-4">
               Savol va Javoblar
               <span className="text-zinc-500 font-normal text-xs ml-2">(12)</span>
@@ -514,7 +529,7 @@ export default function VideoPlaygroundPage() {
         {/* Sidebar Toggle Button */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-50 w-8 h-24 bg-[#1a1c2e] border border-white/10 border-l-0 rounded-r-2xl flex flex-col items-center justify-center hover:bg-indigo-600 transition-all group shadow-2xl"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-50 w-8 h-24 bg-[#1a1c2e] border border-white/10 border-l-0 rounded-r-2xl hidden lg:flex flex-col items-center justify-center hover:bg-indigo-600 transition-all group shadow-2xl"
           title={isSidebarOpen ? "Videoni yopish" : "Videoni ochish"}
         >
           <div className="w-1 h-8 bg-white/10 group-hover:bg-white/40 rounded-full mb-1 transition-colors" />
@@ -523,17 +538,17 @@ export default function VideoPlaygroundPage() {
         </button>
 
         {/* ── RIGHT PANEL: Code Editor + Terminal ── */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
           {/* Editor header */}
-          <div className="h-10 shrink-0 bg-[#1a1c2e] border-b border-white/5 flex items-center justify-between px-3">
+          <div className="h-10 shrink-0 bg-[#1a1c2e] border-b border-white/5 flex items-center justify-between px-2 sm:px-3">
             <div className="flex items-center gap-1">
               <div className="flex items-center gap-1.5 bg-black/40 border border-white/10 border-b-0 px-3 py-1 rounded-t-lg -mb-[1px]">
                 <FaCode className={category === 'html' ? 'text-orange-500' : category === 'javascript' ? 'text-blue-400' : 'text-yellow-400'} size={12} />
                 <span className="text-[11px] text-zinc-300 font-medium">{fileName}</span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={() => setCode(DEFAULT_CODES[category] || DEFAULT_CODES.html)}
                 className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-white transition-colors"
@@ -542,6 +557,7 @@ export default function VideoPlaygroundPage() {
                 Reset
               </button>
               <div className="w-px h-3 bg-white/10 mx-1" />
+              {!isCompact && (
               <button 
                 onClick={() => setLayoutMode(layoutMode === 'vertical' ? 'horizontal' : 'vertical')}
                 className="flex items-center gap-1.5 text-[10px] text-zinc-400 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-md border border-white/5 font-bold"
@@ -553,16 +569,17 @@ export default function VideoPlaygroundPage() {
                 </div>
                 {layoutMode === 'vertical' ? 'Yonma-yon' : 'Ustma-ust'}
               </button>
+              )}
               <button className="text-zinc-500 hover:text-white transition-colors">
                 <IoSettings size={14} />
               </button>
             </div>
           </div>
 
-          <div className={`flex-1 flex ${layoutMode === 'horizontal' ? 'flex-row' : 'flex-col'} overflow-hidden`}>
+          <div className={`flex-1 flex ${isCompact ? 'flex-col' : layoutMode === 'horizontal' ? 'flex-row' : 'flex-col'} overflow-hidden`}>
             
             {/* Editor Area */}
-            <div className={`${layoutMode === 'horizontal' ? 'w-1/2 border-r' : 'flex-1'} bg-[#1e1e1e] overflow-hidden border-white/5`}>
+            <div className={`${!isCompact && layoutMode === 'horizontal' ? 'w-1/2 border-r' : 'flex-1'} min-h-[180px] bg-[#1e1e1e] overflow-hidden border-white/5`}>
               <Editor
               height="100%"
               language={language}
@@ -584,15 +601,15 @@ export default function VideoPlaygroundPage() {
           </div>
 
           {/* Terminal / Preview */}
-          <div className={`${layoutMode === 'horizontal' ? 'w-1/2' : (isOutputExpanded ? 'h-[65%]' : 'h-11')} transition-all duration-300 shrink-0 flex flex-col border-t border-white/5 bg-[#080914] shadow-[0_-10px_30px_rgba(0,0,0,0.3)]`}>
-            <div className="h-11 shrink-0 bg-[#10121f] border-b border-white/5 flex items-center justify-between px-4">
+          <div className={`${!isCompact && layoutMode === 'horizontal' ? 'w-1/2' : (isOutputExpanded ? 'h-[58%] sm:h-[65%]' : 'h-11')} transition-all duration-300 shrink-0 flex flex-col border-t border-white/5 bg-[#080914] shadow-[0_-10px_30px_rgba(0,0,0,0.3)]`}>
+            <div className="h-11 shrink-0 bg-[#10121f] border-b border-white/5 flex items-center justify-between px-2 sm:px-4">
               <div className="flex items-center gap-6 h-full">
                 <button 
                   onClick={() => setOutputTab('terminal')}
                   className={`flex items-center gap-2 h-full px-1 border-b-2 transition-all relative ${outputTab === 'terminal' ? 'border-primary text-white font-bold' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
                 >
                   <FaTerminal className="text-[10px]" />
-                  <span className="text-[10px] uppercase tracking-widest">Terminal</span>
+                    <span className="text-[10px] uppercase tracking-wide sm:tracking-widest">Terminal</span>
                   {outputTab === 'terminal' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
                 </button>
                 {category === 'html' && (
@@ -601,7 +618,7 @@ export default function VideoPlaygroundPage() {
                     className={`flex items-center gap-2 h-full px-1 border-b-2 transition-all relative ${outputTab === 'preview' ? 'border-primary text-white font-bold' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
                   >
                     <IoEye className="text-[10px]" />
-                    <span className="text-[10px] uppercase tracking-widest">Preview</span>
+                    <span className="text-[10px] uppercase tracking-wide sm:tracking-widest">Preview</span>
                     {outputTab === 'preview' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
                   </button>
                 )}
@@ -664,7 +681,7 @@ export default function VideoPlaygroundPage() {
                       <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50" />
                       <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
                     </div>
-                    <div className="flex-1 max-w-[300px] mx-4 h-5 bg-black/20 rounded-md flex items-center px-3">
+                    <div className="flex-1 max-w-[220px] sm:max-w-[300px] mx-2 sm:mx-4 h-5 bg-black/20 rounded-md flex items-center px-3">
                       <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden relative">
                         <div className="absolute inset-0 bg-indigo-500/20" />
                       </div>
@@ -687,7 +704,7 @@ export default function VideoPlaygroundPage() {
             </div>
 
             {/* RUN CODE button */}
-            <div className="px-3 pb-3 shrink-0">
+            <div className="px-2 sm:px-3 pb-2 sm:pb-3 shrink-0">
               <button
                 onClick={runCode}
                 disabled={isRunning}
@@ -707,18 +724,18 @@ export default function VideoPlaygroundPage() {
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-[#1a1c2e] border border-white/10 p-10 rounded-[2.5rem] shadow-2xl max-w-md"
+            className="bg-[#1a1c2e] border border-white/10 p-5 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl max-w-md"
           >
             <div className="w-20 h-20 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center mx-auto mb-6">
               <IoLockClosed size={32} className="text-indigo-400" />
             </div>
-            <h2 className="text-2xl font-bold mb-4">Playground Shartlari</h2>
-            <p className="text-zinc-400 mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Playground Shartlari</h2>
+            <p className="text-zinc-400 text-sm sm:text-base mb-6 sm:mb-8">
               Playground&apos;dan foydalanish va kod yozishni mashq qilish uchun Telegram va Instagram kanallarimizga obuna bo&apos;lishingiz kerak.
             </p>
             <button
               onClick={() => setShowModal(true)}
-              className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-10 h-14 font-bold text-lg shadow-xl shadow-indigo-500/20 w-full"
+              className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-5 sm:px-10 h-11 sm:h-14 font-bold text-sm sm:text-lg shadow-xl shadow-indigo-500/20 w-full"
             >
               Obunani tasdiqlash
             </button>
