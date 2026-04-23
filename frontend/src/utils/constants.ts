@@ -6,7 +6,7 @@ export const BACKEND_ORIGIN = (
 ).replace(/\/$/, '')
 
 const base = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/proxy'
-const withLeading = base.startsWith('/') ? base : `/${base}`
+const withLeading = (base.startsWith('/') || base.startsWith('http')) ? base : `/${base}`
 export const API_BASE_URL = withLeading.endsWith('/') ? withLeading : `${withLeading}/`
 
 

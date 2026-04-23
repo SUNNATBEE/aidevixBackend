@@ -19,6 +19,14 @@ class AidevixBot {
 
   /** Long Polling ishga tushirish */
   async startPolling() {
+    try {
+      // 409 Conflict xatosini oldini olish uchun webhookni o'chirib tashlaymiz
+      await axios.get(`${this.apiUrl}/deleteWebhook`, { params: { drop_pending_updates: true } });
+      console.log('✅ Webhook o\'chirildi, polling boshlanmoqda...');
+    } catch (e) {
+      console.warn('⚠️ Webhook o\'chirishda xatolik (lekin davom etamiz):', e.message);
+    }
+
     console.log('🤖 Aidevix Senior Bot ishga tushdi...');
     while (true) {
       try {

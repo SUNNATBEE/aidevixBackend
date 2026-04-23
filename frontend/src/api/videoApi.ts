@@ -16,6 +16,13 @@ export const videoApi = {
   /** POST /videos/:id/rate - rate a video (1-5 stars) */
   rate: (id, rating) => api.post(`videos/${id}/rate`, { rating }),
 
+  /**
+   * POST /enrollments/:courseId/watch/:videoId - save watch progress
+   * Backend progress endpoint enrollment modulida joylashgan.
+   */
+  saveProgress: (courseId: string, videoId: string, watchedSeconds: number) =>
+    api.post(`enrollments/${courseId}/watch/${videoId}`, { watchedSeconds }),
+
   /** GET /videos/:id/rating - get video rating stats */
   getRating: (id) => api.get(`videos/${id}/rating`),
 

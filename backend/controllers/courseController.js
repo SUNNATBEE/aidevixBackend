@@ -50,8 +50,10 @@ const getAllCourses = async (req, res) => {
       .sort(sortOption)
       .skip(skip)
       .limit(parseInt(limit))
-      .select('-videos')
       .lean();
+
+    // Map through courses to populate videoCount and calculate valid video stats
+    // Even without populating full video details, we have the IDs in the array to count
 
     res.json({
       success: true,

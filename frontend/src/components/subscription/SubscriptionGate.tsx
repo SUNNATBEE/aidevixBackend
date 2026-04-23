@@ -63,7 +63,6 @@ export default function SubscriptionGate({
   // Faqat kerakli steplarni hisoblash
   const totalSteps = (needsInstagram ? 1 : 0) + (needsTelegram ? 1 : 0)
   const currentStepNumber = currentStep === 'instagram' ? 1 : (needsInstagram ? 2 : 1)
-
   const handleInstagramVerified = () => {
     if (needsTelegram) {
       toast.success(t('gate.igDone'))

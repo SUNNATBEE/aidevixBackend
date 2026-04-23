@@ -18,6 +18,7 @@
     "test:e2e:debug": "npx playwright test --debug"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "@react-three/drei": "^9.109.2",
     "@react-three/fiber": "^8.17.6",
     "@reduxjs/toolkit": "^2.2.7",

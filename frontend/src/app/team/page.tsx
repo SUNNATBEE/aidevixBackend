@@ -16,6 +16,7 @@ type TeamMember = {
   emoji: string;
   roadmapRole: string;
   objectPos?: string;
+  portfolioUrl?: string;
 };
 
 const MEMBERS: TeamMember[] = [
@@ -33,6 +34,7 @@ const MEMBERS: TeamMember[] = [
     emoji: '🚀',
     roadmapRole: 'Architecture & Production Deploy',
     objectPos: '50% 20%',
+    portfolioUrl: 'https://sardoruz.vercel.app',
   },
   {
     id: 'firdavs',
@@ -229,6 +231,45 @@ function TiltCard({ member, index }: { member: TeamMember; index: number }) {
 
         <p className="mt-3 text-sm leading-[1.7] text-slate-400">{member.contribution}</p>
 
+        {member.portfolioUrl && (
+          <motion.a
+            href={member.portfolioUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ y: -3, scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            animate={{
+              boxShadow: [
+                `0 0 0 ${member.color}00`,
+                `0 0 0 6px ${member.color}18`,
+                `0 0 0 ${member.color}00`,
+              ],
+            }}
+            transition={{
+              boxShadow: { duration: 2.1, repeat: Infinity, ease: 'easeInOut' },
+              y: { duration: 0.2 },
+              scale: { duration: 0.2 },
+            }}
+            className="group relative mt-4 inline-flex items-center gap-2 overflow-hidden rounded-xl border px-3.5 py-2 text-xs font-bold uppercase tracking-[0.08em]"
+            style={{
+              borderColor: `${member.color}60`,
+              color: '#fff',
+              background: `linear-gradient(90deg, ${member.color}cc, ${member.color}88)`,
+            }}
+          >
+            <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(120deg, transparent, rgba(255,255,255,0.22), transparent)' }} />
+            <span className="relative">Portfolio</span>
+            <motion.span
+              aria-hidden
+              className="relative"
+              animate={{ x: [0, 3, 0] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              ↗
+            </motion.span>
+          </motion.a>
+        )}
+
         {/* Stack pills */}
         <div className="mt-4 flex flex-wrap gap-1.5">
           {member.stack.map((tech) => (
@@ -332,69 +373,67 @@ export default function TeamPage() {
       </div>
 
       {/* ── HERO ── */}
-      <section className="relative z-10 mx-auto max-w-7xl px-4 pb-10 pt-20 sm:px-6 lg:px-8">
-        {/* top label */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex items-center gap-3"
-        >
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300 backdrop-blur-sm">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
-            Aidevix Development Team
-          </span>
-        </motion.div>
+      <section className="relative z-10 overflow-hidden">
+        {/* hero bg overlay */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(99,102,241,0.22),transparent)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
 
-        {/* heading */}
-        <motion.h1
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-6 max-w-3xl text-[clamp(2.4rem,6vw,4.5rem)] font-black leading-[1.06] tracking-[-0.04em]"
-        >
-          Platformani yozgan
-          <br />
-          <span className="bg-gradient-to-r from-indigo-300 via-cyan-200 to-amber-200 bg-clip-text text-transparent">
-            yosh dasturchilar
-          </span>
-        </motion.h1>
+        <div className="mx-auto max-w-7xl px-4 pb-14 pt-16 sm:px-6 lg:px-8">
+          {/* badge */}
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
+              Aidevix Development Team · 2025
+            </span>
+          </div>
 
-        {/* sub */}
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.16 }}
-          className="mt-5 max-w-lg text-base leading-relaxed text-slate-400"
-        >
-          O&apos;rtacha yoshi {avgAge}. Hammasi haqiqiy production kodini yozgan. Quyida har birining Aidevix'ga qo&apos;shgan hissasi.
-        </motion.p>
-
-        {/* stats row */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.24 }}
-          className="mt-10 flex flex-wrap gap-3"
-        >
-          {[
-            { label: 'Ishtirokchi', value: String(MEMBERS.length) },
-            { label: "O'rtacha yosh", value: avgAge },
-            { label: 'Texnologiyalar', value: `${techCount}+` },
-            { label: 'Deploy', value: 'Production' },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="rounded-2xl border border-white/[0.07] bg-white/[0.025] px-5 py-4 backdrop-blur-sm"
+          {/* heading — 2 clear lines */}
+          <h1 className="mt-5 max-w-3xl font-black leading-[1.08] tracking-[-0.03em]"
+              style={{ fontSize: 'clamp(2.2rem, 5.5vw, 4rem)' }}>
+            <span className="text-white">Platformani yaratgan</span>
+            <br />
+            <span
+              style={{
+                background: 'linear-gradient(90deg, #a5b4fc 0%, #67e8f9 45%, #fcd34d 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
             >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">{s.label}</p>
-              <p className="mt-1 text-[1.6rem] font-black leading-none text-white">{s.value}</p>
-            </div>
-          ))}
-        </motion.div>
+              yosh dasturchilar
+            </span>
+          </h1>
 
-        {/* divider */}
-        <div className="mt-14 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          {/* description */}
+          <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-slate-400">
+            O&apos;rtacha yoshi {avgAge}. Har biri haqiqiy production kodini yozgan. Quyida
+            har birining Aidevix&apos;ga qo&apos;shgan hissasi va texnologik steki.
+          </p>
+
+          {/* stats grid */}
+          <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label: 'Ishtirokchi', value: `${MEMBERS.length}`, icon: '👥' },
+              { label: "O'rtacha yosh", value: avgAge, icon: '🎂' },
+              { label: 'Texnologiyalar', value: `${techCount}+`, icon: '⚡' },
+              { label: 'Holat', value: 'Production', icon: '🚀' },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 backdrop-blur-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base">{s.icon}</span>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{s.label}</p>
+                </div>
+                <p className="mt-2 text-[1.75rem] font-black leading-none text-white">{s.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* bottom divider */}
+        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </section>
 
       {/* ── CARDS ── */}

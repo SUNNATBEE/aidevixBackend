@@ -38,14 +38,16 @@ const CAT_TEXT = {
 
 // ── Video row ──────────────────────────────────────────────────
 function VideoRow({ video, index }) {
-  const isFree = index < 2
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-base-300/40 transition-colors">
-      <div className="w-7 h-7 rounded-lg bg-base-300 flex items-center justify-center flex-shrink-0 text-xs font-bold text-base-content/40">
+    <Link
+      href={`/videos/${video._id}`}
+      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-base-300/40 transition-colors group"
+    >
+      <div className="w-7 h-7 rounded-lg bg-base-300 flex items-center justify-center flex-shrink-0 text-xs font-bold text-base-content/40 group-hover:bg-primary/20 group-hover:text-primary transition-colors">
         {String(index + 1).padStart(2, '0')}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs sm:text-sm text-base-content line-clamp-1">{video.title}</p>
+        <p className="text-xs sm:text-sm text-base-content line-clamp-1 group-hover:text-primary transition-colors">{video.title}</p>
         {video.duration > 0 && (
           <p className="text-xs text-base-content/30 mt-0.5 flex items-center gap-1">
             <IoTime className="text-xs" />{formatDuration(video.duration)}
@@ -53,12 +55,9 @@ function VideoRow({ video, index }) {
         )}
       </div>
       <div className="flex-shrink-0">
-        {isFree
-          ? <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium"><IoPlay className="text-xs" />Bepul</span>
-          : <IoLockClosed className="text-base-content/25 text-sm" />
-        }
+        <IoPlay className="text-base-content/20 group-hover:text-primary text-sm transition-colors" />
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -130,6 +129,11 @@ export default function CourseDetailPage() {
     api.get(`/projects/course/${id}`).then(r => setProjects(r.data?.data?.projects || [])).catch(() => {})
   }, [id])
 
+  const [isMounted, setIsMounted] = useState(false)
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const isLoggedIn     = useSelector(selectIsLoggedIn)
   const instagram      = useSelector(selectInstagramSub)
   const telegram       = useSelector(selectTelegramSub)
@@ -137,7 +141,7 @@ export default function CourseDetailPage() {
   const [showGate, setShowGate] = useState(false)
   const [showSubscribedModal, setShowSubscribedModal] = useState(false)
 
-  if (loading) return <Skeleton />
+  if (!isMounted || loading) return <Skeleton />
   if (!course)  return null
 
 
@@ -449,7 +453,6 @@ export default function CourseDetailPage() {
   )
 }
 
-// ── Price card shared content ──────────────────────────────────
 function PriceCardContent({ course, courseVideos, totalSecs, level, rating, projects, isSubscribed, onWatch }) {
   return (
     <div className="p-4 sm:p-5 space-y-4">

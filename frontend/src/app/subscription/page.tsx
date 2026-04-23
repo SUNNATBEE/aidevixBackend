@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { IoLockClosed, IoCheckmarkCircle, IoArrowForward, IoRefreshOutline } from 'react-icons/io5';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useSubscription } from '@hooks/useSubscription';
 import TelegramVerify from '@components/subscription/TelegramVerify';
 import InstagramVerify from '@components/subscription/InstagramVerify';
@@ -10,6 +11,8 @@ import { useLang } from '@/context/LangContext';
 
 export default function SubscriptionPage() {
   const { allVerified, telegram, instagram, refetch } = useSubscription();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/courses';
   const { t } = useLang();
 
   return (
@@ -69,10 +72,13 @@ export default function SubscriptionPage() {
                   {t('sub.successDesc')}
                 </p>
                 <Link
-                  href="/courses"
+                  href={returnUrl}
                   className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none w-full rounded-2xl h-14 font-black normal-case text-lg shadow-2xl shadow-indigo-500/30"
                 >
-                  {t('footer.fCourses')} <IoArrowForward className="ml-2" />
+                  {returnUrl.startsWith('/videos/')
+                    ? <>Videoga o&apos;tish <IoArrowForward className="ml-2" /></>
+                    : <>{t('footer.fCourses')} <IoArrowForward className="ml-2" /></>
+                  }
                 </Link>
               </motion.div>
             )}

@@ -53,7 +53,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth >= 1024) {
+      if (window.innerWidth >= 1280) {
         setMenuOpen(false)
       }
     }
@@ -114,7 +114,7 @@ export default function Navbar() {
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <Link href={ROUTES.HOME} className="group flex items-center gap-2">
+            <Link href={ROUTES.HOME} className="group flex shrink-0 items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-[0_12px_30px_rgba(86,98,246,0.35)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:bg-indigo-400">
                 <RiCodeSSlashLine className="text-sm" />
               </div>
@@ -123,23 +123,25 @@ export default function Navbar() {
               </div>
             </Link>
 
-            <ul className={`hidden items-center gap-1 rounded-full border px-2 py-2 lg:flex ${surface}`}>
-              {NAV_LINKS.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.to}
-                    onMouseEnter={playHoverSound}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                      pathname === link.to ? activeNavLink : navLinkBase
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <div className="hidden min-w-0 flex-1 px-4 xl:flex xl:justify-center">
+              <ul className={`flex max-w-full items-center gap-1 overflow-x-auto whitespace-nowrap rounded-full border px-2 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${surface}`}>
+                {NAV_LINKS.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.to}
+                      onMouseEnter={playHoverSound}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                        pathname === link.to ? activeNavLink : navLinkBase
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-            <div className="hidden items-center gap-2 lg:flex">
+            <div className="hidden shrink-0 items-center gap-2 xl:flex">
               <button
                 onClick={toggleTheme}
                 onMouseEnter={playHoverSound}
@@ -295,7 +297,7 @@ export default function Navbar() {
               )}
             </div>
 
-            <div className="flex items-center gap-2 lg:hidden">
+            <div className="flex items-center gap-2 xl:hidden">
               <button onClick={toggleTheme} className={`rounded-full border p-2.5 ${surface} ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 {isDark ? <MdLightMode size={20} /> : <MdDarkMode size={20} />}
               </button>
@@ -312,7 +314,7 @@ export default function Navbar() {
         </div>
 
         <div
-          className={`overflow-hidden transition-all duration-300 lg:hidden ${menuOpen ? 'max-h-[560px] opacity-100' : 'max-h-0 opacity-0'}`}
+          className={`overflow-hidden transition-all duration-300 xl:hidden ${menuOpen ? 'max-h-[560px] opacity-100' : 'max-h-0 opacity-0'}`}
           style={{ borderTop: menuOpen ? `1px solid ${borderColor}` : 'none' }}
         >
           <div className={`${mobileMenuBg} space-y-2 px-4 py-4 backdrop-blur-2xl`}>

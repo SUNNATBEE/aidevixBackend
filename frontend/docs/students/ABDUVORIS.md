@@ -59,6 +59,7 @@ frontend/
 ### Turlar (`types/video.ts`):
 ```typescript
 export interface Video {
+
   _id: string;
   title: string;
   description: string;
