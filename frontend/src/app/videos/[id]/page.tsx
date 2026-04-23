@@ -11,6 +11,7 @@ import { useVideos } from '@hooks/useVideos';
 import { formatDuration } from '@utils/formatDuration';
 import { ROUTES } from '@utils/constants';
 import SubscriptionGate from '@/components/subscription/SubscriptionGate';
+import VideoComments from '@/components/videos/VideoComments';
 
 export default function VideoPage() {
   const { id }: { id: string } = useParams();
@@ -181,6 +182,9 @@ export default function VideoPage() {
           </Link>
         </div>
       </div>
+
+      {/* Q&A Comments Section */}
+      <VideoComments videoId={id} />
 
       {/* Instagram Verification Modal */}
       <SubscriptionGate

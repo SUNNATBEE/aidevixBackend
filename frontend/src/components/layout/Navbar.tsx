@@ -39,6 +39,7 @@ export default function Navbar() {
     { label: '⚡ Prompts', to: ROUTES.PROMPTS },
     { label: t('nav.challenges'), to: ROUTES.CHALLENGES },
     { label: t('nav.leaderboard'), to: ROUTES.LEADERBOARD },
+    { label: '🗺 Roadmap', to: ROUTES.ROADMAP },
     { label: t('nav.careers'), to: ROUTES.CAREERS },
   ]
 

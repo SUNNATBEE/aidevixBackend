@@ -191,6 +191,117 @@ async function sendChallengeToChannel(challenge) {
   console.log(`[ChallengeScheduler] Challenge yuborildi → ${sentCount}/${channels.length} kanal: "${challenge.title}"`);
 }
 
+// Haftalik XP resetlash va top 3 ga badge berish (Yakshanba 00:00 Toshkent = Shanba 19:00 UTC)
+async function weeklyReset() {
+  try {
+    const UserStats = require('../models/UserStats');
+    const User      = require('../models/User');
+
+    const top3 = await UserStats.find({ weeklyXp: { $gt: 0 } })
+      .sort({ weeklyXp: -1 })
+      .limit(3)
+      .populate('userId', 'username telegramChatId telegramUserId')
+      .lean();
+
+    const prizes = [
+      { xp: 500, badge: { name: 'Hafta Chempioni', icon: '🥇' } },
+      { xp: 300, badge: { name: 'Kumush O\'rin',   icon: '🥈' } },
+      { xp: 150, badge: { name: 'Bronza O\'rin',   icon: '🥉' } },
+    ];
+
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+    for (let i = 0; i < top3.length; i++) {
+      const prize = prizes[i];
+      const s = top3[i];
+      await UserStats.findByIdAndUpdate(s._id, {
+        $inc: { xp: prize.xp },
+        $push: { badges: { name: prize.badge.name, icon: prize.badge.icon, earnedAt: new Date() } },
+        weeklyXp: 0,
+      });
+
+      const chatId = s.userId?.telegramChatId || s.userId?.telegramUserId;
+      if (botToken && chatId) {
+        const msg =
+          `${prize.badge.icon} <b>Tabriklaymiz, ${s.userId?.username || 'Foydalanuvchi'}!</b>\n\n` +
+          `Siz bu hafta ${s.weeklyXp} XP to'plash bilan <b>${i + 1}-o'rin</b>ni egalladin!\n` +
+          `Mukofot: <b>+${prize.xp} XP</b> va <b>${prize.badge.name}</b> badge 🎉\n\n` +
+          `Keyingi haftada ham faol bo'ling! 💪\n#Aidevix #HaftalikTurnir`;
+        axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          chat_id: chatId, text: msg, parse_mode: 'HTML',
+        }).catch(() => {});
+      }
+    }
+
+    // Barchaning weeklyXp ni 0 ga tushirish
+    await UserStats.updateMany({}, { weeklyXp: 0 });
+    // Har hafta 1 ta streak freeze sovg'a (max 5 ta gacha)
+    await UserStats.updateMany({ streakFreezes: { $lt: 5 } }, { $inc: { streakFreezes: 1 } });
+
+    console.log(`[ChallengeScheduler] Haftalik reset bajarildi. Top ${top3.length} ta foydalanuvchi mukofotlandi.`);
+  } catch (err) {
+    console.error('[ChallengeScheduler] Haftalik reset xatosi:', err.message);
+  }
+}
+
+// Streak reminder — Har kuni 23:00 Toshkent = 18:00 UTC
+async function sendStreakReminders() {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) return;
+
+  try {
+    const UserStats = require('../models/UserStats');
+    const User      = require('../models/User');
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    // Streak > 0, bugun faol bo'lmagan foydalanuvchilar
+    const atRisk = await UserStats.find({
+      streak: { $gt: 0 },
+      $or: [
+        { lastActivityDate: { $lt: startOfToday } },
+        { lastActivityDate: null },
+      ],
+    }).lean();
+
+    for (const stats of atRisk) {
+      const user = await User.findById(stats.userId)
+        .select('telegramChatId telegramUserId username')
+        .lean();
+
+      const chatId = user?.telegramChatId || user?.telegramUserId;
+      if (!chatId) continue;
+
+      const hasFreeze = (stats.streakFreezes || 0) > 0;
+      const msg = hasFreeze
+        ? `🛡️ <b>${user.username}</b>, bugun hali faol bo'lmadingiz!\n\n` +
+          `Sizda <b>${stats.streakFreezes} ta Streak Shield</b> mavjud — agar bugun kirmasangiz, shield avtomatik ishlatiladi.\n` +
+          `Streak: 🔥 <b>${stats.streak} kun</b>\n\n` +
+          `<a href="https://aidevix.uz">aidevix.uz</a> ga kiring!`
+        : `⚠️ <b>${user.username}</b>, streakingiz xavf ostida!\n\n` +
+          `Bugun faol bo'lmasangiz, <b>${stats.streak} kunlik streak</b> yo'qoladi!\n\n` +
+          `Hoziroq bir video ko'ring yoki quiz ishlang 👇\n` +
+          `<a href="https://aidevix.uz">aidevix.uz</a>`;
+
+      axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        chat_id: chatId,
+        text: msg,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [[{ text: '▶ Hoziroq o\'rganish', url: 'https://aidevix.uz/courses' }]],
+        },
+      }).catch(() => {});
+    }
+
+    if (atRisk.length > 0) {
+      console.log(`[ChallengeScheduler] Streak reminder yuborildi: ${atRisk.length} ta foydalanuvchi`);
+    }
+  } catch (err) {
+    console.error('[ChallengeScheduler] Streak reminder xatosi:', err.message);
+  }
+}
+
 function startChallengeScheduler() {
   if (!schedulerState.isChallengeEnabled()) {
     console.log('[ChallengeScheduler] O\'chirilgan (CHALLENGE_SCHEDULER_ENABLED=false). /toggle challenge bilan yoqish mumkin.');
@@ -203,16 +314,33 @@ function startChallengeScheduler() {
     if (schedulerState.isChallengeEnabled()) createDailyChallenge();
   }, 5000);
 
-  // Har 10 daqiqada tekshirish — Toshkent 00:00-00:10 oralig'ida yaratish
+  // Har 10 daqiqada tekshirish
   let lastCreatedDate = '';
+  let lastWeeklyReset = '';
+  let lastReminderDate = '';
+
   setInterval(async () => {
     if (!schedulerState.isChallengeEnabled()) return;
     const hour = getTashkentHour();
     const todayStr = getTodayStr();
+    const dayOfWeek = new Date().getDay(); // 0 = Yakshanba
 
+    // Kunlik challenge — 00:00 Toshkent
     if (hour === 0 && lastCreatedDate !== todayStr) {
       lastCreatedDate = todayStr;
       await createDailyChallenge();
+    }
+
+    // Haftalik reset — Yakshanba 00:00 Toshkent
+    if (hour === 0 && dayOfWeek === 0 && lastWeeklyReset !== todayStr) {
+      lastWeeklyReset = todayStr;
+      await weeklyReset();
+    }
+
+    // Streak reminder — 23:00 Toshkent
+    if (hour === 23 && lastReminderDate !== todayStr) {
+      lastReminderDate = todayStr;
+      await sendStreakReminders();
     }
   }, 10 * 60 * 1000);
 }

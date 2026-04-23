@@ -7,34 +7,39 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
-import { login, selectAuthLoading, selectAuthError, clearError } from '@store/slices/authSlice';
+import { login, selectAuthError, clearError } from '@store/slices/authSlice';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
 import { useLang } from '@/context/LangContext';
 import { useTheme } from '@/context/ThemeContext';
 
 export default function LoginForm() {
   const [showPass, setShowPass] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm();
   const { t } = useLang();
   const { isDark } = useTheme();
   
   const dispatch = useDispatch();
   const router = useRouter();
-  const loading = useSelector(selectAuthLoading);
   const authError = useSelector(selectAuthError);
 
   const onSubmit = async (data: any) => {
+    setIsSubmitting(true);
     dispatch(clearError());
 
-    const result = await (dispatch as any)(login({
-      email: data.email,
-      password: data.password,
-    }));
-    
-    if (login.fulfilled.match(result)) {
-      forgotPasswordFlow.rememberEmail(data.email);
-      toast.success('Muvaffaqiyatli kirdingiz!');
-      router.push('/');
+    try {
+      const result = await (dispatch as any)(login({
+        email: data.email,
+        password: data.password,
+      }));
+      
+      if (login.fulfilled.match(result)) {
+        forgotPasswordFlow.rememberEmail(data.email);
+        toast.success('Muvaffaqiyatli kirdingiz!');
+        router.push('/');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -107,10 +112,10 @@ export default function LoginForm() {
       <div className="pt-4">
         <button 
           type="submit" 
-          disabled={loading}
+          disabled={isSubmitting}
           className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none w-full rounded-full normal-case text-base font-medium h-12 flex justify-center items-center text-white"
         >
-          {loading ? (
+          {isSubmitting ? (
              <span className="loading loading-spinner loading-md"></span>
            ) : (
             <>

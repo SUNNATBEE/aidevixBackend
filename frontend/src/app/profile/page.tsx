@@ -21,8 +21,10 @@ import {
   FiAward,
   FiZap,
   FiCamera,
-  FiX
+  FiX,
+  FiShield
 } from 'react-icons/fi';
+import { userApi } from '@api/userApi';
 
 export default function ProfilePage() {
   const dispatch = useDispatch();
@@ -49,10 +51,34 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [selectedTools, setSelectedTools] = useState<string[]>(user?.aiStack || []);
   const [savingStack, setSavingStack] = useState(false);
+  const [streakFreezes, setStreakFreezes] = useState<number>(0);
+  const [usingFreeze, setUsingFreeze] = useState(false);
 
   useEffect(() => {
     if (user?.aiStack) setSelectedTools(user.aiStack);
   }, [user?.aiStack]);
+
+  useEffect(() => {
+    import('@api/axiosInstance').then(({ default: api }) => {
+      api.get('xp/stats').then(({ data }) => {
+        setStreakFreezes(data?.data?.streakFreezes ?? 0);
+      }).catch(() => {});
+    });
+  }, []);
+
+  const handleUseFreeze = async () => {
+    if (streakFreezes <= 0) return;
+    setUsingFreeze(true);
+    try {
+      await userApi.useStreakFreeze();
+      setStreakFreezes(prev => Math.max(0, prev - 1));
+      toast.success('Streak Shield ishlatildi! Bugungi streakingiz himoyalandi 🛡️');
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Xato yuz berdi');
+    } finally {
+      setUsingFreeze(false);
+    }
+  };
 
   const toggleTool = (tool: string) => {
     setSelectedTools(prev =>
@@ -351,16 +377,62 @@ export default function ProfilePage() {
           )}
 
           {activeTab === t('profile.tab.achievements') && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-2 md:grid-cols-4 gap-6">
-               {badges?.length > 0 ? badges.map((badge, i) => (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+              {/* Streak Shield Card */}
+              <div className="bg-[#0d101a] border border-indigo-500/20 rounded-3xl p-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-3xl flex-shrink-0">
+                      🛡️
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        Streak Shield
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                          {streakFreezes} / 5
+                        </span>
+                      </h3>
+                      <p className="text-sm text-slate-400 mt-1">
+                        Streakingizni bir kunlik uzilishdan himoya qiladi. Har hafta 1 ta bepul beriladi.
+                      </p>
+                      <div className="flex gap-1.5 mt-3">
+                        {[...Array(5)].map((_, i) => (
+                          <div
+                            key={i}
+                            className={`w-8 h-8 rounded-lg border flex items-center justify-center text-base ${
+                              i < streakFreezes
+                                ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+                                : 'bg-white/3 border-white/5 text-slate-700'
+                            }`}
+                          >
+                            🛡️
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleUseFreeze}
+                    disabled={usingFreeze || streakFreezes <= 0}
+                    className="flex-shrink-0 px-6 py-3 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40 text-white font-bold rounded-2xl transition-all active:scale-95 text-sm whitespace-nowrap"
+                  >
+                    {usingFreeze ? 'Ishlatilmoqda...' : 'Himoyani ishlatish'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Badges Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {badges?.length > 0 ? badges.map((badge, i) => (
                   <div key={i} className="bg-[#0d101a] border border-white/5 p-6 rounded-3xl text-center">
                     <div className="text-4xl mb-3">{badge.icon || '🏆'}</div>
                     <h5 className="font-bold text-sm text-white">{badge.name}</h5>
                     <p className="text-[10px] text-slate-500 mt-1 uppercase">{new Date(badge.earnedAt).toLocaleDateString()}</p>
                   </div>
-               )) : (
-                 <div className="col-span-full py-20 text-center text-slate-500">{t('profile.noAchievements')}</div>
-               )}
+                )) : (
+                  <div className="col-span-full py-16 text-center text-slate-500">{t('profile.noAchievements')}</div>
+                )}
+              </div>
             </motion.div>
           )}
 

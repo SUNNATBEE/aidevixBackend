@@ -12,6 +12,7 @@ import { selectUser, selectIsLoggedIn } from '@store/slices/authSlice'
 import { useLang } from '@/context/LangContext'
 import LeaderboardTable from '@components/leaderboard/LeaderboardTable'
 import LevelUpModal from '@components/leaderboard/LevelUpModal'
+import { userApi } from '@api/userApi'
 
 const TABS = [
   { key:'all',        label:'GLOBAL'     },
@@ -109,6 +110,8 @@ export default function LeaderboardPage() {
   const [pagination, setPagination] = useState<any>(null)
   const [userPosition, setUserPosition] = useState<any>(null)
   const [isMounted, setIsMounted]       = useState(false)
+  const [weeklyData, setWeeklyData]     = useState<any>(null)
+  const [countdown, setCountdown]       = useState('')
   const { t } = useLang();
 
   const TABS = [
@@ -158,10 +161,26 @@ export default function LeaderboardPage() {
     } catch {}
   }
 
-  useEffect(() => { 
+  useEffect(() => {
     setIsMounted(true)
-    fetchUsers(1, true) 
+    fetchUsers(1, true)
+    userApi.getWeeklyPrizes().then(({ data }) => setWeeklyData(data?.data)).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!weeklyData?.nextReset) return
+    const update = () => {
+      const ms = new Date(weeklyData.nextReset).getTime() - Date.now()
+      if (ms <= 0) { setCountdown('0d 0h 0m'); return }
+      const d = Math.floor(ms / 86400000)
+      const h = Math.floor((ms % 86400000) / 3600000)
+      const m = Math.floor((ms % 3600000) / 60000)
+      setCountdown(`${d}k ${h}s ${m}d`)
+    }
+    update()
+    const id = setInterval(update, 60000)
+    return () => clearInterval(id)
+  }, [weeklyData?.nextReset])
 
   useEffect(() => { if (isMounted) fetchPosition() }, [isLoggedIn, currentUser?._id, isMounted])
 
@@ -331,20 +350,43 @@ export default function LeaderboardPage() {
 
             <motion.div
               initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} transition={{delay:0.35}}
-              className="rounded-xl border border-primary/20 bg-primary/5 p-4"
+              className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 overflow-hidden"
             >
-              <p className="text-[10px] text-base-content/40 uppercase tracking-widest mb-3">{t('lb.weeklyMission')}</p>
-              <div className="bg-base-200/80 rounded-xl p-3">
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <p className="font-bold text-sm">JavaScript Master</p>
-                  <span className="badge badge-primary badge-xs whitespace-nowrap flex-shrink-0">3 {t('lb.daysLeft')}</span>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-yellow-500/10">
+                <div className="flex items-center gap-2">
+                  <FaTrophy className="text-yellow-400 text-base" />
+                  <span className="font-bold text-sm tracking-wide">HAFTALIK TURNIR</span>
                 </div>
-                <p className="text-xs text-base-content/40 leading-relaxed">5 ta JavaScript quizini 100% natija bilan yakunlang.</p>
-                <div className="w-full h-1.5 bg-base-300 rounded-full mt-3 overflow-hidden">
-                  <motion.div initial={{width:0}} animate={{width:'40%'}} transition={{delay:0.6,duration:0.8}} className="h-full bg-primary rounded-full" />
-                </div>
-                <p className="text-[10px] text-base-content/30 mt-1 text-right">2/5 {t('lb.completed')}</p>
+                {countdown && (
+                  <span className="text-[10px] font-bold text-yellow-400/70 bg-yellow-500/10 px-2 py-1 rounded-lg">
+                    ⏱ {countdown}
+                  </span>
+                )}
               </div>
+              <div className="p-3 space-y-1.5">
+                {(weeklyData?.prizes || [
+                  { rank:1, xp:500, badge:'🥇 Hafta Chempioni',  color:'text-yellow-400' },
+                  { rank:2, xp:300, badge:'🥈 Kumush O\'rin',    color:'text-slate-300' },
+                  { rank:3, xp:150, badge:'🥉 Bronza O\'rin',    color:'text-amber-600' },
+                ]).map((prize: any) => (
+                  <div key={prize.rank} className="flex items-center justify-between px-3 py-2 rounded-lg bg-base-300/20">
+                    <span className="text-sm">{prize.badge}</span>
+                    <span className="font-black text-sm text-primary">+{prize.xp} XP</span>
+                  </div>
+                ))}
+              </div>
+              {weeklyData?.leaderboard?.length > 0 && (
+                <div className="px-3 pb-3 space-y-1">
+                  <p className="text-[10px] text-base-content/30 uppercase tracking-widest px-3 pt-2">Bu hafta top</p>
+                  {weeklyData.leaderboard.slice(0, 3).map((u: any, i: number) => (
+                    <div key={u.user?._id || i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg">
+                      <span className="text-xs font-black text-base-content/30 w-4">{i+1}</span>
+                      <span className="text-sm font-semibold flex-1 truncate">{u.user?.username || '—'}</span>
+                      <span className="text-xs font-bold text-yellow-400">{(u.weeklyXp||0).toLocaleString()} XP</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           </div>
         </div>

@@ -148,4 +148,54 @@ const _issueCertificate = async (user, courseId, enrollmentId) => {
   }
 };
 
-module.exports = { enrollCourse, getMyEnrollments, markVideoWatched, getCourseProgress };
+/** @desc  Davom ettirish — oxirgi ko'rilmagan video | @route GET /api/enrollments/continue | @access Private */
+const continueLearning = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const enrollments = await Enrollment.find({ userId, isCompleted: false })
+      .populate({ path: 'courseId', select: 'title thumbnail category' })
+      .sort({ updatedAt: -1 })
+      .limit(5)
+      .lean();
+
+    if (!enrollments.length) {
+      return res.json({ success: true, data: null });
+    }
+
+    const Video = require('../models/Video');
+
+    for (const enrollment of enrollments) {
+      if (!enrollment.courseId) continue;
+      const courseId = enrollment.courseId._id;
+      const watchedIds = enrollment.watchedVideos.map(w => w.videoId.toString());
+
+      const nextVideo = await Video.findOne({
+        course: courseId,
+        isActive: true,
+        _id: { $nin: watchedIds },
+      })
+        .sort({ order: 1 })
+        .select('_id title duration thumbnail order')
+        .lean();
+
+      if (nextVideo) {
+        return res.json({
+          success: true,
+          data: {
+            course:          enrollment.courseId,
+            nextVideo,
+            progressPercent: enrollment.progressPercent,
+            watchedCount:    watchedIds.length,
+          },
+        });
+      }
+    }
+
+    res.json({ success: true, data: null });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { enrollCourse, getMyEnrollments, markVideoWatched, getCourseProgress, continueLearning };
