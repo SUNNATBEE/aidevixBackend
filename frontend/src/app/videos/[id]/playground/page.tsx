@@ -30,9 +30,12 @@ import { FaTerminal, FaCode, FaBook } from 'react-icons/fa';
 import { BsLightningChargeFill } from 'react-icons/bs';
 import { useVideos } from '@hooks/useVideos';
 import { useUserStats } from '@hooks/useUserStats';
+import { useSubscription } from '@hooks/useSubscription';
 import { selectIsLoggedIn } from '@store/slices/authSlice';
+import { selectInstagramSub, selectTelegramSub } from '@store/slices/subscriptionSlice';
 import { userApi } from '@/api/userApi';
 import { videoApi } from '@/api/videoApi';
+import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 
 interface OutputLine {
   type: 'log' | 'error' | 'info';
@@ -56,6 +59,10 @@ export default function VideoPlaygroundPage() {
   const { current: video, videoLink, loading, fetchById } = useVideos();
   const { xp } = useUserStats();
   const isLoggedIn = useSelector(selectIsLoggedIn);
+  const { instagram, telegram, allVerified } = useSubscription();
+  const isSubscribed = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const wasSubscribedRef = useRef(isSubscribed);
 
   const [activeTab, setActiveTab] = useState<'courses' | 'playground'>('playground');
   const [code, setCode] = useState<string>(DEFAULT_CODE);
@@ -66,14 +73,16 @@ export default function VideoPlaygroundPage() {
   const watchedSecondsRef = useRef<number>(0);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     if (id) fetchById(id);
   }, [id]);
 
   // Track watch progress every 10s and save to backend
   useEffect(() => {
-    if (!isLoggedIn || !id) return;
+    if (!isLoggedIn || !isSubscribed || !id) return;
     progressTimerRef.current = setInterval(() => {
       watchedSecondsRef.current += 10;
       videoApi.saveProgress(id, watchedSecondsRef.current).catch(() => {});
@@ -81,7 +90,20 @@ export default function VideoPlaygroundPage() {
     return () => {
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     };
-  }, [id, isLoggedIn]);
+  }, [id, isLoggedIn, isSubscribed]);
+
+  // Obuna bekor qilinganda avtomatik gate ochish
+  useEffect(() => {
+    if (wasSubscribedRef.current && !isSubscribed && isLoggedIn) {
+      setShowModal(true);
+    }
+    wasSubscribedRef.current = isSubscribed;
+  }, [isSubscribed, isLoggedIn]);
+
+  const handleModalSuccess = () => {
+    setShowModal(false);
+    window.location.reload();
+  };
 
   useEffect(() => {
     terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -132,7 +154,7 @@ export default function VideoPlaygroundPage() {
     setQuestion('');
   };
 
-  if (loading) {
+  if (!isMounted || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0d0e1a]">
         <span className="loading loading-spinner loading-lg text-primary" />
@@ -448,6 +470,44 @@ export default function VideoPlaygroundPage() {
           </div>
         </div>
       </div>
+      {/* Subscription Overlay */}
+      {!isSubscribed && (
+        <div className="absolute inset-x-0 bottom-0 top-14 z-[100] backdrop-blur-md bg-black/40 flex items-center justify-center p-6 text-center">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-[#1a1c2e] border border-white/10 p-10 rounded-[2.5rem] shadow-2xl max-w-md"
+          >
+            <div className="w-20 h-20 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center mx-auto mb-6">
+              <IoLockClosed size={32} className="text-indigo-400" />
+            </div>
+            <h2 className="text-2xl font-bold mb-4">Playground Shartlari</h2>
+            <p className="text-zinc-400 mb-8">
+              Playground&apos;dan foydalanish va kod yozishni mashq qilish uchun Telegram va Instagram kanallarimizga obuna bo&apos;lishingiz kerak.
+            </p>
+            <button
+              onClick={() => setShowModal(true)}
+              className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-10 h-14 font-bold text-lg shadow-xl shadow-indigo-500/20 w-full"
+            >
+              Obunani tasdiqlash
+            </button>
+            <Link 
+              href={`/videos/${id}`}
+              className="mt-4 inline-block text-zinc-500 hover:text-white transition-colors text-sm font-medium"
+            >
+              ← Darsga qaytish
+            </Link>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Instagram Verification Modal */}
+      <SubscriptionGate
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSuccess={handleModalSuccess}
+        videoId={id}
+      />
     </div>
   );
 }

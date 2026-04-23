@@ -55,23 +55,21 @@ const getVideo = async (req, res) => {
     // User subscription status is already verified by checkSubscriptions middleware
 
     // Video Bunny.net da mavjudmi va tayyor holatdami?
+    let embedUrl = null;
+    let expiresAt = null;
+
     if (!video.bunnyVideoId) {
-      return res.status(503).json({
-        success: false,
-        message: 'Video hali yuklanmagan. Iltimos, keyinroq urinib ko\'ring.',
-      });
+      // Bunny ID yo'q — video hali yuklanmagan (dev mode da davom etamiz)
+      console.warn(`[Video ${id}] bunnyVideoId yo'q — video player ko'rinmaydi`);
+    } else if (video.bunnyStatus !== 'ready') {
+      // Bunny da hali qayta ishlanmoqda
+      console.warn(`[Video ${id}] bunnyStatus: ${video.bunnyStatus} — hali tayyor emas`);
+    } else {
+      // 2 soatlik muddatli signed embed URL yaratish
+      const signed = generateSignedEmbedUrl(video.bunnyVideoId);
+      embedUrl = signed.embedUrl;
+      expiresAt = signed.expiresAt;
     }
-
-    if (video.bunnyStatus !== 'ready') {
-      return res.status(503).json({
-        success: false,
-        message: 'Video hali tayyorlanmoqda. Iltimos, bir oz kuting.',
-        bunnyStatus: video.bunnyStatus,
-      });
-    }
-
-    // 2 soatlik muddatli signed embed URL yaratish
-    const { embedUrl, expiresAt } = generateSignedEmbedUrl(video.bunnyVideoId);
 
     // Ko'rishlar sonini oshirish (background)
     Video.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }).exec();
@@ -88,11 +86,10 @@ const getVideo = async (req, res) => {
           thumbnail: video.thumbnail,
           materials: video.materials,
           course: video.course,
+          views: video.viewCount,
+          rating: video.rating,
         },
-        player: {
-          embedUrl,
-          expiresAt,
-        },
+        player: embedUrl ? { embedUrl, expiresAt } : null,
       },
     });
   } catch (error) {

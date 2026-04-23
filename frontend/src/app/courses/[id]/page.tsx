@@ -129,6 +129,11 @@ export default function CourseDetailPage() {
     api.get(`/projects/course/${id}`).then(r => setProjects(r.data?.data?.projects || [])).catch(() => {})
   }, [id])
 
+  const [isMounted, setIsMounted] = useState(false)
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const isLoggedIn     = useSelector(selectIsLoggedIn)
   const instagram      = useSelector(selectInstagramSub)
   const telegram       = useSelector(selectTelegramSub)
@@ -136,7 +141,7 @@ export default function CourseDetailPage() {
   const [showGate, setShowGate] = useState(false)
   const [showSubscribedModal, setShowSubscribedModal] = useState(false)
 
-  if (loading) return <Skeleton />
+  if (!isMounted || loading) return <Skeleton />
   if (!course)  return null
 
 
