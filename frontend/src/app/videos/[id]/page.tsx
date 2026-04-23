@@ -14,6 +14,7 @@ import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 import { videoApi } from '@/api/videoApi';
 import { motion } from 'framer-motion';
 import VideoComments from '@/components/videos/VideoComments';
+import IntegratedPlayground from '@/components/videos/IntegratedPlayground';
 
 export default function VideoPage() {
   const { id }: { id: string } = useParams();
@@ -29,7 +30,9 @@ export default function VideoPage() {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [question, setQuestion] = useState('');
   const [isMounted, setIsMounted] = useState(false);
+  const [isSticky, setIsSticky] = useState(false);
   const wasSubscribedRef = useRef(isSubscribed);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
 
   // Progress tracking: har 10 soniyada POST /api/videos/{id}/progress
   const watchedSecondsRef = useRef<number>(0);
@@ -56,6 +59,19 @@ export default function VideoPage() {
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     };
   }, [id, isLoggedIn, isSubscribed, embedUrl, video?.course]);
+
+  // Sticky video logic
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!videoContainerRef.current) return;
+      const rect = videoContainerRef.current.getBoundingClientRect();
+      const shouldBeSticky = rect.bottom < 0;
+      setIsSticky(shouldBeSticky);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Obuna bekor qilinganda avtomatik gate ochish
   useEffect(() => {
@@ -202,12 +218,33 @@ export default function VideoPage() {
         </motion.div>
 
         {/* Video Player Section */}
-        <motion.div 
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="rounded-[2.5rem] overflow-hidden aspect-video relative bg-black border border-white/5 shadow-2xl group"
-        >
+        <div ref={videoContainerRef} className="aspect-video mb-10">
+          <motion.div 
+            layout
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={isSticky ? { 
+              scale: 1, 
+              opacity: 1,
+              position: 'fixed',
+              bottom: 24,
+              right: 24,
+              width: typeof window !== 'undefined' && window.innerWidth < 640 ? 200 : 320,
+              height: typeof window !== 'undefined' && window.innerWidth < 640 ? 112 : 180,
+              zIndex: 100,
+              boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5)'
+            } : { 
+              scale: 1, 
+              opacity: 1,
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              bottom: 'auto',
+              right: 'auto',
+              zIndex: 1
+            }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className={`rounded-[2.5rem] overflow-hidden bg-black border border-white/5 shadow-2xl group ${isSticky ? 'pointer-events-auto' : ''}`}
+          >
           {!isLoggedIn ? (
             /* Not logged in */
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e]">
@@ -290,27 +327,30 @@ export default function VideoPage() {
               </button>
             </div>
           )}
+          {isSticky && (
+            <button 
+              onClick={() => setIsSticky(false)}
+              className="absolute top-4 right-4 p-2 bg-black/60 hover:bg-black rounded-full text-white z-50 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <IoArrowBack className="rotate-90" />
+            </button>
+          )}
         </motion.div>
+        </div>
 
-        {/* Playground Redirect */}
-        <motion.div 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 p-8 bg-indigo-500/5 border border-indigo-500/10 rounded-3xl backdrop-blur-sm"
-        >
-          <div>
-            <h3 className="text-xl font-bold text-white mb-1">Amaliyot bilan o&apos;rganing</h3>
-            <p className="text-gray-400 text-sm">Playground orqali yozilgan kodlarni sinab ko&apos;ring.</p>
-          </div>
-          <Link
-            href={`/videos/${id}/playground`}
-            className="btn bg-white/5 hover:bg-indigo-500 hover:text-white text-white border-white/10 rounded-2xl normal-case gap-2 px-8 h-12 transition-all duration-300"
+        {/* Integrated Playground Section */}
+        {isSubscribed && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
           >
-            <IoCodeSlash />
-            Playground&apos;da o&apos;rganish →
-          </Link>
-        </motion.div>
+            <IntegratedPlayground 
+              videoId={id} 
+              category={video.course?.category || 'javascript'} 
+            />
+          </motion.div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
           {/* Materials */}
