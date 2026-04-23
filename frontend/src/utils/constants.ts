@@ -75,6 +75,7 @@ export const ROUTES = {
   LEADERBOARD:    '/leaderboard',
   REFERRAL:       '/referral',
   PROMPTS:        '/prompts',
+  TEAM:           '/team',
   ROADMAP:        '/roadmap',
   PUBLIC_PROFILE: (username: string) => `/u/${username}`,
 }

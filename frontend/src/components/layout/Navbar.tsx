@@ -37,6 +37,7 @@ export default function Navbar() {
   const NAV_LINKS = [
     { label: t('nav.courses'), to: ROUTES.COURSES },
     { label: '⚡ Prompts', to: ROUTES.PROMPTS },
+    { label: '🧠 Team', to: ROUTES.TEAM },
     { label: t('nav.challenges'), to: ROUTES.CHALLENGES },
     { label: t('nav.leaderboard'), to: ROUTES.LEADERBOARD },
     { label: '🗺 Roadmap', to: ROUTES.ROADMAP },
