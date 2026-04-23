@@ -25,14 +25,18 @@ export default function ClientLayoutWrapper({
   }, []);
 
   // List of paths where we DON'T want the global Navbar and Footer
+  const isPlayground = (pathname || '').includes('/playground');
   const hideLayout = [
     '/login',
     '/register',
     '/forgot-password',
     '/verify-code',
     '/reset-password',
-  ].includes(pathname || '') || (pathname || '').startsWith('/admin');
-  const showAmbientWidgets = pathname === '/' || pathname?.startsWith('/courses');
+  ].includes(pathname || '') || 
+  (pathname || '').startsWith('/admin') || 
+  isPlayground;
+  
+  const showAmbientWidgets = (pathname === '/' || pathname?.startsWith('/courses')) && !isPlayground;
   
   useEffect(() => {
     if (!isMounted || hideLayout) {

@@ -10,6 +10,7 @@ export interface Video {
   course?: {
     _id: string;
     title: string;
+    category?: string;
   };
   rating?: {
     average: number;
