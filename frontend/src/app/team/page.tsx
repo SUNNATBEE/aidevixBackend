@@ -15,6 +15,7 @@ type TeamMember = {
   accentBg: string;
   emoji: string;
   roadmapRole: string;
+  objectPos?: string;
 };
 
 const MEMBERS: TeamMember[] = [
@@ -31,6 +32,7 @@ const MEMBERS: TeamMember[] = [
     accentBg: 'rgba(245,158,11,0.15)',
     emoji: '🚀',
     roadmapRole: 'Architecture & Production Deploy',
+    objectPos: '50% 20%',
   },
   {
     id: 'firdavs',
@@ -45,6 +47,7 @@ const MEMBERS: TeamMember[] = [
     accentBg: 'rgba(99,102,241,0.15)',
     emoji: '🔐',
     roadmapRole: 'Auth & Session System',
+    objectPos: '50% 15%',
   },
   {
     id: 'abduvoris',
@@ -59,6 +62,7 @@ const MEMBERS: TeamMember[] = [
     accentBg: 'rgba(6,182,212,0.15)',
     emoji: '🎬',
     roadmapRole: 'Video Platform & HLS Player',
+    objectPos: '50% 20%',
   },
   {
     id: 'doniyor',
@@ -73,6 +77,7 @@ const MEMBERS: TeamMember[] = [
     accentBg: 'rgba(16,185,129,0.15)',
     emoji: '📚',
     roadmapRole: 'Course Catalog & Enrollment',
+    objectPos: '50% 20%',
   },
   {
     id: 'suhrob',
@@ -87,6 +92,7 @@ const MEMBERS: TeamMember[] = [
     accentBg: 'rgba(236,72,153,0.15)',
     emoji: '🏆',
     roadmapRole: 'Leaderboard & XP Ranking',
+    objectPos: '50% 20%',
   },
   {
     id: 'qudrat',
@@ -101,6 +107,7 @@ const MEMBERS: TeamMember[] = [
     accentBg: 'rgba(168,85,247,0.15)',
     emoji: '✨',
     roadmapRole: 'Animations & Visual UX',
+    objectPos: '50% 20%',
   },
 ];
 
@@ -161,7 +168,7 @@ function TiltCard({ member, index }: { member: TeamMember; index: number }) {
       />
 
       {/* Photo */}
-      <div className="relative h-56 overflow-hidden">
+      <div className="relative h-72 overflow-hidden">
         <div
           className="absolute inset-0 transition-transform duration-700 ease-out"
           style={{ transform: hovered ? 'scale(1.06)' : 'scale(1)' }}
@@ -170,7 +177,8 @@ function TiltCard({ member, index }: { member: TeamMember; index: number }) {
             <img
               src={`/team/${member.imageFile}`}
               alt={member.name}
-              className="h-full w-full object-cover object-top"
+              className="h-full w-full object-cover"
+              style={{ objectPosition: member.objectPos ?? '50% 20%' }}
               onError={() => setImgError(true)}
             />
           ) : (
