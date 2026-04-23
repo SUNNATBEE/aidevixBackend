@@ -144,11 +144,13 @@ const getSubscriptionStatus = async (req, res) => {
           user.socialSubscriptions.telegram.subscribed = false;
           user.socialSubscriptions.telegram.verifiedAt = null;
           await user.save();
+          invalidateCache(user._id);
         } else if (!wasSubscribed && result.subscribed) {
           // Qayta obuna bo'lgan — DB ni yangilash
           user.socialSubscriptions.telegram.subscribed = true;
           user.socialSubscriptions.telegram.verifiedAt = new Date();
           await user.save();
+          invalidateCache(user._id);
         }
       }
     }
@@ -177,6 +179,7 @@ const setTelegramId = async (req, res) => {
     const { telegramUserId } = req.body;
     if (!telegramUserId) return res.status(400).json({ success: false, message: 'Telegram ID kiritilmadi' });
     await User.findByIdAndUpdate(req.user._id, { telegramUserId: String(telegramUserId) });
+    invalidateCache(req.user._id);
     res.json({ success: true, message: 'Telegram ID saqlandi' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server xatosi' });
@@ -257,6 +260,7 @@ const linkTelegramByToken = async (token, telegramUserId, telegramUsername) => {
     }
 
     await user.save();
+    invalidateCache(user._id);
 
     // Tokenni "linked" qilib belgilash (polling uchun)
     entry.linked = true;
@@ -295,6 +299,7 @@ const checkVerifyToken = async (req, res) => {
       user.socialSubscriptions.telegram.subscribed = true;
       user.socialSubscriptions.telegram.verifiedAt = new Date();
       await user.save();
+      invalidateCache(user._id);
 
       // Admin bildirishnoma
       try {

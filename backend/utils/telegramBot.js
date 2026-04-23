@@ -191,6 +191,40 @@ class AidevixBot {
     await this.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard });
   }
 
+  /**
+   * /start <token> orqali foydalanuvchini Telegram ID bilan bog'laydi.
+   * Frontend polling /subscriptions/check-token shu link holatini kuzatadi.
+   */
+  async _handleVerifyToken(chatId, userId, username, token) {
+    try {
+      const { linkTelegramByToken } = require('../controllers/subscriptionController');
+      const linked = await linkTelegramByToken(token, String(userId), username || null);
+
+      if (!linked) {
+        await this.sendMessage(
+          chatId,
+          `❌ <b>Bog'lash amalga oshmadi.</b>\n\nToken eskirgan yoki noto'g'ri.\nIltimos, saytdan qayta urinib ko'ring.`,
+          { parse_mode: 'HTML' }
+        );
+        return;
+      }
+
+      await this.sendMessage(
+        chatId,
+        `✅ <b>Telegram profilingiz bog'landi!</b>\n\n` +
+          `Endi Aidevix sahifasiga qayting — obuna holati avtomatik yangilanadi.\n\n` +
+          `Agar kanalga hali obuna bo'lmagan bo'lsangiz, avval kanalga obuna bo'ling.`,
+        { parse_mode: 'HTML' }
+      );
+    } catch (e) {
+      await this.sendMessage(
+        chatId,
+        `❌ <b>Xatolik yuz berdi.</b>\n\nIltimos, birozdan keyin qayta urinib ko'ring.`,
+        { parse_mode: 'HTML' }
+      );
+    }
+  }
+
   async _cmdStats(chatId, userId, firstName) {
     try {
       const User = require('../models/User');
