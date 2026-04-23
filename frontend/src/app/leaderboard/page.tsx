@@ -65,9 +65,9 @@ function PodiumCard({ user, rank }: { user: any, rank: number }) {
     <motion.div
       initial={{opacity:0,y:60}} animate={{opacity:1,y:0}}
       transition={{delay:rank*0.1,type:'spring',stiffness:160,damping:18}}
-      className={`${s.wrap} flex-1 max-w-[160px]`}
+      className={`${s.wrap} flex-1 min-w-0 max-w-[132px] min-[360px]:max-w-[160px]`}
     >
-      <div className={`relative flex flex-col items-center px-3 pt-6 pb-4 rounded-2xl border ${s.card}`} style={{boxShadow:s.shadow}}>
+      <div className={`relative flex flex-col items-center px-2.5 min-[360px]:px-3 pt-5 min-[360px]:pt-6 pb-4 rounded-2xl border ${s.card}`} style={{boxShadow:s.shadow}}>
         <div className={`absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full ${s.badge} flex items-center justify-center text-white font-black text-sm shadow-lg`}>
           {rank}
         </div>
@@ -77,7 +77,7 @@ function PodiumCard({ user, rank }: { user: any, rank: number }) {
             ? <img src={user.user?.avatar||user.avatar} alt={username} className="w-full h-full object-cover" />
             : <span>{getInitials(username)}</span>}
         </div>
-        <p className={`${rank===1?'text-base font-black':'text-sm font-bold'} mt-2 text-center truncate w-full`}>{username}</p>
+        <p className={`${rank===1?'text-sm min-[360px]:text-base font-black':'text-xs min-[360px]:text-sm font-bold'} mt-2 text-center truncate w-full`}>{username}</p>
         {rank===1 ? (
           <>
             <span className="mt-1 px-2 py-0.5 rounded bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[10px] font-black tracking-wider">{t('lb.level.30').toUpperCase()}</span>
@@ -207,15 +207,15 @@ export default function LeaderboardPage() {
         onClose={dismissLevelUp}
       />
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto max-w-6xl px-3 sm:px-4 py-6 sm:py-8">
 
         {isLoggedIn && (
           <motion.div
             initial={{opacity:0,y:-16}} animate={{opacity:1,y:0}}
-            className="w-full rounded-xl border border-primary/30 overflow-hidden mb-6"
+            className="mb-5 sm:mb-6 w-full overflow-hidden rounded-xl border border-primary/30"
             style={{background:'linear-gradient(135deg,rgba(99,102,241,0.2) 0%,rgba(139,92,246,0.12) 50%,rgba(15,15,25,0.98) 100%)'}}
           >
-            <div className="flex items-center gap-3 px-4 py-3 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3">
               <div className="flex-shrink-0 w-12 h-12 rounded-lg flex flex-col items-center justify-center"
                 style={{background:'rgba(99,102,241,0.3)',border:'1px solid rgba(99,102,241,0.5)'}}>
                 <span className="text-xl font-black text-white leading-none">{rank??'—'}</span>
@@ -259,7 +259,7 @@ export default function LeaderboardPage() {
           </motion.div>
         )}
 
-        <motion.h1 initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} className="text-4xl font-black tracking-tight mb-5">
+            <motion.h1 initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} className="mb-4 sm:mb-5 text-2xl sm:text-4xl font-black tracking-tight">
           GLOBAL <span className="text-primary">AUTHORITY</span>
         </motion.h1>
 
@@ -283,7 +283,7 @@ export default function LeaderboardPage() {
 
             <AnimatePresence mode="wait">
               {loading ? (
-                <div className="flex justify-center items-end gap-4 py-8">
+                <div className="flex justify-center items-end gap-2 sm:gap-4 py-6 sm:py-8">
                   {[160,220,160].map((h,i) => (
                     <div key={i} className="skeleton rounded-2xl flex-1 max-w-[160px]" style={{height:h}} />
                   ))}
@@ -292,7 +292,7 @@ export default function LeaderboardPage() {
                 <motion.div
                   key={activeTab+'-p'}
                   initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
-                  className="flex items-end justify-center gap-3 py-4"
+                  className="flex items-end justify-center gap-2 sm:gap-3 py-3 sm:py-4"
                 >
                   <PodiumCard user={podiumUsers[1]} rank={2} />
                   <PodiumCard user={podiumUsers[0]} rank={1} />
@@ -315,7 +315,7 @@ export default function LeaderboardPage() {
 
             {pagination && pageNum < (pagination.totalPages||pagination.pages||1) && (
               <div className="text-center py-4">
-                <button onClick={() => { setPageNum(p => p+1); fetchUsers(pageNum+1, false) }} disabled={loading} className="btn btn-outline btn-sm px-10 gap-2 font-bold tracking-wider">
+                <button onClick={() => { setPageNum(p => p+1); fetchUsers(pageNum+1, false) }} disabled={loading} className="btn btn-outline btn-sm px-4 sm:px-10 gap-2 font-bold tracking-wider">
                   {loading && <span className="loading loading-spinner loading-xs" />}
                   {t('lb.loadMore')}
                 </button>

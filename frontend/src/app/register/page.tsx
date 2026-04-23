@@ -78,8 +78,8 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <div className={`w-full lg:w-1/2 flex flex-col justify-center items-center p-6 sm:p-12 relative ${bg}`}>
-        <div className="absolute top-6 right-6 flex items-center gap-2">
+      <div className={`w-full lg:w-1/2 flex flex-col justify-center items-center p-3 sm:p-12 relative ${bg}`}>
+        <div className="absolute top-4 right-3 sm:top-6 sm:right-6 flex items-center gap-1.5 sm:gap-2">
           <button onClick={toggleTheme} className={`p-2 rounded-lg ${isDark ? 'text-gray-400 hover:text-yellow-400' : 'text-gray-500 hover:text-indigo-600'}`}>
             {isDark ? '☀' : '☾'}
           </button>
@@ -96,7 +96,7 @@ export default function RegisterPage() {
 
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] ${isDark ? 'bg-indigo-600/5' : 'bg-indigo-100/50'} rounded-full blur-[100px] pointer-events-none`}></div>
 
-        <div ref={cardRef} className={`w-full max-w-[480px] backdrop-blur-xl rounded-3xl border p-8 sm:p-10 opacity-0 z-10 ${cardBg}`}>
+        <div ref={cardRef} className={`w-full max-w-[480px] backdrop-blur-xl rounded-2xl sm:rounded-3xl border p-5 sm:p-10 opacity-0 z-10 ${cardBg}`}>
           <RegisterForm />
           <div className="mt-8 text-center">
             <p className={`text-sm ${textMuted}`}>

@@ -107,7 +107,7 @@ export default function AdminUsersPage() {
             setRole(e.target.value);
             setPage(1);
           }}
-          className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
+          className="w-full sm:w-auto rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
         >
           <option value="">Barcha rollar</option>
           <option value="user">user</option>

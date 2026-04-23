@@ -71,7 +71,7 @@ export default function AdminPaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
         <div>
           <h2 className="font-display text-2xl font-bold text-white">To’lovlar</h2>
           <p className="mt-1 text-sm text-slate-400">
@@ -82,7 +82,7 @@ export default function AdminPaymentsPage() {
           type="button"
           onClick={exportCSV}
           disabled={payments.length === 0}
-          className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-600 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-emerald-500/50 hover:text-emerald-300 disabled:opacity-40"
+          className="flex w-full sm:w-auto shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-600 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-emerald-500/50 hover:text-emerald-300 disabled:opacity-40"
         >
           <FiDownload className="h-4 w-4" />
           CSV eksport

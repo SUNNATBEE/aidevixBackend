@@ -112,13 +112,13 @@ export default function Navbar() {
         className={`fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300 backdrop-blur-2xl ${navBg}`}
         style={{ borderBottomColor: borderColor }}
       >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
+        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+          <div className="flex h-14 sm:h-16 items-center justify-between gap-2">
             <Link href={ROUTES.HOME} className="group flex shrink-0 items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-[0_12px_30px_rgba(86,98,246,0.35)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:bg-indigo-400">
                 <RiCodeSSlashLine className="text-sm" />
               </div>
-              <div className="leading-none">
+              <div className="hidden min-[340px]:block leading-none">
                 <span className={`font-display text-lg font-semibold tracking-[-0.04em] ${logoTextColor}`}>Aidevix</span>
               </div>
             </Link>
@@ -297,12 +297,12 @@ export default function Navbar() {
               )}
             </div>
 
-            <div className="flex items-center gap-2 xl:hidden">
-              <button onClick={toggleTheme} className={`rounded-full border p-2.5 ${surface} ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <div className="flex items-center gap-1.5 xl:hidden">
+              <button onClick={toggleTheme} className={`rounded-full border p-2 ${surface} ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 {isDark ? <MdLightMode size={20} /> : <MdDarkMode size={20} />}
               </button>
               <button 
-                className={`rounded-full border p-2.5 transition-colors ${surface} ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'}`}
+                className={`rounded-full border p-2 transition-colors ${surface} ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'}`}
                 onClick={() => setMenuOpen(!menuOpen)}
                 onMouseEnter={playHoverSound}
                 aria-label="Menu"
@@ -346,7 +346,7 @@ export default function Navbar() {
               </div>
             </div>
 
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-col min-[360px]:flex-row gap-2 pt-1">
               {isLoggedIn ? (
                 <>
                   <Link 
@@ -390,7 +390,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      <div className="h-16" />
+      <div className="h-14 sm:h-16" />
     </>
   )
 }

@@ -51,8 +51,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className={`w-full lg:w-1/2 flex flex-col justify-center items-center p-6 sm:p-12 relative ${bg}`}>
-        <div className="absolute top-6 right-6 flex items-center gap-2">
+      <div className={`w-full lg:w-1/2 flex flex-col justify-center items-center p-3 sm:p-12 relative ${bg}`}>
+        <div className="absolute top-4 right-3 sm:top-6 sm:right-6 flex items-center gap-1.5 sm:gap-2">
           <button onClick={toggleTheme} className={`p-2 rounded-lg ${isDark ? 'text-gray-400 hover:text-yellow-400' : 'text-gray-500 hover:text-indigo-600'}`}>
             {isDark ? '☀' : '☾'}
           </button>
@@ -67,15 +67,15 @@ export default function LoginPage() {
           ))}
         </div>
 
-        <div ref={cardRef} className={`w-full max-w-[420px] rounded-3xl border p-8 sm:p-10 opacity-0 ${cardBg}`}>
-          <div className="text-center mb-10">
-            <h2 className={`text-[1.75rem] font-bold mb-3 ${textMain}`}>{t('auth.login.welcome')}</h2>
+        <div ref={cardRef} className={`w-full max-w-[420px] rounded-2xl sm:rounded-3xl border p-5 sm:p-10 opacity-0 ${cardBg}`}>
+          <div className="text-center mb-7 sm:mb-10">
+            <h2 className={`text-[1.45rem] sm:text-[1.75rem] font-bold mb-3 ${textMain}`}>{t('auth.login.welcome')}</h2>
             <p className={`text-[0.95rem] px-2 leading-relaxed ${textMuted}`}>{t('auth.login.subtitle')}</p>
           </div>
           <LoginForm />
         </div>
 
-        <div className={`mt-12 text-center text-xs absolute bottom-8 ${isDark ? 'text-gray-500/70' : 'text-gray-400'}`}>
+        <div className={`mt-8 sm:mt-12 text-center text-[11px] sm:text-xs relative sm:absolute sm:bottom-8 ${isDark ? 'text-gray-500/70' : 'text-gray-400'}`}>
           {t('footer.copyright')}
         </div>
       </div>

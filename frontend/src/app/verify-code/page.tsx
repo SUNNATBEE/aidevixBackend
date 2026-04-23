@@ -93,13 +93,13 @@ function VerifyCodeContent() {
 
   return (
     <div className="min-h-screen bg-[#0A0E1A] text-white flex font-sans selection:bg-indigo-500/30">
-      <div className="w-full flex flex-col justify-center items-center p-6 sm:p-12 relative bg-[#0A0E1A]">
+      <div className="w-full flex flex-col justify-center items-center p-3 sm:p-12 relative bg-[#0A0E1A]">
         <div 
           ref={cardRef}
-          className="w-full max-w-[420px] bg-[#0A0E1A] lg:bg-[#0d1224]/40 rounded-3xl border-0 lg:border lg:border-white/5 p-8 sm:p-10 opacity-0 shadow-2xl shadow-indigo-500/5"
+          className="w-full max-w-[420px] bg-[#0A0E1A] lg:bg-[#0d1224]/40 rounded-2xl sm:rounded-3xl border-0 lg:border lg:border-white/5 p-5 sm:p-10 opacity-0 shadow-2xl shadow-indigo-500/5"
         >
-          <div className="text-center mb-10">
-            <h2 className="text-[1.75rem] font-bold text-white mb-3">{t('verify.title')}</h2>
+          <div className="text-center mb-7 sm:mb-10">
+            <h2 className="text-[1.45rem] sm:text-[1.75rem] font-bold text-white mb-3">{t('verify.title')}</h2>
             <p className="text-gray-400 text-[0.95rem] px-2 leading-relaxed">
               <strong>{email}</strong> {t('verify.desc')}
             </p>
@@ -115,7 +115,7 @@ function VerifyCodeContent() {
                   type="text" 
                   maxLength={6}
                   placeholder="000000" 
-                  style={{ letterSpacing: '8px', textAlign: 'center' }}
+                  style={{ letterSpacing: '6px', textAlign: 'center' }}
                   className={`w-full bg-white text-gray-900 px-5 py-3.5 rounded-full outline-none focus:ring-2 focus:ring-primary transition-all text-xl font-bold ${errors.code ? 'ring-2 ring-error' : ''}`}
                   {...register('code', { 
                     required: t('verify.codeRequired'),

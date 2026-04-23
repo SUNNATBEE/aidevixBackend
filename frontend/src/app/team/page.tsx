@@ -309,14 +309,14 @@ function RoadmapNode({ member, index }: { member: TeamMember; index: number }) {
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true, margin: '-30px' }}
       transition={{ duration: 0.55, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
-      className={`relative flex items-center gap-5 ${isLeft ? 'flex-row' : 'flex-row-reverse'}`}
+      className={`relative flex items-center gap-3 sm:gap-5 flex-col sm:${isLeft ? 'flex-row' : 'flex-row-reverse'}`}
     >
       {/* Content */}
       <div
-        className={`flex-1 rounded-2xl border border-white/[0.07] p-4 ${isLeft ? 'text-right' : 'text-left'}`}
+        className={`w-full sm:flex-1 rounded-2xl border border-white/[0.07] p-3 sm:p-4 text-left sm:${isLeft ? 'text-right' : 'text-left'}`}
         style={{ background: `linear-gradient(135deg, ${member.accentBg}, rgba(12,16,24,0.96))` }}
       >
-        <div className={`flex items-center gap-2 ${isLeft ? 'justify-end' : 'justify-start'}`}>
+        <div className={`flex items-center gap-2 justify-start sm:${isLeft ? 'justify-end' : 'justify-start'}`}>
           <span className="text-lg">{member.emoji}</span>
           <span className="font-bold text-white">{member.name}</span>
           <span className="text-xs text-slate-500">· {member.age} yosh</span>
@@ -349,7 +349,7 @@ function RoadmapNode({ member, index }: { member: TeamMember; index: number }) {
         />
       </div>
 
-      <div className="flex-1" />
+      <div className="hidden sm:block flex-1" />
     </motion.div>
   );
 }
@@ -381,7 +381,7 @@ export default function TeamPage() {
         <div className="mx-auto max-w-7xl px-4 pb-14 pt-16 sm:px-6 lg:px-8">
           {/* badge */}
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">
+            <span className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-[0.14em] sm:tracking-[0.2em] text-indigo-300">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
               Aidevix Development Team · 2025
             </span>
@@ -389,7 +389,7 @@ export default function TeamPage() {
 
           {/* heading — 2 clear lines */}
           <h1 className="mt-5 max-w-3xl font-black leading-[1.08] tracking-[-0.03em]"
-              style={{ fontSize: 'clamp(2.2rem, 5.5vw, 4rem)' }}>
+              style={{ fontSize: 'clamp(1.8rem, 8.8vw, 4rem)' }}>
             <span className="text-white">Platformani yaratgan</span>
             <br />
             <span
@@ -405,7 +405,7 @@ export default function TeamPage() {
           </h1>
 
           {/* description */}
-          <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-slate-400">
+          <p className="mt-4 max-w-xl text-sm sm:text-[15px] leading-relaxed text-slate-400">
             O&apos;rtacha yoshi {avgAge}. Har biri haqiqiy production kodini yozgan. Quyida
             har birining Aidevix&apos;ga qo&apos;shgan hissasi va texnologik steki.
           </p>
@@ -426,7 +426,7 @@ export default function TeamPage() {
                   <span className="text-base">{s.icon}</span>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{s.label}</p>
                 </div>
-                <p className="mt-2 text-[1.75rem] font-black leading-none text-white">{s.value}</p>
+                <p className="mt-2 text-[1.35rem] sm:text-[1.75rem] font-black leading-none text-white">{s.value}</p>
               </div>
             ))}
           </div>
@@ -463,10 +463,10 @@ export default function TeamPage() {
           transition={{ duration: 0.55 }}
           className="mb-14 text-center"
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/[0.07] px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-amber-300">
+          <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/[0.07] px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-[0.14em] sm:tracking-[0.2em] text-amber-300">
             🗺 Loyiha yo&apos;l xaritasi
           </span>
-          <h2 className="mt-5 text-3xl font-black tracking-tight sm:text-[2.4rem]">
+          <h2 className="mt-5 text-2xl sm:text-3xl font-black tracking-tight sm:text-[2.4rem]">
             Har bir modul —
             <span className="block bg-gradient-to-r from-amber-300 to-orange-200 bg-clip-text text-transparent">
               bitta o&apos;quvchi
@@ -480,7 +480,7 @@ export default function TeamPage() {
         {/* road container */}
         <div className="relative" style={{ perspective: '1000px' }}>
           {/* vertical line */}
-          <div className="absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2">
+          <div className="absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 hidden sm:block">
             <div className="absolute inset-0 bg-white/[0.06]" />
             <motion.div
               className="absolute inset-x-0 top-0 origin-top"

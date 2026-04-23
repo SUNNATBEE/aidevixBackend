@@ -79,61 +79,61 @@ export default function ReferralPage() {
   const friendBg = isDark ? 'bg-[#0a0c14]/50 border-white/5' : 'bg-gray-50 border-gray-200';
 
   return (
-    <div className={`min-h-screen ${bg} relative overflow-hidden py-24 pb-32`} ref={containerRef}>
+    <div className={`min-h-screen ${bg} relative overflow-hidden py-20 sm:py-24 pb-20 sm:pb-32`} ref={containerRef}>
       {/* Background blobs */}
       <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] max-w-[800px] max-h-[800px] bg-emerald-600/10 rounded-full blur-[150px] -translate-y-1/2 pointer-events-none"></div>
       <div className="absolute bottom-0 right-1/4 w-[40vw] h-[40vw] max-w-[600px] max-h-[600px] bg-indigo-600/10 rounded-full blur-[120px] translate-y-1/3 pointer-events-none"></div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 relative z-10">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 relative z-10">
 
         {/* ─── Header ─── */}
-        <div className="text-center mb-12" ref={cardRef}>
-          <div className="inline-flex items-center gap-2 mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-1.5 rounded-full font-medium tracking-wide text-sm">
+        <div className="text-center mb-8 sm:mb-12" ref={cardRef}>
+          <div className="inline-flex items-center gap-2 mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 sm:px-4 py-1.5 rounded-full font-medium tracking-wide text-xs sm:text-sm">
             <span className="animate-pulse">💎</span> {t('referral.badge')}
           </div>
-          <h1 className={`text-4xl md:text-6xl font-extrabold mb-6 tracking-tight ${textMain}`}>
+          <h1 className={`text-3xl sm:text-4xl md:text-6xl font-extrabold mb-4 sm:mb-6 tracking-tight ${textMain}`}>
             {t('referral.title')} <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">
               {t('referral.title2')}
             </span>
           </h1>
-          <p className={`text-lg md:text-xl max-w-2xl mx-auto ${textMuted}`}>
+          <p className={`text-sm sm:text-base md:text-xl max-w-2xl mx-auto ${textMuted}`}>
             {t('referral.subtitle', { you: '1000 XP', friend: '500 XP' })}
           </p>
         </div>
 
         {/* ─── Main Grid ─── */}
-        <div className="grid lg:grid-cols-5 gap-8 items-start mb-16">
+        <div className="grid lg:grid-cols-5 gap-5 sm:gap-8 items-start mb-10 sm:mb-16">
 
           {/* Link Box */}
-          <div className={`lg:col-span-3 backdrop-blur-xl border rounded-3xl p-8 shadow-2xl relative overflow-hidden ${cardBg}`}>
+          <div className={`lg:col-span-3 backdrop-blur-xl border rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl relative overflow-hidden ${cardBg}`}>
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-indigo-500"></div>
 
-            <h2 className={`text-2xl font-bold mb-2 ${textMain}`}>{t('referral.yourLink')}</h2>
-            <p className={`mb-8 text-sm ${textMuted}`}>{t('referral.yourLinkSub')}</p>
+            <h2 className={`text-xl sm:text-2xl font-bold mb-2 ${textMain}`}>{t('referral.yourLink')}</h2>
+            <p className={`mb-5 sm:mb-8 text-sm ${textMuted}`}>{t('referral.yourLinkSub')}</p>
 
             {/* My Referral Code Badge */}
-            <div className="mb-4 flex items-center gap-3">
+            <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
               <span className={`text-sm font-medium ${textMuted}`}>Sizning kodingiz:</span>
-              <span className="bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 font-mono font-black text-lg px-4 py-1 rounded-xl tracking-widest">
+              <span className="bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 font-mono font-black text-sm sm:text-lg px-3 sm:px-4 py-1 rounded-xl tracking-widest">
                 {referralCode}
               </span>
             </div>
 
             <div className="flex flex-col gap-4">
-              <div className="relative">
+              <div className="relative flex flex-col gap-2 sm:block">
                 <input
                   type="text"
                   value={inviteLink}
                   readOnly
-                  className={`w-full border-2 font-medium py-4 pl-6 pr-36 rounded-2xl focus:outline-none focus:border-indigo-500 transition-colors ${inputBg}`}
+                  className={`w-full border-2 font-medium py-3.5 sm:py-4 pl-4 sm:pl-6 pr-4 sm:pr-36 rounded-xl sm:rounded-2xl text-xs sm:text-sm focus:outline-none focus:border-indigo-500 transition-colors ${inputBg}`}
                 />
                 <button
                   onClick={handleCopy}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-5 rounded-xl transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+                  className="sm:absolute sm:right-2 sm:top-1/2 sm:-translate-y-1/2 w-full sm:w-auto justify-center bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-4 sm:px-5 rounded-xl transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.3)]"
                 >
                   {copied ? <FiCheck size={16} /> : <FiCopy size={16} />}
-                  <span className="hidden sm:inline">{copied ? t('referral.copied') : t('referral.copy')}</span>
+                  <span>{copied ? t('referral.copied') : t('referral.copy')}</span>
                 </button>
               </div>
 
@@ -159,11 +159,11 @@ export default function ReferralPage() {
           </div>
 
           {/* Stats Box */}
-          <div className={`lg:col-span-2 backdrop-blur-xl border rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col gap-6 ${cardBg}`}>
+          <div className={`lg:col-span-2 backdrop-blur-xl border rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl relative overflow-hidden flex flex-col gap-4 sm:gap-6 ${cardBg}`}>
             <div>
               <h3 className={`text-sm font-medium uppercase tracking-wider mb-2 ${textMuted}`}>{t('referral.totalFriends')}</h3>
               <div className="flex items-baseline gap-2">
-                <span className={`text-5xl font-black ${textMain}`}>{loadingData ? '...' : totalFriends}</span>
+                <span className={`text-4xl sm:text-5xl font-black ${textMain}`}>{loadingData ? '...' : totalFriends}</span>
                 <span className={textMuted}>ta</span>
               </div>
             </div>
@@ -171,8 +171,8 @@ export default function ReferralPage() {
             <div>
               <h3 className={`text-sm font-medium uppercase tracking-wider mb-2 ${textMuted}`}>{t('referral.earned')}</h3>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-black text-emerald-400">+ {loadingData ? '...' : totalXp}</span>
-                <span className={`text-xl font-bold ${textMuted}`}>XP</span>
+                <span className="text-3xl sm:text-4xl font-black text-emerald-400">+ {loadingData ? '...' : totalXp}</span>
+                <span className={`text-base sm:text-xl font-bold ${textMuted}`}>XP</span>
               </div>
             </div>
             <div className={`rounded-2xl p-4 flex items-center justify-between ${isDark ? 'bg-indigo-900/30 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-100'}`}>
@@ -183,15 +183,15 @@ export default function ReferralPage() {
         </div>
 
         {/* ─── Bottom: Leaderboard + History ─── */}
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-5 sm:gap-8">
 
           {/* Top Referrers */}
-          <div className={`backdrop-blur-md border rounded-3xl p-6 shadow-lg ${sectionBg}`}>
+          <div className={`backdrop-blur-md border rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg ${sectionBg}`}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 bg-yellow-500/10 text-yellow-500 rounded-xl">
                 <FiAward size={24} />
               </div>
-              <h3 className={`text-xl font-bold ${textMain}`}>{t('referral.topHeroes')}</h3>
+              <h3 className={`text-lg sm:text-xl font-bold ${textMain}`}>{t('referral.topHeroes')}</h3>
             </div>
             <div className="space-y-3">
               {loadingData ? (
@@ -222,12 +222,12 @@ export default function ReferralPage() {
           </div>
 
           {/* My Friends History */}
-          <div className={`backdrop-blur-md border rounded-3xl p-6 shadow-lg ${sectionBg}`}>
+          <div className={`backdrop-blur-md border rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg ${sectionBg}`}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl">
                 <FiUsers size={24} />
               </div>
-              <h3 className={`text-xl font-bold ${textMain}`}>{t('referral.myFriends')}</h3>
+              <h3 className={`text-lg sm:text-xl font-bold ${textMain}`}>{t('referral.myFriends')}</h3>
             </div>
             <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
               {loadingData ? (
