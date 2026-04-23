@@ -1,541 +1,563 @@
-# Aidevix — Video Tizimi: Frontend Integratsiya Qo'llanmasi
+# Video Integration — Frontend Guide
 
-> **Abduvoris uchun yozilgan.** Backend tayyor — siz faqat frontend qismini implement qilasiz.
+**Masul:** Abduvoris
+**Repo:** AidevixBackend -> `frontend/` papka
+**Sana:** 2026-04-23
 
 ---
 
-## 1. Muhit o'zgaruvchilari (.env)
+## Mundarija
 
-Backend `.env` faylida quyidagilar **albatta** bo'lishi kerak. Bularni Sunnatbekdan oling:
+1. [Umumiy arxitektura](#1-umumiy-arxitektura)
+2. [Environment Variables](#2-environment-variables)
+3. [Bunny.net qanday ishlaydi](#3-bunnynet)
+4. [Mavjud fayllar xaritasi](#4-fayllar)
+5. [API qatlami — videoApi.ts](#5-api)
+6. [Redux slice — videoSlice.ts](#6-redux)
+7. [Hook — useVideos.ts](#7-hook)
+8. [Subscription Gate](#8-subscription)
+9. [Video sahifa — /videos/[id]](#9-video-sahifa)
+10. [VideoComments komponenti](#10-comments)
+11. [Abduvoris — nima qilish kerak](#11-abduvoris)
+12. [Ownership kommentlar](#12-ownership)
+13. [Test qilish](#13-test)
+
+---
+
+## 1. Umumiy Arxitektura
+
+```
+Foydalanuvchi /videos/[id] sahifasiga kiradi
+        |
+        v
+[Redux] fetchVideo(id) -> GET /api/videos/:id  (cookie auth + subscription check)
+        |
+        +-- 403 Forbidden --> SubscriptionGate modal ochiladi
+        |                     (Telegram + Instagram obuna soradi)
+        |
+        +-- 200 OK ---------> { video, player: { embedUrl, expiresAt } }
+                |
+                +-- player.embedUrl mavjud --> Bunny.net iframe (token himoya)
+                |
+                +-- player null --> Telegram link tugmasi (eski videolar)
+```
+
+**Muhim qoidalar:**
+- `subscriptionCheck` middleware har bir `GET /api/videos/:id` da Telegram obunasini tekshiradi
+- Bunny.net `embedUrl` 2 soat amal qiladi — muddati tugagach reload kerak
+- Auth: **faqat cookie** — localStorage token TAQIQLANGAN
+
+---
+
+## 2. Environment Variables
+
+### Frontend `.env.local` (Vercel da ham shu nomlar)
 
 ```env
-# ── Bunny.net Stream ──────────────────────────────────────────────────
-BUNNY_STREAM_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-# Bunny dashboard → Stream → Library → API Key
-# Bu kalit: video yaratish, o'chirish, holat tekshirish uchun
+# Lokal dev
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
 
-BUNNY_LIBRARY_ID=123456
-# Bunny dashboard → Stream → Library → Library ID (raqam)
-# Har so'rovda URL da ishlatiladi: /library/{BUNNY_LIBRARY_ID}/videos/...
+# Production (Railway)
+# NEXT_PUBLIC_BACKEND_URL=https://aidevix-backend-production.up.railway.app
+```
 
-BUNNY_TOKEN_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-# Bunny dashboard → Stream → Security → Token Authentication Key
-# Signed embed URL yaratishda SHA256 hash uchun ishlatiladi
-# BU KALIT SIRI — hech qachon frontendga yuborma!
+> **Eslatma:** Frontend Bunny.net kalitiga muhtoj EMAS.
+> Barcha Bunny.net kalitlari faqat backend `.env` da.
 
-# ── JWT (Auth) ────────────────────────────────────────────────────────
-JWT_SECRET=your-jwt-secret-here
-JWT_REFRESH_SECRET=your-refresh-secret-here
+### Backend `.env` (Railway — faqat malumot uchun)
 
-# ── MongoDB ───────────────────────────────────────────────────────────
+```env
+BUNNY_STREAM_API_KEY=xxxxxxxx   # Bunny panel -> Stream Library -> API key
+BUNNY_LIBRARY_ID=123456         # Bunny panel -> Library ID (raqam)
+BUNNY_TOKEN_KEY=xxxxxxxx        # Bunny panel -> Security -> Token Auth Key
+
 MONGODB_URI=mongodb+srv://...
-
-# ── Telegram (Subscription Gate) ─────────────────────────────────────
-TELEGRAM_BOT_TOKEN=123456789:AAxxxxxx
+JWT_SECRET=...
+TELEGRAM_BOT_TOKEN=...
 TELEGRAM_CHANNEL_USERNAME=aidevix
-
-# ── Frontend CORS ─────────────────────────────────────────────────────
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=https://aidevix.uz,http://localhost:3000
 ```
 
-> **Eslatma:** Frontend `.env` ga faqat `NEXT_PUBLIC_` prefix bilan boshlanadigan o'zgaruvchilar yoziladi va ular brauzerda ko'rinadi. Backend URL dan boshqa hech narsa frontendga chiqarilmaydi.
+### Bunny.net kalitlarini qayerdan olish
 
-```env
-# frontend/.env.local
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
-```
+1. **bunny.net** ga kiring
+2. **Stream** -> Library tanlang
+3. **API Key:** Library Settings -> General -> API Key
+4. **Library ID:** URL dagi raqam: `video.bunnycdn.com/library/123456` -> `123456`
+5. **Token Key:** Library Settings -> Security -> Token Authentication -> Token Security Key
 
 ---
 
-## 2. Arxitektura — Videolar qanday ishlaydi?
+## 3. Bunny.net Qanday Ishlaydi
+
+### Token formulasi (backend da avtomatik yaratiladi)
 
 ```
-Bunny.net (CDN + Encode)
-      ↑ upload (PUT)
-Admin Panel → POST /api/videos → Backend → Bunny API → video slot yaratadi
-                                                ↓
-                                         bunnyVideoId saqlaydi (MongoDB)
+expiresAt = Math.floor(Date.now() / 1000) + 7200   // Unix timestamp, 2 soat
+token     = SHA256(BUNNY_TOKEN_KEY + videoId + expiresAt) -> hex string
 
-Foydalanuvchi:
-  1. Login qiladi (JWT cookie)
-  2. Telegram + Instagram ga obuna bo'ladi
-  3. GET /api/videos/:id so'raydi
-  4. Backend → signed embed URL beradi (2 soat amal qiladi)
-  5. Frontend → <iframe src={embedUrl}> ko'rsatadi
-  6. Bunny CDN → videoni stream qiladi (token tekshirib)
+embedUrl  = https://iframe.mediadelivery.net/embed/{libraryId}/{videoId}
+            ?token={token}&expires={expiresAt}&autoplay=false&responsive=true
 ```
 
-**Asosiy qoida:** Foydalanuvchi hech qachon to'g'ridan-to'g'ri Bunny ga ulanmaydi. Backend har safar yangi signed URL generatsiya qiladi — shuning uchun video URL ni cache qilmang yoki localStorage ga saqlamang.
+### Backend response strukturasi
 
----
-
-## 3. API Endpointlar
-
-**Base URL:** `http://localhost:5000/api/videos`
-
-Barcha so'rovlarda cookie avtomatik yuborilishi uchun axios instance ni `withCredentials: true` bilan sozlang.
-
-### 3.1 Kurs videolari ro'yxati
-
-```
-GET /api/videos/course/:courseId
-```
-
-**Auth:** Shart emas (public)
-
-**Javob:**
-```json
-{
-  "success": true,
-  "data": {
-    "videos": [
-      {
-        "_id": "664abc...",
-        "title": "JavaScript asoslari",
-        "description": "...",
-        "order": 1,
-        "duration": 1845,
-        "thumbnail": "https://...",
-        "bunnyStatus": "ready",
-        "viewCount": 142
-      }
-    ],
-    "count": 12
-  }
-}
-```
-
-**Frontend da nima qilasiz:**
-- `bunnyStatus === 'ready'` bo'lgan videolarni bosish mumkin
-- `bunnyStatus !== 'ready'` bo'lsa — "Tez kunda" badge ko'rsating
-- `duration` soniyada keladi → `Math.floor(d/60) + ':' + String(d%60).padStart(2,'0')` bilan formatlang
-
----
-
-### 3.2 Bitta videoni ochish (ASOSIY endpoint)
-
-```
-GET /api/videos/:id
-```
-
-**Auth:** Kerak (JWT cookie)  
-**Subscription:** Kerak (Telegram + Instagram)
-
-**Muvaffaqiyatli javob:**
 ```json
 {
   "success": true,
   "data": {
     "video": {
-      "_id": "664abc...",
-      "title": "JavaScript asoslari",
+      "_id": "...",
+      "title": "Video nomi",
       "description": "...",
-      "duration": 1845,
-      "order": 1,
-      "thumbnail": "https://...",
-      "materials": [
-        { "name": "Kod namunalari", "url": "https://..." }
-      ],
-      "course": { "_id": "...", "title": "..." }
+      "duration": 720,
+      "viewCount": 1234,
+      "course": { "title": "Kurs nomi" }
     },
     "player": {
-      "embedUrl": "https://iframe.mediadelivery.net/embed/123456/guid?token=abc&expires=1234567890&autoplay=false&responsive=true",
-      "expiresAt": "2025-04-23T14:00:00.000Z"
-    }
+      "embedUrl": "https://iframe.mediadelivery.net/embed/123456/abc?token=xxx&expires=...",
+      "expiresAt": "2026-04-23T14:00:00.000Z"
+    },
+    "videoLink": null
   }
 }
 ```
 
-**Xato holatlari:**
+`player` null bolsa — video hali Bunny.net ga kochirилмаган (eski Telegram videolar).
 
-| HTTP | Sabab | Frontend da ko'rsatish |
-|------|-------|------------------------|
-| `401` | Login qilinmagan | Login sahifasiga yo'naltiring |
-| `403` + `isSubscriptionError: true` | Obuna yo'q | `SubscriptionGate` component |
-| `503` + `bunnyStatus: "processing"` | Video hali encode bo'lmoqda | "Tayyorlanmoqda..." spinner |
-| `503` (bunnyVideoId yo'q) | Video yuklanmagan | "Tez kunda" xabari |
-
-**Frontend implementatsiya:**
+### Iframe frontend da
 
 ```tsx
-// app/videos/[id]/page.tsx
-
-async function getVideoData(id: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/videos/${id}`, {
-    credentials: 'include',  // cookie yuborish uchun MUHIM
-    cache: 'no-store',       // embedUrl har safar yangi bo'lishi kerak
-  });
-  
-  if (!res.ok) {
-    const err = await res.json();
-    throw err;
-  }
-  
-  return res.json();
-}
+<iframe
+  title={video.title}
+  src={embedUrl}
+  className="h-full w-full"
+  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+  allowFullScreen
+/>
 ```
 
-```tsx
-// Video player component
-
-function VideoPlayer({ embedUrl }: { embedUrl: string }) {
-  return (
-    <div style={{ position: 'relative', paddingTop: '56.25%' }}>
-      <iframe
-        src={embedUrl}
-        style={{
-          position: 'absolute',
-          top: 0, left: 0,
-          width: '100%', height: '100%',
-          border: 'none',
-        }}
-        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-        allowFullScreen
-      />
-    </div>
-  );
-}
-```
-
-> **MUHIM:** `embedUrl` ni hech qachon localStorage yoki sessionStorage ga saqlamang. Bu URL 2 soatdan keyin o'chadi. Sahifani har ochganda backend dan yangi URL oling.
+Token muddati tugasa Bunny 403 qaytaradi. `window.location.reload()` bilan yangi token olinadi.
 
 ---
 
-### 3.3 Video qidirish
+## 4. Mavjud Fayllar Xaritasi
 
 ```
-GET /api/videos/search?q=javascript&courseId=664abc&page=1&limit=20
+frontend/src/
+|
++-- api/
+|   +-- axiosInstance.ts         <- Axios + withCredentials: true (ozgartirma!)
+|   +-- videoApi.ts              <- Video API metodlari (tayyor)
+|
++-- store/slices/
+|   +-- videoSlice.ts            <- Redux state + async thunks (tayyor)
+|
++-- hooks/
+|   +-- useVideos.ts             <- useVideos() va useVideo(id) hooklar (tayyor)
+|
++-- components/videos/
+|   +-- VideoCard.tsx            <- Video kartochka
+|   +-- VideoCardSkeleton.tsx    <- Loading skeleton
+|   +-- VideoLinkModal.tsx       <- Telegram link modal
+|   +-- VideoRating.tsx          <- 1-5 yulduz reyting
+|   +-- VideoComments.tsx        <- Q&A bolimi (tayyor)
+|
++-- app/videos/[id]/
+|   +-- page.tsx                 <- Asosiy video sahifa (Bunny iframe + SubscriptionGate)
+|
++-- components/subscription/
+    +-- SubscriptionGate.tsx     <- Obuna tosiq modal
 ```
 
-**Auth:** Kerak  
-**Query params:**
+---
 
-| Param | Tavsif | Default |
-|-------|--------|---------|
-| `q` | Sarlavha bo'yicha qidirish (ixtiyoriy) | `''` |
-| `courseId` | Kurs bo'yicha filter (ixtiyoriy) | — |
-| `page` | Sahifa raqami | `1` |
-| `limit` | Har sahifada nechta (max 100) | `20` |
+## 5. API Qatlami
 
-**Javob:**
-```json
+**Fayl:** `frontend/src/api/videoApi.ts`
+
+```typescript
+import api from './axiosInstance'
+
+export const videoApi = {
+  // Kurs videolari royxati (obuna shart emas)
+  getByCourse: (courseId) => api.get(`videos/course/${courseId}`),
+
+  // Bitta video + Bunny embed URL (auth + obuna kerak!)
+  getById: (id) => api.get(`videos/${id}`),
+
+  // Bir martalik Telegram link ishlatish (mark as used)
+  useLink: (linkId) => api.post(`videos/link/${linkId}/use`),
+
+  // Eng kop korilgan videolar
+  getTop: (limit = 8) => api.get('videos/top', { params: { limit } }),
+
+  // Reyting berish (1-5 yulduz)
+  rate: (id, rating) => api.post(`videos/${id}/rate`, { rating }),
+
+  // Reyting statistikasi
+  getRating: (id) => api.get(`videos/${id}/rating`),
+
+  // Admin funksiyalar
+  create: (data) => api.post('videos', data),
+  update: (id, data) => api.put(`videos/${id}`, data),
+  delete: (id) => api.delete(`videos/${id}`),
+}
+```
+
+**axiosInstance** sozlamalari:
+- `baseURL` = `NEXT_PUBLIC_BACKEND_URL/api/`
+- `withCredentials: true` — cookie auth uchun MAJBURIY, ozgartirma
+
+---
+
+## 6. Redux Slice
+
+**Fayl:** `frontend/src/store/slices/videoSlice.ts`
+
+### State strukturasi
+
+```typescript
 {
-  "success": true,
-  "data": {
-    "videos": [...],
-    "pagination": {
-      "total": 45,
-      "page": 1,
-      "limit": 20,
-      "pages": 3
-    }
-  }
+  courseVideos: Video[]            // Kurs videolari royxati
+  topVideos:    Video[]            // Top/trending videolar
+  current:      Video | null       // Hozirgi ochiq video malumoti
+  videoLink:    VideoLink | null   // Telegram one-time link
+  player: {
+    embedUrl:  string   // <-- iframe src sifatida ishlatiladi (ASOSIY)
+    expiresAt: string   // <-- 2 soatdan keyin eskiradi
+  } | null
+  loading:      boolean
+  linkLoading:  boolean
+  error:        any
+  ratings:      Record<string, { average: number; count: number; userRating?: number }>
 }
 ```
 
----
+### Asosiy thunks
 
-### 3.4 Top videolar
+| Thunk | Qachon ishlatiladi |
+|-------|-------------------|
+| `fetchCourseVideos(courseId)` | Kurs sahifasida — barcha videolar |
+| `fetchVideo(id)` | Video sahifasiga kirilganda |
+| `fetchTopVideos(limit)` | Homepage — mashhur videolar |
+| `rateVideo({ id, rating })` | Reyting berish |
+| `useVideoLink(linkId)` | Telegram link ishlatish |
 
-```
-GET /api/videos/top?limit=10
-```
+### Selectors
 
-**Auth:** Shart emas  
-Ko'rishlar soni (`viewCount`) bo'yicha eng ommabop videolar.
-
----
-
-### 3.5 Video savollar (Q&A)
-
-**Savol yuborish:**
-```
-POST /api/videos/:id/questions
-Content-Type: application/json
-
-{ "question": "Async/await ni qachon ishlatamiz?" }
-```
-
-**Savollarni olish:**
-```
-GET /api/videos/:id/questions?page=1&limit=20
-```
-
-**Javob:**
-```json
-{
-  "success": true,
-  "data": {
-    "questions": [
-      {
-        "_id": "...",
-        "question": "Async/await ni qachon ishlatamiz?",
-        "answer": "Promise zanjiri murakkablashganda...",
-        "isAnswered": true,
-        "userId": { "username": "abduvoris" },
-        "answeredBy": { "username": "sunnatbek" },
-        "createdAt": "2025-04-23T10:00:00.000Z",
-        "answeredAt": "2025-04-23T11:30:00.000Z"
-      }
-    ],
-    "total": 5,
-    "page": 1,
-    "pages": 1
-  }
-}
+```typescript
+import {
+  selectCurrentVideo,   // state.videos.current
+  selectVideoLink,      // state.videos.videoLink
+  selectVideoPlayer,    // state.videos.player  <-- ASOSIY: { embedUrl, expiresAt }
+  selectVideoLoading,   // state.videos.loading
+  selectVideoError,     // state.videos.error
+  selectCourseVideos,
+  selectTopVideos,
+  selectRatings,
+} from '@store/slices/videoSlice'
 ```
 
 ---
 
-## 4. Obuna (Subscription) Gate
+## 7. Hook
 
-Video ochishda **eng muhim** qism — bu `403` xato holatini to'g'ri handle qilish.
+**Fayl:** `frontend/src/hooks/useVideos.ts`
+
+### useVideos() — barcha state + metodlar
 
 ```tsx
-// Subscription xatosini qanday aniqlash:
+import { useVideos } from '@hooks/useVideos'
 
-try {
-  const data = await getVideoData(videoId);
-  // muvaffaqiyat
-} catch (err) {
-  if (err.status === 403 && err.isSubscriptionError) {
-    // Foydalanuvchini subscription gate ga yo'naltiring
-    // err.missingSubscriptions massivi: ['Telegram'] yoki ['Instagram'] yoki ikkalasi
-    router.push('/subscription');
-  }
-}
-```
+function CourseVideoList({ courseId }: { courseId: string }) {
+  const { courseVideos, loading, fetchByCourse } = useVideos()
 
-**Subscription tekshirish jarayoni:**
-1. Foydalanuvchi Telegram `@aidevix` kanaliga obuna bo'ladi
-2. Bot orqali Telegram ID ni bog'laydi (`/api/subscription/verify-telegram`)
-3. Backend har video so'rovida real-time tekshiradi (Telegram Bot API)
-4. Obuna bo'lmasa → `403` qaytaradi
+  useEffect(() => {
+    fetchByCourse(courseId)
+  }, [courseId])
 
----
-
-## 5. Video Statusi (bunnyStatus)
-
-Video yuklanganidan keyin Bunny uni encode qiladi. Bu 1-10 daqiqa oladi.
-
-| Status | Ma'no | Frontend |
-|--------|-------|----------|
-| `pending` | Bunny ga yuklanmagan | "Tez kunda" |
-| `processing` | Bunny qabul qildi, encode boshlanmagan | Spinner |
-| `encoding` | Encode jarayonida | Progress (encodeProgress %) |
-| `ready` | Tayyor, ko'rish mumkin ✅ | Player ko'rsat |
-| `failed` | Xato yuz berdi | "Xato yuz berdi" |
-
----
-
-## 6. Auth (Cookie) ni to'g'ri sozlash
-
-Backend JWT tokenni **httpOnly cookie** da saqlaydi. Siz uni ko'ra olmaysiz va ko'rishingiz shart emas. Faqat bitta narsa kerak:
-
-```ts
-// axiosInstance.ts
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-  withCredentials: true,  // ← BU MUHIM! Cookie avtomatik yuboriladi
-});
-
-export default api;
-```
-
-```ts
-// fetch ishlatayotgan bo'lsangiz:
-fetch(url, {
-  credentials: 'include',  // ← BU MUHIM!
-})
-```
-
-**Tekshirish:** Login qilgandan keyin browser DevTools → Application → Cookies → `access_token` cookie ko'rinishi kerak.
-
----
-
-## 7. Xato holatlari — To'liq ro'yxat
-
-```ts
-async function loadVideo(id: string) {
-  try {
-    const res = await api.get(`/videos/${id}`);
-    return res.data.data;
-  } catch (error) {
-    const status = error.response?.status;
-    const data = error.response?.data;
-
-    switch (status) {
-      case 401:
-        // Login qilinmagan
-        router.push('/login');
-        break;
-
-      case 403:
-        if (data?.isSubscriptionError) {
-          // Obuna yo'q — subscription gate ko'rsat
-          showSubscriptionModal(data.missingSubscriptions);
-        }
-        break;
-
-      case 404:
-        // Video topilmadi
-        router.push('/404');
-        break;
-
-      case 503:
-        if (data?.bunnyStatus) {
-          // Video encode bo'lmoqda
-          showMessage('Video tayyorlanmoqda, biroz kuting...');
-        } else {
-          // Video yuklanmagan
-          showMessage('Bu video tez kunda qo\'shiladi');
-        }
-        break;
-
-      default:
-        showMessage('Xato yuz berdi. Sahifani yangilang.');
-    }
-  }
-}
-```
-
----
-
-## 8. Video Player — Tayyor iframe kodi
-
-Bunny player `responsive=true` bilan keladi, lekin containerni to'g'ri o'lchamda berish kerak:
-
-```tsx
-// components/VideoPlayer.tsx
-
-interface VideoPlayerProps {
-  embedUrl: string;
-  title: string;
-  expiresAt: string;
-}
-
-export function VideoPlayer({ embedUrl, title, expiresAt }: VideoPlayerProps) {
-  const isExpired = new Date() > new Date(expiresAt);
-
-  if (isExpired) {
-    // Sahifani reload qiling — yangi URL oladi
-    window.location.reload();
-    return null;
-  }
+  if (loading) return <div>Yuklanmoqda...</div>
 
   return (
-    <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
-      <iframe
-        src={embedUrl}
-        title={title}
-        className="absolute inset-0 w-full h-full rounded-lg"
-        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-        allowFullScreen
-      />
-    </div>
-  );
+    <ul>
+      {courseVideos.map(v => (
+        <li key={v._id}>{v.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+### useVideo(id) — bitta video + avtomatik fetch + cleanup
+
+```tsx
+import { useVideo } from '@hooks/useVideos'
+
+function MyVideoSection({ id }: { id: string }) {
+  // Avtomatik: mount -> fetchById(id), unmount -> clearCurrentVideo()
+  const { video, player, videoLink, loading, error } = useVideo(id)
+  const embedUrl = player?.embedUrl
+
+  if (loading) return <Spinner />
+  if (error)   return <ErrorMessage />
+
+  return embedUrl ? (
+    <iframe src={embedUrl} allowFullScreen className="w-full aspect-video" />
+  ) : (
+    <p>Video Telegram da joylashgan</p>
+  )
 }
 ```
 
 ---
 
-## 9. Materiallar (PDF, ZIP fayllar)
+## 8. Subscription Gate
 
-Video response ichida `materials` massivi keladi:
+### Backend qanday tekshiradi
+
+```
+1. JWT cookie -> userId oladi
+2. User.socialSubscriptions.telegram -> telegramId oladi
+3. Telegram Bot API: getChatMember(@aidevix, telegramId)
+4. Obuna bolmasa -> 403 Forbidden
+5. Obuna bolsa  -> video + player data qaytaradi
+```
+
+### Frontend da obuna holati
 
 ```tsx
-{video.materials?.map((material) => (
-  <a
-    key={material.url}
-    href={material.url}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="flex items-center gap-2 p-3 bg-gray-800 rounded hover:bg-gray-700"
-  >
-    <span>📎</span>
-    <span>{material.name}</span>
-  </a>
-))}
+import { selectIsLoggedIn } from '@store/slices/authSlice'
+import { selectInstagramSub, selectTelegramSub } from '@store/slices/subscriptionSlice'
+
+const isLoggedIn  = useSelector(selectIsLoggedIn)
+const instagram   = useSelector(selectInstagramSub)
+const telegram    = useSelector(selectTelegramSub)
+
+// Ham Telegram, ham Instagram tasdiqlangan bolsa true
+const isSubscribed = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed)
 ```
 
----
-
-## 10. XP — Video ko'rishdan +50 XP
-
-Foydalanuvchi video ko'rganidan keyin XP berish backend da **alohida endpoint** orqali amalga oshiriladi:
-
-```
-POST /api/xp/watch-video
-Content-Type: application/json
-
-{ "videoId": "664abc..." }
-```
-
-Bu endpointni video tomosha tugagandan keyin chaqiring. Bunny player `onEnded` eventini qo'llab-quvvatlaydi:
+### SubscriptionGate ishlatish
 
 ```tsx
-// Bunny player events uchun postMessage listener:
-useEffect(() => {
-  const handleMessage = (e: MessageEvent) => {
-    if (e.data === 'video:ended') {
-      api.post('/xp/watch-video', { videoId });
-    }
-  };
-  window.addEventListener('message', handleMessage);
-  return () => window.removeEventListener('message', handleMessage);
-}, [videoId]);
+import SubscriptionGate from '@components/subscription/SubscriptionGate'
+
+const [showModal, setShowModal] = useState(false)
+
+<SubscriptionGate
+  isOpen={showModal}
+  onClose={() => setShowModal(false)}
+  onSuccess={() => window.location.reload()}
+  videoId={id}
+/>
 ```
 
 ---
 
-## 11. Tez-tez so'raladigan savollar
+## 9. Video Sahifa
 
-**Q: Video URL ni olishda CORS xatosi chiqyapti?**  
-A: Backend `FRONTEND_URL` env var ni tekshiring. U `http://localhost:3000` bo'lishi kerak (port bilan).
+**Fayl:** `frontend/src/app/videos/[id]/page.tsx`
 
-**Q: Cookie yuborilmayapti?**  
-A: `withCredentials: true` qo'shilganmi tekshiring. HTTPS da ishlamasa backend `sameSite: 'none'` va `secure: true` cookie sozlamalari kerak bo'ladi.
+### Sahifa tuzilishi (tartib)
 
-**Q: embedUrl expired bo'lib qoldi?**  
-A: URL 2 soat amal qiladi. `expiresAt` ni tekshirib, expired bo'lsa sahifani reload qiling — backend yangi URL beradi.
+```
+1. Orqaga tugma (router.back())
+2. Video Header card — title, description, duration, views, reyting
+3. Video player
+   a) Bunny iframe  — player.embedUrl mavjud bolsa (yangi, HD videolar)
+   b) Telegram link — player null bolsa (eski videolar)
+4. Playground banner
+5. VideoComments videoId={id}
+6. SubscriptionGate modal — kerak bolsa
+```
 
-**Q: Video `processing` holatida qolib ketdi?**  
-A: Bu admin muammosi. Sunnatbekga ayting — `/api/videos/:id/status` endpoint orqali Bunny dan holat tekshiriladi.
+### Player qaror qanday qilinadi
 
-**Q: `isSubscriptionError: true` lekin foydalanuvchi obuna bo'lgan?**  
-A: Telegram Bot API vaqtincha ishlamayapti. Backend 503 qaytarishi kerak, lekin ayrim hollarda 403 kelishi mumkin. `missingSubscriptions` massivini ko'rsat va foydalanuvchiga qayta urinib ko'rishni ayting.
+```tsx
+const { current: video, player, videoLink } = useVideos()
+const embedUrl = player?.embedUrl
+
+return embedUrl ? (
+  // Bunny.net Stream (yangi, HD videolar)
+  <div className="aspect-video w-full">
+    <iframe
+      src={embedUrl}
+      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+      allowFullScreen
+      className="h-full w-full"
+    />
+  </div>
+) : (
+  // Telegram link fallback (eski videolar)
+  videoLink && isSubscribed ? (
+    <a href={videoLink.telegramLink} target="_blank" rel="noopener noreferrer">
+      Videoni korish
+    </a>
+  ) : (
+    <button onClick={() => setShowModal(true)}>Videoni korish</button>
+  )
+)
+```
 
 ---
 
-## 12. Qisqacha Cheat Sheet
+## 10. VideoComments
 
+**Fayl:** `frontend/src/components/videos/VideoComments.tsx`
+
+```tsx
+import VideoComments from '@/components/videos/VideoComments'
+
+// Video sahifada — bitta prop
+<VideoComments videoId={id} />
 ```
-# Video ro'yxati (auth shart emas)
-GET /api/videos/course/:courseId
 
-# Video ochish (auth + subscription kerak)
-GET /api/videos/:id
+**Funksiyalari:**
+- `GET /api/videos/:id/questions?page=1&limit=10` — savollar (paginated)
+- `POST /api/videos/:id/questions` — yangi savol (auth kerak)
+- `isAnswered: true` bolsa admin javobi korsatiladi (yashil badge)
+- Auth bolmasa — "Tizimga kiring" havolasi
 
-# Qidirish (auth kerak)
-GET /api/videos/search?q=...
+---
 
-# Top videolar (auth shart emas)
-GET /api/videos/top?limit=10
+## 11. Abduvoris — Nima Qilish Kerak
 
-# Savol yuborish (auth kerak)
-POST /api/videos/:id/questions   { "question": "..." }
+Asosiy video infratuzilma **toliq tayyor**. Yangi feature qoshish tartibi:
 
-# Savollarni olish
-GET  /api/videos/:id/questions
+### Yangi komponent yaratish
 
-# XP olish (video ko'rgandan keyin)
-POST /api/xp/watch-video   { "videoId": "..." }
+```tsx
+// frontend/src/components/videos/MyFeature.tsx
+'use client'
+// ABDUVORIS
+
+import { useVideo } from '@hooks/useVideos'
+
+interface Props {
+  videoId: string
+}
+
+export default function MyFeature({ videoId }: Props) {
+  const { video, player } = useVideo(videoId)
+  // player?.embedUrl  -- Bunny iframe URL (null bolishi mumkin)
+  // video?.title      -- video nomi
+  // video?.duration   -- davomiyligi (sekund)
+  // video?.viewCount  -- korizlar soni
+
+  return (
+    <div>
+      {/* implementatsiya */}
+    </div>
+  )
+}
+```
+
+### Video sahifaga yangi bolim qoshish
+
+`frontend/src/app/videos/[id]/page.tsx` da VideoComments dan keyin:
+
+```tsx
+import VideoComments from '@/components/videos/VideoComments'
+import MyFeature from '@/components/videos/MyFeature'
+
+// return ichida:
+<VideoComments videoId={id} />
+{/* ABDUVORIS */}
+<MyFeature videoId={id} />
+```
+
+### Yangi API metod qoshish
+
+```typescript
+// frontend/src/api/videoApi.ts ga qoshing:
+export const videoApi = {
+  // ... mavjudlar ...
+  getTranscript: (id: string) => api.get(`videos/${id}/transcript`),
+}
+```
+
+### VideoRating komponentini ishlatish
+
+```tsx
+import VideoRating from '@/components/videos/VideoRating'
+
+<VideoRating videoId={id} />
 ```
 
 ---
 
-*Muammo bo'lsa — Sunnatbekga Telegram orqali yozing yoki Swagger UI ni tekshiring:*  
-`GET /api-docs` — Public API  
-`GET /api-docs/admin` — Admin API (login: admin / password Sunnatbekdan)
+## 12. Ownership
+
+`frontend/CLAUDE.md` qoidasiga kora, o'z fayllaringizga qoshing:
+
+```tsx
+// ABDUVORIS
+```
+
+Mavjud faylni tahrirlaganda faqat o'z bolimingizni belgilang:
+
+```tsx
+{/* ABDUVORIS — related videos grid */}
+<RelatedVideos videoId={id} />
+```
+
+---
+
+## 13. Test Qilish
+
+### Ishga tushirish
+
+```bash
+# Terminal 1: Backend
+cd backend && npm run dev     # port 5000
+
+# Terminal 2: Frontend
+cd frontend && npm run dev    # port 3000
+```
+
+### TypeScript va lint
+
+```bash
+cd frontend
+npx tsc --noEmit
+npx eslint src --ext .ts,.tsx
+```
+
+### Video integratsiyani qolda tekshirish
+
+1. `http://localhost:3000` — login qiling
+2. Telegram kanalga obuna: `@aidevix`
+3. Bot orqali boglanish: bot -> `/start`
+4. Kurs -> video bosing
+5. Bunny.net iframe ochilishi kerak (HD, responsive)
+
+### Obunasiz holat — 403 test
+
+1. Incognito oyna oching
+2. `/videos/[istalgan-id]` ga kiring
+3. Tugma bosing -> SubscriptionGate modal ochilishi kerak
+
+### Token muddatini console da tekshirish
+
+```javascript
+const iframe = document.querySelector('iframe')
+const url = new URL(iframe.src)
+const exp = url.searchParams.get('expires')
+console.log('Expires:', new Date(Number(exp) * 1000))
+// 2 soatdan keyin eskiradi
+```
+
+---
+
+## Qoshimcha Manbalar
+
+| Resurs | URL |
+|--------|-----|
+| Swagger API docs (lokal) | `http://localhost:5000/api-docs` |
+| Swagger login | `Aidevix` / `sunnatbee` |
+| Production backend | `https://aidevix-backend-production.up.railway.app` |
+| Bunny.net panel | `https://bunny.net` |
+
+> **Eslatma:** `backend/` papkadagi hech qanday faylga tegma.
+> Sen faqat `frontend/` papkada ishlaysan.
