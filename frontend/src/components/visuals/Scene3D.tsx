@@ -7,8 +7,7 @@ import {
   MeshDistortMaterial, 
   Sphere, 
   MeshWobbleMaterial, 
-  Stars,
-  Environment
+  Stars
 } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -80,7 +79,6 @@ export default function Scene3D() {
           <pointLight position={[10, 10, 10]} intensity={1} color="#8b5cf6" />
           <pointLight position={[-10, -10, -10]} intensity={0.5} color="#4f46e5" />
           <BackgroundObjects />
-          <Environment preset="city" />
         </Suspense>
       </Canvas>
     </div>

@@ -2,7 +2,7 @@
 
 import React, { useRef, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, MeshDistortMaterial, Sphere, MeshWobbleMaterial, Stars, Environment, Box, OrbitControls } from '@react-three/drei';
+import { Box } from '@react-three/drei';
 import * as THREE from 'three';
 
 const WireframeCube = ({ position, color, speed, distort }: any) => {

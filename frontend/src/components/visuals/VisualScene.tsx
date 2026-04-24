@@ -5,7 +5,6 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { 
   Float, 
   MeshDistortMaterial, 
-  Environment, 
   TorusKnot, 
   ContactShadows,
   Stars,
@@ -71,7 +70,6 @@ export default function VisualScene() {
 
           <Stars radius={50} depth={50} count={2000} factor={4} saturation={0} fade speed={1} />
           
-          <Environment preset="city" />
           <Preload all />
         </Suspense>
       </Canvas>

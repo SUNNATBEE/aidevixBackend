@@ -2,7 +2,7 @@
 
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Float, MeshDistortMaterial, Sphere, MeshWobbleMaterial, OrbitControls, Environment, PerspectiveCamera, PresentationControls } from '@react-three/drei';
+import { Float, MeshDistortMaterial, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 
 const FloatingShape = ({ position, color, speed, distort, radius }: any) => {
@@ -93,7 +93,6 @@ const Scene = ({ isDark }: { isDark: boolean }) => {
         />
       </group>
 
-      <Environment preset="city" />
     </>
   );
 };

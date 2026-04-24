@@ -15,7 +15,7 @@ const dailyChallengeSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['watch_video', 'complete_quiz', 'streak', 'enroll_course', 'rate_course'],
+    enum: ['watch_video', 'complete_quiz', 'streak', 'enroll_course', 'rate_course', 'use_ai_tool', 'share_prompt'],
     required: true,
   },
   // Maqsad miqdori (masalan: 3 ta video ko'rish)

@@ -1,0 +1,41 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - heading "Kelajakni biz bilan kodlang!" [level=1] [ref=e9]:
+          - text: Kelajakni biz bilan
+          - text: kodlang!
+        - paragraph [ref=e11]: Eng talabgir dasturlash yo'nalishlarini noldan boshlab amaliy loyihalar orqali o'rganing va IT sohasiga birinchi qadamingizni qo'ying.
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - button "☾" [ref=e14] [cursor=pointer]
+          - button "UZ" [ref=e15] [cursor=pointer]
+          - button "RU" [ref=e16] [cursor=pointer]
+          - button "EN" [ref=e17] [cursor=pointer]
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - heading "Xush kelibsiz!" [level=2] [ref=e20]
+            - paragraph [ref=e21]: Hisobingizga kiring va o'rganishni davom ettiring
+          - generic [ref=e22]:
+            - generic [ref=e23]:
+              - generic [ref=e25]: Email
+              - textbox "email@example.com" [ref=e27]
+            - generic [ref=e28]:
+              - generic [ref=e29]:
+                - generic [ref=e31]: Parol
+                - link "Parolni unutdingizmi?" [ref=e32] [cursor=pointer]:
+                  - /url: /forgot-password
+              - generic [ref=e33]:
+                - textbox "••••••••" [ref=e34]
+                - button [ref=e35] [cursor=pointer]:
+                  - img [ref=e36]
+            - button "Kirish →" [ref=e40] [cursor=pointer]:
+              - text: Kirish
+              - generic [ref=e41]: →
+            - generic [ref=e42]:
+              - generic [ref=e43]: Hisobingiz yo'qmi?
+              - link "Ro'yxatdan o'tish" [ref=e44] [cursor=pointer]:
+                - /url: /register
+        - generic [ref=e45]: © 2024 Aidevix Inc. Barcha huquqlar himoyalangan.
+  - alert [ref=e46]
