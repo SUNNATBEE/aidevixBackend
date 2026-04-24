@@ -80,12 +80,9 @@ api.interceptors.response.use(
         tokenStorage.clearTokens()
         refreshQueue.forEach((cb) => cb.reject(refreshError))
         refreshQueue = []
-
-        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-          console.log('[Axios] Redirecting to /login due to auth failure');
-          window.location.href = '/login'
-        }
-
+        // Do not force global redirect from interceptor.
+        // Public pages can legitimately receive 401 on optional auth checks.
+        // ProtectedRoute/AdminRoute handle navigation for protected screens.
         return Promise.reject(error)
       } finally {
         isRefreshing = false

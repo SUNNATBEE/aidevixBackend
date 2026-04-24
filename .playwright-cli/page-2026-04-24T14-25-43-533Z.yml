@@ -1,0 +1,53 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e7]:
+          - img [ref=e8]
+          - text: AI Prompt Kutubxonasi
+        - heading "Eng Yaxshi Promptlar" [level=1] [ref=e10]
+        - paragraph [ref=e11]: Claude, Cursor, Copilot va boshqa AI toollar uchun professional promptlar. Hamjamiyat tomonidan yaratilgan.
+        - generic [ref=e12]:
+          - link "Kirish va Prompt Qo'shish" [ref=e13] [cursor=pointer]:
+            - /url: /login
+            - img [ref=e14]
+            - text: Kirish va Prompt Qo'shish
+          - generic [ref=e16]:
+            - img [ref=e17]
+            - text: 0 ta prompt
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - button "🌐 Barchasi" [ref=e22] [cursor=pointer]
+          - button "⚡ Vibe Coding" [ref=e23] [cursor=pointer]
+          - button "🤖 Claude" [ref=e24] [cursor=pointer]
+          - button "🖱️ Cursor" [ref=e25] [cursor=pointer]
+          - button "🐙 Copilot" [ref=e26] [cursor=pointer]
+          - button "💻 Kodlash" [ref=e27] [cursor=pointer]
+          - button "🔍 Debug" [ref=e28] [cursor=pointer]
+          - button "🏗️ Arxitektura" [ref=e29] [cursor=pointer]
+          - button "♻️ Refactor" [ref=e30] [cursor=pointer]
+          - button "🧪 Test" [ref=e31] [cursor=pointer]
+          - button "📚 Docs" [ref=e32] [cursor=pointer]
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - button "Yangi" [ref=e35] [cursor=pointer]:
+              - img [ref=e36]
+              - text: Yangi
+            - button "Popular" [ref=e38] [cursor=pointer]:
+              - img [ref=e39]
+              - text: Popular
+            - button "Ko'p ko'rilgan" [ref=e41] [cursor=pointer]:
+              - img [ref=e42]
+              - text: Ko'p ko'rilgan
+          - generic [ref=e45]:
+            - img [ref=e46]
+            - combobox [ref=e48]:
+              - option "Barcha toollar" [selected]
+              - option "Any"
+              - option "Claude Code"
+              - option "Cursor"
+              - option "GitHub Copilot"
+              - option "ChatGPT"
+              - option "Gemini"
+              - option "Windsurf"
+  - alert [ref=e56]
