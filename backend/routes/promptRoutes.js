@@ -5,11 +5,12 @@ const {
   viewPrompt, createPrompt, likePrompt, deletePrompt, featurePrompt,
 } = require('../controllers/promptController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
+const requireTelegramForPromptsRead = require('../middleware/requireTelegramForPrompts');
 
-router.get('/',           getPrompts);
-router.get('/featured',   getFeaturedPrompts);
-router.get('/:id',        getPrompt);
-router.post('/:id/view',  viewPrompt);
+router.get('/', authenticate, requireTelegramForPromptsRead, getPrompts);
+router.get('/featured', authenticate, requireTelegramForPromptsRead, getFeaturedPrompts);
+router.get('/:id', authenticate, requireTelegramForPromptsRead, getPrompt);
+router.post('/:id/view', authenticate, requireTelegramForPromptsRead, viewPrompt);
 router.post('/',          authenticate, createPrompt);
 router.post('/:id/like',  authenticate, likePrompt);
 router.delete('/:id',     authenticate, deletePrompt);

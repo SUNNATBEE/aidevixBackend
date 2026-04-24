@@ -19,7 +19,7 @@ const promptSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['coding', 'debugging', 'vibe_coding', 'claude', 'cursor', 'copilot', 'architecture', 'refactoring', 'testing', 'documentation', 'other'],
+    enum: ['coding', 'debugging', 'vibe_coding', 'claude', 'cursor', 'copilot', 'architecture', 'refactoring', 'testing', 'documentation', 'system', 'other'],
     default: 'other',
   },
   tool: {

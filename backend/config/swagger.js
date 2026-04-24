@@ -804,7 +804,7 @@ const { video, player } = response.data.data
             },
             category: {
               type: 'string',
-              enum: ['coding', 'debugging', 'vibe_coding', 'claude', 'cursor', 'copilot', 'architecture', 'refactoring', 'testing', 'documentation', 'other'],
+              enum: ['coding', 'debugging', 'vibe_coding', 'claude', 'cursor', 'copilot', 'architecture', 'refactoring', 'testing', 'documentation', 'system', 'other'],
               example: 'coding',
             },
             tool: {

@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { selectUser, selectIsLoggedIn } from '@store/slices/authSlice';
@@ -11,13 +11,18 @@ import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import {
   IoSparkles, IoAdd, IoHeart, IoHeartOutline, IoCopy,
-  IoClose, IoFilter, IoTrendingUp, IoTime, IoEye,
+  IoClose, IoFilter, IoTrendingUp, IoTime, IoEye, IoChevronForward,
+  IoInformationCircleOutline, IoLockClosed,
 } from 'react-icons/io5';
+import { useSubscription } from '@/hooks/useSubscription';
+import TelegramVerify from '@components/subscription/TelegramVerify';
+import { SOCIAL_LINKS } from '@utils/constants';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const CATEGORIES = [
   { key: 'all', label: 'Barchasi', emoji: '🌐' },
+  { key: 'system', label: 'System prompt', emoji: '⚙️' },
   { key: 'vibe_coding', label: 'Vibe Coding', emoji: '⚡' },
   { key: 'claude', label: 'Claude', emoji: '🤖' },
   { key: 'cursor', label: 'Cursor', emoji: '🖱️' },
@@ -47,6 +52,10 @@ const TOOL_COLORS: Record<string, string> = {
   'Windsurf': 'bg-sky-500/10 text-sky-400 border-sky-500/20',
   'Any': 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
 };
+
+function categoryMeta(key: string) {
+  return CATEGORIES.find((c) => c.key === key) ?? { key, label: key, emoji: '📎' };
+}
 
 // ─── Create Prompt Modal ──────────────────────────────────────────────────────
 
@@ -124,7 +133,8 @@ function CreatePromptModal({ onClose, onCreated }: { onClose: () => void; onCrea
             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Tavsif (ixtiyoriy)</label>
             <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} maxLength={300}
               className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-all"
-              placeholder="Bu prompt nima uchun ishlatiladi..." />
+              placeholder="Masalan: Bu promptni yuborganingizda AI PR review qiladi yoki test matritsasi chiqaradi..." />
+            <p className="mt-1 text-[10px] text-slate-600">Qisqa: boshqa foydalanuvchi nima natija kutishini tushunishi uchun (kartada ko‘rinadi).</p>
           </div>
 
           <div>
@@ -150,9 +160,141 @@ function CreatePromptModal({ onClose, onCreated }: { onClose: () => void; onCrea
   );
 }
 
+// ─── Prompt detail (full text) ──────────────────────────────────────────────
+
+function PromptDetailModal({
+  prompt,
+  onClose,
+  userId,
+  onLike,
+}: {
+  prompt: Prompt;
+  onClose: () => void;
+  userId?: string;
+  onLike: (id: string) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const cat = categoryMeta(prompt.category);
+  const liked = userId ? prompt.likes?.includes(userId) : false;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(prompt.content);
+      setCopied(true);
+      toast.success('Clipboard ga ko\'chirildi!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Ko\'chirishda xato');
+    }
+  };
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center sm:p-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <button
+        type="button"
+        aria-label="Yopish (fon)"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+      />
+      <motion.div
+        initial={{ y: '100%', opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: '100%', opacity: 0 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+        className="relative flex max-h-[min(92vh,880px)] w-full max-w-3xl flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#0a0c14] shadow-2xl sm:rounded-3xl"
+      >
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-white/5 px-5 py-4 sm:px-6 sm:py-5">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                {cat.emoji} {cat.label}
+              </span>
+              <span className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold ${TOOL_COLORS[prompt.tool] || TOOL_COLORS.Any}`}>
+                {prompt.tool}
+              </span>
+              {prompt.isFeatured && (
+                <span className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-400">
+                  Featured
+                </span>
+              )}
+            </div>
+            <h2 className="text-balance text-lg font-bold leading-snug text-white sm:text-xl">{prompt.title}</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              @{prompt.author?.username}
+              {prompt.author?.rankTitle ? ` · ${prompt.author.rankTitle}` : ''}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Yopish"
+          >
+            <IoClose size={20} />
+          </button>
+        </div>
+
+        {prompt.description?.trim() ? (
+          <p className="shrink-0 border-b border-white/5 px-5 py-3 text-sm leading-relaxed text-slate-400 sm:px-6">
+            {prompt.description}
+          </p>
+        ) : null}
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5">
+          <pre className="whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed text-slate-200 sm:text-sm">
+            {prompt.content}
+          </pre>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-white/5 bg-[#050507]/80 px-5 py-4 backdrop-blur sm:px-6">
+          <div className="flex items-center gap-4 text-xs text-slate-500">
+            <span className="flex items-center gap-1">
+              <IoEye size={14} /> {prompt.viewsCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => onLike(prompt._id)}
+              className={`flex items-center gap-1 transition-colors ${liked ? 'text-red-400' : 'hover:text-red-400'}`}
+            >
+              {liked ? <IoHeart size={16} /> : <IoHeartOutline size={16} />} {prompt.likesCount}
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex items-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-600/15 px-4 py-2.5 text-xs font-bold text-indigo-300 transition-all hover:bg-indigo-600/25 active:scale-[0.98]"
+            >
+              <IoCopy size={14} /> {copied ? 'Nusxa olindi' : 'Nusxa olish'}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── Prompt Card ──────────────────────────────────────────────────────────────
 
-function PromptCard({ prompt, userId, onLike, onView }: { prompt: Prompt; userId?: string; onLike: (id: string) => void; onView: (id: string) => void }) {
+function PromptCard({
+  prompt,
+  userId,
+  onLike,
+  onView,
+  onExpand,
+}: {
+  prompt: Prompt;
+  userId?: string;
+  onLike: (id: string) => void;
+  onView: (id: string) => void;
+  onExpand: () => void;
+}) {
   const [copied, setCopied] = useState(false);
   const liked = userId ? prompt.likes?.includes(userId) : false;
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -187,66 +329,93 @@ function PromptCard({ prompt, userId, onLike, onView }: { prompt: Prompt; userId
     }
   };
 
+  const cat = categoryMeta(prompt.category);
+
   return (
     <motion.div ref={cardRef} layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-      className="group relative bg-[#0d101a] border border-white/5 rounded-3xl p-6 hover:border-indigo-500/20 transition-all duration-300 hover:shadow-[0_0_30px_rgba(99,102,241,0.05)]">
+      className="group relative flex h-full flex-col bg-[#0d101a] border border-white/5 rounded-3xl p-5 sm:p-6 hover:border-indigo-500/20 transition-all duration-300 hover:shadow-[0_0_30px_rgba(99,102,241,0.06)]">
       {prompt.isFeatured && (
         <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-black uppercase tracking-widest">
           Featured
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-start gap-3 mb-4">
+      <div className="flex items-start gap-3 mb-3">
         <img
           src={prompt.author?.avatar || `https://ui-avatars.com/api/?name=${prompt.author?.username || 'U'}&background=312e81&color=fff&size=48`}
-          alt={prompt.author?.username}
-          className="w-10 h-10 rounded-2xl object-cover border border-white/5 shrink-0"
+          alt={prompt.author?.username || ''}
+          className="h-11 w-11 rounded-2xl object-cover border border-white/5 shrink-0"
         />
-        <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-white text-sm leading-tight line-clamp-2 mb-1">{prompt.title}</h3>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] text-slate-500">{prompt.author?.username}</span>
+        <div className="min-w-0 flex-1 pr-12">
+          <h3 className="text-base font-bold leading-snug text-white line-clamp-2">{prompt.title}</h3>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-slate-500">@{prompt.author?.username}</span>
             {prompt.author?.rankTitle && (
-              <span className="text-[9px] px-1.5 py-0.5 bg-white/5 rounded-full text-slate-600 uppercase">{prompt.author.rankTitle}</span>
+              <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-500">{prompt.author.rankTitle}</span>
             )}
           </div>
         </div>
       </div>
 
-      {/* Tool badge */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-xl border ${TOOL_COLORS[prompt.tool] || TOOL_COLORS.Any}`}>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-bold text-slate-400">
+          {cat.emoji} {cat.label}
+        </span>
+        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border ${TOOL_COLORS[prompt.tool] || TOOL_COLORS.Any}`}>
           {prompt.tool}
         </span>
-        {prompt.tags?.slice(0, 3).map(tag => (
-          <span key={tag} className="text-[9px] px-2 py-0.5 bg-white/5 rounded-lg text-slate-500">#{tag}</span>
+        {prompt.tags?.slice(0, 4).map((tag) => (
+          <span key={tag} className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-slate-500">#{tag}</span>
         ))}
       </div>
 
-      {/* Content preview */}
-      <div className="relative bg-black/30 rounded-2xl p-4 mb-4 border border-white/5 overflow-hidden">
-        <pre className="text-xs text-slate-300 font-mono whitespace-pre-wrap break-words line-clamp-5 leading-relaxed">
+      {prompt.description?.trim() ? (
+        <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-slate-400">{prompt.description}</p>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={onExpand}
+        className="relative mb-4 w-full overflow-hidden rounded-2xl border border-white/5 bg-black/35 p-4 text-left transition-colors hover:border-indigo-500/25 hover:bg-black/45"
+      >
+        <pre className="pointer-events-none max-h-[200px] overflow-hidden font-mono text-[13px] leading-relaxed text-slate-300 whitespace-pre-wrap break-words sm:max-h-[220px] sm:text-sm">
           {prompt.content}
         </pre>
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/60 to-transparent rounded-b-2xl" />
-      </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0a0c12] via-[#0a0c12]/70 to-transparent" />
+        <span className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1 text-[11px] font-bold text-indigo-400">
+          Batafsil <IoChevronForward size={12} className="opacity-80" />
+        </span>
+      </button>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 text-slate-500">
-          <span className="flex items-center gap-1 text-xs">
-            <IoEye size={12} /> {prompt.viewsCount}
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-4">
+        <div className="flex items-center gap-4 text-xs text-slate-500">
+          <span className="flex items-center gap-1">
+            <IoEye size={14} /> {prompt.viewsCount}
           </span>
-          <button onClick={() => onLike(prompt._id)}
-            className={`flex items-center gap-1 text-xs transition-colors ${liked ? 'text-red-400' : 'hover:text-red-400'}`}>
-            {liked ? <IoHeart size={14} /> : <IoHeartOutline size={14} />} {prompt.likesCount}
+          <button
+            type="button"
+            onClick={() => onLike(prompt._id)}
+            className={`flex items-center gap-1 transition-colors ${liked ? 'text-red-400' : 'hover:text-red-400'}`}
+          >
+            {liked ? <IoHeart size={15} /> : <IoHeartOutline size={15} />} {prompt.likesCount}
           </button>
         </div>
-        <button onClick={handleCopy}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/10 hover:border-indigo-500/30 text-indigo-400 text-[11px] font-bold transition-all active:scale-95">
-          <IoCopy size={11} /> {copied ? 'Copied!' : 'Copy'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onExpand}
+            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-bold text-slate-300 transition-all hover:bg-white/10 hover:text-white active:scale-[0.98]"
+          >
+            Ochish
+          </button>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 rounded-xl border border-indigo-500/20 bg-indigo-600/15 px-3 py-2 text-[11px] font-bold text-indigo-300 transition-all hover:bg-indigo-600/25 active:scale-[0.98]"
+          >
+            <IoCopy size={12} /> {copied ? 'OK' : 'Copy'}
+          </button>
+        </div>
       </div>
     </motion.div>
   );
@@ -254,9 +423,19 @@ function PromptCard({ prompt, userId, onLike, onView }: { prompt: Prompt; userId
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+type PromptAccess = 'checking' | 'need_login' | 'need_telegram' | 'granted';
+
 export default function PromptsPage() {
   const user = useSelector(selectUser);
   const isAuth = useSelector(selectIsLoggedIn);
+  const { telegram, loading: subLoading, refetch: refetchSubscription } = useSubscription();
+
+  const promptAccess: PromptAccess = useMemo(() => {
+    if (!isAuth) return 'need_login';
+    if (subLoading) return 'checking';
+    if (!telegram?.subscribed) return 'need_telegram';
+    return 'granted';
+  }, [isAuth, subLoading, telegram?.subscribed]);
 
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [featured, setFeatured] = useState<Prompt[]>([]);
@@ -267,44 +446,84 @@ export default function PromptsPage() {
   const [tool, setTool] = useState('all');
   const [sort, setSort] = useState('newest');
   const [showCreate, setShowCreate] = useState(false);
+  const [detailPrompt, setDetailPrompt] = useState<Prompt | null>(null);
 
-  const fetchPrompts = useCallback(async (reset = false) => {
+  const loadMorePrompts = useCallback(async () => {
+    if (promptAccess !== 'granted') return;
+    const nextPage = page + 1;
     try {
       setLoading(true);
-      const params: Record<string, string | number> = { sort, page: reset ? 1 : page, limit: 12 };
+      const params: Record<string, string | number> = { sort, page: nextPage, limit: 12 };
       if (category !== 'all') params.category = category;
       if (tool !== 'all') params.tool = tool;
-
       const { data } = await promptApi.getAll(params);
-      if (reset) {
-        setPrompts(data.data.prompts);
-        setPage(1);
-      } else {
-        setPrompts(prev => page === 1 ? data.data.prompts : [...prev, ...data.data.prompts]);
-      }
+      setPrompts((prev) => [...prev, ...data.data.prompts]);
       setTotal(data.data.total);
+      setPage(nextPage);
     } catch {
-      toast.error('Promptlar yuklanmadi');
+      toast.error('Yuklanmadi');
     } finally {
       setLoading(false);
     }
-  }, [category, tool, sort, page]);
+  }, [category, tool, sort, page, promptAccess]);
 
   useEffect(() => {
-    fetchPrompts(true);
-  }, [category, tool, sort]);
+    if (promptAccess !== 'granted') {
+      setLoading(false);
+      setPrompts([]);
+      setFeatured([]);
+      setTotal(0);
+      setPage(1);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const params: Record<string, string | number> = { sort, page: 1, limit: 12 };
+        if (category !== 'all') params.category = category;
+        if (tool !== 'all') params.tool = tool;
+        const [listRes, featRes] = await Promise.all([
+          promptApi.getAll(params),
+          promptApi.getFeatured(),
+        ]);
+        if (cancelled) return;
+        setPrompts(listRes.data.data.prompts);
+        setTotal(listRes.data.data.total);
+        setPage(1);
+        setFeatured(featRes.data.data || []);
+      } catch {
+        if (!cancelled) {
+          toast.error('Promptlar yuklanmadi');
+          setPrompts([]);
+          setFeatured([]);
+          setTotal(0);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [promptAccess, category, tool, sort]);
 
   useEffect(() => {
-    promptApi.getFeatured().then(({ data }) => setFeatured(data.data)).catch(() => {});
-  }, []);
-
-  useEffect(() => {
+    if (promptAccess !== 'granted') return;
     const interval = setInterval(() => {
-      fetchPrompts(true);
-      promptApi.getFeatured().then(({ data }) => setFeatured(data.data)).catch(() => {});
+      const params: Record<string, string | number> = { sort, page: 1, limit: 12 };
+      if (category !== 'all') params.category = category;
+      if (tool !== 'all') params.tool = tool;
+      Promise.all([promptApi.getAll(params), promptApi.getFeatured()])
+        .then(([listRes, featRes]) => {
+          setPrompts(listRes.data.data.prompts);
+          setTotal(listRes.data.data.total);
+          setFeatured(featRes.data.data || []);
+        })
+        .catch(() => {});
     }, 30000);
     return () => clearInterval(interval);
-  }, [fetchPrompts]);
+  }, [promptAccess, category, tool, sort]);
 
   const patchPromptInLists = useCallback((id: string, patch: (p: Prompt) => Prompt) => {
     setPrompts(prev => prev.map(p => (p._id === id ? patch(p) : p)));
@@ -344,92 +563,247 @@ export default function PromptsPage() {
   };
 
   return (
-    <div className="min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-[#050507] px-3 pb-16 pt-24 text-slate-200 selection:bg-indigo-500/30 sm:px-4 sm:pb-20 sm:pt-28 md:px-6 lg:px-12">
-      <div className="max-w-7xl mx-auto">
-
-        {/* Hero */}
-        <div className="relative mb-14 text-center">
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 blur-3xl -z-10" />
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold uppercase tracking-widest mb-6">
-            <IoSparkles size={12} /> AI Prompt Kutubxonasi
+    <div className="min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-[#050507] px-3 pb-16 pt-20 text-slate-200 selection:bg-indigo-500/30 sm:px-4 sm:pb-20 sm:pt-24 md:px-6 lg:px-12">
+      <div className="mx-auto max-w-7xl">
+        {/* Compact hero */}
+        <header className="relative mb-6 sm:mb-8">
+          <div className="pointer-events-none absolute -inset-x-8 -top-8 bottom-0 -z-10 bg-gradient-to-r from-indigo-500/[0.07] via-purple-500/[0.06] to-pink-500/[0.05] blur-2xl" />
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-indigo-300 sm:text-xs">
+                <IoSparkles size={12} className="shrink-0 text-indigo-400" />
+                AI prompt kutubxonasi
+              </div>
+              <h1 className="text-balance text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-5xl">
+                Professional{' '}
+                <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">promptlar</span>
+              </h1>
+              {promptAccess !== 'granted' && (
+                <p className="mt-2 flex max-w-xl flex-wrap items-center gap-2 text-xs font-semibold text-amber-200/95 sm:text-sm">
+                  <IoLockClosed className="shrink-0" size={16} aria-hidden />
+                  <span>Prompt matnlari Telegram kanaliga obuna bo‘lguncha qulflangan.</span>
+                </p>
+              )}
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-400 sm:text-base">
+                Bu yerda <strong className="font-semibold text-slate-300">tayyor prompt shablonlari</strong> yotadi — ularni Claude, Cursor, ChatGPT va boshqa asistentlarga{' '}
+                <strong className="font-semibold text-slate-300">shu ko‘rinishda yuborasiz</strong> (o‘rniga <code className="rounded bg-white/10 px-1 py-0.5 text-[0.8em] text-indigo-200">[PLACEHOLDER]</code> larini o‘z loyihangizga moslab to‘ldiring).
+                Natija: model rol, vazifa, cheklov va chiqish formatini oldindan oladi — javoblar aniqroq va sifatliroq bo‘ladi.
+              </p>
+              <details className="group mt-5 max-w-2xl rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left sm:px-5 [&_summary::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-bold text-slate-200 marker:content-none">
+                  <IoInformationCircleOutline className="shrink-0 text-indigo-400" size={20} />
+                  <span>Qisqacha: prompt yozsangiz nima bo‘ladi?</span>
+                  <IoChevronForward className="ml-auto shrink-0 text-slate-500 transition-transform group-open:rotate-90" size={16} />
+                </summary>
+                <div className="mt-4 space-y-3 border-t border-white/5 pt-4 text-sm leading-relaxed text-slate-400">
+                  <p>
+                    <strong className="text-slate-300">1) Nusxa olish / ochish</strong> — kartadagi matnni to‘liq ko‘rasiz va bir tugmada clipboard ga olasiz.
+                  </p>
+                  <p>
+                    <strong className="text-slate-300">2) AI ga yuborish</strong> — chat yoki agent oynasiga joylashtirasiz. Birinchi xabar sifatida yuborsangiz, model &quot;rol va format&quot;ni saqlab qoladi.
+                  </p>
+                  <p>
+                    <strong className="text-slate-300">3) O‘zgarish</strong> — qavslardagi joylarni (stack, fayl yo‘li, ticket matni) almashtiring; keraksiz bo‘limlarni o‘chirib tashlash mumkin.
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Kutubxonadagi namunalar senior prompt injinerlar ishlatadigan tuzilma bilan: rol, kontekst, vazifa, cheklovlar, chiqish formati.
+                  </p>
+                </div>
+              </details>
+            </div>
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center lg:flex-col lg:items-stretch xl:flex-row xl:items-center">
+              {!isAuth ? (
+                <Link
+                  href="/login"
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 font-bold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500"
+                >
+                  <IoAdd size={18} /> Kirish
+                </Link>
+              ) : promptAccess === 'granted' ? (
+                <button
+                  type="button"
+                  onClick={() => setShowCreate(true)}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 font-bold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500 active:scale-[0.98]"
+                >
+                  <IoAdd size={18} /> Prompt qo‘shish (+30 XP)
+                </button>
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-center text-xs font-medium text-slate-400 sm:text-sm">
+                  {promptAccess === 'checking' ? 'Obuna holati tekshirilmoqda…' : 'Telegram kanalni ulang — keyin prompt qo‘shasiz'}
+                </div>
+              )}
+              <div className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-slate-400">
+                <IoTrendingUp size={15} className="text-indigo-400/90" />
+                <span className="font-semibold text-slate-300">
+                  {promptAccess === 'granted' ? total.toLocaleString() : '—'}
+                </span>
+                ta prompt
+              </div>
+            </div>
           </div>
-          <h1 className="mb-3 max-w-full text-balance text-3xl font-black tracking-tight text-white sm:mb-4 sm:text-4xl md:text-6xl">
-            Eng Yaxshi <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Promptlar</span>
-          </h1>
-          <p className="mx-auto mb-6 max-w-xl px-1 text-sm leading-relaxed text-slate-400 sm:mb-8 sm:text-base md:text-lg">
-            Claude, Cursor, Copilot va boshqa AI toollar uchun professional promptlar. Hamjamiyat tomonidan yaratilgan.
-          </p>
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            {isAuth ? (
-              <button onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
-                <IoAdd size={18} /> Prompt Qo'shish (+30 XP)
-              </button>
-            ) : (
-              <Link href="/login"
-                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-lg shadow-indigo-600/20 transition-all">
-                <IoAdd size={18} /> Kirish va Prompt Qo'shish
+        </header>
+
+        {promptAccess === 'checking' && isAuth && (
+          <div className="mb-10 flex flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/[0.02] py-14">
+            <span className="loading loading-spinner loading-lg text-indigo-400" />
+            <p className="text-sm text-slate-500">Obuna holati tekshirilmoqda…</p>
+          </div>
+        )}
+
+        {promptAccess === 'need_login' && (
+          <section
+            className="mb-10 rounded-3xl border border-indigo-500/25 bg-indigo-500/[0.06] p-8 text-center sm:p-12"
+            aria-labelledby="prompts-login-gate-title"
+          >
+            <IoLockClosed className="mx-auto mb-4 text-indigo-400" size={40} aria-hidden />
+            <h2 id="prompts-login-gate-title" className="mb-2 text-xl font-bold text-white sm:text-2xl">
+              Promptlarni ko‘rish uchun kiring
+            </h2>
+            <p className="mx-auto mb-6 max-w-md text-sm leading-relaxed text-slate-400">
+              Kutubxona matnlari faqat akkaunt orqali va Telegram kanal obunasi tasdiqlangach ochiladi.
+            </p>
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-8 py-3 font-bold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500"
+            >
+              Kirish
+            </Link>
+          </section>
+        )}
+
+        {promptAccess === 'need_telegram' && (
+          <section
+            className="mb-10 rounded-3xl border border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] to-transparent p-6 sm:p-10"
+            aria-labelledby="prompts-tg-gate-title"
+          >
+            <div className="mx-auto max-w-lg text-center">
+              <IoLockClosed className="mx-auto mb-4 text-amber-400" size={44} aria-hidden />
+              <h2 id="prompts-tg-gate-title" className="mb-2 text-xl font-bold text-white sm:text-2xl">
+                Telegram kanaliga obuna bo‘ling
+              </h2>
+              <p className="mb-6 text-sm leading-relaxed text-slate-400">
+                Prompt shablonlari qulfda. Avval rasmiy kanalga qo‘shiling, keyin pastdagi tugma orqali obunani tasdiqlang — ro‘yxat darhol ochiladi.
+              </p>
+              <a
+                href={SOCIAL_LINKS.telegram}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mb-8 inline-flex items-center gap-2 rounded-2xl border border-sky-500/40 bg-sky-500/15 px-5 py-2.5 text-sm font-bold text-sky-300 transition-colors hover:bg-sky-500/25"
+              >
+                Kanalga o‘tish →
+              </a>
+            </div>
+            <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-[#0a0c14]/80 p-4 sm:p-6">
+              <TelegramVerify onTelegramVerified={() => refetchSubscription()} />
+            </div>
+            <p className="mt-6 text-center text-xs text-slate-500">
+              <Link href="/subscription?returnUrl=/prompts" className="text-indigo-400 underline-offset-2 hover:underline">
+                Barcha obuna qadamlari (PRO sahifa)
               </Link>
-            )}
-            <div className="flex items-center gap-2 text-slate-500 text-sm">
-              <IoTrendingUp size={14} /> {total.toLocaleString()} ta prompt
+            </p>
+          </section>
+        )}
+
+        {promptAccess === 'granted' && (
+          <>
+        {/* Sticky filters — categories first, always visible while scrolling */}
+        <div className="sticky top-14 z-30 -mx-3 mb-8 border-y border-white/10 bg-[#050507]/90 px-3 py-3 backdrop-blur-xl sm:-mx-4 sm:px-4 sm:py-4 md:-mx-6 md:px-6 lg:-mx-12 lg:px-12 sm:top-16">
+          <div className="mx-auto max-w-7xl">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Kategoriya</p>
+            <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto pb-1 px-1">
+              {CATEGORIES.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => setCategory(c.key)}
+                  className={`shrink-0 rounded-2xl px-3.5 py-2 text-xs font-bold transition-all sm:px-4 ${
+                    category === c.key
+                      ? 'bg-indigo-600 text-white shadow-[0_4px_20px_rgba(79,70,229,0.35)]'
+                      : 'border border-transparent bg-white/5 text-slate-500 hover:border-white/10 hover:text-slate-200'
+                  }`}
+                >
+                  <span className="mr-1">{c.emoji}</span>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-col gap-3 border-t border-white/5 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-1 rounded-2xl bg-white/5 p-1">
+                {SORT_OPTIONS.map((s) => {
+                  const Icon = s.icon;
+                  return (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => setSort(s.key)}
+                      className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all ${
+                        sort === s.key ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-200'
+                      }`}
+                    >
+                      <Icon size={13} /> {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-2 sm:justify-end">
+                <IoFilter size={14} className="hidden text-slate-600 sm:block" />
+                <label className="sr-only" htmlFor="prompt-tool-filter">
+                  Tool
+                </label>
+                <select
+                  id="prompt-tool-filter"
+                  value={tool}
+                  onChange={(e) => setTool(e.target.value)}
+                  className="w-full min-w-[10rem] rounded-2xl border border-white/10 bg-[#0a0c14] px-3 py-2.5 text-xs font-semibold text-slate-200 focus:border-indigo-500/50 focus:outline-none sm:w-auto"
+                >
+                  <option value="all">Barcha toollar</option>
+                  {TOOLS.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Featured */}
+        {/* Featured — horizontal rail (saves vertical space) */}
         {featured.length > 0 && (
-          <div className="mb-12">
-            <h2 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-5 flex items-center gap-2">
-              <span className="text-amber-400">★</span> Featured Promptlar
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {featured.map(p => <PromptCard key={p._id} prompt={p} userId={user?._id} onLike={handleLike} onView={handleView} />)}
+          <section className="mb-10 sm:mb-12" aria-labelledby="featured-prompts-heading">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h2 id="featured-prompts-heading" className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
+                <span className="text-amber-400" aria-hidden>
+                  ★
+                </span>
+                Tanlangan promptlar
+              </h2>
             </div>
-          </div>
+            <div className="no-scrollbar -mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto px-3 pb-2 sm:-mx-0 sm:px-0">
+              {featured.map((p) => (
+                <div
+                  key={p._id}
+                  className="w-[min(100%,22rem)] shrink-0 snap-start sm:w-[min(100%,24rem)] lg:w-[min(100%,26rem)]"
+                >
+                  <PromptCard
+                    prompt={p}
+                    userId={user?._id}
+                    onLike={handleLike}
+                    onView={handleView}
+                    onExpand={() => setDetailPrompt(p)}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
         )}
 
-        {/* Filters */}
-        <div className="flex flex-col gap-5 mb-8">
-          {/* Category tabs */}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {CATEGORIES.map(c => (
-              <button key={c.key} onClick={() => setCategory(c.key)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
-                  category === c.key
-                    ? 'bg-indigo-600 text-white shadow-[0_4px_16px_rgba(79,70,229,0.3)]'
-                    : 'bg-white/5 text-slate-500 hover:text-slate-300 border border-transparent hover:border-white/5'
-                }`}>
-                {c.emoji} {c.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Sort + Tool filter */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1 bg-white/5 rounded-2xl p-1">
-              {SORT_OPTIONS.map(s => {
-                const Icon = s.icon;
-                return (
-                  <button key={s.key} onClick={() => setSort(s.key)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      sort === s.key ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'
-                    }`}>
-                    <Icon size={12} /> {s.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-2 ml-auto">
-              <IoFilter size={12} className="text-slate-600" />
-              <select value={tool} onChange={e => setTool(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-2xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/50">
-                <option value="all">Barcha toollar</option>
-                {TOOLS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-          </div>
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-white/5 pb-3">
+          <h2 className="text-lg font-bold text-white sm:text-xl">Barcha promptlar</h2>
+          <p className="text-xs text-slate-500">
+            {category !== 'all' ? `${categoryMeta(category).emoji} ${categoryMeta(category).label} · ` : ''}
+            {total.toLocaleString()} ta
+          </p>
         </div>
 
         {/* Grid */}
@@ -443,7 +817,7 @@ export default function PromptsPage() {
           <div className="py-32 text-center">
             <div className="text-5xl mb-4">🔍</div>
             <p className="text-slate-500">Bu kategoriyada hali prompt yo'q</p>
-            {isAuth && (
+            {promptAccess === 'granted' && isAuth && (
               <button onClick={() => setShowCreate(true)}
                 className="mt-6 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm transition-all">
                 Birinchi bo'ling!
@@ -452,24 +826,51 @@ export default function PromptsPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {prompts.map(p => <PromptCard key={p._id} prompt={p} userId={user?._id} onLike={handleLike} onView={handleView} />)}
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:items-stretch lg:grid-cols-3">
+              {prompts.map((p) => (
+                <PromptCard
+                  key={p._id}
+                  prompt={p}
+                  userId={user?._id}
+                  onLike={handleLike}
+                  onView={handleView}
+                  onExpand={() => setDetailPrompt(p)}
+                />
+              ))}
             </div>
             {prompts.length < total && (
-              <div className="text-center mt-10">
-                <button onClick={() => { setPage(p => p + 1); fetchPrompts(); }}
-                  className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-slate-300 font-bold text-sm transition-all">
-                  Ko'proq yuklash ({total - prompts.length} qoldi)
+              <div className="mt-10 text-center">
+                <button
+                  type="button"
+                  onClick={() => loadMorePrompts()}
+                  disabled={loading}
+                  className="rounded-2xl border border-white/10 bg-white/5 px-8 py-3 text-sm font-bold text-slate-300 transition-all hover:bg-white/10 disabled:opacity-50"
+                >
+                  {loading ? 'Yuklanmoqda…' : `Ko‘proq yuklash (${total - prompts.length} qoldi)`}
                 </button>
               </div>
             )}
           </>
         )}
+          </>
+        )}
       </div>
 
-      {/* Create Modal */}
       <AnimatePresence>
-        {showCreate && <CreatePromptModal onClose={() => setShowCreate(false)} onCreated={handleCreated} />}
+        {showCreate && promptAccess === 'granted' && (
+          <CreatePromptModal onClose={() => setShowCreate(false)} onCreated={handleCreated} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {detailPrompt ? (
+          <PromptDetailModal
+            key={detailPrompt._id}
+            prompt={detailPrompt}
+            onClose={() => setDetailPrompt(null)}
+            userId={user?._id}
+            onLike={handleLike}
+          />
+        ) : null}
       </AnimatePresence>
     </div>
   );

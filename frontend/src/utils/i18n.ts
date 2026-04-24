@@ -272,7 +272,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'forgot.emailRequired': 'Email manzilini kiritish majburiy',
     'forgot.emailInvalid': "Noto'g'ri email formati",
     'forgot.sent': 'Tasdiqlash kodi emailga yuborildi!',
-    'forgot.notFound': 'Bunday email topilmadi',
+    'forgot.notFound': "So'rov muvaffaqiyatsiz. Qaytadan urinib ko'ring",
 
     // ─── Reset Password ───
     'reset.title': "Yangi parol o'rnatish",
