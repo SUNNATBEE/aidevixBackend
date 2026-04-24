@@ -33,6 +33,9 @@ export const promptApi = {
   getOne: (id: string) =>
     axiosInstance.get<{ success: boolean; data: Prompt }>(`prompts/${id}`),
 
+  view: (id: string) =>
+    axiosInstance.post<{ success: boolean; viewsCount: number }>(`prompts/${id}/view`),
+
   create: (data: { title: string; content: string; description?: string; category: string; tool: string; tags?: string[] }) =>
     axiosInstance.post<{ success: boolean; data: Prompt; message: string }>('prompts', data),
 

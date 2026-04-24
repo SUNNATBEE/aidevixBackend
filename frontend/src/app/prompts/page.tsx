@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { selectUser, selectIsLoggedIn } from '@store/slices/authSlice';
@@ -152,9 +152,29 @@ function CreatePromptModal({ onClose, onCreated }: { onClose: () => void; onCrea
 
 // ─── Prompt Card ──────────────────────────────────────────────────────────────
 
-function PromptCard({ prompt, userId, onLike }: { prompt: Prompt; userId?: string; onLike: (id: string) => void }) {
+function PromptCard({ prompt, userId, onLike, onView }: { prompt: Prompt; userId?: string; onLike: (id: string) => void; onView: (id: string) => void }) {
   const [copied, setCopied] = useState(false);
   const liked = userId ? prompt.likes?.includes(userId) : false;
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const viewedRef = useRef(false);
+
+  useEffect(() => {
+    if (viewedRef.current) return;
+    const node = cardRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.some((e) => e.isIntersecting);
+        if (!visible || viewedRef.current) return;
+        viewedRef.current = true;
+        onView(prompt._id);
+        observer.disconnect();
+      },
+      { threshold: 0.45 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [prompt._id, onView]);
 
   const handleCopy = async () => {
     try {
@@ -168,7 +188,7 @@ function PromptCard({ prompt, userId, onLike }: { prompt: Prompt; userId?: strin
   };
 
   return (
-    <motion.div layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+    <motion.div ref={cardRef} layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
       className="group relative bg-[#0d101a] border border-white/5 rounded-3xl p-6 hover:border-indigo-500/20 transition-all duration-300 hover:shadow-[0_0_30px_rgba(99,102,241,0.05)]">
       {prompt.isFeatured && (
         <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-black uppercase tracking-widest">
@@ -278,19 +298,44 @@ export default function PromptsPage() {
     promptApi.getFeatured().then(({ data }) => setFeatured(data.data)).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchPrompts(true);
+      promptApi.getFeatured().then(({ data }) => setFeatured(data.data)).catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchPrompts]);
+
+  const patchPromptInLists = useCallback((id: string, patch: (p: Prompt) => Prompt) => {
+    setPrompts(prev => prev.map(p => (p._id === id ? patch(p) : p)));
+    setFeatured(prev => prev.map(p => (p._id === id ? patch(p) : p)));
+  }, []);
+
   const handleLike = async (id: string) => {
     if (!isAuth) return toast.error('Like bosish uchun kiring');
     try {
       const { data } = await promptApi.like(id);
-      setPrompts(prev => prev.map(p =>
-        p._id === id
-          ? { ...p, likesCount: data.likesCount, likes: data.liked ? [...(p.likes || []), user!._id] : (p.likes || []).filter(l => l !== user!._id) }
-          : p
-      ));
+      patchPromptInLists(id, (p) => ({
+        ...p,
+        likesCount: data.likesCount,
+        likes: data.liked ? [...(p.likes || []), user!._id] : (p.likes || []).filter(l => l !== user!._id),
+      }));
     } catch {
       toast.error('Xato');
     }
   };
+
+  const handleView = useCallback(async (id: string) => {
+    const storageKey = `prompt-viewed-${id}`;
+    if (typeof window !== 'undefined' && window.sessionStorage.getItem(storageKey)) return;
+    try {
+      const { data } = await promptApi.view(id);
+      patchPromptInLists(id, (p) => ({ ...p, viewsCount: data.viewsCount }));
+      if (typeof window !== 'undefined') window.sessionStorage.setItem(storageKey, '1');
+    } catch {
+      // no-op
+    }
+  }, [patchPromptInLists]);
 
   const handleCreated = (p: Prompt) => {
     setPrompts(prev => [p, ...prev]);
@@ -339,7 +384,7 @@ export default function PromptsPage() {
               <span className="text-amber-400">★</span> Featured Promptlar
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {featured.map(p => <PromptCard key={p._id} prompt={p} userId={user?._id} onLike={handleLike} />)}
+              {featured.map(p => <PromptCard key={p._id} prompt={p} userId={user?._id} onLike={handleLike} onView={handleView} />)}
             </div>
           </div>
         )}
@@ -408,7 +453,7 @@ export default function PromptsPage() {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {prompts.map(p => <PromptCard key={p._id} prompt={p} userId={user?._id} onLike={handleLike} />)}
+              {prompts.map(p => <PromptCard key={p._id} prompt={p} userId={user?._id} onLike={handleLike} onView={handleView} />)}
             </div>
             {prompts.length < total && (
               <div className="text-center mt-10">

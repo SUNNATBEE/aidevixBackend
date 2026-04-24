@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const {
   getPrompts, getFeaturedPrompts, getPrompt,
-  createPrompt, likePrompt, deletePrompt, featurePrompt,
+  viewPrompt, createPrompt, likePrompt, deletePrompt, featurePrompt,
 } = require('../controllers/promptController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
 router.get('/',           getPrompts);
 router.get('/featured',   getFeaturedPrompts);
 router.get('/:id',        getPrompt);
+router.post('/:id/view',  viewPrompt);
 router.post('/',          authenticate, createPrompt);
 router.post('/:id/like',  authenticate, likePrompt);
 router.delete('/:id',     authenticate, deletePrompt);

@@ -38,18 +38,6 @@ const getLevelName = (lvl: number, t: any) => {
 const getInitials = (name='') =>
   name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)
 
-const MOCK: any = {
-  all:[
-    {rank:1,xp:145200,level:99,streak:84,badges:['🏆'],user:{_id:'m1',username:'Jamshid K.'}},
-    {rank:2,xp:92450, level:80,streak:42,badges:['🥈'],user:{_id:'m2',username:'Malika R.'}},
-    {rank:3,xp:86100, level:80,streak:30,badges:['🥉'],user:{_id:'m3',username:'Azizbek T.'}},
-    {rank:4,xp:75400, level:78,streak:20,badges:['🔥'],user:{_id:'m4',username:'Rustam B.'}},
-    {rank:5,xp:72150, level:76,streak:15,badges:['⭐'],user:{_id:'m5',username:'Sevara M.'}},
-    {rank:6,xp:69800, level:74,streak:10,badges:[],    user:{_id:'m6',username:'Javlon D.'}},
-    {rank:7,xp:64200, level:71,streak:8, badges:[],    user:{_id:'m7',username:'Nodira S.'}},
-  ],
-}
-
 function PodiumCard({ user, rank }: { user: any, rank: number }) {
   const { t } = useLang();
   if (!user) return null
@@ -80,12 +68,14 @@ function PodiumCard({ user, rank }: { user: any, rank: number }) {
         <p className={`${rank===1?'text-sm min-[360px]:text-base font-black':'text-xs min-[360px]:text-sm font-bold'} mt-2 text-center truncate w-full`}>{username}</p>
         {rank===1 ? (
           <>
-            <span className="mt-1 px-2 py-0.5 rounded bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[10px] font-black tracking-wider">{t('lb.level.30').toUpperCase()}</span>
+            <span className="mt-1 px-2 py-0.5 rounded bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[10px] font-black tracking-wider">
+              {getLevelName(user.level || 1, t).toUpperCase()}
+            </span>
             <p className="text-yellow-400 font-black text-base mt-2">{(user.xp||0).toLocaleString()} XP</p>
             <div className="flex gap-3 mt-2 text-xs">
-              <span className="flex flex-col items-center"><span className="text-white/40 text-[9px]">{t('profile.stat.level').toUpperCase()}</span><b className="text-white">{user.level??99}</b></span>
-              <span className="flex flex-col items-center"><span className="text-white/40 text-[9px]">{t('lb.xp.quizzes').toUpperCase()}</span><b className="text-white">{user.quizzesCompleted??450}</b></span>
-              <span className="flex flex-col items-center"><span className="text-white/40 text-[9px]">{t('general.streak').toUpperCase()}</span><b className="text-orange-400">{user.streak??84}🔥</b></span>
+              <span className="flex flex-col items-center"><span className="text-white/40 text-[9px]">{t('profile.stat.level').toUpperCase()}</span><b className="text-white">{user.level || 1}</b></span>
+              <span className="flex flex-col items-center"><span className="text-white/40 text-[9px]">{t('lb.xp.quizzes').toUpperCase()}</span><b className="text-white">{user.quizzesCompleted || 0}</b></span>
+              <span className="flex flex-col items-center"><span className="text-white/40 text-[9px]">{t('general.streak').toUpperCase()}</span><b className="text-orange-400">{user.streak || 0}🔥</b></span>
             </div>
           </>
         ) : (
@@ -93,7 +83,10 @@ function PodiumCard({ user, rank }: { user: any, rank: number }) {
             <p className="text-xs text-base-content/40 mt-0.5">{getLevelName(user.level||1, t)}</p>
             <p className="text-primary font-bold text-sm mt-1">{(user.xp||0).toLocaleString()} XP</p>
             <div className="w-full h-1 bg-base-300 rounded-full mt-2 overflow-hidden">
-              <div className="h-full bg-primary/60 rounded-full" style={{width:'55%'}} />
+              <div
+                className="h-full bg-primary/60 rounded-full"
+                style={{ width: `${Math.max(5, Math.min(100, user.levelProgress || 0))}%` }}
+              />
             </div>
           </>
         )}
@@ -186,7 +179,7 @@ export default function LeaderboardPage() {
 
   if (!isMounted) return <div className="min-h-screen bg-base-100 flex items-center justify-center"><span className="loading loading-spinner loading-lg"></span></div>
 
-  const displayUsers = apiUsers.length > 0 ? apiUsers : (MOCK[activeTab] || MOCK.all)
+  const displayUsers = apiUsers
   const podiumUsers  = displayUsers.slice(0, 3)
   const tableUsers   = displayUsers.slice(3)
 
@@ -288,6 +281,10 @@ export default function LeaderboardPage() {
                     <div key={i} className="skeleton rounded-2xl flex-1 max-w-[160px]" style={{height:h}} />
                   ))}
                 </div>
+              ) : podiumUsers.length < 3 ? (
+                <div className="py-10 text-center text-base-content/50 text-sm">
+                  Leaderboard ma'lumotlari hali yetarli emas
+                </div>
               ) : (
                 <motion.div
                   key={activeTab+'-p'}
@@ -305,6 +302,10 @@ export default function LeaderboardPage() {
               {loading ? (
                 <div className="space-y-2">
                   {[...Array(5)].map((_,i) => <div key={i} className="skeleton h-14 rounded-xl" />)}
+                </div>
+              ) : tableUsers.length === 0 ? (
+                <div className="py-8 text-center text-base-content/50 text-sm">
+                  Hozircha qo'shimcha foydalanuvchilar yo'q
                 </div>
               ) : (
                 <motion.div key={activeTab+'-t'} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
@@ -364,16 +365,17 @@ export default function LeaderboardPage() {
                 )}
               </div>
               <div className="p-3 space-y-1.5">
-                {(weeklyData?.prizes || [
-                  { rank:1, xp:500, badge:'🥇 Hafta Chempioni',  color:'text-yellow-400' },
-                  { rank:2, xp:300, badge:'🥈 Kumush O\'rin',    color:'text-slate-300' },
-                  { rank:3, xp:150, badge:'🥉 Bronza O\'rin',    color:'text-amber-600' },
-                ]).map((prize: any) => (
+                {(weeklyData?.prizes || []).map((prize: any) => (
                   <div key={prize.rank} className="flex items-center justify-between px-3 py-2 rounded-lg bg-base-300/20">
                     <span className="text-sm">{prize.badge}</span>
                     <span className="font-black text-sm text-primary">+{prize.xp} XP</span>
                   </div>
                 ))}
+                {!weeklyData?.prizes?.length && (
+                  <div className="px-3 py-2 rounded-lg bg-base-300/20 text-sm text-base-content/50">
+                    Turnir mukofotlari hozircha mavjud emas
+                  </div>
+                )}
               </div>
               {weeklyData?.leaderboard?.length > 0 && (
                 <div className="px-3 pb-3 space-y-1">

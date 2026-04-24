@@ -1,5 +1,45 @@
 const User = require('../models/User');
 const UserStats = require('../models/UserStats');
+const Course = require('../models/Course');
+const Video = require('../models/Video');
+
+/**
+ * @desc  Home sahifa uchun ochiq statistika
+ * @route GET /api/users/home-stats
+ * @access Public
+ */
+const getHomeStats = async (_req, res) => {
+  try {
+    const [students, videos, mentorsAgg, ratingAgg] = await Promise.all([
+      User.countDocuments({ isActive: true }),
+      Video.countDocuments({ isActive: true }),
+      Course.aggregate([
+        { $match: { isActive: true, instructor: { $ne: null } } },
+        { $group: { _id: '$instructor' } },
+        { $count: 'total' },
+      ]),
+      Course.aggregate([
+        { $match: { isActive: true, rating: { $gt: 0 } } },
+        { $group: { _id: null, avg: { $avg: '$rating' } } },
+      ]),
+    ]);
+
+    const mentors = mentorsAgg[0]?.total || 0;
+    const rating = Number((ratingAgg[0]?.avg || 0).toFixed(1));
+
+    return res.json({
+      success: true,
+      data: {
+        students,
+        videos,
+        mentors,
+        rating,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
 
 /**
  * @desc  Foydalanuvchining ochiq profili (achievement showcase)
@@ -72,4 +112,4 @@ const getPublicProfile = async (req, res) => {
   }
 };
 
-module.exports = { getPublicProfile };
+module.exports = { getPublicProfile, getHomeStats };

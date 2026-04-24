@@ -60,6 +60,21 @@ const getPrompt = async (req, res) => {
   }
 };
 
+/** @route POST /api/prompts/:id/view | @access Public */
+const viewPrompt = async (req, res) => {
+  try {
+    const prompt = await Prompt.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { viewsCount: 1 } },
+      { new: true }
+    );
+    if (!prompt) return res.status(404).json({ success: false, message: 'Prompt topilmadi' });
+    return res.json({ success: true, viewsCount: prompt.viewsCount });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 /** @route POST /api/prompts | @access Private */
 const createPrompt = async (req, res) => {
   try {
@@ -141,4 +156,4 @@ const featurePrompt = async (req, res) => {
   }
 };
 
-module.exports = { getPrompts, getFeaturedPrompts, getPrompt, createPrompt, likePrompt, deletePrompt, featurePrompt };
+module.exports = { getPrompts, getFeaturedPrompts, getPrompt, viewPrompt, createPrompt, likePrompt, deletePrompt, featurePrompt };

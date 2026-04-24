@@ -35,6 +35,12 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
   const { isDark } = useTheme();
   const { playSound } = useSound();
   const [continueLearning, setContinueLearning] = useState<any>(null);
+  const [homeStats, setHomeStats] = useState({
+    students: 0,
+    videos: 0,
+    mentors: 0,
+    rating: 0,
+  });
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const statsRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
@@ -50,6 +56,29 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
       .then(({ data }) => setContinueLearning(data?.data || null))
       .catch(() => {});
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/proxy/users/home-stats', { credentials: 'include' })
+      .then(async (r) => {
+        if (!r.ok) throw new Error('Failed to load home stats');
+        return r.json();
+      })
+      .then((json) => {
+        if (!mounted) return;
+        const data = json?.data || {};
+        setHomeStats({
+          students: Number(data.students || 0),
+          videos: Number(data.videos || 0),
+          mentors: Number(data.mentors || 0),
+          rating: Number(data.rating || 0),
+        });
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isMounted || !isReady) return;
@@ -84,15 +113,22 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
       if (statsRef.current) {
         const counters = statsRef.current.querySelectorAll('.stat-value');
         counters.forEach((counter: Element) => {
-          const targetValue = parseInt(counter.getAttribute('data-value') || '0', 10);
+          const targetValue = Number(counter.getAttribute('data-value') || '0');
+          const decimals = Number(counter.getAttribute('data-decimals') || '0');
+          const valueProxy = { value: 0 };
           gsap.fromTo(
-            counter,
-            { innerText: 0 },
+            valueProxy,
+            { value: 0 },
             {
-              innerText: targetValue,
+              value: targetValue,
               duration: 1.8,
-              snap: { innerText: 1 },
               ease: 'power2.out',
+              onUpdate: () => {
+                const current = valueProxy.value;
+                counter.textContent = decimals > 0
+                  ? current.toFixed(decimals)
+                  : Math.round(current).toString();
+              },
               scrollTrigger: {
                 trigger: statsRef.current,
                 start: 'top 82%',
@@ -164,10 +200,10 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
   ];
 
   const stats = [
-    { value: '15000', display: '15k+', label: t('stats.students'), color: isDark ? 'text-white' : 'text-gray-900' },
-    { value: '120', display: '120+', label: t('stats.videos'), color: 'bg-gradient-to-r from-amber-400 to-indigo-400 bg-clip-text text-transparent' },
-    { value: '50', display: '50+', label: t('stats.mentors'), color: isDark ? 'text-white' : 'text-gray-900' },
-    { value: '5', display: '4.9', label: t('stats.rating'), color: 'text-orange-500' },
+    { value: homeStats.students, label: t('stats.students'), color: isDark ? 'text-white' : 'text-gray-900', suffix: '+', decimals: 0 },
+    { value: homeStats.videos, label: t('stats.videos'), color: 'bg-gradient-to-r from-amber-400 to-indigo-400 bg-clip-text text-transparent', suffix: '+', decimals: 0 },
+    { value: homeStats.mentors, label: t('stats.mentors'), color: isDark ? 'text-white' : 'text-gray-900', suffix: '+', decimals: 0 },
+    { value: homeStats.rating, label: t('stats.rating'), color: 'text-orange-500', suffix: '', decimals: 1 },
   ];
 
   const pageBg = isDark ? 'text-slate-100' : 'text-slate-900';
@@ -318,9 +354,8 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
             <div key={i} className={`px-6 py-8 md:px-8 md:py-10 ${i < stats.length - 1 ? 'md:border-r' : ''} ${hairline}`}>
               <div className={`text-xs uppercase tracking-[0.3em] ${mutedText}`}>Metric 0{i + 1}</div>
               <div className={`mt-4 flex items-end text-4xl font-black tracking-[-0.06em] md:text-5xl ${stat.color}`}>
-                <span className="stat-value" data-value={stat.value}>0</span>
-                {stat.display.includes('+') ? '+' : ''}
-                {stat.display.includes('.') ? '.9' : ''}
+                <span className="stat-value" data-value={String(stat.value)} data-decimals={String(stat.decimals)}>0</span>
+                {stat.suffix}
               </div>
               <div className={`mt-3 text-sm leading-6 ${mutedText}`}>{stat.label}</div>
             </div>
