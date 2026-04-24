@@ -18,6 +18,7 @@ const {
   sendResetCodeEmail,
   sendEmailVerificationCode,
 } = require('../utils/emailService');
+const { OAuth2Client } = require('google-auth-library');
 const {
   attachAuthCookies,
   clearAuthCookies,
@@ -68,7 +69,7 @@ const sanitizeUser = (user) => ({
   referralCode: user.referralCode || null,
   referralsCount: user.referralsCount || 0,
   lastClaimedDaily: user.lastClaimedDaily || null,
-  emailVerified: user.emailVerified ?? true,
+  emailVerified: user.emailVerified ?? false,
 });
 
 const issueTokens = async (user) => {
@@ -158,7 +159,7 @@ const register = asyncHandler(async (req, res, next) => {
 
   const newReferralCode =
     normalizedUsername.substring(0, 4).toUpperCase() +
-    crypto.randomBytes(2).toString('hex').toUpperCase();
+    crypto.randomBytes(4).toString('hex').toUpperCase();
 
   const user = await User.create({
     username: normalizedUsername,
@@ -180,7 +181,7 @@ const register = asyncHandler(async (req, res, next) => {
   // Background tasks
   UserStats.create({ userId: user._id, xp: user.xp, weeklyXp: user.xp }).catch(() => {});
 
-  const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const verifyCode = crypto.randomInt(100000, 1000000).toString();
   User.findByIdAndUpdate(user._id, {
     emailVerificationCode: hashToken(verifyCode),
     emailVerificationExpire: new Date(Date.now() + 15 * 60 * 1000),
@@ -230,6 +231,13 @@ const login = asyncHandler(async (req, res, next) => {
     return next(
       new ErrorResponse(`Hisob vaqtincha bloklangan. ${retryMin} daqiqadan so'ng urinib ko'ring.`, 423)
     );
+  }
+
+  // Google-only account: no password set — timing attack mitigation
+  if (!user.password) {
+    await bcrypt.compare(password, DUMMY_HASH).catch(() => false);
+    securityLogger.loginFailed(req, 'google_only_account', { userId: String(user._id) });
+    return next(new ErrorResponse('Bu hisob Google orqali yaratilgan. Iltimos, Google bilan kiring.', 401));
   }
 
   const isMatch = await user.comparePassword(password);
@@ -346,7 +354,7 @@ const getMe = asyncHandler(async (req, res) => {
   if (!user.referralCode) {
     const newReferralCode =
       user.username.substring(0, 4).toUpperCase() +
-      crypto.randomBytes(2).toString('hex').toUpperCase();
+      crypto.randomBytes(4).toString('hex').toUpperCase();
     user = await User.findByIdAndUpdate(
       user._id,
       { referralCode: newReferralCode },
@@ -456,7 +464,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     return res.json(genericResponse);
   }
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = crypto.randomInt(100000, 1000000).toString();
   user.resetPasswordCode = hashToken(code);
   user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
   user.resetPasswordAttempts = 0;
@@ -505,12 +513,24 @@ const verifyCode = asyncHandler(async (req, res, next) => {
   }
 
   if (!safeEqual(user.resetPasswordCode, hashToken(code))) {
-    user.resetPasswordAttempts = (user.resetPasswordAttempts || 0) + 1;
-    await user.save({ validateModifiedOnly: true });
+    await User.updateOne({ _id: user._id }, { $inc: { resetPasswordAttempts: 1 } });
     return next(new ErrorResponse('Invalid or expired code', 400));
   }
 
+  // OTP to'g'ri — single-use resetToken yaratib hash'ini saqlaymiz, OTP tozalaymiz
   const resetToken = generateResetToken({ email: user.email, uid: String(user._id) });
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        resetPasswordCode: null,
+        resetPasswordExpire: null,
+        resetPasswordAttempts: 0,
+        resetTokenHash: hashToken(resetToken),
+        resetTokenExpire: new Date(Date.now() + 15 * 60 * 1000),
+      },
+    }
+  );
   res.json({ success: true, data: { resetToken } });
 });
 
@@ -527,23 +547,38 @@ const resetPassword = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Password must be 8–128 chars with upper, lower, digit and special char', 400));
   }
 
+  // JWT integrity check first (iss, aud, expiry)
   const decoded = verifyResetToken(resetToken);
   if (!decoded || decoded.email !== normalizedEmail) {
     return next(new ErrorResponse('Invalid reset token', 400));
   }
 
   const user = await User.findOne({ email: normalizedEmail }).select(
-    '+resetPasswordCode +resetPasswordExpire'
+    '+resetTokenHash +resetTokenExpire'
   );
   if (!user) return next(new ErrorResponse('User not found', 404));
 
+  if (!user.resetTokenHash || !user.resetTokenExpire) {
+    return next(new ErrorResponse('Invalid or expired reset token', 400));
+  }
+
+  if (user.resetTokenExpire.getTime() < Date.now()) {
+    await User.updateOne({ _id: user._id }, { $set: { resetTokenHash: null, resetTokenExpire: null } });
+    return next(new ErrorResponse('Reset token muddati o\'tgan. Qaytadan so\'rang.', 400));
+  }
+
+  if (!safeEqual(user.resetTokenHash, hashToken(resetToken))) {
+    // Noto'g'ri token — darhol tozalaymiz (brute-force himoya)
+    await User.updateOne({ _id: user._id }, { $set: { resetTokenHash: null, resetTokenExpire: null } });
+    return next(new ErrorResponse('Invalid reset token', 400));
+  }
+
+  // Single-use: darhol ishlatib bo'lingan deb belgilaymiz, keyin saqlaymiz
+  user.resetTokenHash = null;
+  user.resetTokenExpire = null;
   user.password = newPassword;
-  user.resetPasswordCode = null;
-  user.resetPasswordExpire = null;
-  user.resetPasswordAttempts = 0;
   user.refreshToken = null;
-  // tokenVersion and passwordChangedAt bump in pre-save hook automatically
-  await user.save();
+  await user.save(); // pre-save hook: tokenVersion++, passwordChangedAt yangilanadi
   clearAuthCookies(res);
 
   securityLogger.passwordResetCompleted(req, user);
@@ -643,7 +678,7 @@ const resendVerification = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Email allaqachon tasdiqlangan', 400));
   }
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = crypto.randomInt(100000, 1000000).toString();
   user.emailVerificationCode = hashToken(code);
   user.emailVerificationExpire = new Date(Date.now() + 15 * 60 * 1000);
   user.emailVerificationAttempts = 0;
@@ -659,9 +694,102 @@ const resendVerification = asyncHandler(async (req, res, next) => {
   res.json({ success: true, message: 'Tasdiqlash kodi yuborildi' });
 });
 
+// @desc    Google OAuth — ID token verification (Sign in / Sign up)
+const googleAuth = asyncHandler(async (req, res, next) => {
+  const { credential } = req.body;
+
+  if (!credential || typeof credential !== 'string') {
+    return next(new ErrorResponse('Google credential required', 400));
+  }
+
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    securityLogger.suspicious(req, 'google_auth_not_configured');
+    return next(new ErrorResponse('Google authentication not configured', 503));
+  }
+
+  const googleClient = new OAuth2Client(clientId);
+  let googlePayload;
+  try {
+    const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: clientId });
+    googlePayload = ticket.getPayload();
+  } catch (err) {
+    securityLogger.suspicious(req, 'google_auth_token_invalid', { error: err.message });
+    return next(new ErrorResponse('Google autentifikatsiya amalga oshmadi', 401));
+  }
+
+  const { sub: googleId, email, given_name: firstName, family_name: lastName, email_verified } = googlePayload;
+
+  if (!email_verified) {
+    return next(new ErrorResponse('Google hisob emaili tasdiqlanmagan', 400));
+  }
+  if (!email) {
+    return next(new ErrorResponse('Google hisobdan email olinmadi', 400));
+  }
+
+  const normalizedEmail = normalizeEmail(email);
+
+  // googleId bo'yicha yoki email bo'yicha topamiz (mavjud hisob ulash uchun)
+  let user = await User.findOne({ $or: [{ googleId }, { email: normalizedEmail }] }).select('+tokenVersion');
+
+  let isNew = false;
+
+  if (user) {
+    if (!user.googleId) {
+      await User.updateOne({ _id: user._id }, { $set: { googleId } });
+      user.googleId = googleId;
+    }
+    if (!user.isActive) {
+      return next(new ErrorResponse('Account deactivated', 403));
+    }
+  } else {
+    isNew = true;
+
+    const baseUsername = normalizedEmail.split('@')[0]
+      .replace(/[^a-z0-9]/gi, '_')
+      .toLowerCase()
+      .slice(0, 20);
+    const username = `${baseUsername}_${crypto.randomBytes(2).toString('hex')}`;
+    const referralCode = username.substring(0, 4).toUpperCase() + crypto.randomBytes(4).toString('hex').toUpperCase();
+
+    user = await User.create({
+      googleId,
+      email: normalizedEmail,
+      username,
+      firstName: firstName || '',
+      lastName: lastName || '',
+      emailVerified: true,
+      referralCode,
+      xp: 0,
+      rankTitle: 'AMATEUR',
+    });
+
+    UserStats.create({ userId: user._id, xp: 0 }).catch(() => {});
+    sendWelcomeEmail(user.email, user.username).catch(() => {});
+    securityLogger.registerSuccess(req, user);
+
+    try {
+      const { getBot } = require('../utils/telegramBot');
+      const bot = getBot();
+      if (bot) bot.notifyNewRegistration(user);
+    } catch (_) {}
+  }
+
+  const { accessToken, refreshToken } = await issueTokens(user);
+  attachAuthCookies(res, accessToken, refreshToken);
+  securityLogger.loginSuccess(req, user);
+
+  res.status(isNew ? 201 : 200).json({
+    success: true,
+    data: { user: sanitizeUser(user) },
+    isNewUser: isNew,
+  });
+});
+
 module.exports = {
   register,
   login,
+  googleAuth,
   refreshToken: refresh,
   logout,
   getMe,

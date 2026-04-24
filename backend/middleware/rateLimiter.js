@@ -1,6 +1,12 @@
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
 
+// PRODUCTION NOTE: The default MemoryStore is per-process only.
+// On Railway multi-instance deployments each instance has independent counters,
+// effectively multiplying the configured limit. For true distributed rate limiting
+// add `rate-limit-redis` with an Upstash/Redis connection and pass it as `store:`.
+// Example: https://github.com/express-rate-limit/rate-limit-redis
+
 const jsonMessage = (msg) => ({ success: false, message: msg });
 
 // IPv6-safe IP key (express-rate-limit 8.x requirement)
@@ -111,6 +117,16 @@ const verifyEmailLimiter = rateLimit({
   keyGenerator: (req, res) => (req.user?._id ? String(req.user._id) : ipKey(req, res)),
 });
 
+// Google OAuth — per-IP, qisman yumshoq (Google o'zi bot himoyasini bajaradi)
+const googleLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: jsonMessage('Juda ko\'p Google login urinishi. 15 daqiqadan so\'ng qayta urinib ko\'ring.'),
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: ipKey,
+});
+
 module.exports = {
   apiLimiter,
   authLimiter,
@@ -122,4 +138,5 @@ module.exports = {
   otpLimiter,
   dailyRewardLimiter,
   verifyEmailLimiter,
+  googleLimiter,
 };

@@ -1,5 +1,16 @@
 const logger = require('./logger');
 
+// Mask email for GDPR-compliant logging: user@example.com → use***@example.com
+const maskEmail = (email) => {
+  if (!email || typeof email !== 'string') return null;
+  const atIdx = email.indexOf('@');
+  if (atIdx < 0) return '***';
+  const local = email.slice(0, atIdx);
+  const domain = email.slice(atIdx + 1);
+  const visible = Math.min(3, local.length);
+  return `${local.slice(0, visible)}***@${domain}`;
+};
+
 const extractIp = (req) =>
   req?.ip ||
   req?.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ||
@@ -21,7 +32,7 @@ const securityLogger = {
     logger.info('auth.login.success', {
       ...baseContext(req),
       userId: String(user._id),
-      email: user.email,
+      email: maskEmail(user.email),
     }),
 
   loginFailed: (req, reason, meta = {}) =>
@@ -35,7 +46,7 @@ const securityLogger = {
     logger.warn('auth.login.locked', {
       ...baseContext(req),
       userId: String(user._id),
-      email: user.email,
+      email: maskEmail(user.email),
       lockUntil: user.lockUntil,
       attempts: user.failedLoginAttempts,
     }),
@@ -44,7 +55,7 @@ const securityLogger = {
     logger.info('auth.register.success', {
       ...baseContext(req),
       userId: String(user._id),
-      email: user.email,
+      email: maskEmail(user.email),
     }),
 
   logout: (req, userId) =>
@@ -56,7 +67,7 @@ const securityLogger = {
   passwordResetRequested: (req, email, found) =>
     logger.info('auth.password.reset.requested', {
       ...baseContext(req),
-      email,
+      email: maskEmail(email),
       userFound: found,
     }),
 
@@ -64,14 +75,14 @@ const securityLogger = {
     logger.warn('auth.password.reset.completed', {
       ...baseContext(req),
       userId: String(user._id),
-      email: user.email,
+      email: maskEmail(user.email),
     }),
 
   passwordChanged: (req, user) =>
     logger.warn('auth.password.changed', {
       ...baseContext(req),
       userId: String(user._id),
-      email: user.email,
+      email: maskEmail(user.email),
     }),
 
   refreshTokenReuse: (req, userId) =>
@@ -104,7 +115,7 @@ const securityLogger = {
     logger.info('auth.email.verify.success', {
       ...baseContext(req),
       userId: String(user._id),
-      email: user.email,
+      email: maskEmail(user.email),
     }),
 
   csrfRejected: (req) =>

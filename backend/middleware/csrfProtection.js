@@ -14,6 +14,7 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const EXEMPT_PATHS = [
   /^\/api\/auth\/login$/,
   /^\/api\/auth\/register$/,
+  /^\/api\/auth\/google$/,
   /^\/api\/auth\/refresh-token$/,
   /^\/api\/auth\/forgot-password$/,
   /^\/api\/auth\/verify-code$/,

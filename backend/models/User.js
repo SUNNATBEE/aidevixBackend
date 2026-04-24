@@ -14,10 +14,14 @@ const userSchema = new mongoose.Schema({
   firstName: {
     type: String,
     default: null,
+    maxlength: [64, 'First name cannot exceed 64 characters'],
+    trim: true,
   },
   lastName: {
     type: String,
     default: null,
+    maxlength: [64, 'Last name cannot exceed 64 characters'],
+    trim: true,
   },
   email: {
     type: String,
@@ -26,11 +30,17 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     validate: [validator.isEmail, 'Please provide a valid email'],
   },
+  googleId: {
+    type: String,
+    default: null,
+    index: true,
+    sparse: true,
+  },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: function () { return !this.googleId; },
     minlength: [8, 'Password must be at least 8 characters'],
-    select: false, // Don't return password by default
+    select: false,
   },
   refreshToken: {
     type: String,
@@ -154,6 +164,16 @@ const userSchema = new mongoose.Schema({
     default: null,
     select: false,
   },
+  resetTokenHash: {
+    type: String,
+    default: null,
+    select: false,
+  },
+  resetTokenExpire: {
+    type: Date,
+    default: null,
+    select: false,
+  },
   // Avatar rasm URL
   avatar: {
     type: String,
@@ -216,7 +236,7 @@ userSchema.index({ xp: -1 });
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   try {
-    this.password = await bcrypt.hash(this.password, 12);
+    this.password = await bcrypt.hash(this.password, 14);
     this.passwordChangedAt = new Date();
     this.tokenVersion = (this.tokenVersion || 0) + 1;
     this.failedLoginAttempts = 0;
@@ -227,8 +247,8 @@ userSchema.pre('save', async function (next) {
   }
 });
 
-// Compare password method
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
 

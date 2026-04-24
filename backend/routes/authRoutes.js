@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   register,
   login,
+  googleAuth,
   refreshToken,
   logout,
   getMe,
@@ -23,11 +24,13 @@ const {
   refreshLimiter,
   dailyRewardLimiter,
   verifyEmailLimiter,
+  googleLimiter,
 } = require('../middleware/rateLimiter');
 
 // Public — limiters tight, CSRF exempt
 router.post('/register', registerLimiter, register);
 router.post('/login', loginLimiter, login);
+router.post('/google', googleLimiter, googleAuth);
 router.post('/refresh-token', refreshLimiter, refreshToken);
 router.post('/forgot-password', otpLimiter, forgotPassword);
 router.post('/verify-code', otpLimiter, verifyCode);
