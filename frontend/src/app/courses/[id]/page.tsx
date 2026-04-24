@@ -27,8 +27,7 @@ import SubscriptionGate from '@components/subscription/SubscriptionGate'
 import { formatDurationText, formatDuration } from '@utils/formatDuration'
 import { ROUTES } from '@utils/constants'
 import api from '@api/axiosInstance'
-
-const LEVEL_LABELS = { beginner: "Boshlang'ich", intermediate: "O'rta", advanced: 'Yuqori' }
+import { useLang } from '@/context/LangContext'
 const LEVEL_COLORS = { beginner: 'badge-success', intermediate: 'badge-warning', advanced: 'badge-error' }
 const CAT_TEXT = {
   html: 'text-orange-400', css: 'text-blue-400', javascript: 'text-yellow-400',
@@ -113,6 +112,7 @@ function Skeleton() {
 
 // ── Main ──────────────────────────────────────────────────────
 export default function CourseDetailPage() {
+  const { t } = useLang()
   const { id }                                          = useParams()
   const { course, loading }                             = useCourse(id)
   const { courseVideos, loading: vLoad, fetchByCourse } = useVideos()
@@ -144,6 +144,11 @@ export default function CourseDetailPage() {
   if (!isMounted || loading) return <Skeleton />
   if (!course)  return null
 
+  const levelLabels = {
+    beginner: t('filter.beginner'),
+    intermediate: t('filter.intermediate'),
+    advanced: t('filter.advanced'),
+  } as Record<string, string>
 
   const rating         = typeof course.rating === 'object' ? (course.rating?.average ?? 0) : (course.rating ?? 0)
   const ratingCount    = typeof course.rating === 'object' ? (course.rating?.count ?? 0)   : (course.ratingCount ?? 0)
@@ -190,7 +195,7 @@ export default function CourseDetailPage() {
                 </span>
               )}
               <span className={'badge text-xs font-semibold ' + (LEVEL_COLORS[level] || 'badge-ghost')}>
-                {LEVEL_LABELS[level] || level}
+                {levelLabels[level] || level}
               </span>
             </div>
 
@@ -326,7 +331,7 @@ export default function CourseDetailPage() {
                         <p className="font-semibold text-sm">{p.title}</p>
                         <div className="flex gap-1 flex-shrink-0">
                           <span className={'badge badge-sm ' + (LEVEL_COLORS[p.level] || 'badge-ghost')}>
-                            {LEVEL_LABELS[p.level] || p.level}
+                            {levelLabels[p.level] || p.level}
                           </span>
                           {p.xpReward > 0 && (
                             <span className="badge badge-sm bg-yellow-500/15 text-yellow-400 border-yellow-500/20">
@@ -466,7 +471,7 @@ function PriceCardContent({ course, courseVideos, totalSecs, level, rating, proj
       <div className="space-y-2.5">
         <StatRow icon={<IoBookOutline className="text-primary text-sm" />} label="Darslar" value={courseVideos.length} />
         {totalSecs > 0 && <StatRow icon={<IoTime className="text-primary text-sm" />} label="Umumiy vaqt" value={formatDurationText(totalSecs)} />}
-        <StatRow icon={<IoBarChart className="text-primary text-sm" />} label="Daraja" value={LEVEL_LABELS[level] || level} />
+        <StatRow icon={<IoBarChart className="text-primary text-sm" />} label={t('filter.level').replace(/:\s*$/, '')} value={levelLabels[level] || level} />
         {rating > 0 && <StatRow icon={<IoStar className="text-yellow-400 text-sm" />} label="Reyting" value={Number(rating).toFixed(1)} />}
         {course.studentsCount > 0 && <StatRow icon={<IoPeople className="text-primary text-sm" />} label="O'quvchilar" value={course.studentsCount.toLocaleString()} />}
         {projects.length > 0 && <StatRow icon={<IoCodeSlash className="text-primary text-sm" />} label="Loyihalar" value={projects.length} />}

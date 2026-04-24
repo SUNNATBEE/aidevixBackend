@@ -8,8 +8,10 @@ import { HiOutlineLightningBolt } from 'react-icons/hi';
 import { IoGameControllerOutline } from 'react-icons/io5';
 import api from '@api/axiosInstance';
 import { selectIsLoggedIn } from '@store/slices/authSlice';
+import { useLang } from '@/context/LangContext';
 
 export default function ChallengesPage() {
+  const { t } = useLang();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -29,7 +31,7 @@ export default function ChallengesPage() {
       setChallenge(data?.data?.challenge || null);
       setProgress(data?.data?.progress || null);
     } catch (e: any) {
-      setError(e?.response?.data?.message || 'Challenge yuklanmadi');
+      setError(e?.response?.data?.message || t('challenges.loadErr'));
     } finally {
       setLoading(false);
     }
@@ -37,7 +39,7 @@ export default function ChallengesPage() {
 
   useEffect(() => {
     loadTodayChallenge();
-  }, [isLoggedIn]);
+  }, [isLoggedIn, t]);
 
   const handleProgress = async () => {
     setSubmitting(true);
@@ -46,7 +48,7 @@ export default function ChallengesPage() {
       const { data } = await api.post('challenges/progress');
       setProgress(data?.data?.progress || progress);
     } catch (e: any) {
-      setError(e?.response?.data?.message || 'Progressni yangilab bo‘lmadi');
+      setError(e?.response?.data?.message || t('challenges.progressErr'));
     } finally {
       setSubmitting(false);
     }
@@ -59,11 +61,11 @@ export default function ChallengesPage() {
           <div className="w-20 h-20 bg-amber-400/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-amber-400/20">
             <IoGameControllerOutline className="text-4xl text-amber-400" />
           </div>
-          <h1 className="mb-3 max-w-full text-balance text-2xl font-black sm:mb-4 sm:text-3xl">Daily <span className="text-amber-400">Challenges</span></h1>
-          <p className="text-base-content/60 mb-8">Challenge'larni ko'rish uchun tizimga kiring.</p>
+          <h1 className="mb-3 max-w-full text-balance text-2xl font-black sm:mb-4 sm:text-3xl">{t('challenges.needLoginTitle')}</h1>
+          <p className="text-base-content/60 mb-8">{t('challenges.needLoginSub')}</p>
           <Link href="/login" className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full border border-primary/20 text-sm font-bold">
             <HiOutlineLightningBolt />
-            Kirish
+            {t('challenges.login')}
           </Link>
         </div>
       </div>
@@ -85,8 +87,8 @@ export default function ChallengesPage() {
           <div className="w-20 h-20 bg-amber-400/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-amber-400/20">
             <IoGameControllerOutline className="text-4xl text-amber-400" />
           </div>
-          <h1 className="mb-3 max-w-full text-balance text-2xl font-black sm:mb-4 sm:text-3xl">Bugungi challenge yo‘q</h1>
-          <p className="text-base-content/60 mb-8">Ertaga qayta tekshirib ko‘ring.</p>
+          <h1 className="mb-3 max-w-full text-balance text-2xl font-black sm:mb-4 sm:text-3xl">{t('challenges.emptyTitle')}</h1>
+          <p className="text-base-content/60 mb-8">{t('challenges.emptySub')}</p>
         </div>
       </div>
     );
@@ -114,7 +116,7 @@ export default function ChallengesPage() {
           transition={{ delay: 0.1 }}
           className="mb-3 max-w-full text-balance text-2xl font-black sm:mb-4 sm:text-3xl"
         >
-          Bugungi <span className="text-amber-400">Challenge</span>
+          {t('challenges.todayTitle')}
         </motion.h1>
 
         <motion.p
@@ -128,7 +130,7 @@ export default function ChallengesPage() {
         </motion.p>
 
         <div className="mb-6 text-sm text-base-content/70">
-          Progress: {currentCount}/{targetCount} ({pct}%)
+          {t('challenges.progressLabel')}: {currentCount}/{targetCount} ({pct}%)
         </div>
         <div className="w-full h-2 bg-base-300 rounded-full overflow-hidden mb-6">
           <div className="h-full bg-amber-400" style={{ width: `${pct}%` }} />
@@ -148,7 +150,7 @@ export default function ChallengesPage() {
             className="flex items-center gap-2 justify-center bg-primary/10 text-primary px-4 py-2 rounded-full border border-primary/20 text-sm font-bold disabled:opacity-60"
           >
             <HiOutlineLightningBolt />
-            {completed ? `Bajarildi! +${challenge.xpReward || 0} XP` : submitting ? 'Saqlanmoqda...' : 'Progress qo‘shish'}
+            {completed ? t('challenges.doneXp', { xp: String(challenge.xpReward || 0) }) : submitting ? t('challenges.saving') : t('challenges.addProgress')}
           </button>
         </motion.div>
       </div>

@@ -12,36 +12,26 @@ import Link from 'next/link';
 import {
   IoSparkles, IoAdd, IoHeart, IoHeartOutline, IoCopy,
   IoClose, IoFilter, IoTrendingUp, IoTime, IoEye, IoChevronForward,
-  IoInformationCircleOutline, IoLockClosed,
+  IoInformationCircleOutline, IoLockClosed, IoBookmark, IoBookmarkOutline,
 } from 'react-icons/io5';
 import { useSubscription } from '@/hooks/useSubscription';
 import TelegramVerify from '@components/subscription/TelegramVerify';
 import { SOCIAL_LINKS } from '@utils/constants';
+import { useLang } from '@/context/LangContext';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const CATEGORIES = [
-  { key: 'all', label: 'Barchasi', emoji: '🌐' },
-  { key: 'system', label: 'System prompt', emoji: '⚙️' },
-  { key: 'vibe_coding', label: 'Vibe Coding', emoji: '⚡' },
-  { key: 'claude', label: 'Claude', emoji: '🤖' },
-  { key: 'cursor', label: 'Cursor', emoji: '🖱️' },
-  { key: 'copilot', label: 'Copilot', emoji: '🐙' },
-  { key: 'coding', label: 'Kodlash', emoji: '💻' },
-  { key: 'debugging', label: 'Debug', emoji: '🔍' },
-  { key: 'architecture', label: 'Arxitektura', emoji: '🏗️' },
-  { key: 'refactoring', label: 'Refactor', emoji: '♻️' },
-  { key: 'testing', label: 'Test', emoji: '🧪' },
-  { key: 'documentation', label: 'Docs', emoji: '📚' },
-];
+const CATEGORY_KEYS = [
+  'all', 'system', 'vibe_coding', 'claude', 'cursor', 'copilot',
+  'coding', 'debugging', 'architecture', 'refactoring', 'testing', 'documentation',
+] as const;
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  all: '🌐', system: '⚙️', vibe_coding: '⚡', claude: '🤖', cursor: '🖱️', copilot: '🐙',
+  coding: '💻', debugging: '🔍', architecture: '🏗️', refactoring: '♻️', testing: '🧪', documentation: '📚',
+};
 
 const TOOLS = ['Any', 'Claude Code', 'Cursor', 'GitHub Copilot', 'ChatGPT', 'Gemini', 'Windsurf'];
-
-const SORT_OPTIONS = [
-  { key: 'newest', label: 'Yangi', icon: IoTime },
-  { key: 'popular', label: 'Popular', icon: IoHeart },
-  { key: 'views', label: 'Ko\'p ko\'rilgan', icon: IoEye },
-];
 
 const TOOL_COLORS: Record<string, string> = {
   'Claude Code': 'bg-orange-500/10 text-orange-400 border-orange-500/20',
@@ -53,29 +43,42 @@ const TOOL_COLORS: Record<string, string> = {
   'Any': 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
 };
 
-function categoryMeta(key: string) {
-  return CATEGORIES.find((c) => c.key === key) ?? { key, label: key, emoji: '📎' };
+function categoryMeta(key: string, t: (k: string, v?: Record<string, string>) => string) {
+  return {
+    key,
+    label: t(`prompts.cat.${key}`),
+    emoji: CATEGORY_EMOJI[key] ?? '📎',
+  };
 }
 
 // ─── Create Prompt Modal ──────────────────────────────────────────────────────
 
 function CreatePromptModal({ onClose, onCreated }: { onClose: () => void; onCreated: (p: Prompt) => void }) {
+  const { t } = useLang();
+  const categoryOptions = useMemo(
+    () => CATEGORY_KEYS.filter((k) => k !== 'all').map((key) => ({
+      key,
+      emoji: CATEGORY_EMOJI[key],
+      label: t(`prompts.cat.${key}`),
+    })),
+    [t]
+  );
   const [form, setForm] = useState({ title: '', content: '', description: '', category: 'vibe_coding', tool: 'Claude Code', tags: '' });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.content.trim()) return toast.error('Sarlavha va prompt matni majburiy');
+    if (!form.title.trim() || !form.content.trim()) return toast.error(t('prompts.validationTitle'));
     try {
       setLoading(true);
       const { data } = await promptApi.create({
         ...form,
-        tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+        tags: form.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
       });
-      toast.success(data.message || 'Prompt yaratildi! +30 XP 🎉');
+      toast.success(data.message || t('prompts.submitCreate'));
       onCreated(data.data);
     } catch {
-      toast.error('Xato yuz berdi');
+      toast.error(t('prompts.createErr'));
     } finally {
       setLoading(false);
     }
@@ -88,7 +91,7 @@ function CreatePromptModal({ onClose, onCreated }: { onClose: () => void; onCrea
       <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
         className="relative w-full max-w-2xl bg-[#0d101a] border border-white/10 rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-black text-white flex items-center gap-3"><IoSparkles className="text-indigo-400" /> Yangi Prompt</h2>
+          <h2 className="text-2xl font-black text-white flex items-center gap-3"><IoSparkles className="text-indigo-400" /> {t('prompts.modalNewTitle')}</h2>
           <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
             <IoClose size={18} />
           </button>
@@ -96,62 +99,62 @@ function CreatePromptModal({ onClose, onCreated }: { onClose: () => void; onCrea
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Sarlavha *</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">{t('prompts.formTitle')}</label>
             <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} maxLength={150}
               className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-all"
-              placeholder="Claude bilan React component yozish..." />
+              placeholder={t('prompts.formTitlePh')} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Kategoriya</label>
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">{t('prompts.formCategory')}</label>
               <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
                 className="w-full bg-[#0a0c14] border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-all">
-                {CATEGORIES.filter(c => c.key !== 'all').map(c => (
+                {categoryOptions.map((c) => (
                   <option key={c.key} value={c.key}>{c.emoji} {c.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Tool</label>
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">{t('prompts.formTool')}</label>
               <select value={form.tool} onChange={e => setForm({ ...form, tool: e.target.value })}
                 className="w-full bg-[#0a0c14] border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-all">
-                {TOOLS.map(t => <option key={t} value={t}>{t}</option>)}
+                {TOOLS.map((toolName) => <option key={toolName} value={toolName}>{toolName}</option>)}
               </select>
             </div>
           </div>
 
           <div>
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Prompt matni *</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">{t('prompts.formContent')}</label>
             <textarea value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} rows={7} maxLength={5000}
               className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-all resize-none font-mono text-sm"
-              placeholder="Promptingizni bu yerga yozing..." />
+              placeholder={t('prompts.formContentPh')} />
             <p className="text-[10px] text-slate-600 text-right mt-1">{form.content.length}/5000</p>
           </div>
 
           <div>
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Tavsif (ixtiyoriy)</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">{t('prompts.formDesc')}</label>
             <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} maxLength={300}
               className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-all"
-              placeholder="Masalan: Bu promptni yuborganingizda AI PR review qiladi yoki test matritsasi chiqaradi..." />
-            <p className="mt-1 text-[10px] text-slate-600">Qisqa: boshqa foydalanuvchi nima natija kutishini tushunishi uchun (kartada ko‘rinadi).</p>
+              placeholder={t('prompts.formDescPh')} />
+            <p className="mt-1 text-[10px] text-slate-600">{t('prompts.formDescHint')}</p>
           </div>
 
           <div>
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Teglar (vergul bilan ajrating)</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">{t('prompts.formTags')}</label>
             <input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })}
               className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-all"
-              placeholder="react, component, hooks..." />
+              placeholder={t('prompts.formTagsPh')} />
           </div>
 
           <div className="flex gap-4 pt-2">
             <button type="button" onClick={onClose}
               className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-400 font-bold text-sm transition-all">
-              Bekor
+              {t('prompts.cancel')}
             </button>
             <button type="submit" disabled={loading}
               className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-              {loading ? 'Yuborilmoqda...' : <><IoSparkles /> Yaratish (+30 XP)</>}
+              {loading ? t('prompts.submitCreating') : <><IoSparkles /> {t('prompts.submitCreate')}</>}
             </button>
           </div>
         </form>
@@ -167,24 +170,33 @@ function PromptDetailModal({
   onClose,
   userId,
   onLike,
+  showSave,
+  isSaved,
+  saveLoading,
+  onToggleSave,
 }: {
   prompt: Prompt;
   onClose: () => void;
   userId?: string;
   onLike: (id: string) => void;
+  showSave?: boolean;
+  isSaved?: boolean;
+  saveLoading?: boolean;
+  onToggleSave?: (id: string) => void;
 }) {
+  const { t } = useLang();
   const [copied, setCopied] = useState(false);
-  const cat = categoryMeta(prompt.category);
+  const cat = categoryMeta(prompt.category, t);
   const liked = userId ? prompt.likes?.includes(userId) : false;
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(prompt.content);
       setCopied(true);
-      toast.success('Clipboard ga ko\'chirildi!');
+      toast.success(t('prompts.copyOk'));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Ko\'chirishda xato');
+      toast.error(t('prompts.copyErr'));
     }
   };
 
@@ -198,7 +210,7 @@ function PromptDetailModal({
     >
       <button
         type="button"
-        aria-label="Yopish (fon)"
+        aria-label={t('prompts.closeBg')}
         onClick={onClose}
         className="absolute inset-0 bg-black/75 backdrop-blur-sm"
       />
@@ -220,7 +232,7 @@ function PromptDetailModal({
               </span>
               {prompt.isFeatured && (
                 <span className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-400">
-                  Featured
+                  {t('prompts.featured')}
                 </span>
               )}
             </div>
@@ -234,7 +246,7 @@ function PromptDetailModal({
             type="button"
             onClick={onClose}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Yopish"
+            aria-label={t('prompts.close')}
           >
             <IoClose size={20} />
           </button>
@@ -266,12 +278,27 @@ function PromptDetailModal({
             </button>
           </div>
           <div className="flex items-center gap-2">
+            {showSave && onToggleSave ? (
+              <button
+                type="button"
+                disabled={saveLoading}
+                onClick={() => onToggleSave(prompt._id)}
+                className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-50 ${
+                  isSaved
+                    ? 'border-amber-500/30 bg-amber-500/15 text-amber-200 hover:bg-amber-500/25'
+                    : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                }`}
+              >
+                {isSaved ? <IoBookmark size={14} /> : <IoBookmarkOutline size={14} />}
+                {isSaved ? t('prompts.saved') : t('prompts.save')}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={handleCopy}
               className="flex items-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-600/15 px-4 py-2.5 text-xs font-bold text-indigo-300 transition-all hover:bg-indigo-600/25 active:scale-[0.98]"
             >
-              <IoCopy size={14} /> {copied ? 'Nusxa olindi' : 'Nusxa olish'}
+              <IoCopy size={14} /> {copied ? t('prompts.detailCopied') : t('prompts.detailCopy')}
             </button>
           </div>
         </div>
@@ -288,13 +315,22 @@ function PromptCard({
   onLike,
   onView,
   onExpand,
+  showSave,
+  isSaved,
+  saveLoading,
+  onToggleSave,
 }: {
   prompt: Prompt;
   userId?: string;
   onLike: (id: string) => void;
   onView: (id: string) => void;
   onExpand: () => void;
+  showSave?: boolean;
+  isSaved?: boolean;
+  saveLoading?: boolean;
+  onToggleSave?: (id: string) => void;
 }) {
+  const { t } = useLang();
   const [copied, setCopied] = useState(false);
   const liked = userId ? prompt.likes?.includes(userId) : false;
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -322,21 +358,21 @@ function PromptCard({
     try {
       await navigator.clipboard.writeText(prompt.content);
       setCopied(true);
-      toast.success('Clipboard ga ko\'chirildi!');
+      toast.success(t('prompts.copyOk'));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Ko\'chirishda xato');
+      toast.error(t('prompts.copyErr'));
     }
   };
 
-  const cat = categoryMeta(prompt.category);
+  const cat = categoryMeta(prompt.category, t);
 
   return (
     <motion.div ref={cardRef} layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
       className="group relative flex h-full flex-col bg-[#0d101a] border border-white/5 rounded-3xl p-5 sm:p-6 hover:border-indigo-500/20 transition-all duration-300 hover:shadow-[0_0_30px_rgba(99,102,241,0.06)]">
       {prompt.isFeatured && (
         <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-black uppercase tracking-widest">
-          Featured
+          {t('prompts.featured')}
         </div>
       )}
 
@@ -383,7 +419,7 @@ function PromptCard({
         </pre>
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0a0c12] via-[#0a0c12]/70 to-transparent" />
         <span className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1 text-[11px] font-bold text-indigo-400">
-          Batafsil <IoChevronForward size={12} className="opacity-80" />
+          {t('prompts.expandDetail')} <IoChevronForward size={12} className="opacity-80" />
         </span>
       </button>
 
@@ -400,20 +436,35 @@ function PromptCard({
             {liked ? <IoHeart size={15} /> : <IoHeartOutline size={15} />} {prompt.likesCount}
           </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {showSave && onToggleSave ? (
+            <button
+              type="button"
+              disabled={saveLoading}
+              onClick={() => onToggleSave(prompt._id)}
+              className={`flex items-center gap-1 rounded-xl border px-3 py-2 text-[11px] font-bold transition-all active:scale-[0.98] disabled:opacity-50 ${
+                isSaved
+                  ? 'border-amber-500/25 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+                  : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+              }`}
+            >
+              {isSaved ? <IoBookmark size={12} /> : <IoBookmarkOutline size={12} />}
+              {isSaved ? t('prompts.saved') : t('prompts.save')}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onExpand}
             className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-bold text-slate-300 transition-all hover:bg-white/10 hover:text-white active:scale-[0.98]"
           >
-            Ochish
+            {t('prompts.open')}
           </button>
           <button
             type="button"
             onClick={handleCopy}
             className="flex items-center gap-1.5 rounded-xl border border-indigo-500/20 bg-indigo-600/15 px-3 py-2 text-[11px] font-bold text-indigo-300 transition-all hover:bg-indigo-600/25 active:scale-[0.98]"
           >
-            <IoCopy size={12} /> {copied ? 'OK' : 'Copy'}
+            <IoCopy size={12} /> {copied ? t('prompts.copyOkShort') : t('prompts.copyShort')}
           </button>
         </div>
       </div>
@@ -426,9 +477,29 @@ function PromptCard({
 type PromptAccess = 'checking' | 'need_login' | 'need_telegram' | 'granted';
 
 export default function PromptsPage() {
+  const { t } = useLang();
   const user = useSelector(selectUser);
   const isAuth = useSelector(selectIsLoggedIn);
   const { telegram, loading: subLoading, refetch: refetchSubscription } = useSubscription();
+
+  const filterCategories = useMemo(
+    () =>
+      CATEGORY_KEYS.map((key) => ({
+        key,
+        emoji: CATEGORY_EMOJI[key],
+        label: t(`prompts.cat.${key}`),
+      })),
+    [t]
+  );
+
+  const sortOptions = useMemo(
+    () => [
+      { key: 'newest', label: t('prompts.sort.newest'), icon: IoTime },
+      { key: 'popular', label: t('prompts.sort.popular'), icon: IoHeart },
+      { key: 'views', label: t('prompts.sort.views'), icon: IoEye },
+    ],
+    [t]
+  );
 
   const promptAccess: PromptAccess = useMemo(() => {
     if (!isAuth) return 'need_login';
@@ -438,7 +509,8 @@ export default function PromptsPage() {
   }, [isAuth, subLoading, telegram?.subscribed]);
 
   const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [featured, setFeatured] = useState<Prompt[]>([]);
+  const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set());
+  const [saveBusyId, setSaveBusyId] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -461,17 +533,17 @@ export default function PromptsPage() {
       setTotal(data.data.total);
       setPage(nextPage);
     } catch {
-      toast.error('Yuklanmadi');
+      toast.error(t('prompts.loadMoreErr'));
     } finally {
       setLoading(false);
     }
-  }, [category, tool, sort, page, promptAccess]);
+  }, [category, tool, sort, page, promptAccess, t]);
 
   useEffect(() => {
     if (promptAccess !== 'granted') {
       setLoading(false);
       setPrompts([]);
-      setFeatured([]);
+      setSavedIds(new Set());
       setTotal(0);
       setPage(1);
       return;
@@ -483,20 +555,26 @@ export default function PromptsPage() {
         const params: Record<string, string | number> = { sort, page: 1, limit: 12 };
         if (category !== 'all') params.category = category;
         if (tool !== 'all') params.tool = tool;
-        const [listRes, featRes] = await Promise.all([
-          promptApi.getAll(params),
-          promptApi.getFeatured(),
-        ]);
+        const listRes = await promptApi.getAll(params);
         if (cancelled) return;
         setPrompts(listRes.data.data.prompts);
         setTotal(listRes.data.data.total);
         setPage(1);
-        setFeatured(featRes.data.data || []);
+        if (isAuth) {
+          try {
+            const { data: idData } = await promptApi.getSavedIds();
+            setSavedIds(new Set(idData.data.ids ?? []));
+          } catch {
+            setSavedIds(new Set());
+          }
+        } else {
+          setSavedIds(new Set());
+        }
       } catch {
         if (!cancelled) {
-          toast.error('Promptlar yuklanmadi');
+          toast.error(t('prompts.loadErr'));
           setPrompts([]);
-          setFeatured([]);
+          setSavedIds(new Set());
           setTotal(0);
         }
       } finally {
@@ -506,7 +584,7 @@ export default function PromptsPage() {
     return () => {
       cancelled = true;
     };
-  }, [promptAccess, category, tool, sort]);
+  }, [promptAccess, category, tool, sort, isAuth, t]);
 
   useEffect(() => {
     if (promptAccess !== 'granted') return;
@@ -514,24 +592,29 @@ export default function PromptsPage() {
       const params: Record<string, string | number> = { sort, page: 1, limit: 12 };
       if (category !== 'all') params.category = category;
       if (tool !== 'all') params.tool = tool;
-      Promise.all([promptApi.getAll(params), promptApi.getFeatured()])
-        .then(([listRes, featRes]) => {
+      void (async () => {
+        try {
+          const listRes = await promptApi.getAll(params);
           setPrompts(listRes.data.data.prompts);
           setTotal(listRes.data.data.total);
-          setFeatured(featRes.data.data || []);
-        })
-        .catch(() => {});
+          if (isAuth) {
+            const { data: idData } = await promptApi.getSavedIds();
+            setSavedIds(new Set(idData.data.ids ?? []));
+          }
+        } catch {
+          // no-op
+        }
+      })();
     }, 30000);
     return () => clearInterval(interval);
-  }, [promptAccess, category, tool, sort]);
+  }, [promptAccess, category, tool, sort, isAuth, t]);
 
   const patchPromptInLists = useCallback((id: string, patch: (p: Prompt) => Prompt) => {
     setPrompts(prev => prev.map(p => (p._id === id ? patch(p) : p)));
-    setFeatured(prev => prev.map(p => (p._id === id ? patch(p) : p)));
   }, []);
 
   const handleLike = async (id: string) => {
-    if (!isAuth) return toast.error('Like bosish uchun kiring');
+    if (!isAuth) return toast.error(t('prompts.toastLikeLogin'));
     try {
       const { data } = await promptApi.like(id);
       patchPromptInLists(id, (p) => ({
@@ -540,7 +623,7 @@ export default function PromptsPage() {
         likes: data.liked ? [...(p.likes || []), user!._id] : (p.likes || []).filter(l => l !== user!._id),
       }));
     } catch {
-      toast.error('Xato');
+      toast.error(t('prompts.toastErr'));
     }
   };
 
@@ -562,6 +645,33 @@ export default function PromptsPage() {
     setShowCreate(false);
   };
 
+  const handleToggleSave = async (id: string) => {
+    if (!isAuth) return toast.error(t('prompts.toastSaveLogin'));
+    const was = savedIds.has(id);
+    setSaveBusyId(id);
+    try {
+      if (was) {
+        await promptApi.unsave(id);
+        setSavedIds((prev) => {
+          const n = new Set(prev);
+          n.delete(id);
+          return n;
+        });
+        toast.success(t('prompts.toastUnsaved'));
+      } else {
+        await promptApi.save(id);
+        setSavedIds((prev) => new Set(prev).add(id));
+        toast.success(t('prompts.toastSaved'));
+      }
+    } catch {
+      toast.error(t('prompts.toastSaveErr'));
+    } finally {
+      setSaveBusyId(null);
+    }
+  };
+
+  const showSaveOnCards = promptAccess === 'granted' && isAuth;
+
   return (
     <div className="min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-[#050507] px-3 pb-16 pt-20 text-slate-200 selection:bg-indigo-500/30 sm:px-4 sm:pb-20 sm:pt-24 md:px-6 lg:px-12">
       <div className="mx-auto max-w-7xl">
@@ -572,42 +682,32 @@ export default function PromptsPage() {
             <div className="max-w-2xl">
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-indigo-300 sm:text-xs">
                 <IoSparkles size={12} className="shrink-0 text-indigo-400" />
-                AI prompt kutubxonasi
+                {t('prompts.badge')}
               </div>
               <h1 className="text-balance text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-5xl">
-                Professional{' '}
-                <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">promptlar</span>
+                {t('prompts.heroTitle1')}{' '}
+                <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">{t('prompts.heroTitle2')}</span>
               </h1>
               {promptAccess !== 'granted' && (
                 <p className="mt-2 flex max-w-xl flex-wrap items-center gap-2 text-xs font-semibold text-amber-200/95 sm:text-sm">
                   <IoLockClosed className="shrink-0" size={16} aria-hidden />
-                  <span>Prompt matnlari Telegram kanaliga obuna bo‘lguncha qulflangan.</span>
+                  <span>{t('prompts.lockedHint')}</span>
                 </p>
               )}
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-400 sm:text-base">
-                Bu yerda <strong className="font-semibold text-slate-300">tayyor prompt shablonlari</strong> yotadi — ularni Claude, Cursor, ChatGPT va boshqa asistentlarga{' '}
-                <strong className="font-semibold text-slate-300">shu ko‘rinishda yuborasiz</strong> (o‘rniga <code className="rounded bg-white/10 px-1 py-0.5 text-[0.8em] text-indigo-200">[PLACEHOLDER]</code> larini o‘z loyihangizga moslab to‘ldiring).
-                Natija: model rol, vazifa, cheklov va chiqish formatini oldindan oladi — javoblar aniqroq va sifatliroq bo‘ladi.
+                {t('prompts.heroBody')}
               </p>
               <details className="group mt-5 max-w-2xl rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left sm:px-5 [&_summary::-webkit-details-marker]:hidden">
                 <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-bold text-slate-200 marker:content-none">
                   <IoInformationCircleOutline className="shrink-0 text-indigo-400" size={20} />
-                  <span>Qisqacha: prompt yozsangiz nima bo‘ladi?</span>
+                  <span>{t('prompts.faqSummary')}</span>
                   <IoChevronForward className="ml-auto shrink-0 text-slate-500 transition-transform group-open:rotate-90" size={16} />
                 </summary>
                 <div className="mt-4 space-y-3 border-t border-white/5 pt-4 text-sm leading-relaxed text-slate-400">
-                  <p>
-                    <strong className="text-slate-300">1) Nusxa olish / ochish</strong> — kartadagi matnni to‘liq ko‘rasiz va bir tugmada clipboard ga olasiz.
-                  </p>
-                  <p>
-                    <strong className="text-slate-300">2) AI ga yuborish</strong> — chat yoki agent oynasiga joylashtirasiz. Birinchi xabar sifatida yuborsangiz, model &quot;rol va format&quot;ni saqlab qoladi.
-                  </p>
-                  <p>
-                    <strong className="text-slate-300">3) O‘zgarish</strong> — qavslardagi joylarni (stack, fayl yo‘li, ticket matni) almashtiring; keraksiz bo‘limlarni o‘chirib tashlash mumkin.
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Kutubxonadagi namunalar senior prompt injinerlar ishlatadigan tuzilma bilan: rol, kontekst, vazifa, cheklovlar, chiqish formati.
-                  </p>
+                  <p>{t('prompts.faq1')}</p>
+                  <p>{t('prompts.faq2')}</p>
+                  <p>{t('prompts.faq3')}</p>
+                  <p className="text-xs text-slate-500">{t('prompts.faqFoot')}</p>
                 </div>
               </details>
             </div>
@@ -617,7 +717,7 @@ export default function PromptsPage() {
                   href="/login"
                   className="flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 font-bold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500"
                 >
-                  <IoAdd size={18} /> Kirish
+                  <IoAdd size={18} /> {t('prompts.loginCta')}
                 </Link>
               ) : promptAccess === 'granted' ? (
                 <button
@@ -625,19 +725,18 @@ export default function PromptsPage() {
                   onClick={() => setShowCreate(true)}
                   className="flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 font-bold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500 active:scale-[0.98]"
                 >
-                  <IoAdd size={18} /> Prompt qo‘shish (+30 XP)
+                  <IoAdd size={18} /> {t('prompts.addPrompt')}
                 </button>
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-center text-xs font-medium text-slate-400 sm:text-sm">
-                  {promptAccess === 'checking' ? 'Obuna holati tekshirilmoqda…' : 'Telegram kanalni ulang — keyin prompt qo‘shasiz'}
+                  {promptAccess === 'checking' ? t('prompts.checkingSub') : t('prompts.waitTelegram')}
                 </div>
               )}
               <div className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-slate-400">
                 <IoTrendingUp size={15} className="text-indigo-400/90" />
                 <span className="font-semibold text-slate-300">
-                  {promptAccess === 'granted' ? total.toLocaleString() : '—'}
+                  {promptAccess === 'granted' ? t('prompts.countLine', { n: total.toLocaleString() }) : '—'}
                 </span>
-                ta prompt
               </div>
             </div>
           </div>
@@ -646,7 +745,7 @@ export default function PromptsPage() {
         {promptAccess === 'checking' && isAuth && (
           <div className="mb-10 flex flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/[0.02] py-14">
             <span className="loading loading-spinner loading-lg text-indigo-400" />
-            <p className="text-sm text-slate-500">Obuna holati tekshirilmoqda…</p>
+            <p className="text-sm text-slate-500">{t('prompts.checkingSub')}</p>
           </div>
         )}
 
@@ -657,16 +756,16 @@ export default function PromptsPage() {
           >
             <IoLockClosed className="mx-auto mb-4 text-indigo-400" size={40} aria-hidden />
             <h2 id="prompts-login-gate-title" className="mb-2 text-xl font-bold text-white sm:text-2xl">
-              Promptlarni ko‘rish uchun kiring
+              {t('prompts.gateLoginTitle')}
             </h2>
             <p className="mx-auto mb-6 max-w-md text-sm leading-relaxed text-slate-400">
-              Kutubxona matnlari faqat akkaunt orqali va Telegram kanal obunasi tasdiqlangach ochiladi.
+              {t('prompts.gateLoginSub')}
             </p>
             <Link
               href="/login"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-8 py-3 font-bold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500"
             >
-              Kirish
+              {t('prompts.loginCta')}
             </Link>
           </section>
         )}
@@ -679,10 +778,10 @@ export default function PromptsPage() {
             <div className="mx-auto max-w-lg text-center">
               <IoLockClosed className="mx-auto mb-4 text-amber-400" size={44} aria-hidden />
               <h2 id="prompts-tg-gate-title" className="mb-2 text-xl font-bold text-white sm:text-2xl">
-                Telegram kanaliga obuna bo‘ling
+                {t('prompts.gateTgTitle')}
               </h2>
               <p className="mb-6 text-sm leading-relaxed text-slate-400">
-                Prompt shablonlari qulfda. Avval rasmiy kanalga qo‘shiling, keyin pastdagi tugma orqali obunani tasdiqlang — ro‘yxat darhol ochiladi.
+                {t('prompts.gateTgSub')}
               </p>
               <a
                 href={SOCIAL_LINKS.telegram}
@@ -690,7 +789,7 @@ export default function PromptsPage() {
                 rel="noopener noreferrer"
                 className="mb-8 inline-flex items-center gap-2 rounded-2xl border border-sky-500/40 bg-sky-500/15 px-5 py-2.5 text-sm font-bold text-sky-300 transition-colors hover:bg-sky-500/25"
               >
-                Kanalga o‘tish →
+                {t('prompts.gateTgLink')}
               </a>
             </div>
             <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-[#0a0c14]/80 p-4 sm:p-6">
@@ -698,7 +797,7 @@ export default function PromptsPage() {
             </div>
             <p className="mt-6 text-center text-xs text-slate-500">
               <Link href="/subscription?returnUrl=/prompts" className="text-indigo-400 underline-offset-2 hover:underline">
-                Barcha obuna qadamlari (PRO sahifa)
+                {t('prompts.gateTgFooter')}
               </Link>
             </p>
           </section>
@@ -709,9 +808,9 @@ export default function PromptsPage() {
         {/* Sticky filters — categories first, always visible while scrolling */}
         <div className="sticky top-14 z-30 -mx-3 mb-8 border-y border-white/10 bg-[#050507]/90 px-3 py-3 backdrop-blur-xl sm:-mx-4 sm:px-4 sm:py-4 md:-mx-6 md:px-6 lg:-mx-12 lg:px-12 sm:top-16">
           <div className="mx-auto max-w-7xl">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Kategoriya</p>
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">{t('prompts.filterCategory')}</p>
             <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto pb-1 px-1">
-              {CATEGORIES.map((c) => (
+              {filterCategories.map((c) => (
                 <button
                   key={c.key}
                   type="button"
@@ -729,7 +828,7 @@ export default function PromptsPage() {
             </div>
             <div className="mt-4 flex flex-col gap-3 border-t border-white/5 pt-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-1 rounded-2xl bg-white/5 p-1">
-                {SORT_OPTIONS.map((s) => {
+                {sortOptions.map((s) => {
                   const Icon = s.icon;
                   return (
                     <button
@@ -748,7 +847,7 @@ export default function PromptsPage() {
               <div className="flex items-center gap-2 sm:justify-end">
                 <IoFilter size={14} className="hidden text-slate-600 sm:block" />
                 <label className="sr-only" htmlFor="prompt-tool-filter">
-                  Tool
+                  {t('prompts.filterToolSr')}
                 </label>
                 <select
                   id="prompt-tool-filter"
@@ -756,7 +855,7 @@ export default function PromptsPage() {
                   onChange={(e) => setTool(e.target.value)}
                   className="w-full min-w-[10rem] rounded-2xl border border-white/10 bg-[#0a0c14] px-3 py-2.5 text-xs font-semibold text-slate-200 focus:border-indigo-500/50 focus:outline-none sm:w-auto"
                 >
-                  <option value="all">Barcha toollar</option>
+                  <option value="all">{t('prompts.toolsAll')}</option>
                   {TOOLS.map((t) => (
                     <option key={t} value={t}>
                       {t}
@@ -768,41 +867,11 @@ export default function PromptsPage() {
           </div>
         </div>
 
-        {/* Featured — horizontal rail (saves vertical space) */}
-        {featured.length > 0 && (
-          <section className="mb-10 sm:mb-12" aria-labelledby="featured-prompts-heading">
-            <div className="mb-4 flex items-center justify-between gap-2">
-              <h2 id="featured-prompts-heading" className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
-                <span className="text-amber-400" aria-hidden>
-                  ★
-                </span>
-                Tanlangan promptlar
-              </h2>
-            </div>
-            <div className="no-scrollbar -mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto px-3 pb-2 sm:-mx-0 sm:px-0">
-              {featured.map((p) => (
-                <div
-                  key={p._id}
-                  className="w-[min(100%,22rem)] shrink-0 snap-start sm:w-[min(100%,24rem)] lg:w-[min(100%,26rem)]"
-                >
-                  <PromptCard
-                    prompt={p}
-                    userId={user?._id}
-                    onLike={handleLike}
-                    onView={handleView}
-                    onExpand={() => setDetailPrompt(p)}
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-white/5 pb-3">
-          <h2 className="text-lg font-bold text-white sm:text-xl">Barcha promptlar</h2>
+          <h2 className="text-lg font-bold text-white sm:text-xl">{t('prompts.sectionAll')}</h2>
           <p className="text-xs text-slate-500">
-            {category !== 'all' ? `${categoryMeta(category).emoji} ${categoryMeta(category).label} · ` : ''}
-            {total.toLocaleString()} ta
+            {category !== 'all' ? `${categoryMeta(category, t).emoji} ${categoryMeta(category, t).label} · ` : ''}
+            {t('prompts.countLine', { n: total.toLocaleString() })}
           </p>
         </div>
 
@@ -816,11 +885,11 @@ export default function PromptsPage() {
         ) : prompts.length === 0 ? (
           <div className="py-32 text-center">
             <div className="text-5xl mb-4">🔍</div>
-            <p className="text-slate-500">Bu kategoriyada hali prompt yo'q</p>
+            <p className="text-slate-500">{t('prompts.emptyCat')}</p>
             {promptAccess === 'granted' && isAuth && (
               <button onClick={() => setShowCreate(true)}
                 className="mt-6 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm transition-all">
-                Birinchi bo'ling!
+                {t('prompts.beFirst')}
               </button>
             )}
           </div>
@@ -835,6 +904,10 @@ export default function PromptsPage() {
                   onLike={handleLike}
                   onView={handleView}
                   onExpand={() => setDetailPrompt(p)}
+                  showSave={showSaveOnCards}
+                  isSaved={savedIds.has(p._id)}
+                  saveLoading={saveBusyId === p._id}
+                  onToggleSave={handleToggleSave}
                 />
               ))}
             </div>
@@ -846,7 +919,7 @@ export default function PromptsPage() {
                   disabled={loading}
                   className="rounded-2xl border border-white/10 bg-white/5 px-8 py-3 text-sm font-bold text-slate-300 transition-all hover:bg-white/10 disabled:opacity-50"
                 >
-                  {loading ? 'Yuklanmoqda…' : `Ko‘proq yuklash (${total - prompts.length} qoldi)`}
+                  {loading ? t('prompts.loading') : t('prompts.loadMore', { left: String(total - prompts.length) })}
                 </button>
               </div>
             )}
@@ -869,6 +942,10 @@ export default function PromptsPage() {
             onClose={() => setDetailPrompt(null)}
             userId={user?._id}
             onLike={handleLike}
+            showSave={showSaveOnCards}
+            isSaved={savedIds.has(detailPrompt._id)}
+            saveLoading={saveBusyId === detailPrompt._id}
+            onToggleSave={handleToggleSave}
           />
         ) : null}
       </AnimatePresence>

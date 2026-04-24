@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useTheme } from '@/context/ThemeContext';
+import { useLang } from '@/context/LangContext';
 import { IoArrowForward, IoCheckmarkCircle, IoLockClosed, IoSchool } from 'react-icons/io5';
 import axiosInstance from '@/api/axiosInstance';
 
@@ -15,6 +16,7 @@ const ROADMAP_COLORS = [
 ];
 
 export default function RoadmapPage() {
+  const { t } = useLang();
   const { isDark } = useTheme();
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [paths, setPaths] = useState<any[]>([]);
@@ -41,16 +43,16 @@ export default function RoadmapPage() {
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16">
           <div className={`inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest mb-4 px-4 py-2 rounded-full border ${isDark ? 'border-white/10 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
-            <IoSchool /> O'rganish yo'llari
+            <IoSchool /> {t('roadmap.badge')}
           </div>
           <h1 className="mb-3 max-w-full text-balance text-3xl font-black tracking-tight sm:mb-4 sm:text-5xl md:text-6xl">
-            Learning{' '}
+            {t('roadmap.title1')}{' '}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
-              Roadmap
+              {t('roadmap.title2')}
             </span>
           </h1>
           <p className={`max-w-xl mx-auto text-lg leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-            Qaysi yo'nalishda rivojlanmoqchisiz? Quyidagi 3 ta yo'ldan birini tanlang va qadamba-qadam o'rganing.
+            {t('roadmap.subtitle')}
           </p>
         </motion.div>
 
@@ -73,7 +75,7 @@ export default function RoadmapPage() {
                 {path.description}
               </p>
               <div className="mt-4 flex items-center gap-2">
-                <span className={`text-xs font-bold ${path.accentColor}`}>{path.steps.length} bosqich</span>
+                <span className={`text-xs font-bold ${path.accentColor}`}>{path.steps.length} {t('roadmap.steps')}</span>
                 <span className={`text-xs ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>•</span>
                 <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                   {path.steps.reduce((s, p) => s + p.xp, 0).toLocaleString()} XP
@@ -93,7 +95,7 @@ export default function RoadmapPage() {
           >
             <h2 className={`text-2xl font-black mb-8 flex items-center gap-3`}>
               <span>{path.icon}</span>
-              <span className={path.accentColor}>{path.title}</span> — Bosqichlar
+              <span className={path.accentColor}>{path.title}</span> — {t('roadmap.stepsTitle')}
             </h2>
 
             <div className="relative">
@@ -126,7 +128,7 @@ export default function RoadmapPage() {
                         </span>
                       </div>
                       <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                        +{step.xp} XP • {step.category} yo'nalish
+                        {t('roadmap.stepXpTrack', { xp: String(step.xp), cat: step.category })}
                       </p>
                     </div>
 
@@ -134,7 +136,7 @@ export default function RoadmapPage() {
                       href={`/courses?category=${step.category}`}
                       className={`flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all hover:-translate-x-0 hover:translate-y-0 hover:gap-3 ${path.accentColor} bg-white/5 border ${path.borderColor} hover:bg-white/10`}
                     >
-                      Kurslar <IoArrowForward />
+                      {t('roadmap.coursesBtn')} <IoArrowForward />
                     </Link>
                   </motion.div>
                 ))}
@@ -145,7 +147,7 @@ export default function RoadmapPage() {
 
         {/* CTA */}
         {!loading && paths.length === 0 && (
-          <div className="text-center text-sm text-slate-500 mb-12">Roadmap ma'lumotlari vaqtincha mavjud emas</div>
+          <div className="text-center text-sm text-slate-500 mb-12">{t('roadmap.empty')}</div>
         )}
 
         <motion.div
@@ -154,16 +156,16 @@ export default function RoadmapPage() {
           transition={{ delay: 0.4 }}
           className={`text-center rounded-3xl border p-12 ${isDark ? 'bg-indigo-500/5 border-indigo-500/10' : 'bg-indigo-50 border-indigo-100'}`}
         >
-          <h2 className="text-3xl font-black mb-3">Hoziroq boshlang!</h2>
+          <h2 className="text-3xl font-black mb-3">{t('roadmap.ctaTitle')}</h2>
           <p className={`mb-8 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-            Kurslarni ko'ring, challenge qiling va leaderboard da yuqoriga ko'tariling.
+            {t('roadmap.ctaSub')}
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link href="/courses" className="px-8 py-3.5 bg-indigo-500 hover:bg-indigo-400 text-white font-bold rounded-2xl transition-colors">
-              Kurslarni ko'rish
+              {t('roadmap.ctaCourses')}
             </Link>
             <Link href="/challenges" className={`px-8 py-3.5 border font-bold rounded-2xl transition-colors ${isDark ? 'border-white/10 text-white hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-100'}`}>
-              Daily Challenge
+              {t('roadmap.ctaChallenges')}
             </Link>
           </div>
         </motion.div>

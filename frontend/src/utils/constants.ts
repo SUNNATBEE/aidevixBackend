@@ -78,4 +78,5 @@ export const ROUTES = {
   TEAM:           '/team',
   ROADMAP:        '/roadmap',
   PUBLIC_PROFILE: (username: string) => `/u/${username}`,
+  BUG_REPORT:     '/bug-report',
 }

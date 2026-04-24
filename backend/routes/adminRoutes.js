@@ -6,6 +6,7 @@ const {
   getUserDetail, globalSearch, getAnalytics,
   sendTelegramMessage, bulkLinkBunny, reorderVideos, getCourseEnrollmentStats,
 } = require('../controllers/adminController');
+const { adminListBugReports, adminReviewBugReport } = require('../controllers/bugReportController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
 const guard = [authenticate, requireAdmin];
@@ -30,6 +31,10 @@ router.delete('/users/:id', ...guard, deleteUser);
 
 // Search
 router.get('/search', ...guard, globalSearch);
+
+// Bug reports (sayt xatoliklari)
+router.get('/bug-reports', ...guard, adminListBugReports);
+router.patch('/bug-reports/:id', ...guard, adminReviewBugReport);
 
 // Tools
 router.post('/telegram',          ...guard, sendTelegramMessage);

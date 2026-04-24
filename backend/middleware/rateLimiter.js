@@ -127,6 +127,16 @@ const googleLimiter = rateLimit({
   keyGenerator: ipKey,
 });
 
+// Bug / sayt xatoligi xabarlari — spam oldini olish
+const bugReportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: jsonMessage('Soatiga 5 tadan ortiq bug xabari yuborib bo\'lmaydi.'),
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req.user?._id ? String(req.user._id) : ipKey(req)),
+});
+
 module.exports = {
   apiLimiter,
   authLimiter,
@@ -139,4 +149,5 @@ module.exports = {
   dailyRewardLimiter,
   verifyEmailLimiter,
   googleLimiter,
+  bugReportLimiter,
 };

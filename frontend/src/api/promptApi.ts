@@ -14,6 +14,7 @@ export interface Prompt {
   likes: string[];
   isFeatured: boolean;
   createdAt: string;
+  savedAt?: string;
 }
 
 export interface PromptsResponse {
@@ -29,6 +30,18 @@ export const promptApi = {
 
   getFeatured: () =>
     axiosInstance.get<{ success: boolean; data: Prompt[] }>('prompts/featured'),
+
+  getSaved: (params?: Record<string, string | number>) =>
+    axiosInstance.get<{ success: boolean; data: PromptsResponse }>('prompts/saved/me', { params }),
+
+  getSavedIds: () =>
+    axiosInstance.get<{ success: boolean; data: { ids: string[] } }>('prompts/saved/ids'),
+
+  save: (id: string) =>
+    axiosInstance.post<{ success: boolean; saved: boolean }>(`prompts/${id}/save`),
+
+  unsave: (id: string) =>
+    axiosInstance.delete<{ success: boolean; saved: boolean }>(`prompts/${id}/save`),
 
   getOne: (id: string) =>
     axiosInstance.get<{ success: boolean; data: Prompt }>(`prompts/${id}`),

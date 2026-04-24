@@ -1,4 +1,5 @@
 const Prompt = require('../models/Prompt');
+const SavedPrompt = require('../models/SavedPrompt');
 const UserStats = require('../models/UserStats');
 
 /** @route GET /api/prompts | @access Public */
@@ -39,6 +40,122 @@ const getFeaturedPrompts = async (req, res) => {
       .sort({ likesCount: -1 })
       .limit(6);
     res.json({ success: true, data: prompts });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** @route GET /api/prompts/saved/me | @access Private */
+const getSavedPrompts = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const page = Math.max(1, +req.query.page || 1);
+    const limit = Math.min(50, Math.max(1, +req.query.limit || 12));
+    const category = req.query.category;
+    const search = String(req.query.search || '').trim();
+
+    const pipeline = [
+      { $match: { user: userId } },
+      { $lookup: { from: 'prompts', localField: 'prompt', foreignField: '_id', as: 'p' } },
+      { $unwind: { path: '$p', preserveNullAndEmptyArrays: false } },
+      { $match: { 'p.isPublic': true } },
+    ];
+
+    if (category && category !== 'all') pipeline.push({ $match: { 'p.category': category } });
+    if (search) {
+      const r = new RegExp(escapeRegex(search), 'i');
+      pipeline.push({ $match: { $or: [{ 'p.title': r }, { 'p.description': r }, { 'p.content': r }] } });
+    }
+
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'users',
+          let: { aid: '$p.author' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$_id', '$$aid'] } } },
+            { $project: { username: 1, firstName: 1, avatar: 1, aiStack: 1, rankTitle: 1 } },
+          ],
+          as: 'authorArr',
+        },
+      },
+      { $set: { 'p.author': { $arrayElemAt: ['$authorArr', 0] } } },
+      { $sort: { updatedAt: -1 } },
+      {
+        $facet: {
+          data: [
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
+            {
+              $project: {
+                savedAt: '$updatedAt',
+                _id: '$p._id',
+                title: '$p.title',
+                content: '$p.content',
+                description: '$p.description',
+                category: '$p.category',
+                tool: '$p.tool',
+                tags: '$p.tags',
+                author: '$p.author',
+                likesCount: '$p.likesCount',
+                viewsCount: '$p.viewsCount',
+                likes: '$p.likes',
+                isFeatured: '$p.isFeatured',
+                createdAt: '$p.createdAt',
+              },
+            },
+          ],
+          totalCount: [{ $count: 'c' }],
+        },
+      }
+    );
+
+    const result = await SavedPrompt.aggregate(pipeline);
+    const row = result[0] || { data: [], totalCount: [] };
+    const prompts = row.data;
+    const total = row.totalCount[0]?.c || 0;
+    res.json({
+      success: true,
+      data: { prompts, total, page, pages: Math.max(1, Math.ceil(total / limit)) },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @route GET /api/prompts/saved/ids | @access Private */
+const getSavedPromptIds = async (req, res) => {
+  try {
+    const ids = await SavedPrompt.find({ user: req.user._id }).distinct('prompt');
+    res.json({ success: true, data: { ids: ids.map((id) => id.toString()) } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @route POST /api/prompts/:id/save | @access Private */
+const savePrompt = async (req, res) => {
+  try {
+    const prompt = await Prompt.findOne({ _id: req.params.id, isPublic: true });
+    if (!prompt) return res.status(404).json({ success: false, message: 'Prompt topilmadi' });
+    await SavedPrompt.updateOne(
+      { user: req.user._id, prompt: prompt._id },
+      { $setOnInsert: { user: req.user._id, prompt: prompt._id } },
+      { upsert: true }
+    );
+    res.json({ success: true, saved: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @route DELETE /api/prompts/:id/save | @access Private */
+const unsavePrompt = async (req, res) => {
+  try {
+    await SavedPrompt.deleteOne({ user: req.user._id, prompt: req.params.id });
+    res.json({ success: true, saved: false });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -134,6 +251,7 @@ const deletePrompt = async (req, res) => {
     if (!isOwner && req.user.role !== 'admin')
       return res.status(403).json({ success: false, message: 'Ruxsat yo\'q' });
 
+    await SavedPrompt.deleteMany({ prompt: req.params.id });
     await prompt.deleteOne();
     res.json({ success: true, message: 'Prompt o\'chirildi' });
   } catch (err) {
@@ -156,4 +274,17 @@ const featurePrompt = async (req, res) => {
   }
 };
 
-module.exports = { getPrompts, getFeaturedPrompts, getPrompt, viewPrompt, createPrompt, likePrompt, deletePrompt, featurePrompt };
+module.exports = {
+  getPrompts,
+  getFeaturedPrompts,
+  getSavedPrompts,
+  getSavedPromptIds,
+  savePrompt,
+  unsavePrompt,
+  getPrompt,
+  viewPrompt,
+  createPrompt,
+  likePrompt,
+  deletePrompt,
+  featurePrompt,
+};

@@ -37,6 +37,7 @@ export default function Navbar() {
   const NAV_LINKS = [
     { label: t('nav.courses'), to: ROUTES.COURSES },
     { label: '⚡ Prompts', to: ROUTES.PROMPTS },
+    { label: t('nav.bugReport'), to: ROUTES.BUG_REPORT },
     { label: `🧠 ${t('nav.founders')}`, to: ROUTES.TEAM },
     { label: t('nav.challenges'), to: ROUTES.CHALLENGES },
     { label: t('nav.leaderboard'), to: ROUTES.LEADERBOARD },
@@ -269,6 +270,14 @@ export default function Navbar() {
                         </li>
                       )}
                       <li><Link href={ROUTES.PROFILE} className={`rounded-xl px-3 py-2.5 text-sm ${dropdownItemColor}`}>{t('nav.profile')}</Link></li>
+                      <li>
+                        <Link
+                          href={ROUTES.BUG_REPORT}
+                          className={`rounded-xl px-3 py-2.5 text-sm ${dropdownItemColor}`}
+                        >
+                          {t('nav.bugReport')}
+                        </Link>
+                      </li>
                       <li>
                         <Link href={ROUTES.REFERRAL} className="flex justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300">
                           <span>{t('nav.referral')}</span>

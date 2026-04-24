@@ -25,6 +25,7 @@ import {
   FiShield
 } from 'react-icons/fi';
 import { userApi } from '@api/userApi';
+import SavedPromptsSection from '@components/profile/SavedPromptsSection';
 
 export default function ProfilePage() {
   const dispatch = useDispatch();
@@ -46,7 +47,13 @@ export default function ProfilePage() {
     { name: 'Other', icon: '🛠️', color: 'from-zinc-500/10 to-neutral-500/10 border-zinc-500/20 text-zinc-300' },
   ];
 
-  const TABS = [t('profile.tab.info'), t('profile.tab.subs'), t('profile.tab.achievements'), 'AI Stack'];
+  const TABS = [
+    t('profile.tab.info'),
+    t('profile.tab.subs'),
+    t('profile.tab.achievements'),
+    t('profile.tab.savedPrompts'),
+    'AI Stack',
+  ];
 
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [selectedTools, setSelectedTools] = useState<string[]>(user?.aiStack || []);
@@ -374,6 +381,10 @@ export default function ProfilePage() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-20 text-center bg-[#0d101a] border border-white/5 rounded-3xl text-slate-500 font-medium">
                {t('profile.subs.soon')}
             </motion.div>
+          )}
+
+          {activeTab === t('profile.tab.savedPrompts') && (
+            <SavedPromptsSection />
           )}
 
           {activeTab === t('profile.tab.achievements') && (

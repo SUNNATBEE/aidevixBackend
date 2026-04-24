@@ -1,6 +1,14 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  ReactNode,
+} from 'react';
 import { translations, Lang } from '@utils/i18n';
 
 const LANG_STORAGE_KEY = 'aidevix_lang';
@@ -63,9 +71,9 @@ export function LangProvider({ children }: { children: ReactNode }) {
     }
   }, [lang]);
 
-  const setLang = (l: Lang) => {
+  const setLang = useCallback((l: Lang) => {
     setLangState(l);
-  };
+  }, []);
 
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
@@ -82,7 +90,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  const t = (key: string, vars?: Record<string, string>): string => {
+  const t = useCallback((key: string, vars?: Record<string, string>): string => {
     let text = translations[lang]?.[key] ?? translations['uz']?.[key] ?? key;
     if (vars) {
       Object.entries(vars).forEach(([k, v]) => {
@@ -90,13 +98,11 @@ export function LangProvider({ children }: { children: ReactNode }) {
       });
     }
     return text;
-  };
+  }, [lang]);
 
-  return (
-    <LangContext.Provider value={{ lang, setLang, t }}>
-      {children}
-    </LangContext.Provider>
-  );
+  const value = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);
+
+  return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
 }
 
 export const useLang = () => useContext(LangContext);

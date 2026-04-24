@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { FaInstagram, FaTelegram } from 'react-icons/fa';
+import { useLang } from '@/context/LangContext';
 
 type TeamMember = {
   id: string;
@@ -149,6 +150,7 @@ function getInitials(name: string) {
 }
 
 function LeadershipCard({ member }: { member: TeamMember }) {
+  const { t } = useLang();
   const [imgError, setImgError] = useState(false);
 
   return (
@@ -220,7 +222,7 @@ function LeadershipCard({ member }: { member: TeamMember }) {
 
             {(member.instagramUrl || member.telegramUrl) && (
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Ijtimoiy</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">{t('team.social')}</span>
                 {member.instagramUrl && (
                   <a
                     href={member.instagramUrl}
@@ -253,6 +255,7 @@ function LeadershipCard({ member }: { member: TeamMember }) {
 }
 
 function TiltCard({ member, index }: { member: TeamMember; index: number }) {
+  const { t } = useLang();
   const [imgError, setImgError] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -395,7 +398,7 @@ function TiltCard({ member, index }: { member: TeamMember; index: number }) {
             }}
           >
             <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(120deg, transparent, rgba(255,255,255,0.22), transparent)' }} />
-            <span className="relative">Portfolio</span>
+            <span className="relative">{t('team.portfolio')}</span>
             <motion.span
               aria-hidden
               className="relative"
@@ -438,6 +441,7 @@ function TiltCard({ member, index }: { member: TeamMember; index: number }) {
 }
 
 function RoadmapNode({ member, index }: { member: TeamMember; index: number }) {
+  const { t } = useLang();
   const isLeft = index % 2 === 0;
   const isLead = member.id === 'sunnatbee';
 
@@ -460,7 +464,7 @@ function RoadmapNode({ member, index }: { member: TeamMember; index: number }) {
           <span className="text-lg">{member.emoji}</span>
           <span className="font-bold text-white">{member.name}</span>
           {!member.hideAge && member.age > 0 && (
-            <span className="text-xs text-slate-500">· {member.age} yosh</span>
+            <span className="text-xs text-slate-500">· {member.age} {t('team.ageYears')}</span>
           )}
         </div>
         <p
@@ -497,6 +501,7 @@ function RoadmapNode({ member, index }: { member: TeamMember; index: number }) {
 }
 
 export default function TeamPage() {
+  const { t } = useLang();
   const containerRef = useRef<HTMLDivElement>(null);
   const members = MEMBERS;
   const allMembers = [FOUNDER_LEAD, ...MEMBERS];
@@ -528,14 +533,14 @@ export default function TeamPage() {
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-[0.14em] sm:tracking-[0.2em] text-indigo-300">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
-              Aidevix asoschilari · 2025
+              {t('team.heroBadge')}
             </span>
           </div>
 
           {/* heading — 2 clear lines */}
           <h1 className="mt-4 max-w-full text-balance font-black leading-[1.08] tracking-[-0.03em] sm:mt-5"
               style={{ fontSize: 'clamp(1.45rem, 7.5vw, 4rem)' }}>
-            <span className="text-white">Platformani yaratgan</span>
+            <span className="text-white">{t('team.heroH1a')}</span>
             <br />
             <span
               style={{
@@ -545,23 +550,22 @@ export default function TeamPage() {
                 backgroundClip: 'text',
               }}
             >
-              yosh dasturchilar
+              {t('team.heroH1b')}
             </span>
           </h1>
 
           {/* description */}
           <p className="mt-4 max-w-xl text-sm sm:text-[15px] leading-relaxed text-slate-400">
-            O&apos;rtacha yoshi {avgAge}. Har biri haqiqiy production kodini yozgan. Quyida
-            har birining Aidevix&apos;ga qo&apos;shgan hissasi va texnologik steki.
+            {t('team.heroDesc', { avgAge: String(avgAge) })}
           </p>
 
           {/* stats grid */}
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { label: 'Ishtirokchi', value: `${allMembers.length}`, icon: '👥' },
-              { label: "O'rtacha yosh", value: avgAge, icon: '🎂' },
-              { label: 'Texnologiyalar', value: `${techCount}+`, icon: '⚡' },
-              { label: 'Holat', value: 'Production', icon: '🚀' },
+              { label: t('team.stat.participants'), value: `${allMembers.length}`, icon: '👥' },
+              { label: t('team.stat.avgAge'), value: avgAge, icon: '🎂' },
+              { label: t('team.stat.tech'), value: `${techCount}+`, icon: '⚡' },
+              { label: t('team.stat.status'), value: t('team.stat.production'), icon: '🚀' },
             ].map((s) => (
               <div
                 key={s.label}
@@ -589,7 +593,7 @@ export default function TeamPage() {
           viewport={{ once: true }}
           className="mb-5 text-[11px] font-semibold uppercase tracking-[0.28em] text-amber-500/90"
         >
-          Rahbariyat · loyiha boshqaruvi
+          {t('team.leadSection')}
         </motion.p>
         <LeadershipCard member={FOUNDER_LEAD} />
       </section>
@@ -602,7 +606,7 @@ export default function TeamPage() {
           viewport={{ once: true }}
           className="mb-8 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600"
         >
-          Core jamoa — {members.length} kishi
+          {t('team.coreTeam', { count: String(members.length) })}
         </motion.p>
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {members.map((m, i) => (
@@ -622,16 +626,16 @@ export default function TeamPage() {
           className="mb-14 text-center"
         >
           <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/[0.07] px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-[0.14em] sm:tracking-[0.2em] text-amber-300">
-            🗺 Loyiha yo&apos;l xaritasi
+            🗺 {t('team.roadmapBadge')}
           </span>
           <h2 className="mt-5 text-2xl sm:text-3xl font-black tracking-tight sm:text-[2.4rem]">
-            Har bir modul —
+            {t('team.roadmapTitle1')}
             <span className="block bg-gradient-to-r from-amber-300 to-orange-200 bg-clip-text text-transparent">
-              bitta asoschi
+              {t('team.roadmapTitle2')}
             </span>
           </h2>
           <p className="mx-auto mt-3 max-w-sm text-sm text-slate-500">
-            Aidevix platformasini qurgan yosh dasturchilar jamoasi — har biri haqiqiy production kodiga mas&apos;ul.
+            {t('team.roadmapSub')}
           </p>
         </motion.div>
 
@@ -671,8 +675,8 @@ export default function TeamPage() {
           >
             🌐
           </div>
-          <p className="mt-1 text-sm font-bold text-white tracking-tight">aidevix.uz</p>
-          <p className="text-xs text-slate-500">Production · Hammasi bir loyihada birlashdi</p>
+          <p className="mt-1 text-sm font-bold text-white tracking-tight">{t('team.footerUrl')}</p>
+          <p className="text-xs text-slate-500">{t('team.footerTag')}</p>
         </motion.div>
       </section>
     </main>
