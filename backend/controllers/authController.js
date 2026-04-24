@@ -28,6 +28,12 @@ const {
 } = require('../utils/authSecurity');
 const securityLogger = require('../utils/securityLogger');
 
+const authDebug = (...args) => {
+  if (process.env.AUTH_DEBUG === 'true') {
+    console.log('[AUTH_DEBUG]', ...args);
+  }
+};
+
 const calculateRank = (xp) => {
   if (xp >= 50000) return 'LEGEND';
   if (xp >= 20000) return 'MASTER';
@@ -70,6 +76,10 @@ const issueTokens = async (user) => {
   // documents that may not have `tokenVersion` selected in memory.
   const persisted = await User.findById(user._id).select('+tokenVersion');
   const tokenVersion = persisted?.tokenVersion || 0;
+  authDebug('issueTokens:resolved_token_version', {
+    userId: String(user._id),
+    tokenVersion,
+  });
   const payload = { userId: user._id, tv: tokenVersion };
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken(payload);
@@ -84,6 +94,12 @@ const issueTokens = async (user) => {
       },
     }
   );
+  authDebug('issueTokens:cookies_prepared', {
+    userId: String(user._id),
+    tokenVersion,
+    accessLen: accessToken.length,
+    refreshLen: refreshToken.length,
+  });
 
   return { accessToken, refreshToken };
 };
@@ -268,6 +284,11 @@ const refresh = asyncHandler(async (req, res, next) => {
 
   // Token version gate — password change / force-logout invalidates all outstanding tokens
   if (typeof decoded.tv === 'number' && decoded.tv !== (user.tokenVersion || 0)) {
+    authDebug('refresh:token_version_mismatch', {
+      userId: String(user._id),
+      decodedTv: decoded.tv,
+      dbTv: user.tokenVersion || 0,
+    });
     securityLogger.tokenVersionMismatch(req, user._id);
     clearAuthCookies(res);
     return next(new ErrorResponse('Session expired. Please login again.', 401));
@@ -292,6 +313,11 @@ const refresh = asyncHandler(async (req, res, next) => {
   }
 
   const { accessToken, refreshToken: newRefreshToken } = await issueTokens(user);
+  authDebug('refresh:issued_new_tokens', {
+    userId: String(user._id),
+    decodedTv: decoded.tv,
+    dbTv: user.tokenVersion || 0,
+  });
   attachAuthCookies(res, accessToken, newRefreshToken);
 
   res.json({

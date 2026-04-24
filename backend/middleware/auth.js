@@ -3,6 +3,12 @@ const User = require('../models/User');
 const { ACCESS_COOKIE_NAME, parseCookies } = require('../utils/authSecurity');
 const securityLogger = require('../utils/securityLogger');
 
+const authDebug = (...args) => {
+  if (process.env.AUTH_DEBUG === 'true') {
+    console.log('[AUTH_DEBUG]', ...args);
+  }
+};
+
 const unauthorized = (res, message) =>
   res.status(401).json({ success: false, message });
 
@@ -22,6 +28,10 @@ const authenticate = async (req, res, next) => {
 
     const decoded = verifyAccessToken(token);
     if (!decoded) {
+      authDebug('authenticate:access_verify_failed', {
+        hasCookieToken: Boolean(cookies[ACCESS_COOKIE_NAME]),
+        hasBearerToken: Boolean(bearerToken),
+      });
       return unauthorized(res, 'Invalid or expired token.');
     }
 
@@ -39,6 +49,11 @@ const authenticate = async (req, res, next) => {
     }
 
     if (typeof decoded.tv === 'number' && decoded.tv !== (user.tokenVersion || 0)) {
+      authDebug('authenticate:token_version_mismatch', {
+        userId: String(user._id),
+        decodedTv: decoded.tv,
+        dbTv: user.tokenVersion || 0,
+      });
       securityLogger.tokenVersionMismatch(req, user._id);
       return unauthorized(res, 'Session expired. Please login again.');
     }

@@ -1,0 +1,293 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e4]:
+      - link "Aidevix" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e7]
+        - generic [ref=e9]: Aidevix
+      - list [ref=e11]:
+        - listitem [ref=e12]:
+          - link "Kurslar" [ref=e13] [cursor=pointer]:
+            - /url: /courses
+        - listitem [ref=e14]:
+          - link "⚡ Prompts" [ref=e15] [cursor=pointer]:
+            - /url: /prompts
+        - listitem [ref=e16]:
+          - link "🧠 Team" [ref=e17] [cursor=pointer]:
+            - /url: /team
+        - listitem [ref=e18]:
+          - link "Musobaqalar" [ref=e19] [cursor=pointer]:
+            - /url: /challenges
+        - listitem [ref=e20]:
+          - link "Qahramonlar" [ref=e21] [cursor=pointer]:
+            - /url: /leaderboard
+        - listitem [ref=e22]:
+          - link "🗺 Roadmap" [ref=e23] [cursor=pointer]:
+            - /url: /roadmap
+        - listitem [ref=e24]:
+          - link "Vakansiyalar" [ref=e25] [cursor=pointer]:
+            - /url: /careers
+      - generic [ref=e26]:
+        - button "Qorong'u" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+        - button "Ovozni o'chirish" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+        - button "Til" [ref=e35] [cursor=pointer]:
+          - generic [ref=e37]: Til
+          - img [ref=e38]
+        - link "Kirish" [ref=e40] [cursor=pointer]:
+          - /url: /login
+        - link "Boshlash →" [ref=e41] [cursor=pointer]:
+          - /url: /register
+  - main [ref=e43]:
+    - generic [ref=e44]:
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - generic [ref=e51]: Aidevix
+            - generic [ref=e52]: Professional dasturlash platformasi
+          - heading "Kelajak kasbini o'zbek tilida o'rgan" [level=1] [ref=e53]
+          - paragraph [ref=e54]: Eng talabgir dasturlash yo'nalishlarini noldan boshlab amaliy loyihalar orqali o'rganing va IT sohasiga birinchi qadamingizni qo'ying.
+          - generic [ref=e55]:
+            - link "Kurslarni ko'rish" [ref=e56] [cursor=pointer]:
+              - /url: /courses
+            - link "Ro'yxatdan o'tish" [ref=e57] [cursor=pointer]:
+              - /url: /register
+              - text: Ro'yxatdan o'tish
+              - img [ref=e58]
+        - complementary [ref=e60]:
+          - generic [ref=e61]: Learning Signal
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - generic [ref=e64]:
+                - generic [ref=e65]: "01"
+                - generic [ref=e66]: 15k+
+              - generic [ref=e67]: Faol o'quvchilar
+            - generic [ref=e68]:
+              - generic [ref=e69]:
+                - generic [ref=e70]: "02"
+                - generic [ref=e71]: 120+
+              - generic [ref=e72]: Video darslar
+            - generic [ref=e73]:
+              - generic [ref=e74]:
+                - generic [ref=e75]: "03"
+                - generic [ref=e76]: 50+
+              - generic [ref=e77]: Mentorlar
+          - paragraph [ref=e78]: Frontend, backend, AI va mobile yo'nalishlarini bitta tizimli platformada o'rganing.
+      - generic [ref=e80]:
+        - generic [ref=e81]:
+          - generic [ref=e82]: Metric 01
+          - generic [ref=e83]:
+            - generic [ref=e84]: "0"
+            - text: +
+          - generic [ref=e85]: Faol o'quvchilar
+        - generic [ref=e86]:
+          - generic [ref=e87]: Metric 02
+          - generic [ref=e88]:
+            - generic [ref=e89]: "0"
+            - text: +
+          - generic [ref=e90]: Video darslar
+        - generic [ref=e91]:
+          - generic [ref=e92]: Metric 03
+          - generic [ref=e93]:
+            - generic [ref=e94]: "0"
+            - text: +
+          - generic [ref=e95]: Mentorlar
+        - generic [ref=e96]:
+          - generic [ref=e97]: Metric 04
+          - generic [ref=e98]:
+            - generic [ref=e99]: "0"
+            - text: ".9"
+          - generic [ref=e100]: Reyting
+      - generic [ref=e102]:
+        - generic [ref=e103]:
+          - generic [ref=e104]: Paths
+          - heading "Sohangizni tanlang" [level=2] [ref=e105]
+          - paragraph [ref=e106]: Barcha darajalar uchun optimallashtirilgan o'quv darsliklari
+        - generic [ref=e107]:
+          - link "01 Frontend Web saytlar ko'rinishi" [ref=e108] [cursor=pointer]:
+            - /url: /courses?category=frontend
+            - generic [ref=e109]: "01"
+            - generic [ref=e110]:
+              - heading "Frontend" [level=3] [ref=e111]
+              - paragraph [ref=e112]: Web saytlar ko'rinishi
+            - img [ref=e114]
+          - link "02 Backend Server va mantiq" [ref=e116] [cursor=pointer]:
+            - /url: /courses?category=backend
+            - generic [ref=e117]: "02"
+            - generic [ref=e118]:
+              - heading "Backend" [level=3] [ref=e119]
+              - paragraph [ref=e120]: Server va mantiq
+            - img [ref=e122]
+          - link "03 AI & Agentlar LLMs va AI tools AI" [ref=e124] [cursor=pointer]:
+            - /url: /courses?category=ai
+            - generic [ref=e125]: "03"
+            - generic [ref=e126]:
+              - heading "AI & Agentlar" [level=3] [ref=e127]
+              - paragraph [ref=e128]: LLMs va AI tools
+            - generic [ref=e130]: AI
+          - link "04 Python Tahlil va Botlar" [ref=e131] [cursor=pointer]:
+            - /url: /courses?category=python
+            - generic [ref=e132]: "04"
+            - generic [ref=e133]:
+              - heading "Python" [level=3] [ref=e134]
+              - paragraph [ref=e135]: Tahlil va Botlar
+            - img [ref=e137]
+          - link "05 Mobile Android va iOS" [ref=e139] [cursor=pointer]:
+            - /url: /courses?category=mobile
+            - generic [ref=e140]: "05"
+            - generic [ref=e141]:
+              - heading "Mobile" [level=3] [ref=e142]
+              - paragraph [ref=e143]: Android va iOS
+            - img [ref=e145]
+          - link "06 UI/UX Dizayn va Prototip" [ref=e147] [cursor=pointer]:
+            - /url: /courses?category=ui-ux
+            - generic [ref=e148]: "06"
+            - generic [ref=e149]:
+              - heading "UI/UX" [level=3] [ref=e150]
+              - paragraph [ref=e151]: Dizayn va Prototip
+            - img [ref=e153]
+          - link "07 Ma'lumotlar SQL va Tahlil" [ref=e155] [cursor=pointer]:
+            - /url: /courses?category=malumotlar
+            - generic [ref=e156]: "07"
+            - generic [ref=e157]:
+              - heading "Ma'lumotlar" [level=3] [ref=e158]
+              - paragraph [ref=e159]: SQL va Tahlil
+            - img [ref=e161]
+      - generic [ref=e164]:
+        - generic [ref=e165]:
+          - generic [ref=e166]:
+            - generic [ref=e167]: Showcase
+            - heading "Tavsiya etilgan kurslar" [level=2] [ref=e168]
+          - link "Barchasini ko'rish" [ref=e169] [cursor=pointer]:
+            - /url: /courses
+            - text: Barchasini ko'rish
+            - img [ref=e170]
+        - generic [ref=e174]:
+          - generic [ref=e175]: Fresh Videos
+          - heading "Amaliy darslar bilan ritmni ushlab turing" [level=3] [ref=e176]
+          - paragraph [ref=e177]: Qisqa video formatlari bilan asosiy mavzularni tezroq o'zlashtiring va platforma ichida uzluksiz davom eting.
+      - generic [ref=e183]:
+        - generic [ref=e184]:
+          - generic [ref=e185]:
+            - img [ref=e186]
+            - generic [ref=e188]: Aidevix Pro Imkoniyati
+          - heading "Dasturlash sirlarini Cheksiz o'rganing" [level=2] [ref=e189]:
+            - text: Dasturlash sirlarini
+            - text: Cheksiz o'rganing
+          - paragraph [ref=e190]: Pro obuna orqali barcha pullik kurslar, yopiq darslar va xalqaro darajadagi sertifikatlarga bir marta to'lov orqali ega bo'ling.
+          - list [ref=e191]:
+            - listitem [ref=e192]:
+              - img [ref=e194]
+              - generic [ref=e196]: Barcha kurslarga to'liq kirish
+            - listitem [ref=e197]:
+              - img [ref=e199]
+              - generic [ref=e201]: Yopiq hamjamiyat (Community) a'zoligi
+            - listitem [ref=e202]:
+              - img [ref=e204]
+              - generic [ref=e206]: Mentorlar bilan bevosita aloqa
+          - generic [ref=e207]:
+            - link "PRO'ga o'tish" [ref=e208] [cursor=pointer]:
+              - /url: /subscription
+              - text: PRO'ga o'tish
+              - img [ref=e209]
+            - link "Batafsil ma'lumot" [ref=e211] [cursor=pointer]:
+              - /url: /courses
+        - generic [ref=e213]:
+          - generic [ref=e214]: Membership
+          - generic [ref=e215]:
+            - generic [ref=e216]:
+              - generic [ref=e217]:
+                - generic [ref=e218]: Plan status
+                - generic [ref=e219]: PRO
+              - generic [ref=e220]: Active
+            - generic [ref=e221]:
+              - generic [ref=e222]:
+                - generic [ref=e223]: Barcha kurslarga to'liq kirish
+                - generic [ref=e224]: +
+              - generic [ref=e225]:
+                - generic [ref=e226]: Yopiq hamjamiyat (Community) a'zoligi
+                - generic [ref=e227]: +
+              - generic [ref=e228]:
+                - generic [ref=e229]: Mentorlar bilan bevosita aloqa
+                - generic [ref=e230]: +
+            - generic [ref=e231]:
+              - generic [ref=e232]: Priority Access
+              - generic [ref=e233]: Yangi kurslarga birinchi kirish va premium roadmap.
+      - generic [ref=e237]:
+        - generic [ref=e238]: Start Now
+        - heading "Kelajakni biz bilan kodlang!" [level=2] [ref=e239]
+        - paragraph [ref=e240]: Kurslar, video darslar va real roadmap bilan kod yozishni barqaror tizimga aylantiring.
+        - link "Bepul boshlash" [ref=e241] [cursor=pointer]:
+          - /url: /register
+  - contentinfo [ref=e242]:
+    - generic [ref=e244]:
+      - generic [ref=e245]:
+        - generic [ref=e246]: Aidevix
+        - link "Aidevix" [ref=e247] [cursor=pointer]:
+          - /url: /
+          - img [ref=e249]
+          - generic [ref=e251]: Aidevix
+        - paragraph [ref=e252]: O'zbek tilidagi eng yirik va zamonaviy dasturlash o'quv platformasi. Biz bilan kelajak kasbini o'rganing.
+        - generic [ref=e253]:
+          - link "tg" [ref=e254] [cursor=pointer]:
+            - /url: https://t.me/aidevix
+            - img [ref=e255]
+          - link "in" [ref=e257] [cursor=pointer]:
+            - /url: https://instagram.com/aidevix
+            - img [ref=e258]
+          - link "yt" [ref=e260] [cursor=pointer]:
+            - /url: https://youtube.com/@aidevix
+            - img [ref=e261]
+      - generic [ref=e263]:
+        - heading "Platforma" [level=4] [ref=e264]
+        - list [ref=e265]:
+          - listitem [ref=e266]:
+            - link "Kurslar" [ref=e267] [cursor=pointer]:
+              - /url: /courses
+          - listitem [ref=e268]:
+            - link "Mentorlar" [ref=e269] [cursor=pointer]:
+              - /url: "#"
+          - listitem [ref=e270]:
+            - link "Narxlar" [ref=e271] [cursor=pointer]:
+              - /url: "#"
+          - listitem [ref=e272]:
+            - link "Kompaniyalar uchun" [ref=e273] [cursor=pointer]:
+              - /url: "#"
+      - generic [ref=e274]:
+        - heading "Kompaniya" [level=4] [ref=e275]
+        - list [ref=e276]:
+          - listitem [ref=e277]:
+            - link "Biz haqimizda" [ref=e278] [cursor=pointer]:
+              - /url: "#"
+          - listitem [ref=e279]:
+            - link "Blog" [ref=e280] [cursor=pointer]:
+              - /url: "#"
+          - listitem [ref=e281]:
+            - link "Karyera" [ref=e282] [cursor=pointer]:
+              - /url: /careers
+          - listitem [ref=e283]:
+            - link "Aloqa" [ref=e284] [cursor=pointer]:
+              - /url: "#"
+      - generic [ref=e285]:
+        - heading "Resurslar" [level=4] [ref=e286]
+        - list [ref=e287]:
+          - listitem [ref=e288]:
+            - link "Yordam markazi" [ref=e289] [cursor=pointer]:
+              - /url: "#"
+          - listitem [ref=e290]:
+            - link "Maxfiylik siyosati" [ref=e291] [cursor=pointer]:
+              - /url: "#"
+          - listitem [ref=e292]:
+            - link "Foydalanish shartlari" [ref=e293] [cursor=pointer]:
+              - /url: "#"
+          - listitem [ref=e294]:
+            - link "Sayt xaritasi" [ref=e295] [cursor=pointer]:
+              - /url: "#"
+    - generic [ref=e296]:
+      - paragraph [ref=e297]: © 2024 Aidevix Inc. Barcha huquqlar himoyalangan.
+      - generic [ref=e298]:
+        - generic [ref=e299]: Toshkent, O'zbekiston
+        - generic [ref=e300]: "|"
+        - generic [ref=e301]: Tizim ishlamoqda
+  - alert [ref=e303]
