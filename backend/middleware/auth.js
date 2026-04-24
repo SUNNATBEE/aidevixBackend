@@ -35,9 +35,9 @@ const authenticate = async (req, res, next) => {
       return unauthorized(res, 'Invalid or expired token.');
     }
 
-    const user = await User.findById(decoded.userId)
-      .select('-password -refreshToken')
-      .select('+tokenVersion');
+    // password/refreshToken already have `select: false` in schema.
+    // Keep selection simple to reliably include tokenVersion.
+    const user = await User.findById(decoded.userId).select('+tokenVersion');
 
     if (!user) {
       return unauthorized(res, 'User not found or inactive.');
