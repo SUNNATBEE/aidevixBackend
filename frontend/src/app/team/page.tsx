@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
-import axiosInstance from '@/api/axiosInstance';
+import { FaInstagram, FaTelegram } from 'react-icons/fa';
 
 type TeamMember = {
   id: string;
@@ -18,7 +18,33 @@ type TeamMember = {
   roadmapRole: string;
   objectPos?: string;
   portfolioUrl?: string;
+  instagramUrl?: string;
+  telegramUrl?: string;
+  /** Rahbariyat kartasida yoshni ko‘rsatmaslik */
+  hideAge?: boolean;
 };
+
+/** Loyiha rahbari — alohida VIP kartada ko‘rsatiladi */
+const FOUNDER_LEAD: TeamMember = {
+  id: 'sunnatbee',
+  name: 'Sunnatbek Yusupov',
+  age: 0,
+  hideAge: true,
+  stack: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS', 'Product vision', 'Team leadership'],
+  contribution:
+    'Aidevix strategiyasi, mahsulot yo‘nalishi va frontend arxitekturasining umumiy rahbari. Investorlar, hamkorlar va jamoani bir maqsad atrofida birlashtirish, platformaning foydalanuvchi tajribasi va o‘sish yo‘nalishlarini belgilash.',
+  imageFile: 'sunnatbee.jpg',
+  badge: 'Rahbariyat',
+  color: '#eab308',
+  accentBg: 'rgba(234,179,8,0.18)',
+  emoji: '👑',
+  roadmapRole: 'Strategiya · boshqaruv · frontend',
+  objectPos: '50% 22%',
+  instagramUrl: 'https://www.instagram.com/sunnatbee?igsh=ZGNxdjd2ajVpc20w',
+  telegramUrl: 'https://t.me/SUNNATBEE',
+};
+
+const LEADERSHIP_ROLES = ['CEO', 'General Director', 'Loyiha asoschisi', 'Frontend developer'];
 
 const MEMBERS: TeamMember[] = [
   {
@@ -27,13 +53,13 @@ const MEMBERS: TeamMember[] = [
     age: 15,
     stack: ['Next.js 14', 'TypeScript', 'Node.js', 'Express.js', 'MongoDB', 'React Native', 'Tailwind CSS', 'Railway', 'Vercel'],
     contribution:
-      'Aidevix loyihasining asoschisi va texnik rahbari. Butun full-stack arxitekturani loyihalagan: Railway (backend) + Vercel (frontend) production infratuzilmasini qurib ishga tushirgan. JWT cookie auth, Mongoose sxemalari, Swagger API dokumentatsiyasi va CI/CD pipeline — barchasi uning qo\'li bilan yozilgan.',
+      'Jamoa rahbari (Team Lead) va tester sifatida release sifatini, regressiya va muhim user flowlarni tekshiradi. Railway (backend) + Vercel (frontend) production muhitini sozlash, JWT cookie auth, Mongoose sxemalari, Swagger API va CI/CD jarayonlarida yetakchi rol o‘ynagan.',
     imageFile: 'Sardor.jpg',
-    badge: 'Founder · Team Lead',
+    badge: 'Team Lead · Tester',
     color: '#f59e0b',
     accentBg: 'rgba(245,158,11,0.15)',
     emoji: '🚀',
-    roadmapRole: 'Architecture & Production Deploy',
+    roadmapRole: 'Team Lead · QA & Production',
     objectPos: '50% 20%',
     portfolioUrl: 'https://sardoruz.vercel.app',
   },
@@ -115,7 +141,115 @@ const MEMBERS: TeamMember[] = [
 ];
 
 function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2 && parts[0][0] && parts[parts.length - 1][0]) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
   return name.slice(0, 2).toUpperCase();
+}
+
+function LeadershipCard({ member }: { member: TeamMember }) {
+  const [imgError, setImgError] = useState(false);
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-40px' }}
+      transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+      className="relative mx-auto mb-14 max-w-7xl"
+    >
+      <div className="pointer-events-none absolute -inset-px rounded-[34px] bg-gradient-to-br from-amber-400/70 via-indigo-500/55 to-cyan-400/45 opacity-90 blur-[1px]" />
+      <div className="relative overflow-hidden rounded-[32px] border border-amber-500/25 bg-[#070a10] shadow-[0_0_0_1px_rgba(234,179,8,0.12),0_24px_80px_rgba(0,0,0,0.55)]">
+        <div className="absolute right-6 top-6 z-20 hidden text-4xl sm:block">{member.emoji}</div>
+
+        <div className="flex flex-col lg:flex-row lg:items-stretch">
+          <div className="relative flex w-full min-h-[280px] items-center justify-center bg-[#080b10] sm:min-h-[320px] lg:w-[44%] lg:min-h-[min(100%,440px)] lg:max-w-none">
+            {!imgError ? (
+              <img
+                src={`/team/${member.imageFile}`}
+                alt={member.name}
+                className="max-h-[min(72vh,520px)] w-full object-contain object-center p-4 sm:max-h-[560px] sm:p-5 lg:h-full lg:max-h-none lg:min-h-[400px] lg:object-contain lg:p-6"
+                style={{ objectPosition: member.objectPos ?? '50% center' }}
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div
+                className="flex min-h-[280px] w-full items-center justify-center lg:min-h-[400px]"
+                style={{ background: `radial-gradient(circle at 40% 30%, ${member.color}30, #070a10 72%)` }}
+              >
+                <span className="select-none text-5xl font-black text-amber-500/35 sm:text-6xl md:text-7xl">{getInitials(member.name)}</span>
+              </div>
+            )}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#070a10] to-transparent lg:inset-y-0 lg:left-auto lg:right-0 lg:h-auto lg:w-24 lg:bg-gradient-to-l" />
+            <div className="absolute left-4 top-4 z-10 sm:left-6 sm:top-6">
+              <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/35 bg-amber-500/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-amber-200 backdrop-blur-md">
+                {member.badge}
+              </span>
+            </div>
+          </div>
+
+          <div className="relative flex flex-1 flex-col justify-center px-5 py-8 sm:px-8 sm:py-10 lg:max-w-none lg:py-12 lg:pl-10 lg:pr-12">
+            <div className="mb-4 flex flex-wrap gap-1.5 sm:gap-2">
+              {LEADERSHIP_ROLES.map((role) => (
+                <span
+                  key={role}
+                  className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-100/95 sm:px-3 sm:py-1 sm:text-[11px]"
+                >
+                  {role}
+                </span>
+              ))}
+            </div>
+
+            <h2 className="text-balance font-display text-2xl font-black tracking-tight text-white sm:text-4xl lg:text-[2.35rem] lg:leading-[1.12] xl:text-[2.55rem]">
+              {member.name}
+            </h2>
+
+            <p className="mt-5 max-w-2xl text-sm leading-[1.75] text-slate-400 sm:text-[15px]">{member.contribution}</p>
+
+            <div className="mt-6 flex flex-wrap gap-2">
+              {member.stack.map((tech) => (
+                <span
+                  key={tech}
+                  className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-slate-300"
+                >
+                  {tech}
+                </span>
+              ))}
+            </div>
+
+            {(member.instagramUrl || member.telegramUrl) && (
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Ijtimoiy</span>
+                {member.instagramUrl && (
+                  <a
+                    href={member.instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Sunnatbek Instagram"
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-200 transition-colors hover:border-amber-400/60 hover:bg-amber-500/20"
+                  >
+                    <FaInstagram className="text-lg" />
+                  </a>
+                )}
+                {member.telegramUrl && (
+                  <a
+                    href={member.telegramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Sunnatbek Telegram"
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-200 transition-colors hover:border-sky-400/60 hover:bg-sky-500/20"
+                  >
+                    <FaTelegram className="text-lg" />
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.article>
+  );
 }
 
 function TiltCard({ member, index }: { member: TeamMember; index: number }) {
@@ -189,8 +323,8 @@ function TiltCard({ member, index }: { member: TeamMember; index: number }) {
               className="flex h-full w-full items-center justify-center"
               style={{ background: `radial-gradient(circle at 40% 30%, ${member.color}25, #0c1018 70%)` }}
             >
-              <span
-                className="select-none text-8xl font-black tracking-tight"
+                <span
+                className="select-none text-5xl font-black tracking-tight sm:text-7xl md:text-8xl"
                 style={{ color: `${member.color}50` }}
               >
                 {getInitials(member.name)}
@@ -225,9 +359,11 @@ function TiltCard({ member, index }: { member: TeamMember; index: number }) {
       <div className="p-5 pt-4">
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-[22px] font-black tracking-tight text-white">{member.name}</h2>
-          <span className="mt-0.5 shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-slate-400">
-            {member.age} yosh
-          </span>
+          {!member.hideAge && (
+            <span className="mt-0.5 shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-slate-400">
+              {member.age} yosh
+            </span>
+          )}
         </div>
 
         <p className="mt-3 text-sm leading-[1.7] text-slate-400">{member.contribution}</p>
@@ -303,6 +439,7 @@ function TiltCard({ member, index }: { member: TeamMember; index: number }) {
 
 function RoadmapNode({ member, index }: { member: TeamMember; index: number }) {
   const isLeft = index % 2 === 0;
+  const isLead = member.id === 'sunnatbee';
 
   return (
     <motion.div
@@ -314,13 +451,17 @@ function RoadmapNode({ member, index }: { member: TeamMember; index: number }) {
     >
       {/* Content */}
       <div
-        className={`w-full sm:flex-1 rounded-2xl border border-white/[0.07] p-3 sm:p-4 text-left sm:${isLeft ? 'text-right' : 'text-left'}`}
+        className={`w-full sm:flex-1 rounded-2xl border p-3 sm:p-4 text-left sm:${isLeft ? 'text-right' : 'text-left'} ${
+          isLead ? 'border-amber-500/35 shadow-[0_0_40px_rgba(234,179,8,0.12)]' : 'border-white/[0.07]'
+        }`}
         style={{ background: `linear-gradient(135deg, ${member.accentBg}, rgba(12,16,24,0.96))` }}
       >
         <div className={`flex items-center gap-2 justify-start sm:${isLeft ? 'justify-end' : 'justify-start'}`}>
           <span className="text-lg">{member.emoji}</span>
           <span className="font-bold text-white">{member.name}</span>
-          <span className="text-xs text-slate-500">· {member.age} yosh</span>
+          {!member.hideAge && member.age > 0 && (
+            <span className="text-xs text-slate-500">· {member.age} yosh</span>
+          )}
         </div>
         <p
           className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em]"
@@ -336,7 +477,7 @@ function RoadmapNode({ member, index }: { member: TeamMember; index: number }) {
       {/* Node circle */}
       <div className="relative z-10 shrink-0">
         <div
-          className="flex h-12 w-12 items-center justify-center rounded-full text-xl"
+          className={`flex items-center justify-center rounded-full text-xl ${isLead ? 'h-14 w-14 ring-2 ring-amber-400/50 ring-offset-2 ring-offset-[#060a12]' : 'h-12 w-12'}`}
           style={{
             background: `radial-gradient(circle at 35% 30%, ${member.color}ee, ${member.color}77)`,
             boxShadow: `0 0 28px ${member.color}55, 0 0 8px ${member.color}33`,
@@ -357,39 +498,18 @@ function RoadmapNode({ member, index }: { member: TeamMember; index: number }) {
 
 export default function TeamPage() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [members, setMembers] = useState<TeamMember[]>(MEMBERS);
+  const members = MEMBERS;
+  const allMembers = [FOUNDER_LEAD, ...MEMBERS];
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start end', 'end start'] });
   const lineHeight = useTransform(scrollYProgress, [0.35, 0.92], ['0%', '100%']);
   const smoothLine = useSpring(lineHeight as any, { stiffness: 55, damping: 18 });
 
-  useEffect(() => {
-    axiosInstance.get('public/team')
-      .then(({ data }) => {
-        const rows = (data?.data?.members || []).map((m: any, i: number) => ({
-          id: m.id,
-          name: m.name || m.username || `Member ${i + 1}`,
-          age: Math.max(14, Math.min(30, 16 + (m.level || 1) % 10)),
-          stack: (m.stack && m.stack.length ? m.stack : ['JavaScript', 'React', 'Node.js']).slice(0, 8),
-          contribution: `${(m.username || m.name)} platformada faol contributor. XP: ${m.xp || 0}, level: ${m.level || 1}, streak: ${m.streak || 0}.`,
-          imageFile: '',
-          badge: `${String(m.role || 'member').toUpperCase()} · Level ${m.level || 1}`,
-          color: ['#f59e0b', '#6366f1', '#06b6d4', '#10b981', '#ec4899', '#a855f7'][i % 6],
-          accentBg: ['rgba(245,158,11,0.15)', 'rgba(99,102,241,0.15)', 'rgba(6,182,212,0.15)', 'rgba(16,185,129,0.15)', 'rgba(236,72,153,0.15)', 'rgba(168,85,247,0.15)'][i % 6],
-          emoji: ['🚀', '🔐', '🎬', '📚', '🏆', '✨'][i % 6],
-          roadmapRole: `${m.role || 'Member'} · Dynamic profile`,
-          objectPos: '50% 20%',
-          portfolioUrl: undefined,
-        }));
-        if (rows.length) setMembers(rows);
-      })
-      .catch(() => {});
-  }, []);
-
-  const avgAge = (members.reduce((s, m) => s + m.age, 0) / Math.max(1, members.length)).toFixed(1);
-  const techCount = new Set(members.flatMap((m) => m.stack)).size;
+  const ageSample = allMembers.filter((m) => !m.hideAge && m.age > 0);
+  const avgAge = (ageSample.reduce((s, m) => s + m.age, 0) / Math.max(1, ageSample.length)).toFixed(1);
+  const techCount = new Set(allMembers.flatMap((m) => m.stack)).size;
 
   return (
-    <main ref={containerRef} className="relative min-h-screen overflow-x-hidden bg-[#060a12] text-white">
+    <main ref={containerRef} className="relative min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-[#060a12] text-white">
       {/* fixed ambient bg */}
       <div className="pointer-events-none fixed inset-0 -z-0">
         <div className="absolute left-[-18%] top-[-8%] h-[560px] w-[560px] rounded-full bg-indigo-600/10 blur-[130px]" />
@@ -403,18 +523,18 @@ export default function TeamPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(99,102,241,0.22),transparent)]" />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
 
-        <div className="mx-auto max-w-7xl px-4 pb-14 pt-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-3 pb-12 pt-14 sm:px-4 sm:pb-14 sm:pt-16 md:px-6 lg:px-8">
           {/* badge */}
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-[0.14em] sm:tracking-[0.2em] text-indigo-300">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
-              Aidevix Development Team · 2025
+              Aidevix asoschilari · 2025
             </span>
           </div>
 
           {/* heading — 2 clear lines */}
-          <h1 className="mt-5 max-w-3xl font-black leading-[1.08] tracking-[-0.03em]"
-              style={{ fontSize: 'clamp(1.8rem, 8.8vw, 4rem)' }}>
+          <h1 className="mt-4 max-w-full text-balance font-black leading-[1.08] tracking-[-0.03em] sm:mt-5"
+              style={{ fontSize: 'clamp(1.45rem, 7.5vw, 4rem)' }}>
             <span className="text-white">Platformani yaratgan</span>
             <br />
             <span
@@ -438,14 +558,14 @@ export default function TeamPage() {
           {/* stats grid */}
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { label: 'Ishtirokchi', value: `${members.length}`, icon: '👥' },
+              { label: 'Ishtirokchi', value: `${allMembers.length}`, icon: '👥' },
               { label: "O'rtacha yosh", value: avgAge, icon: '🎂' },
               { label: 'Texnologiyalar', value: `${techCount}+`, icon: '⚡' },
               { label: 'Holat', value: 'Production', icon: '🚀' },
             ].map((s) => (
               <div
                 key={s.label}
-                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 backdrop-blur-sm"
+                className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 backdrop-blur-sm sm:px-4 sm:py-4"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-base">{s.icon}</span>
@@ -461,15 +581,28 @@ export default function TeamPage() {
         <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </section>
 
+      {/* ── CEO / RAHBARIYAT (alohida) ── */}
+      <section className="relative z-10 mx-auto max-w-7xl px-3 pt-10 sm:px-4 sm:pt-12 md:px-6 lg:px-8">
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="mb-5 text-[11px] font-semibold uppercase tracking-[0.28em] text-amber-500/90"
+        >
+          Rahbariyat · loyiha boshqaruvi
+        </motion.p>
+        <LeadershipCard member={FOUNDER_LEAD} />
+      </section>
+
       {/* ── CARDS ── */}
-      <section className="relative z-10 mx-auto max-w-7xl px-4 pb-24 pt-12 sm:px-6 lg:px-8">
+      <section className="relative z-10 mx-auto max-w-7xl px-3 pb-20 pt-2 sm:px-4 sm:pb-24 md:px-6 lg:px-8">
         <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           className="mb-8 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600"
         >
-          Jamoa a&apos;zolari — {members.length} kishi
+          Core jamoa — {members.length} kishi
         </motion.p>
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {members.map((m, i) => (
@@ -479,7 +612,7 @@ export default function TeamPage() {
       </section>
 
       {/* ── 3D ROADMAP ── */}
-      <section className="relative z-10 mx-auto max-w-3xl px-4 pb-32 sm:px-6 lg:px-8">
+      <section className="relative z-10 mx-auto max-w-3xl px-3 pb-24 sm:px-4 sm:pb-32 md:px-6 lg:px-8">
         {/* section header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -494,11 +627,11 @@ export default function TeamPage() {
           <h2 className="mt-5 text-2xl sm:text-3xl font-black tracking-tight sm:text-[2.4rem]">
             Har bir modul —
             <span className="block bg-gradient-to-r from-amber-300 to-orange-200 bg-clip-text text-transparent">
-              bitta o&apos;quvchi
+              bitta asoschi
             </span>
           </h2>
           <p className="mx-auto mt-3 max-w-sm text-sm text-slate-500">
-            Aidevix'ning har bir sahifasi biror o&apos;quvchi tomonidan yozilgan. Bu — ularning yo&apos;li.
+            Aidevix platformasini qurgan yosh dasturchilar jamoasi — har biri haqiqiy production kodiga mas&apos;ul.
           </p>
         </motion.div>
 
@@ -518,7 +651,7 @@ export default function TeamPage() {
           </div>
 
           <div className="relative flex flex-col gap-7 py-2">
-            {members.map((m, i) => (
+            {allMembers.map((m, i) => (
               <RoadmapNode key={m.id} member={m} index={i} />
             ))}
           </div>

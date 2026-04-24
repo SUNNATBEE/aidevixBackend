@@ -53,7 +53,7 @@ function CoursesContent() {
 
   if (!isReady) {
     return (
-      <div className="min-h-screen pt-24 pb-20 px-4">
+      <div className="min-h-screen w-full min-w-0 max-w-full overflow-x-clip px-3 pb-16 pt-20 sm:px-4 sm:pb-20 sm:pt-24">
         <div className="mx-auto max-w-7xl">
           <div className="mb-12 space-y-4">
             <div className="skeleton h-4 w-24" />
@@ -70,8 +70,8 @@ function CoursesContent() {
   }
 
   return (
-    <div className="min-h-screen bg-base-100">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div className="min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-base-100">
+      <div className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-8 md:py-12 lg:px-8">
 
         {/* ── Header ── */}
         <motion.div
@@ -80,9 +80,9 @@ function CoursesContent() {
           transition={{ duration: 0.4 }}
           className="mb-6 sm:mb-10"
         >
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-4xl font-black text-base-content leading-tight">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+            <div className="min-w-0">
+              <h1 className="max-w-full text-balance text-xl font-black leading-tight text-base-content sm:text-2xl md:text-4xl">
                 {t('courses.allTitle').split(' ')[0]}{' '}
                 <span className="text-primary">{t('courses.allTitle').split(' ').slice(1).join(' ')}</span>
               </h1>
@@ -91,7 +91,7 @@ function CoursesContent() {
               </p>
             </div>
             {total > 0 && (
-              <div className="flex-shrink-0 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20">
+              <div className="flex-shrink-0 self-start px-3 py-1.5 sm:self-auto rounded-xl border border-primary/20 bg-primary/10">
                 <span className="text-xs font-bold text-primary">{total} {t('courses.count')}</span>
               </div>
             )}

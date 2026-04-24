@@ -252,7 +252,7 @@ export default function LeaderboardPage() {
           </motion.div>
         )}
 
-            <motion.h1 initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} className="mb-4 sm:mb-5 text-2xl sm:text-4xl font-black tracking-tight">
+            <motion.h1 initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} className="mb-4 max-w-full text-balance text-xl font-black tracking-tight sm:mb-5 sm:text-2xl md:text-4xl">
           GLOBAL <span className="text-primary">AUTHORITY</span>
         </motion.h1>
 

@@ -11,6 +11,7 @@ import { login, selectAuthError, clearError } from '@store/slices/authSlice';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
 import { useLang } from '@/context/LangContext';
 import { useTheme } from '@/context/ThemeContext';
+import GoogleAuthButton from './GoogleAuthButton';
 
 export default function LoginForm() {
   const [showPass, setShowPass] = useState(false);
@@ -129,7 +130,17 @@ export default function LoginForm() {
         </button>
       </div>
 
-      <div className="text-center pt-4">
+      {/* Divider */}
+      <div className="flex items-center gap-3 pt-2">
+        <div className={`flex-1 h-px ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>yoki</span>
+        <div className={`flex-1 h-px ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+      </div>
+
+      {/* Google OAuth */}
+      <GoogleAuthButton mode="login" />
+
+      <div className="text-center pt-2">
         <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('auth.login.noAccount')} </span>
         <Link href="/register" className="text-indigo-400 hover:text-indigo-300 hover:underline text-sm font-medium transition-colors">
           {t('auth.login.register')}

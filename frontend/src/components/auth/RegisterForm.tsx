@@ -10,6 +10,7 @@ import { IoPersonOutline, IoMailOutline, IoLockClosedOutline, IoEyeOutline, IoEy
 import { FiRefreshCcw } from 'react-icons/fi';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
 import { useLang } from '@/context/LangContext';
+import GoogleAuthButton from './GoogleAuthButton';
 
 export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -268,6 +269,16 @@ export default function RegisterForm() {
           </svg>
         )}
       </button>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3 mt-2">
+        <div className="flex-1 h-px bg-white/10" />
+        <span className="text-xs text-gray-500">yoki</span>
+        <div className="flex-1 h-px bg-white/10" />
+      </div>
+
+      {/* Google OAuth */}
+      <GoogleAuthButton mode="register" />
     </form>
   );
 }

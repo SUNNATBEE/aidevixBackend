@@ -24,20 +24,20 @@ const ProBanner = () => {
       initial={{ opacity: 1, y: 0 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative mx-auto w-full max-w-7xl overflow-hidden rounded-[2rem] px-4"
+      className="relative mx-auto w-full min-w-0 max-w-7xl overflow-hidden rounded-2xl px-3 sm:rounded-[2rem] sm:px-4"
     >
       <div className={`absolute inset-4 rounded-[2rem] ${isDark ? 'bg-[linear-gradient(135deg,#0f1320_0%,#171b29_55%,#0f1320_100%)]' : 'bg-[linear-gradient(135deg,#f8f8fc_0%,#eef2ff_55%,#f7f8fc_100%)]'}`}></div>
       <div className={`absolute inset-y-4 left-4 w-1/2 rounded-[2rem] ${isDark ? 'bg-[radial-gradient(circle_at_top_left,rgba(86,98,246,0.25),transparent_58%)]' : 'bg-[radial-gradient(circle_at_top_left,rgba(86,98,246,0.18),transparent_56%)]'}`}></div>
       <div className="absolute right-10 bottom-4 h-48 w-48 rounded-full bg-amber-400/10 blur-[100px]"></div>
 
-      <div className={`relative z-10 m-4 flex flex-col gap-12 rounded-[2rem] border p-8 sm:p-12 md:p-14 lg:flex-row lg:items-end lg:justify-between ${isDark ? 'border-white/8 text-white' : 'border-slate-900/10 text-slate-950'}`}>
+      <div className={`relative z-10 m-3 flex flex-col gap-8 rounded-2xl border p-5 sm:m-4 sm:gap-12 sm:rounded-[2rem] sm:p-8 md:p-12 lg:p-14 lg:flex-row lg:items-end lg:justify-between ${isDark ? 'border-white/8 text-white' : 'border-slate-900/10 text-slate-950'}`}>
         <div className="flex-1 text-center md:text-left">
           <div className={`mb-6 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${isDark ? 'border-indigo-400/20 bg-indigo-500/10 text-indigo-200' : 'border-indigo-500/20 bg-indigo-50 text-indigo-600'}`}>
             <HiLightningBolt className="h-4 w-4" />
             <span>{t('pro.badge')}</span>
           </div>
 
-          <h2 className={`mb-6 font-display text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl ${isDark ? 'text-white' : 'text-slate-950'}`}>
+          <h2 className={`mb-5 max-w-full text-balance font-display text-2xl font-semibold leading-tight sm:mb-6 sm:text-3xl md:text-4xl lg:text-5xl ${isDark ? 'text-white' : 'text-slate-950'}`}>
             {t('pro.title1')} <br />
             <span className={`bg-clip-text text-transparent bg-gradient-to-r ${isDark ? 'from-indigo-300 via-purple-300 to-violet-400' : 'from-indigo-600 via-purple-600 to-violet-700'}`}>
               {t('pro.title2')}

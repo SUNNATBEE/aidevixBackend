@@ -34,7 +34,7 @@ export default function LoginPage() {
   const textMuted = isDark ? 'text-gray-400' : 'text-gray-500';
 
   return (
-    <div className={`min-h-screen ${bg} ${textMain} flex font-sans selection:bg-indigo-500/30`}>
+    <div className={`flex min-h-screen w-full min-w-0 max-w-full overflow-x-clip font-sans selection:bg-indigo-500/30 ${bg} ${textMain}`}>
       <div className={`hidden lg:flex lg:w-1/2 relative overflow-hidden ${isDark ? 'bg-[#0A0E1A]' : 'bg-indigo-600'} justify-center items-center`}>
         <div className="absolute bottom-24 left-20 z-10 max-w-lg">
           <div className={`w-14 h-14 ${isDark ? 'bg-indigo-600/20 border-indigo-500/30' : 'bg-white/20 border-white/30'} rounded-xl flex items-center justify-center mb-6 border`}>
@@ -51,7 +51,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className={`w-full lg:w-1/2 flex flex-col justify-center items-center p-3 sm:p-12 relative ${bg}`}>
+      <div className={`relative flex w-full min-w-0 flex-col items-center justify-center p-3 sm:p-12 lg:w-1/2 ${bg}`}>
         <div className="absolute top-4 right-3 sm:top-6 sm:right-6 flex items-center gap-1.5 sm:gap-2">
           <button onClick={toggleTheme} className={`p-2 rounded-lg ${isDark ? 'text-gray-400 hover:text-yellow-400' : 'text-gray-500 hover:text-indigo-600'}`}>
             {isDark ? '☀' : '☾'}
@@ -67,7 +67,7 @@ export default function LoginPage() {
           ))}
         </div>
 
-        <div ref={cardRef} className={`w-full max-w-[420px] rounded-2xl sm:rounded-3xl border p-5 sm:p-10 opacity-0 ${cardBg}`}>
+        <div ref={cardRef} className={`w-full max-w-[min(420px,calc(100vw-1.5rem))] rounded-2xl border p-4 opacity-0 sm:rounded-3xl sm:p-10 ${cardBg}`}>
           <div className="text-center mb-7 sm:mb-10">
             <h2 className={`text-[1.45rem] sm:text-[1.75rem] font-bold mb-3 ${textMain}`}>{t('auth.login.welcome')}</h2>
             <p className={`text-[0.95rem] px-2 leading-relaxed ${textMuted}`}>{t('auth.login.subtitle')}</p>

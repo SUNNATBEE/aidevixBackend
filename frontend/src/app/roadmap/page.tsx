@@ -36,14 +36,14 @@ export default function RoadmapPage() {
   }, []);
 
   return (
-    <div className={`min-h-screen pt-24 pb-20 px-4 ${bgClass}`}>
+    <div className={`min-h-screen w-full min-w-0 max-w-full overflow-x-clip px-3 pb-16 pt-20 sm:px-4 sm:pb-20 sm:pt-24 ${bgClass}`}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16">
           <div className={`inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest mb-4 px-4 py-2 rounded-full border ${isDark ? 'border-white/10 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
             <IoSchool /> O'rganish yo'llari
           </div>
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tight mb-4">
+          <h1 className="mb-3 max-w-full text-balance text-3xl font-black tracking-tight sm:mb-4 sm:text-5xl md:text-6xl">
             Learning{' '}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
               Roadmap

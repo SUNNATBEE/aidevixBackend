@@ -210,7 +210,7 @@ export default function ProfilePage() {
               {/* User Identity Info */}
               <div className="flex-1 text-center md:text-left">
                 <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-                  <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">
+                  <h1 className="max-w-full text-balance text-2xl font-black tracking-tight text-white sm:text-3xl md:text-5xl">
                     {user?.firstName || user?.username} {user?.lastName || ''}
                   </h1>
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20 uppercase tracking-widest">

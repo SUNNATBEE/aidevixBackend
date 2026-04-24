@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { Provider } from 'react-redux';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import store from '@/store';
 import { Toaster } from 'react-hot-toast';
 import { LangProvider } from '@/context/LangContext';
@@ -28,29 +29,33 @@ function AuthBootstrap() {
   return null;
 }
 
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <Provider store={store}>
-      <AuthBootstrap />
-      <ThemeProvider>
-        <LangProvider>
-          <SoundProvider>
-            {children}
-            <Toaster
-              position="bottom-right"
-              reverseOrder={false}
-              toastOptions={{
-                style: {
-                  background: '#12141f',
-                  color: '#e2e8f0',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '12px',
-                },
-              }}
-            />
-          </SoundProvider>
-        </LangProvider>
-      </ThemeProvider>
-    </Provider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <Provider store={store}>
+        <AuthBootstrap />
+        <ThemeProvider>
+          <LangProvider>
+            <SoundProvider>
+                {children}
+              <Toaster
+                position="bottom-right"
+                reverseOrder={false}
+                toastOptions={{
+                  style: {
+                    background: '#12141f',
+                    color: '#e2e8f0',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                  },
+                }}
+              />
+            </SoundProvider>
+          </LangProvider>
+        </ThemeProvider>
+      </Provider>
+    </GoogleOAuthProvider>
   );
 }

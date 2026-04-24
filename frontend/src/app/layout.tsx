@@ -119,7 +119,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="uz" suppressHydrationWarning>
-      <body className={`${manrope.variable} ${spaceGrotesk.variable} antialiased selection:bg-indigo-500/30`}>
+      <body className={`${manrope.variable} ${spaceGrotesk.variable} min-w-0 w-full max-w-full antialiased selection:bg-indigo-500/30`}>
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
         <Script id="theme-and-lang-bootstrap" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeAndLangBootstrap }} />
         <Script id="sw-register" strategy="afterInteractive">{`

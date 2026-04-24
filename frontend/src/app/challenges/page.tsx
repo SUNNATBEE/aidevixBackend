@@ -54,12 +54,12 @@ export default function ChallengesPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center">
+      <div className="flex min-h-[80vh] w-full min-w-0 items-center justify-center overflow-x-clip px-3">
+        <div className="w-full max-w-md min-w-0 text-center">
           <div className="w-20 h-20 bg-amber-400/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-amber-400/20">
             <IoGameControllerOutline className="text-4xl text-amber-400" />
           </div>
-          <h1 className="text-3xl font-black mb-4">Daily <span className="text-amber-400">Challenges</span></h1>
+          <h1 className="mb-3 max-w-full text-balance text-2xl font-black sm:mb-4 sm:text-3xl">Daily <span className="text-amber-400">Challenges</span></h1>
           <p className="text-base-content/60 mb-8">Challenge'larni ko'rish uchun tizimga kiring.</p>
           <Link href="/login" className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full border border-primary/20 text-sm font-bold">
             <HiOutlineLightningBolt />
@@ -80,12 +80,12 @@ export default function ChallengesPage() {
 
   if (!challenge) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center">
+      <div className="flex min-h-[80vh] w-full min-w-0 items-center justify-center overflow-x-clip px-3">
+        <div className="w-full max-w-md min-w-0 text-center">
           <div className="w-20 h-20 bg-amber-400/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-amber-400/20">
             <IoGameControllerOutline className="text-4xl text-amber-400" />
           </div>
-          <h1 className="text-3xl font-black mb-4">Bugungi challenge yo‘q</h1>
+          <h1 className="mb-3 max-w-full text-balance text-2xl font-black sm:mb-4 sm:text-3xl">Bugungi challenge yo‘q</h1>
           <p className="text-base-content/60 mb-8">Ertaga qayta tekshirib ko‘ring.</p>
         </div>
       </div>
@@ -98,8 +98,8 @@ export default function ChallengesPage() {
   const completed = Boolean(progress?.isCompleted);
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4">
-      <div className="max-w-lg w-full text-center">
+    <div className="flex min-h-[80vh] w-full min-w-0 items-center justify-center overflow-x-clip px-3">
+      <div className="w-full max-w-lg min-w-0 text-center">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -112,7 +112,7 @@ export default function ChallengesPage() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="text-3xl font-black mb-4"
+          className="mb-3 max-w-full text-balance text-2xl font-black sm:mb-4 sm:text-3xl"
         >
           Bugungi <span className="text-amber-400">Challenge</span>
         </motion.h1>

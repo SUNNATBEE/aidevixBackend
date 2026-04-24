@@ -59,7 +59,7 @@ export default function Footer() {
 
   return (
     <footer className={`border-t ${shell}`} style={{ borderTopColor: borderClr }}>
-      <div className="mx-auto max-w-7xl px-4 pt-16 pb-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-3 pt-12 pb-8 sm:px-4 sm:pt-16 sm:pb-10 md:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1.15fr_0.85fr_0.85fr_0.85fr] lg:gap-8">
           <motion.div
             initial={{ y: 40, opacity: 0 }}
@@ -102,7 +102,7 @@ export default function Footer() {
               className="border-t pt-5 lg:border-0 lg:pt-0" 
               style={{ borderColor: borderClr }}
             >
-              <h4 className={`mb-5 text-sm font-semibold uppercase tracking-[0.24em] ${headingText}`}>{group.title}</h4>
+              <h4 className={`mb-4 text-xs font-semibold uppercase tracking-[0.14em] sm:mb-5 sm:text-sm sm:tracking-[0.24em] ${headingText}`}>{group.title}</h4>
               <ul className="space-y-3">
                 {group.links.map((link) => (
                   <li key={link.label}>
@@ -122,7 +122,7 @@ export default function Footer() {
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 1, delay: 0.5 }}
-        className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-4 sm:flex-row sm:px-6 lg:px-8" 
+        className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-3 py-3 text-center sm:flex-row sm:px-6 sm:text-left lg:px-8" 
         style={{ borderTop: `1px solid ${borderClr}` }}
       >
         <p className={`text-xs ${copyText}`}>{t('footer.copyright')}</p>

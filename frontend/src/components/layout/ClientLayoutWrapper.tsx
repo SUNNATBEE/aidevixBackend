@@ -68,7 +68,7 @@ export default function ClientLayoutWrapper({
       {isMounted && !hideLayout && <Navbar />}
       {showEnhancements && <DailyRewardModal />}
       
-      <main className=" w-full">
+      <main className="relative w-full min-w-0 max-w-full overflow-x-clip">
         {children}
       </main>
 

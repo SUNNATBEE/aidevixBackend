@@ -79,7 +79,7 @@ export default function ReferralPage() {
   const friendBg = isDark ? 'bg-[#0a0c14]/50 border-white/5' : 'bg-gray-50 border-gray-200';
 
   return (
-    <div className={`min-h-screen ${bg} relative overflow-hidden py-20 sm:py-24 pb-20 sm:pb-32`} ref={containerRef}>
+    <div className={`relative min-h-screen w-full min-w-0 max-w-full overflow-x-clip py-16 sm:py-24 ${bg}`} ref={containerRef}>
       {/* Background blobs */}
       <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] max-w-[800px] max-h-[800px] bg-emerald-600/10 rounded-full blur-[150px] -translate-y-1/2 pointer-events-none"></div>
       <div className="absolute bottom-0 right-1/4 w-[40vw] h-[40vw] max-w-[600px] max-h-[600px] bg-indigo-600/10 rounded-full blur-[120px] translate-y-1/3 pointer-events-none"></div>
@@ -91,7 +91,7 @@ export default function ReferralPage() {
           <div className="inline-flex items-center gap-2 mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 sm:px-4 py-1.5 rounded-full font-medium tracking-wide text-xs sm:text-sm">
             <span className="animate-pulse">💎</span> {t('referral.badge')}
           </div>
-          <h1 className={`text-3xl sm:text-4xl md:text-6xl font-extrabold mb-4 sm:mb-6 tracking-tight ${textMain}`}>
+          <h1 className={`mb-4 max-w-full text-balance text-2xl font-extrabold tracking-tight sm:mb-6 sm:text-3xl md:text-5xl lg:text-6xl ${textMain}`}>
             {t('referral.title')} <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">
               {t('referral.title2')}

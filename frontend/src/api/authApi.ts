@@ -7,6 +7,9 @@ export const authApi = {
   /** POST /auth/login */
   login: (data) => api.post('auth/login', data),
 
+  /** POST /auth/google — Google OAuth (credential = Google ID token) */
+  googleAuth: (data: { credential: string }) => api.post('auth/google', data),
+
   /** POST /auth/refresh-token */
   refresh: () => api.post('auth/refresh-token', {}),
 

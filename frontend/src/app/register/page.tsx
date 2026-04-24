@@ -44,7 +44,7 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div className={`min-h-screen ${bg} ${textMain} flex font-sans selection:bg-indigo-500/30`}>
+    <div className={`flex min-h-screen w-full min-w-0 max-w-full overflow-x-clip font-sans selection:bg-indigo-500/30 ${bg} ${textMain}`}>
       <div className={`hidden lg:flex lg:w-1/2 flex-col justify-center p-12 relative ${panelBg}`}>
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] ${isDark ? 'bg-indigo-600/10' : 'bg-white/10'} rounded-full blur-[120px] pointer-events-none`}></div>
         <div className="z-10 max-w-lg mx-auto w-full">
@@ -52,7 +52,7 @@ export default function RegisterPage() {
             <div className="w-8 h-8 rounded bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">&lt;/&gt;</div>
             <span className="text-xl font-bold tracking-wide text-white">Aidevix</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold mb-4 leading-tight tracking-tight text-white">
+          <h1 className="mb-3 max-w-full text-balance text-2xl font-extrabold leading-tight tracking-tight text-white sm:mb-4 sm:text-4xl md:text-5xl">
             {t('auth.login.welcome')}
           </h1>
           <p className={`text-lg mb-12 ${isDark ? 'text-gray-400' : 'text-white/70'}`}>{t('auth.register.subtitle')}</p>
@@ -78,7 +78,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <div className={`w-full lg:w-1/2 flex flex-col justify-center items-center p-3 sm:p-12 relative ${bg}`}>
+      <div className={`relative flex w-full min-w-0 flex-col items-center justify-center p-3 sm:p-12 lg:w-1/2 ${bg}`}>
         <div className="absolute top-4 right-3 sm:top-6 sm:right-6 flex items-center gap-1.5 sm:gap-2">
           <button onClick={toggleTheme} className={`p-2 rounded-lg ${isDark ? 'text-gray-400 hover:text-yellow-400' : 'text-gray-500 hover:text-indigo-600'}`}>
             {isDark ? '☀' : '☾'}
@@ -96,7 +96,7 @@ export default function RegisterPage() {
 
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] ${isDark ? 'bg-indigo-600/5' : 'bg-indigo-100/50'} rounded-full blur-[100px] pointer-events-none`}></div>
 
-        <div ref={cardRef} className={`w-full max-w-[480px] backdrop-blur-xl rounded-2xl sm:rounded-3xl border p-5 sm:p-10 opacity-0 z-10 ${cardBg}`}>
+        <div ref={cardRef} className={`z-10 w-full max-w-[min(480px,calc(100vw-1.5rem))] rounded-2xl border p-4 opacity-0 backdrop-blur-xl sm:rounded-3xl sm:p-10 ${cardBg}`}>
           <RegisterForm />
           <div className="mt-8 text-center">
             <p className={`text-sm ${textMuted}`}>

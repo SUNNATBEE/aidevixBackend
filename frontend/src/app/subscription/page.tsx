@@ -26,7 +26,7 @@ export default function SubscriptionPage() {
           <div className="w-24 h-24 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-indigo-500/5">
             <IoLockClosed size={48} className="text-indigo-400" />
           </div>
-          <h1 className="text-4xl font-black text-white mb-4 tracking-tight leading-tight">
+          <h1 className="mb-3 max-w-full text-balance text-2xl font-black leading-tight tracking-tight text-white sm:mb-4 sm:text-3xl md:text-4xl">
             {t('sub.title')}
           </h1>
           <p className="text-gray-400 text-lg max-w-md mx-auto leading-relaxed">

@@ -344,7 +344,7 @@ export default function PromptsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050507] text-slate-200 pt-28 pb-20 px-4 sm:px-6 lg:px-12 selection:bg-indigo-500/30">
+    <div className="min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-[#050507] px-3 pb-16 pt-24 text-slate-200 selection:bg-indigo-500/30 sm:px-4 sm:pb-20 sm:pt-28 md:px-6 lg:px-12">
       <div className="max-w-7xl mx-auto">
 
         {/* Hero */}
@@ -353,10 +353,10 @@ export default function PromptsPage() {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold uppercase tracking-widest mb-6">
             <IoSparkles size={12} /> AI Prompt Kutubxonasi
           </div>
-          <h1 className="text-5xl md:text-6xl font-black text-white mb-4 tracking-tight">
+          <h1 className="mb-3 max-w-full text-balance text-3xl font-black tracking-tight text-white sm:mb-4 sm:text-4xl md:text-6xl">
             Eng Yaxshi <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Promptlar</span>
           </h1>
-          <p className="text-slate-400 text-lg max-w-xl mx-auto mb-8">
+          <p className="mx-auto mb-6 max-w-xl px-1 text-sm leading-relaxed text-slate-400 sm:mb-8 sm:text-base md:text-lg">
             Claude, Cursor, Copilot va boshqa AI toollar uchun professional promptlar. Hamjamiyat tomonidan yaratilgan.
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap">

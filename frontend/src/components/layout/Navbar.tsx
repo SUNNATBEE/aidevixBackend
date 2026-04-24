@@ -37,7 +37,7 @@ export default function Navbar() {
   const NAV_LINKS = [
     { label: t('nav.courses'), to: ROUTES.COURSES },
     { label: '⚡ Prompts', to: ROUTES.PROMPTS },
-    { label: '🧠 Team', to: ROUTES.TEAM },
+    { label: `🧠 ${t('nav.founders')}`, to: ROUTES.TEAM },
     { label: t('nav.challenges'), to: ROUTES.CHALLENGES },
     { label: t('nav.leaderboard'), to: ROUTES.LEADERBOARD },
     { label: '🗺 Roadmap', to: ROUTES.ROADMAP },
@@ -109,10 +109,10 @@ export default function Navbar() {
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300 backdrop-blur-2xl ${navBg}`}
+        className={`fixed inset-x-0 top-0 z-50 w-full min-w-0 max-w-full border-b transition-all duration-300 backdrop-blur-2xl ${navBg}`}
         style={{ borderBottomColor: borderColor }}
       >
-        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full min-w-0 max-w-7xl px-2 sm:px-4 md:px-6 lg:px-8">
           <div className="flex h-14 sm:h-16 items-center justify-between gap-2">
             <Link href={ROUTES.HOME} className="group flex shrink-0 items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-[0_12px_30px_rgba(86,98,246,0.35)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:bg-indigo-400">
@@ -287,11 +287,12 @@ export default function Navbar() {
                 </div>
               ) : (
                 <>
-                  <Link href={ROUTES.LOGIN} onMouseEnter={playHoverSound} className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${navLinkBase}`}>
+                  <Link href={ROUTES.LOGIN} onMouseEnter={playHoverSound} className={`rounded-full px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm ${navLinkBase}`}>
                     {t('nav.login')}
                   </Link>
-                  <Link href={ROUTES.REGISTER} onMouseEnter={playHoverSound} className="rounded-full bg-indigo-500 px-5 py-2 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-400">
-                    {t('nav.register')} →
+                  <Link href={ROUTES.REGISTER} onMouseEnter={playHoverSound} className="rounded-full bg-indigo-500 px-3 py-2 text-xs font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-400 sm:px-5 sm:text-sm">
+                    <span className="hidden min-[380px]:inline">{t('nav.register')} →</span>
+                    <span className="min-[380px]:hidden">{t('nav.register')}</span>
                   </Link>
                 </>
               )}
@@ -317,7 +318,7 @@ export default function Navbar() {
           className={`overflow-hidden transition-all duration-300 xl:hidden ${menuOpen ? 'max-h-[560px] opacity-100' : 'max-h-0 opacity-0'}`}
           style={{ borderTop: menuOpen ? `1px solid ${borderColor}` : 'none' }}
         >
-          <div className={`${mobileMenuBg} space-y-2 px-4 py-4 backdrop-blur-2xl`}>
+          <div className={`${mobileMenuBg} space-y-2 px-3 py-3 backdrop-blur-2xl sm:px-4 sm:py-4`}>
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.label}
@@ -346,7 +347,7 @@ export default function Navbar() {
               </div>
             </div>
 
-            <div className="flex flex-col min-[360px]:flex-row gap-2 pt-1">
+            <div className="flex flex-col min-[340px]:flex-row gap-2 pt-1">
               {isLoggedIn ? (
                 <>
                   <Link 

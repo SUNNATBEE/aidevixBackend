@@ -32,6 +32,20 @@ export const login = createAsyncThunk(
   },
 )
 
+export const googleAuth = createAsyncThunk(
+  'auth/googleAuth',
+  async (payload: { credential: string }, { rejectWithValue }) => {
+    try {
+      const { data } = await authApi.googleAuth(payload)
+      tokenStorage.clearTokens()
+      tokenStorage.setUser(data.data.user)
+      return data.data
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || 'Google orqali kirish amalga oshmadi')
+    }
+  },
+)
+
 export const logout = createAsyncThunk(
   'auth/logout',
   async (_, { rejectWithValue }) => {
@@ -103,6 +117,10 @@ const authSlice = createSlice({
       .addCase(login.pending,            pending)
       .addCase(login.fulfilled,          fulfilled)
       .addCase(login.rejected,           rejected)
+
+      .addCase(googleAuth.pending,       pending)
+      .addCase(googleAuth.fulfilled,     fulfilled)
+      .addCase(googleAuth.rejected,      rejected)
 
       .addCase(logout.fulfilled,         (state) => {
         state.loading = false

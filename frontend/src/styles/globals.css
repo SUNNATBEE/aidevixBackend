@@ -58,6 +58,9 @@ html {
   scroll-behavior: smooth;
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 body {
@@ -65,6 +68,9 @@ body {
   background: var(--page-bg);
   color: var(--text);
   line-height: 1.6;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -202,6 +208,14 @@ canvas {
   font-weight: 700;
 }
 
+/* Juda tor ekranlarda katta tracking matnni sindiradi */
+@media (max-width: 400px) {
+  .section-kicker {
+    letter-spacing: 0.16em;
+    font-size: 0.68rem;
+  }
+}
+
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
@@ -231,5 +245,27 @@ canvas {
   .badge {
     font-size: 0.62rem;
     line-height: 1.1;
+  }
+}
+
+@media (max-width: 320px) {
+  html {
+    font-size: 13px;
+  }
+
+  .section-container {
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
+  }
+
+  .section-kicker {
+    letter-spacing: 0.12em;
+    font-size: 0.62rem;
+  }
+}
+
+@media (max-width: 300px) {
+  html {
+    font-size: 12.5px;
   }
 }
