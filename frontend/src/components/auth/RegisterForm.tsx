@@ -19,6 +19,9 @@ export default function RegisterForm() {
   const { register, handleSubmit, watch, formState: { errors }, setValue } = useForm();
   const router = useRouter();
   const [refCodeParam, setRefCodeParam] = useState('');
+  const dispatch = useDispatch();
+  const loading = useSelector(selectAuthLoading);
+  const authError = useSelector(selectAuthError);
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -31,9 +34,9 @@ export default function RegisterForm() {
     }
   }, [setValue]);
 
-  const dispatch = useDispatch();
-  const loading = useSelector(selectAuthLoading);
-  const authError = useSelector(selectAuthError);
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   const password = watch('password', '');
 

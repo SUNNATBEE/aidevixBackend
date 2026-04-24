@@ -66,12 +66,31 @@ const sanitizeUser = (user) => ({
 });
 
 const issueTokens = async (user) => {
-  const payload = { userId: user._id, tv: user.tokenVersion || 0 };
-  const accessToken = generateAccessToken(payload);
-  const refreshToken = generateRefreshToken(payload);
+  const buildTokens = (tokenVersion) => {
+    const payload = { userId: user._id, tv: tokenVersion || 0 };
+    return {
+      accessToken: generateAccessToken(payload),
+      refreshToken: generateRefreshToken(payload),
+    };
+  };
+
+  let tokenVersion = user.tokenVersion || 0;
+  let { accessToken, refreshToken } = buildTokens(tokenVersion);
+
   user.refreshToken = hashToken(refreshToken);
   user.lastLogin = Date.now();
   await user.save({ validateModifiedOnly: true });
+
+  // Defensive sync: if any hook mutates tokenVersion during save,
+  // re-issue tokens so cookie payload and DB state stay aligned.
+  if ((user.tokenVersion || 0) !== tokenVersion) {
+    tokenVersion = user.tokenVersion || 0;
+    ({ accessToken, refreshToken } = buildTokens(tokenVersion));
+    user.refreshToken = hashToken(refreshToken);
+    user.lastLogin = Date.now();
+    await user.save({ validateModifiedOnly: true });
+  }
+
   return { accessToken, refreshToken };
 };
 

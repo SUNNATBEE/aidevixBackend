@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
 import Link from 'next/link';
@@ -22,6 +22,10 @@ export default function LoginForm() {
   const dispatch = useDispatch();
   const router = useRouter();
   const authError = useSelector(selectAuthError);
+
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
