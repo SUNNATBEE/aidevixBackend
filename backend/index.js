@@ -224,6 +224,7 @@ app.use('/api/sections',     require('./routes/sectionRoutes'));
 app.use('/api/follow',       require('./routes/followRoutes'));
 app.use('/api/challenges',   require('./routes/challengeRoutes'));
 app.use('/api/prompts',      require('./routes/promptRoutes'));
+app.use('/api/public',       require('./routes/publicRoutes'));
 app.use('/api/payments',     require('./routes/paymentRoutes'));
 app.use('/api/admin',        require('./routes/adminRoutes'));
 app.use('/api/upload',       require('./routes/uploadRoutes'));

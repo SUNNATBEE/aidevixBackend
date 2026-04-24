@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import axiosInstance from '@/api/axiosInstance';
 
 type TeamMember = {
   id: string;
@@ -356,12 +357,36 @@ function RoadmapNode({ member, index }: { member: TeamMember; index: number }) {
 
 export default function TeamPage() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [members, setMembers] = useState<TeamMember[]>(MEMBERS);
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start end', 'end start'] });
   const lineHeight = useTransform(scrollYProgress, [0.35, 0.92], ['0%', '100%']);
   const smoothLine = useSpring(lineHeight as any, { stiffness: 55, damping: 18 });
 
-  const avgAge = (MEMBERS.reduce((s, m) => s + m.age, 0) / MEMBERS.length).toFixed(1);
-  const techCount = new Set(MEMBERS.flatMap((m) => m.stack)).size;
+  useEffect(() => {
+    axiosInstance.get('public/team')
+      .then(({ data }) => {
+        const rows = (data?.data?.members || []).map((m: any, i: number) => ({
+          id: m.id,
+          name: m.name || m.username || `Member ${i + 1}`,
+          age: Math.max(14, Math.min(30, 16 + (m.level || 1) % 10)),
+          stack: (m.stack && m.stack.length ? m.stack : ['JavaScript', 'React', 'Node.js']).slice(0, 8),
+          contribution: `${(m.username || m.name)} platformada faol contributor. XP: ${m.xp || 0}, level: ${m.level || 1}, streak: ${m.streak || 0}.`,
+          imageFile: '',
+          badge: `${String(m.role || 'member').toUpperCase()} · Level ${m.level || 1}`,
+          color: ['#f59e0b', '#6366f1', '#06b6d4', '#10b981', '#ec4899', '#a855f7'][i % 6],
+          accentBg: ['rgba(245,158,11,0.15)', 'rgba(99,102,241,0.15)', 'rgba(6,182,212,0.15)', 'rgba(16,185,129,0.15)', 'rgba(236,72,153,0.15)', 'rgba(168,85,247,0.15)'][i % 6],
+          emoji: ['🚀', '🔐', '🎬', '📚', '🏆', '✨'][i % 6],
+          roadmapRole: `${m.role || 'Member'} · Dynamic profile`,
+          objectPos: '50% 20%',
+          portfolioUrl: undefined,
+        }));
+        if (rows.length) setMembers(rows);
+      })
+      .catch(() => {});
+  }, []);
+
+  const avgAge = (members.reduce((s, m) => s + m.age, 0) / Math.max(1, members.length)).toFixed(1);
+  const techCount = new Set(members.flatMap((m) => m.stack)).size;
 
   return (
     <main ref={containerRef} className="relative min-h-screen overflow-x-hidden bg-[#060a12] text-white">
@@ -413,7 +438,7 @@ export default function TeamPage() {
           {/* stats grid */}
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { label: 'Ishtirokchi', value: `${MEMBERS.length}`, icon: '👥' },
+              { label: 'Ishtirokchi', value: `${members.length}`, icon: '👥' },
               { label: "O'rtacha yosh", value: avgAge, icon: '🎂' },
               { label: 'Texnologiyalar', value: `${techCount}+`, icon: '⚡' },
               { label: 'Holat', value: 'Production', icon: '🚀' },
@@ -444,10 +469,10 @@ export default function TeamPage() {
           viewport={{ once: true }}
           className="mb-8 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600"
         >
-          Jamoa a&apos;zolari — {MEMBERS.length} kishi
+          Jamoa a&apos;zolari — {members.length} kishi
         </motion.p>
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {MEMBERS.map((m, i) => (
+          {members.map((m, i) => (
             <TiltCard key={m.id} member={m} index={i} />
           ))}
         </div>
@@ -493,7 +518,7 @@ export default function TeamPage() {
           </div>
 
           <div className="relative flex flex-col gap-7 py-2">
-            {MEMBERS.map((m, i) => (
+            {members.map((m, i) => (
               <RoadmapNode key={m.id} member={m} index={i} />
             ))}
           </div>

@@ -1,65 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useTheme } from '@/context/ThemeContext';
-import { CATEGORIES } from '@/utils/constants';
 import { IoArrowForward, IoCheckmarkCircle, IoLockClosed, IoSchool } from 'react-icons/io5';
+import axiosInstance from '@/api/axiosInstance';
 
-const PATHS = [
-  {
-    id: 'frontend',
-    title: 'Frontend Developer',
-    description: 'HTML, CSS, JavaScript, React va TypeScript bilan professional frontend dasturchi bo\'ling.',
-    color: 'from-blue-500/20 to-cyan-500/20',
-    borderColor: 'border-blue-500/30',
-    accentColor: 'text-blue-400',
-    icon: '🖥️',
-    steps: [
-      { title: 'HTML & CSS Asoslari', category: 'html', level: 'Boshlang\'ich', xp: 200, icon: '🟠' },
-      { title: 'JavaScript Fundamentals', category: 'javascript', level: 'O\'rta', xp: 400, icon: '🟡' },
-      { title: 'React Framework', category: 'react', level: 'O\'rta+', xp: 600, icon: '⚛️' },
-      { title: 'TypeScript', category: 'typescript', level: 'Professional', xp: 500, icon: '🔷' },
-    ],
-  },
-  {
-    id: 'backend',
-    title: 'Backend Developer',
-    description: 'Node.js, API yaratish va database bilan ishlashni o\'rganing.',
-    color: 'from-emerald-500/20 to-green-500/20',
-    borderColor: 'border-emerald-500/30',
-    accentColor: 'text-emerald-400',
-    icon: '⚙️',
-    steps: [
-      { title: 'JavaScript Fundamentals', category: 'javascript', level: 'Boshlang\'ich', xp: 400, icon: '🟡' },
-      { title: 'Node.js & Express', category: 'nodejs', level: 'O\'rta', xp: 500, icon: '🟢' },
-      { title: 'Kiberxavfsizlik', category: 'security', level: 'Professional', xp: 400, icon: '🛡️' },
-      { title: 'Karyera va Freelance', category: 'career', level: 'Professional', xp: 300, icon: '💼' },
-    ],
-  },
-  {
-    id: 'ai',
-    title: 'AI Developer',
-    description: 'Sun\'iy intellekt, agentlar va AI toollar bilan ishlovchi developer bo\'ling.',
-    color: 'from-violet-500/20 to-purple-500/20',
-    borderColor: 'border-violet-500/30',
-    accentColor: 'text-violet-400',
-    icon: '🤖',
-    steps: [
-      { title: 'JavaScript / Python Asoslari', category: 'javascript', level: 'Boshlang\'ich', xp: 400, icon: '🟡' },
-      { title: 'AI va Agentlar', category: 'ai', level: 'O\'rta', xp: 600, icon: 'AI' },
-      { title: 'Telegram TMA / Bot', category: 'telegram', level: 'O\'rta+', xp: 400, icon: '✈️' },
-      { title: 'No-Code Tools', category: 'nocode', level: 'Professional', xp: 250, icon: '⚡' },
-    ],
-  },
+const ROADMAP_COLORS = [
+  { color: 'from-blue-500/20 to-cyan-500/20', borderColor: 'border-blue-500/30', accentColor: 'text-blue-400', icon: '🖥️' },
+  { color: 'from-emerald-500/20 to-green-500/20', borderColor: 'border-emerald-500/30', accentColor: 'text-emerald-400', icon: '⚙️' },
+  { color: 'from-violet-500/20 to-purple-500/20', borderColor: 'border-violet-500/30', accentColor: 'text-violet-400', icon: '🤖' },
+  { color: 'from-amber-500/20 to-orange-500/20', borderColor: 'border-amber-500/30', accentColor: 'text-amber-400', icon: '📘' },
 ];
 
 export default function RoadmapPage() {
   const { isDark } = useTheme();
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [paths, setPaths] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const bgClass = isDark ? 'bg-[#0A0E1A] text-white' : 'bg-slate-50 text-slate-900';
   const cardClass = isDark ? 'bg-[#0d1224]/80 border-white/5' : 'bg-white border-slate-200';
+
+  useEffect(() => {
+    axiosInstance.get('public/roadmap')
+      .then(({ data }) => {
+        const rows = (data?.data?.paths || []).map((p: any, idx: number) => ({
+          ...ROADMAP_COLORS[idx % ROADMAP_COLORS.length],
+          ...p,
+        }));
+        setPaths(rows);
+      })
+      .catch(() => setPaths([]))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <div className={`min-h-screen pt-24 pb-20 px-4 ${bgClass}`}>
@@ -82,7 +56,7 @@ export default function RoadmapPage() {
 
         {/* Path selector */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          {PATHS.map((path, i) => (
+          {paths.map((path, i) => (
             <motion.button
               key={path.id}
               initial={{ opacity: 0, y: 24 }}
@@ -110,7 +84,7 @@ export default function RoadmapPage() {
         </div>
 
         {/* Steps detail */}
-        {PATHS.map((path) => selectedPath === path.id && (
+          {paths.map((path) => selectedPath === path.id && (
           <motion.div
             key={path.id}
             initial={{ opacity: 0, y: 24 }}
@@ -136,7 +110,7 @@ export default function RoadmapPage() {
                     className={`relative flex items-start gap-5 rounded-2xl border p-6 ${cardClass} sm:ml-8`}
                   >
                     {/* Step number circle */}
-                    <div className={`absolute -left-[3.25rem] w-6 h-6 rounded-full border-2 ${path.borderColor} ${isDark ? 'bg-[#0d1224]' : 'bg-white'} flex items-center justify-center hidden sm:flex`}>
+                    <div className={`absolute -left-[3.25rem] w-6 h-6 rounded-full border-2 ${path.borderColor} ${isDark ? 'bg-[#0d1224]' : 'bg-white'} hidden items-center justify-center sm:flex`}>
                       <span className={`text-[10px] font-black ${path.accentColor}`}>{i + 1}</span>
                     </div>
 
@@ -170,6 +144,10 @@ export default function RoadmapPage() {
         ))}
 
         {/* CTA */}
+        {!loading && paths.length === 0 && (
+          <div className="text-center text-sm text-slate-500 mb-12">Roadmap ma'lumotlari vaqtincha mavjud emas</div>
+        )}
+
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

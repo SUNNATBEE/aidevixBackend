@@ -3,20 +3,28 @@
 import { useState, useEffect, useRef } from 'react';
 import { IoFlash, IoStar, IoCheckmarkCircle } from 'react-icons/io5';
 import { gsap } from 'gsap';
+import axiosInstance from '@/api/axiosInstance';
 
-const ACTIVITIES = [
-  { id: 1, user: 'Sunnatbek', action: 'Legend darajasiga chiqdi', icon: <IoStar className="text-yellow-400" />, color: 'from-yellow-400/20' },
-  { id: 2, user: 'Abubakir', action: 'AI-SaaS kursini tugatdi', icon: <IoCheckmarkCircle className="text-emerald-400" />, color: 'from-emerald-400/20' },
-  { id: 3, user: 'Jasurbek', action: '500 XP to\'pladi', icon: <IoFlash className="text-blue-400" />, color: 'from-blue-400/20' },
-  { id: 4, user: 'Farruxbek', action: 'Cursor AI darsini boshladi', icon: <IoFlash className="text-purple-400" />, color: 'from-purple-400/20' },
-  { id: 5, user: 'Sardor', action: 'Yangi jamoaga qo\'shildi', icon: <IoStar className="text-pink-400" />, color: 'from-pink-400/20' },
-];
+const TYPE_STYLE: Record<string, { icon: JSX.Element; color: string }> = {
+  enrollment: { icon: <IoCheckmarkCircle className="text-emerald-400" />, color: 'from-emerald-400/20' },
+  prompt: { icon: <IoFlash className="text-blue-400" />, color: 'from-blue-400/20' },
+  default: { icon: <IoStar className="text-yellow-400" />, color: 'from-yellow-400/20' },
+};
 
 export default function LiveActivityTicker() {
   const [index, setIndex] = useState(0);
+  const [activities, setActivities] = useState<any[]>([]);
   const itemRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    axiosInstance
+      .get('public/live-activity')
+      .then(({ data }) => setActivities(data?.data?.activities || []))
+      .catch(() => setActivities([]));
+  }, []);
+
+  useEffect(() => {
+    if (!activities.length) return;
     const timer = setInterval(() => {
       if (!itemRef.current) return;
 
@@ -26,7 +34,7 @@ export default function LiveActivityTicker() {
         duration: 0.35,
         onComplete: () => {
           setIndex((prev) => {
-            const nextIndex = (prev + 1) % ACTIVITIES.length;
+            const nextIndex = (prev + 1) % activities.length;
 
             if (itemRef.current) {
               gsap.fromTo(itemRef.current,
@@ -47,18 +55,20 @@ export default function LiveActivityTicker() {
         gsap.killTweensOf(itemRef.current);
       }
     };
-  }, []);
+  }, [activities.length]);
 
-  const current = ACTIVITIES[index];
+  const current = activities[index];
+  if (!current) return null;
+  const style = TYPE_STYLE[current.type] || TYPE_STYLE.default;
 
   return (
     <div className="hidden md:block fixed top-28 left-1/2 -translate-x-1/2 z-[40] w-fit">
       <div
         ref={itemRef}
-        className={`activity-item px-4 py-2 bg-[#12141c]/80 backdrop-blur-md border border-white/5 rounded-full flex items-center gap-3 shadow-2xl bg-gradient-to-r ${current.color} to-transparent`}
+        className={`activity-item px-4 py-2 bg-[#12141c]/80 backdrop-blur-md border border-white/5 rounded-full flex items-center gap-3 shadow-2xl bg-gradient-to-r ${style.color} to-transparent`}
       >
         <div className="flex items-center gap-2">
-          {current.icon}
+          {style.icon}
           <span className="text-[10px] font-black text-white uppercase tracking-widest">{current.user}</span>
         </div>
         <div className="w-1 h-1 rounded-full bg-white/20" />
