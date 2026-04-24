@@ -1,0 +1,16 @@
+- main [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e7]
+        - text: O'rganish yo'llari
+      - heading "Learning Roadmap" [level=1] [ref=e10]
+      - paragraph [ref=e11]: Qaysi yo'nalishda rivojlanmoqchisiz? Quyidagi 3 ta yo'ldan birini tanlang va qadamba-qadam o'rganing.
+    - generic [ref=e12]:
+      - heading "Hoziroq boshlang!" [level=2] [ref=e13]
+      - paragraph [ref=e14]: Kurslarni ko'ring, challenge qiling va leaderboard da yuqoriga ko'tariling.
+      - generic [ref=e15]:
+        - link "Kurslarni ko'rish" [ref=e16] [cursor=pointer]:
+          - /url: /courses
+        - link "Daily Challenge" [ref=e17] [cursor=pointer]:
+          - /url: /challenges
