@@ -1,10 +1,24 @@
 const crypto = require('crypto');
+const { CSRF_SECRET } = require('../config/jwt');
 
 const ACCESS_COOKIE_NAME = 'aidevix_access';
 const REFRESH_COOKIE_NAME = 'aidevix_refresh';
+const CSRF_COOKIE_NAME = 'aidevix_csrf';
+const CSRF_HEADER_NAME = 'x-csrf-token';
 
 const hashToken = (value) =>
   crypto.createHash('sha256').update(String(value)).digest('hex');
+
+const safeEqual = (a = '', b = '') => {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  try {
+    return crypto.timingSafeEqual(bufA, bufB);
+  } catch {
+    return false;
+  }
+};
 
 const parseCookies = (cookieHeader = '') =>
   cookieHeader
@@ -47,13 +61,39 @@ const serializeCookie = (name, value, options = {}) => {
   return parts.join('; ');
 };
 
+const generateCsrfToken = () => {
+  const random = crypto.randomBytes(32).toString('hex');
+  const signature = crypto
+    .createHmac('sha256', CSRF_SECRET)
+    .update(random)
+    .digest('hex');
+  return `${random}.${signature}`;
+};
+
+const verifyCsrfToken = (token) => {
+  if (!token || typeof token !== 'string') return false;
+  const parts = token.split('.');
+  if (parts.length !== 2) return false;
+  const [random, signature] = parts;
+  if (!random || !signature) return false;
+  const expected = crypto
+    .createHmac('sha256', CSRF_SECRET)
+    .update(random)
+    .digest('hex');
+  return safeEqual(signature, expected);
+};
+
 const attachAuthCookies = (res, accessToken, refreshToken) => {
+  const csrfToken = generateCsrfToken();
   const cookies = [
     serializeCookie(ACCESS_COOKIE_NAME, accessToken, { maxAge: 15 * 60 }),
     serializeCookie(REFRESH_COOKIE_NAME, refreshToken, { maxAge: 7 * 24 * 60 * 60 }),
+    // CSRF cookie — readable by JS so axios can echo it back as X-CSRF-Token
+    serializeCookie(CSRF_COOKIE_NAME, csrfToken, { httpOnly: false, maxAge: 7 * 24 * 60 * 60 }),
   ];
 
   res.setHeader('Set-Cookie', cookies);
+  return csrfToken;
 };
 
 const clearAuthCookies = (res) => {
@@ -61,6 +101,7 @@ const clearAuthCookies = (res) => {
   const cookies = [
     serializeCookie(ACCESS_COOKIE_NAME, '', { expires: expired, maxAge: 0 }),
     serializeCookie(REFRESH_COOKIE_NAME, '', { expires: expired, maxAge: 0 }),
+    serializeCookie(CSRF_COOKIE_NAME, '', { httpOnly: false, expires: expired, maxAge: 0 }),
   ];
 
   res.setHeader('Set-Cookie', cookies);
@@ -69,8 +110,13 @@ const clearAuthCookies = (res) => {
 module.exports = {
   ACCESS_COOKIE_NAME,
   REFRESH_COOKIE_NAME,
+  CSRF_COOKIE_NAME,
+  CSRF_HEADER_NAME,
   attachAuthCookies,
   clearAuthCookies,
   hashToken,
+  safeEqual,
   parseCookies,
+  generateCsrfToken,
+  verifyCsrfToken,
 };

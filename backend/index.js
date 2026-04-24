@@ -8,14 +8,16 @@ const swaggerSpec = require('./config/swagger');
 const swaggerAdminSpec = require('./config/swaggerAdmin');
 const swaggerAuth = require('./middleware/swaggerAuth');
 const connectDB = require('./config/database');
-const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
+const { apiLimiter } = require('./middleware/rateLimiter');
+const csrfProtection = require('./middleware/csrfProtection');
 
 // Initialize Express app
 const app = express();
 
 
-// Trust proxy — REQUIRED on Render/Railway (otherwise all IPs look the same → rate limit breaks)
-app.set('trust proxy', 1);
+// Trust proxy — Railway/Render uchun. Production'da aniq hop count, dev'da loopback.
+// `true` ishlatish X-Forwarded-For spoofing'ga ochiq qoldiradi.
+app.set('trust proxy', process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY) : 1);
 
 // Connect to database (async - won't block server start)
 connectDB().then(async () => {
@@ -63,23 +65,25 @@ const devOrigins = [
   'http://127.0.0.1:3000',
 ];
 
+const isProd = process.env.NODE_ENV === 'production';
+
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, Postman, direct navigation)
     if (!origin) return callback(null, true);
-    // Allow opaque origins (Telegram webview, file://, etc.)
-    if (origin === 'null' && process.env.NODE_ENV !== 'production') return callback(null, true);
-    // Allow if wildcard '*' configured
-    if (allowedOrigins.includes('*')) return callback(null, true);
-    // Allow if explicitly listed
+    // Allow opaque origins only in non-production (Telegram webview, file://, etc.)
+    if (origin === 'null' && !isProd) return callback(null, true);
+    // Explicit wildcard is only valid in non-production; never allow '*' with credentials in prod
+    if (allowedOrigins.includes('*')) {
+      if (!isProd) return callback(null, true);
+      console.warn('⛔ CORS: wildcard * rejected in production (credentials incompatible)');
+      return callback(new Error('CORS: wildcard origin not allowed in production'));
+    }
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    // Allow local frontend during development only
-    if (process.env.NODE_ENV !== 'production' && devOrigins.includes(origin)) return callback(null, true);
-    // Allow Railway backend URL itself (Swagger UI "Try it out" feature)
+    if (!isProd && devOrigins.includes(origin)) return callback(null, true);
     const backendUrl = process.env.BACKEND_URL || 'https://aidevix-backend-production.up.railway.app';
     if (origin === backendUrl) return callback(null, true);
 
-    // CORS reject — logga yozish (debug uchun)
     console.warn(`⛔ CORS BLOCKED: origin="${origin}" — allowedOrigins:`, allowedOrigins);
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
@@ -90,6 +94,7 @@ const corsOptions = {
     'Content-Type',
     'Authorization',
     'X-Requested-With',
+    'X-CSRF-Token',
     'Accept',
     'Origin',
   ],
@@ -185,23 +190,27 @@ app.get('/admin-docs.json', swaggerAuth, (req, res) => {
 
 // Security headers (qo'shimcha)
 app.use((req, res, next) => {
-  // Remove X-Powered-By header
   res.removeHeader('X-Powered-By');
-  
-  // Security headers
+
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  
+  // X-XSS-Protection '0' — zamonaviy tavsiya (eski brauzerlar aggressive filter ishlatib XSS yaratardi)
+  res.setHeader('X-XSS-Protection', '0');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+
   if (process.env.NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   }
-  
+
   next();
 });
 
-// Routes
-app.use('/api/auth',         authLimiter, require('./routes/authRoutes'));
+// CSRF protection — barcha mutating requestlar uchun (auth cookie mavjud bo'lsa)
+app.use(csrfProtection);
+
+// Routes — auth'da per-endpoint limitlar aniq belgilangan
+app.use('/api/auth',         require('./routes/authRoutes'));
 app.use('/api/subscriptions', require('./routes/subscriptionRoutes'));
 app.use('/api/courses',      require('./routes/courseRoutes'));
 app.use('/api/videos',       require('./routes/videoRoutes'));

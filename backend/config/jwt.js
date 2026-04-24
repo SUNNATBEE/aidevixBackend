@@ -1,23 +1,54 @@
-const DEFAULT_ACCESS_SECRET = 'your-access-token-secret-change-in-production';
-const DEFAULT_REFRESH_SECRET = 'your-refresh-token-secret-change-in-production';
-const DEFAULT_RESET_SECRET = 'your-reset-token-secret-change-in-production';
+const crypto = require('crypto');
+
+const DEV_FALLBACK = {
+  ACCESS: 'dev-only-access-secret-do-not-use-in-production',
+  REFRESH: 'dev-only-refresh-secret-do-not-use-in-production',
+  RESET: 'dev-only-reset-secret-do-not-use-in-production',
+  CSRF: 'dev-only-csrf-secret-do-not-use-in-production',
+};
+
+const MIN_SECRET_LENGTH = 32;
+
+const loadSecret = (name, devFallback) => {
+  const value = process.env[name];
+  if (process.env.NODE_ENV === 'production') {
+    if (!value) {
+      throw new Error(`FATAL: ${name} is required in production. Set a strong random secret (>=${MIN_SECRET_LENGTH} chars).`);
+    }
+    if (value.length < MIN_SECRET_LENGTH) {
+      throw new Error(`FATAL: ${name} is too short (${value.length} chars). Minimum ${MIN_SECRET_LENGTH} chars.`);
+    }
+    if (Object.values(DEV_FALLBACK).includes(value)) {
+      throw new Error(`FATAL: ${name} is using a development placeholder. Replace with a unique production secret.`);
+    }
+    return value;
+  }
+  if (!value) {
+    console.warn(`⚠️  ${name} not set — using development fallback. Production WILL refuse to boot without this.`);
+    return devFallback;
+  }
+  return value;
+};
+
+const ACCESS_TOKEN_SECRET = loadSecret('ACCESS_TOKEN_SECRET', DEV_FALLBACK.ACCESS);
+const REFRESH_TOKEN_SECRET = loadSecret('REFRESH_TOKEN_SECRET', DEV_FALLBACK.REFRESH);
+const RESET_TOKEN_SECRET = loadSecret('RESET_TOKEN_SECRET', DEV_FALLBACK.RESET);
+const CSRF_SECRET = loadSecret('CSRF_SECRET', DEV_FALLBACK.CSRF);
 
 if (process.env.NODE_ENV === 'production') {
-  if (!process.env.ACCESS_TOKEN_SECRET || process.env.ACCESS_TOKEN_SECRET === DEFAULT_ACCESS_SECRET) {
-    console.warn('⚠️ ACCESS_TOKEN_SECRET should be set in production!');
-  }
-  if (!process.env.REFRESH_TOKEN_SECRET || process.env.REFRESH_TOKEN_SECRET === DEFAULT_REFRESH_SECRET) {
-    console.warn('⚠️ REFRESH_TOKEN_SECRET should be set in production!');
-  }
-  if (!process.env.RESET_TOKEN_SECRET || process.env.RESET_TOKEN_SECRET === DEFAULT_RESET_SECRET) {
-    console.warn('⚠️ RESET_TOKEN_SECRET should be set in production!');
+  const secrets = [ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, RESET_TOKEN_SECRET, CSRF_SECRET];
+  const unique = new Set(secrets);
+  if (unique.size !== secrets.length) {
+    throw new Error('FATAL: ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, RESET_TOKEN_SECRET, CSRF_SECRET must all be unique.');
   }
 }
 
 module.exports = {
-  ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET || DEFAULT_ACCESS_SECRET,
-  REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET || DEFAULT_REFRESH_SECRET,
-  RESET_TOKEN_SECRET: process.env.RESET_TOKEN_SECRET || DEFAULT_RESET_SECRET,
+  ACCESS_TOKEN_SECRET,
+  REFRESH_TOKEN_SECRET,
+  RESET_TOKEN_SECRET,
+  CSRF_SECRET,
   ACCESS_TOKEN_EXPIRE: process.env.ACCESS_TOKEN_EXPIRE || '15m',
   REFRESH_TOKEN_EXPIRE: process.env.REFRESH_TOKEN_EXPIRE || '7d',
+  _generateDevSecretHint: () => crypto.randomBytes(48).toString('hex'),
 };

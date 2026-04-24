@@ -11,26 +11,35 @@ const {
   forgotPassword,
   verifyCode,
   resetPassword,
+  changePassword,
   verifyEmail,
   resendVerification,
 } = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
-const { otpLimiter, authLimiter, dailyRewardLimiter } = require('../middleware/rateLimiter');
+const {
+  otpLimiter,
+  loginLimiter,
+  registerLimiter,
+  refreshLimiter,
+  dailyRewardLimiter,
+  verifyEmailLimiter,
+} = require('../middleware/rateLimiter');
 
-// Public
-router.post('/register', authLimiter, register);
-router.post('/login', authLimiter, login);
-router.post('/refresh-token', refreshToken);
+// Public — limiters tight, CSRF exempt
+router.post('/register', registerLimiter, register);
+router.post('/login', loginLimiter, login);
+router.post('/refresh-token', refreshLimiter, refreshToken);
 router.post('/forgot-password', otpLimiter, forgotPassword);
 router.post('/verify-code', otpLimiter, verifyCode);
 router.post('/reset-password', otpLimiter, resetPassword);
 
 // Private
 router.post('/logout', authenticate, logout);
+router.put('/change-password', authenticate, changePassword);
 router.post('/daily-reward', authenticate, dailyRewardLimiter, claimDailyReward);
 router.get('/me', authenticate, getMe);
 router.get('/referrals', authenticate, getReferralStats);
-router.post('/verify-email', authenticate, otpLimiter, verifyEmail);
-router.post('/resend-verification', authenticate, otpLimiter, resendVerification);
+router.post('/verify-email', authenticate, verifyEmailLimiter, verifyEmail);
+router.post('/resend-verification', authenticate, verifyEmailLimiter, resendVerification);
 
 module.exports = router;

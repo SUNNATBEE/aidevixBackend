@@ -2,11 +2,36 @@ import axios from 'axios'
 import { API_BASE_URL } from '@utils/constants'
 import { tokenStorage } from '@utils/tokenStorage'
 
+const CSRF_COOKIE_NAME = 'aidevix_csrf'
+
+const readCsrfToken = (): string | null => {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie
+    .split(';')
+    .map((p) => p.trim())
+    .find((p) => p.startsWith(`${CSRF_COOKIE_NAME}=`))
+  if (!match) return null
+  return decodeURIComponent(match.slice(CSRF_COOKIE_NAME.length + 1))
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
+})
+
+// Attach CSRF token for state-changing requests
+api.interceptors.request.use((config) => {
+  const method = String(config.method || 'get').toLowerCase()
+  if (['post', 'put', 'patch', 'delete'].includes(method)) {
+    const csrf = readCsrfToken()
+    if (csrf) {
+      config.headers = config.headers || {}
+      ;(config.headers as Record<string, string>)['X-CSRF-Token'] = csrf
+    }
+  }
+  return config
 })
 
 let isRefreshing = false
@@ -68,7 +93,6 @@ api.interceptors.response.use(
     }
 
     // Obuna bekor qilingan bo'lsa — Redux state ni yangilash
-    // Lazy import — circular dependency oldini olish (axiosInstance → store → slice → api → axiosInstance)
     if (error.response?.status === 403 && error.response?.data?.isSubscriptionError) {
       import('@store/index').then(({ dispatch }) => {
         import('@store/slices/subscriptionSlice').then(({ resetSubscription }) => {

@@ -15,4 +15,8 @@ export const authApi = {
 
   /** GET /auth/me - get current user info */
   getMe: () => api.get('auth/me'),
+
+  /** PUT /auth/change-password */
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    api.put('auth/change-password', data),
 }

@@ -89,13 +89,13 @@ export default function LoginForm() {
             placeholder="••••••••" 
             autoComplete="current-password"
             className={`w-full bg-white text-gray-900 px-5 py-3.5 rounded-full outline-none focus:ring-2 focus:ring-primary transition-all pr-12 ${errors.password ? 'ring-2 ring-error' : ''}`}
-            {...register('password', { 
+            {...register('password', {
               required: 'Parolni kiritish majburiy',
               minLength: {
-                value: 6,
-                message: 'Parol kamida 6ta belgidan iborat bo\'lishi kerak'
+                value: 1,
+                message: 'Parolni kiriting'
               }
-            })} 
+            })}
           />
           <button 
             type="button" 

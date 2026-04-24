@@ -29,11 +29,41 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters'],
+    minlength: [8, 'Password must be at least 8 characters'],
     select: false, // Don't return password by default
   },
   refreshToken: {
     type: String,
+    select: false,
+  },
+  tokenVersion: {
+    type: Number,
+    default: 0,
+    select: false,
+  },
+  passwordChangedAt: {
+    type: Date,
+    default: null,
+    select: false,
+  },
+  failedLoginAttempts: {
+    type: Number,
+    default: 0,
+    select: false,
+  },
+  lockUntil: {
+    type: Date,
+    default: null,
+    select: false,
+  },
+  emailVerificationAttempts: {
+    type: Number,
+    default: 0,
+    select: false,
+  },
+  resetPasswordAttempts: {
+    type: Number,
+    default: 0,
     select: false,
   },
   socialSubscriptions: {
@@ -187,6 +217,10 @@ userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   try {
     this.password = await bcrypt.hash(this.password, 12);
+    this.passwordChangedAt = new Date();
+    this.tokenVersion = (this.tokenVersion || 0) + 1;
+    this.failedLoginAttempts = 0;
+    this.lockUntil = null;
     next();
   } catch (err) {
     next(err);
@@ -198,9 +232,35 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
+userSchema.methods.isLocked = function () {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
+};
+
+userSchema.methods.registerFailedLogin = async function () {
+  const MAX_ATTEMPTS = 5;
+  const LOCK_DURATION_MS = 15 * 60 * 1000;
+  if (this.lockUntil && this.lockUntil < Date.now()) {
+    this.failedLoginAttempts = 1;
+    this.lockUntil = null;
+  } else {
+    this.failedLoginAttempts = (this.failedLoginAttempts || 0) + 1;
+    if (this.failedLoginAttempts >= MAX_ATTEMPTS) {
+      this.lockUntil = new Date(Date.now() + LOCK_DURATION_MS);
+    }
+  }
+  await this.save({ validateModifiedOnly: true });
+};
+
+userSchema.methods.resetLoginAttempts = async function () {
+  if (this.failedLoginAttempts === 0 && !this.lockUntil) return;
+  this.failedLoginAttempts = 0;
+  this.lockUntil = null;
+  await this.save({ validateModifiedOnly: true });
+};
+
 // Check if user has all required subscriptions
 userSchema.methods.hasAllSubscriptions = function () {
-  return this.socialSubscriptions.instagram.subscribed && 
+  return this.socialSubscriptions.instagram.subscribed &&
          this.socialSubscriptions.telegram.subscribed;
 };
 
