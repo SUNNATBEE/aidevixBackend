@@ -66,30 +66,24 @@ const sanitizeUser = (user) => ({
 });
 
 const issueTokens = async (user) => {
-  const buildTokens = (tokenVersion) => {
-    const payload = { userId: user._id, tv: tokenVersion || 0 };
-    return {
-      accessToken: generateAccessToken(payload),
-      refreshToken: generateRefreshToken(payload),
-    };
-  };
+  // Always read authoritative tokenVersion from DB to avoid mismatches with
+  // documents that may not have `tokenVersion` selected in memory.
+  const persisted = await User.findById(user._id).select('+tokenVersion');
+  const tokenVersion = persisted?.tokenVersion || 0;
+  const payload = { userId: user._id, tv: tokenVersion };
+  const accessToken = generateAccessToken(payload);
+  const refreshToken = generateRefreshToken(payload);
 
-  let tokenVersion = user.tokenVersion || 0;
-  let { accessToken, refreshToken } = buildTokens(tokenVersion);
-
-  user.refreshToken = hashToken(refreshToken);
-  user.lastLogin = Date.now();
-  await user.save({ validateModifiedOnly: true });
-
-  // Defensive sync: if any hook mutates tokenVersion during save,
-  // re-issue tokens so cookie payload and DB state stay aligned.
-  if ((user.tokenVersion || 0) !== tokenVersion) {
-    tokenVersion = user.tokenVersion || 0;
-    ({ accessToken, refreshToken } = buildTokens(tokenVersion));
-    user.refreshToken = hashToken(refreshToken);
-    user.lastLogin = Date.now();
-    await user.save({ validateModifiedOnly: true });
-  }
+  // Use updateOne to avoid triggering document save hooks that may mutate tokenVersion.
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        refreshToken: hashToken(refreshToken),
+        lastLogin: new Date(),
+      },
+    }
+  );
 
   return { accessToken, refreshToken };
 };
