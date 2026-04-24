@@ -126,7 +126,8 @@ app.use((req, res, next) => {
 app.use(helmet({
   contentSecurityPolicy: false, // Swagger UI uchun o'chirilgan
   crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: 'cross-origin' }, // Cross-origin resurslarga ruxsat
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }, // Google OAuth popup uchun
 }));
 
 // 4️⃣ Body parsers
