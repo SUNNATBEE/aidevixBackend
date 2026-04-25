@@ -97,9 +97,9 @@ export default function LoginForm() {
             {...register('password', {
               required: 'Parolni kiritish majburiy',
               minLength: {
-                value: 1,
-                message: 'Parolni kiriting'
-              }
+                value: 6,
+                message: t('auth.login.passwordMinLength'),
+              },
             })}
           />
           <button 

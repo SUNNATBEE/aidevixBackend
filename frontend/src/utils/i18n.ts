@@ -109,6 +109,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'courses.empty': "Hozircha kurslar yo'q",
     'courses.lessons': 'dars',
     'courses.view': "Ko'rish",
+    'video.playerTitle': 'Video pleer',
     'courses.newBadge': 'YANGI',
     'courses.emptySub': 'Kechirasiz, tizimda hali darsliklar mavjud emas.',
 
@@ -221,6 +222,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'auth.login.submit': 'Kirish',
     'auth.login.noAccount': "Hisobingiz yo'qmi?",
     'auth.login.register': "Ro'yxatdan o'tish",
+    'auth.login.passwordMinLength': "Parol kamida 6 belgidan iborat bo'lishi kerak",
 
     'auth.register.title': "Ro'yxatdan o'tish",
     'auth.register.subtitle': "Hisobingizni yarating va dasturlashni o'rganing",
@@ -715,6 +717,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'courses.empty': 'Курсов пока нет',
     'courses.lessons': 'уроков',
     'courses.view': 'Смотреть',
+    'video.playerTitle': 'Видеоплеер',
     'courses.newBadge': 'НОВЫЙ',
     'courses.emptySub': 'Извините, в системе пока нет учебных материалов.',
 
@@ -816,6 +819,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'auth.login.submit': 'Войти',
     'auth.login.noAccount': 'Нет аккаунта?',
     'auth.login.register': 'Зарегистрироваться',
+    'auth.login.passwordMinLength': 'Пароль должен содержать не менее 6 символов',
 
     'auth.register.title': 'Регистрация',
     'auth.register.subtitle': 'Создайте аккаунт и начните обучение программированию',
@@ -1315,6 +1319,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'courses.empty': 'No courses yet',
     'courses.lessons': 'lessons',
     'courses.view': 'View',
+    'video.playerTitle': 'Video player',
     'courses.newBadge': 'NEW',
     'courses.emptySub': 'Sorry, no courses available yet.',
 
@@ -1416,6 +1421,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     'auth.login.submit': 'Sign In',
     'auth.login.noAccount': "Don't have an account?",
     'auth.login.register': 'Sign Up',
+    'auth.login.passwordMinLength': 'Password must be at least 6 characters',
 
     'auth.register.title': 'Create Account',
     'auth.register.subtitle': 'Create your account and start learning to code',

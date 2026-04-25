@@ -185,14 +185,10 @@ test.describe('Subscription Gate Component', () => {
     await page.goto('/videos/video-1');
     await waitForPageReady(page);
 
-    await expect(page.getByRole('heading', { name: /telegram/i })).toBeVisible({ timeout: TIMEOUTS.PAGE_LOAD });
-    // Decorative `absolute inset-0` layer sits above the button; synthetic DOM click is reliable.
-    await page.evaluate(() => {
-      const btn = [...document.querySelectorAll('button')].find((b) =>
-        (b.textContent || '').toLowerCase().includes('videoni'),
-      ) as HTMLButtonElement | undefined;
-      btn?.click();
-    });
+    await expect(
+      page.getByText(/Telegram va Instagram|Telegram and Instagram|Подпишитесь.*Telegram/i),
+    ).toBeVisible({ timeout: TIMEOUTS.PAGE_LOAD });
+    await page.getByRole('button', { name: /obuna|subscribe/i }).click();
     const gate = page.locator('.fixed.inset-0.z-50');
     await expect(gate).toBeVisible({ timeout: TIMEOUTS.API_RESPONSE });
     await expect(

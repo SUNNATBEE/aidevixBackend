@@ -9,6 +9,7 @@ import { selectIsLoggedIn } from '@/store/slices/authSlice';
 import { selectInstagramSub, selectTelegramSub } from '@/store/slices/subscriptionSlice';
 import { useVideos } from '@hooks/useVideos';
 import { useSubscription } from '@hooks/useSubscription';
+import { useLang } from '@/context/LangContext';
 import { formatDuration } from '@utils/formatDuration';
 import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 import { videoApi } from '@/api/videoApi';
@@ -21,6 +22,7 @@ export default function VideoPage() {
   const router = useRouter();
   const { current: video, videoLink, player, loading, error, fetchById } = useVideos();
   const embedUrl = player && typeof player === 'object' && 'embedUrl' in player ? (player as { embedUrl?: string }).embedUrl : undefined;
+  const { t } = useLang();
   useSubscription();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const instagram = useSelector(selectInstagramSub);
@@ -291,6 +293,7 @@ export default function VideoPage() {
           ) : embedUrl ? (
             /* Subscribed + Bunny Stream */
             <iframe
+              title={t('video.playerTitle')}
               src={embedUrl}
               className="absolute inset-0 w-full h-full"
               allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { AnimatePresence, motion } from 'framer-motion';
 import { selectUser } from '@store/slices/authSlice';
@@ -10,6 +11,7 @@ import { fetchUserStats, updateProfileThunk } from '@store/slices/userStatsSlice
 import { uploadApi } from '@api/uploadApi';
 import { toast } from 'react-hot-toast';
 import { useLang } from '@/context/LangContext';
+import { useAuth } from '@hooks/useAuth';
 import {
   FiEdit2,
   FiMapPin,
@@ -28,11 +30,19 @@ import { userApi } from '@api/userApi';
 import SavedPromptsSection from '@components/profile/SavedPromptsSection';
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const { isLoggedIn, loading: authLoading } = useAuth();
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
   const { xp, level, badges, videosWatched, bio, skills, avatar, loading: statsLoading } = useUserStats();
   const sub = useSubscription();
   const { t } = useLang();
+
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) {
+      router.replace('/login?returnUrl=%2Fprofile');
+    }
+  }, [authLoading, isLoggedIn, router]);
 
   const AI_TOOLS = [
     { name: 'Claude Code', icon: '🤖', color: 'from-orange-500/10 to-amber-500/10 border-orange-500/20 text-orange-300' },
@@ -180,6 +190,14 @@ export default function ProfilePage() {
       setAvatarUploading(false);
     }
   };
+
+  if (authLoading || !isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-[#0A0E1A] flex items-center justify-center">
+        <div className="loading loading-spinner loading-lg text-indigo-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#050507] text-slate-200 pt-28 pb-20 px-4 sm:px-6 lg:px-12 selection:bg-indigo-500/30">
