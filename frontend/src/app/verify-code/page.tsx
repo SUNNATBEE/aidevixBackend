@@ -8,6 +8,8 @@ import { toast } from 'react-hot-toast';
 import { forgotPasswordApi } from '@api/forgotPasswordApi';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
 import { useLang } from '@/context/LangContext';
+import { useTheme } from '@/context/ThemeContext';
+import TurnstileWidget from '@/components/common/TurnstileWidget';
 import gsap from 'gsap';
 
 function VerifyCodeContent() {
@@ -15,11 +17,16 @@ function VerifyCodeContent() {
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
-  
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const cardRef = useRef(null);
   const { t } = useLang();
+  const { isDark } = useTheme();
+  const captchaSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const captchaRequired = Boolean(captchaSiteKey);
 
   const email = searchParams.get('email');
 
@@ -78,13 +85,33 @@ function VerifyCodeContent() {
 
   const handleResend = async () => {
     if (!email) return;
+    if (captchaRequired && !captchaToken) {
+      toast.error(t('forgot.captchaRequired'));
+      return;
+    }
     try {
       setResendLoading(true);
-      await forgotPasswordApi.forgotPassword({ email });
+      await forgotPasswordApi.forgotPassword({
+        email,
+        ...(captchaToken ? { captchaToken } : {}),
+      });
       forgotPasswordFlow.startTimer(email);
       setTimeLeft(forgotPasswordFlow.getRemainingSeconds(email));
+      setCaptchaToken(null);
+      setCaptchaKey((k) => k + 1);
       toast.success(t('verify.sent'));
     } catch (error: any) {
+      setCaptchaToken(null);
+      setCaptchaKey((k) => k + 1);
+      const code = error.response?.data?.code;
+      if (code === 'CAPTCHA_REQUIRED' || error.response?.status === 403) {
+        toast.error(t('forgot.captchaFailed'));
+        return;
+      }
+      if (!error.response && (error?.message === 'Network Error' || error?.code === 'ERR_NETWORK')) {
+        toast.error(t('forgot.networkError'));
+        return;
+      }
       toast.error(error.response?.data?.message || t('profile.toast.error'));
     } finally {
       setResendLoading(false);
@@ -149,14 +176,27 @@ function VerifyCodeContent() {
                   {t('verify.resend')} ({timeLeft}s)
                 </p>
               ) : (
-                <button 
-                  type="button" 
-                  onClick={handleResend}
-                  disabled={resendLoading}
-                  className="text-indigo-400 hover:text-indigo-300 hover:underline text-sm font-medium transition-colors"
-                >
-                  {resendLoading ? t('verify.sending') : t('verify.resend')}
-                </button>
+                <>
+                  {captchaRequired && (
+                    <div className="flex justify-center pb-4">
+                      <TurnstileWidget
+                        key={captchaKey}
+                        siteKey={captchaSiteKey}
+                        onToken={setCaptchaToken}
+                        onError={() => setCaptchaToken(null)}
+                        theme={isDark ? 'dark' : 'light'}
+                      />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resendLoading || (captchaRequired && !captchaToken)}
+                    className="text-indigo-400 hover:text-indigo-300 hover:underline text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    {resendLoading ? t('verify.sending') : t('verify.resend')}
+                  </button>
+                </>
               )}
             </div>
 

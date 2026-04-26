@@ -8,14 +8,20 @@ import { toast } from 'react-hot-toast';
 import { forgotPasswordApi } from '@api/forgotPasswordApi';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
 import { useLang } from '@/context/LangContext';
+import { useTheme } from '@/context/ThemeContext';
+import TurnstileWidget from '@/components/common/TurnstileWidget';
 import gsap from 'gsap';
 
 export default function ForgotPasswordPage() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const router = useRouter();
   const cardRef = useRef(null);
   const { t } = useLang();
+  const { isDark } = useTheme();
+  const captchaSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const captchaRequired = Boolean(captchaSiteKey);
 
   useEffect(() => {
     if (cardRef.current) {
@@ -29,15 +35,33 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data: any) => {
     const email = data.email.trim().toLowerCase();
+    if (captchaRequired && !captchaToken) {
+      toast.error(t('forgot.captchaRequired'));
+      return;
+    }
 
     try {
       setLoading(true);
-      await forgotPasswordApi.forgotPassword({ email });
+      await forgotPasswordApi.forgotPassword({
+        email,
+        ...(captchaToken ? { captchaToken } : {}),
+      });
       forgotPasswordFlow.startTimer(email);
       toast.success(t('forgot.sent'));
       router.push(`/verify-code?email=${encodeURIComponent(email)}`);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || t('forgot.notFound'));
+      const code = error.response?.data?.code;
+      const msg = error.response?.data?.message;
+      if (code === 'CAPTCHA_REQUIRED' || error.response?.status === 403) {
+        setCaptchaToken(null);
+        toast.error(t('forgot.captchaFailed'));
+        return;
+      }
+      if (!error.response && (error?.message === 'Network Error' || error?.code === 'ERR_NETWORK')) {
+        toast.error(t('forgot.networkError'));
+        return;
+      }
+      toast.error(msg || t('forgot.notFound'));
     } finally {
       setLoading(false);
     }
@@ -79,10 +103,21 @@ export default function ForgotPasswordPage() {
               {errors.email && <p className="text-error text-xs mt-1 ml-4">{(errors.email as any).message}</p>}
             </div>
 
+            {captchaRequired && (
+              <div className="flex justify-center pt-1">
+                <TurnstileWidget
+                  siteKey={captchaSiteKey}
+                  onToken={setCaptchaToken}
+                  onError={() => setCaptchaToken(null)}
+                  theme={isDark ? 'dark' : 'light'}
+                />
+              </div>
+            )}
+
             <div className="pt-4">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (captchaRequired && !captchaToken)}
                 className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none w-full rounded-full normal-case text-base font-medium h-12 flex justify-center items-center text-white"
               >
                 {loading ? (

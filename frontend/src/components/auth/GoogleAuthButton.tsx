@@ -33,8 +33,8 @@ export default function GoogleAuthButton({ mode = 'login', className }: Props) {
     }
     dispatch(clearError());
     const result = await (dispatch as any)(googleAuth({ credential: credentialResponse.credential }));
-    if (googleAuth.fulfilled.match(result)) {
-      const payload: any = result.payload;
+    if (result && googleAuth.fulfilled.match(result)) {
+      const payload: any = result?.payload;
       if (payload?.requires2FA) {
         router.push('/auth/2fa-verify');
         return;
@@ -119,14 +119,14 @@ export default function GoogleAuthButton({ mode = 'login', className }: Props) {
             {hint}
           </p>
 
-          <div className="flex w-full justify-center [&>div]:w-full [&>div>div]:w-full [&>div>div>div]:w-full [&_iframe]:!max-w-full">
+            <div className="flex w-full justify-center [&>div]:w-full [&>div>div]:w-full [&>div>div>div]:w-full [&_iframe]:!max-w-full">
             <GoogleLogin
               onSuccess={handleSuccess}
               onError={() => toast.error('Google orqali amalga oshmadi')}
               theme={isDark ? 'filled_black' : 'outline'}
               size="large"
               shape="pill"
-              width="100%"
+              width="384"
               text={isRegister ? 'signup_with' : 'continue_with'}
               logo_alignment="left"
               useOneTap={false}

@@ -47,9 +47,9 @@ export default function LoginForm() {
         ...(captchaToken ? { captchaToken } : {}),
       }));
 
-      if (login.fulfilled.match(result)) {
+      if (result && login.fulfilled.match(result)) {
         forgotPasswordFlow.rememberEmail(data.email);
-        const payload: any = result.payload;
+        const payload: any = result?.payload;
         if (payload?.requires2FA) {
           router.push('/auth/2fa-verify');
           return;

@@ -384,6 +384,9 @@ export const translations: Record<Lang, Record<string, string>> = {
     'forgot.emailInvalid': "Noto'g'ri email formati",
     'forgot.sent': 'Tasdiqlash kodi emailga yuborildi!',
     'forgot.notFound': "So'rov muvaffaqiyatsiz. Qaytadan urinib ko'ring",
+    'forgot.captchaRequired': 'Davom etishdan oldin “Robot emasman”ni bajaring',
+    'forgot.captchaFailed': 'CAPTCHA muvaffaqiyatsiz. Qayta urinib ko‘ring',
+    'forgot.networkError': "Serverga ulanib bo'lmadi. Internetni tekshiring yoki keyinroq qayting",
 
     // ─── Reset Password ───
     'reset.title': "Yangi parol o'rnatish",
@@ -1062,6 +1065,9 @@ export const translations: Record<Lang, Record<string, string>> = {
     'forgot.emailInvalid': 'Неверный формат email',
     'forgot.sent': 'Код подтверждения отправлен на email!',
     'forgot.notFound': 'Такой email не найден',
+    'forgot.captchaRequired': 'Сначала пройдите проверку «Я не робот»',
+    'forgot.captchaFailed': 'Проверка CAPTCHA не удалась. Попробуйте снова',
+    'forgot.networkError': 'Не удалось связаться с сервером. Проверьте сеть',
 
     // ─── Reset Password ───
     'reset.title': 'Установка нового пароля',
@@ -1745,6 +1751,9 @@ export const translations: Record<Lang, Record<string, string>> = {
     'forgot.emailInvalid': 'Invalid email format',
     'forgot.sent': 'Verification code sent to your email!',
     'forgot.notFound': 'Email not found',
+    'forgot.captchaRequired': 'Complete the “I’m not a robot” check first',
+    'forgot.captchaFailed': 'CAPTCHA verification failed. Please try again',
+    'forgot.networkError': "Couldn't reach the server. Check your connection",
 
     // ─── Reset Password ───
     'reset.title': 'Set New Password',
