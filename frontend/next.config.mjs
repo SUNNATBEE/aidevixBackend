@@ -1,9 +1,17 @@
+/** Vercel env da ba'zida `.../api` qo‘shib yuboriladi — rewrite allaqachon `/api` qo‘shadi, shuning uchun 404. */
+const normalizeBackendOrigin = (raw) => {
+  if (!raw) return raw;
+  let u = String(raw).trim().replace(/\/+$/, '');
+  if (u.toLowerCase().endsWith('/api')) u = u.slice(0, -4);
+  return u;
+};
+
 const backendBaseUrl = (() => {
   const configuredUrl =
     process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_ORIGIN;
 
   if (configuredUrl) {
-    return configuredUrl.replace(/\/$/, '');
+    return normalizeBackendOrigin(configuredUrl);
   }
 
   return process.env.NODE_ENV === 'production'

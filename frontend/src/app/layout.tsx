@@ -6,6 +6,7 @@ import { Manrope, Space_Grotesk } from 'next/font/google';
 import { Providers } from '@components/Providers';
 import ClientLayoutWrapper from '@components/layout/ClientLayoutWrapper';
 import ExitIntentModal from '@components/common/ExitIntentModal';
+import BetaWelcomeModal from '@components/common/BetaWelcomeModal';
 import PWAInstallPrompt from '@components/common/PWAInstallPrompt';
 
 const manrope = Manrope({
@@ -130,6 +131,7 @@ export default function RootLayout({
           <ClientLayoutWrapper>
             {children}
           </ClientLayoutWrapper>
+          <BetaWelcomeModal />
           <ExitIntentModal />
           <PWAInstallPrompt />
         </Providers>

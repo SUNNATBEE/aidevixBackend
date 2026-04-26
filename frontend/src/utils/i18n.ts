@@ -706,6 +706,20 @@ export const translations: Record<Lang, Record<string, string>> = {
     'prompts.sort.newest': 'Yangi',
     'prompts.sort.popular': 'Popular',
     'prompts.sort.views': "Ko'p ko'rilgan",
+
+    // ─── Beta welcome (first visit) ───
+    'betaWelcome.badge': 'Beta',
+    'betaWelcome.title': 'Xush kelibsiz — platforma hozircha beta bosqichida',
+    'betaWelcome.lead':
+      "Aidevixni tanlaganingiz uchun rahmat. Sayt ishlamoqda: ayrim bo'limlar, kontent va funksiyalar hali to'liq emas — ular bosqicha-bosqicha qo'shilmoqda.",
+    'betaWelcome.point1':
+      "Hozircha ko'rinadigan kurslar, videolar va boshqa ma'lumotlar cheklangan bo'lishi mumkin — bu normal holat.",
+    'betaWelcome.point2':
+      "Tez orada to'liq barqaror ishga tushish va kengaytirilgan tajriba rejalashtirilgan; yangilanishlar avtomatik ravishda saytga tushadi.",
+    'betaWelcome.point3':
+      "Agar narsa ishlamas yoki savolingiz bo'lsa, \"Bug xabar berish\" orqali yozing — jamoamiz javob beradi.",
+    'betaWelcome.cta': 'Tushundim, davom etaman',
+    'betaWelcome.closeAria': 'Ogohlantirishni yopish',
   },
 
   ru: {
@@ -1383,6 +1397,19 @@ export const translations: Record<Lang, Record<string, string>> = {
     'prompts.sort.newest': 'Новые',
     'prompts.sort.popular': 'Популярные',
     'prompts.sort.views': 'Больше просмотров',
+
+    'betaWelcome.badge': 'Бета',
+    'betaWelcome.title': 'Добро пожаловать — платформа в бета-версии',
+    'betaWelcome.lead':
+      'Спасибо, что выбрали Aidevix. Сайт в разработке: часть разделов, контента и функций ещё не заполнена — мы добавляем всё постепенно.',
+    'betaWelcome.point1':
+      'Курсы, видео и другие материалы могут быть ограничены — это ожидаемо на данном этапе.',
+    'betaWelcome.point2':
+      'Полноценный запуск и расширенный функционал планируются в ближайшее время; обновления будут появляться на сайте по мере готовности.',
+    'betaWelcome.point3':
+      'Если что-то не работает или есть вопрос — напишите через «Сообщить об ошибке», команда ответит.',
+    'betaWelcome.cta': 'Понятно, продолжить',
+    'betaWelcome.closeAria': 'Закрыть уведомление',
   },
 
   en: {
@@ -2070,5 +2097,18 @@ export const translations: Record<Lang, Record<string, string>> = {
     'prompts.sort.newest': 'Newest',
     'prompts.sort.popular': 'Popular',
     'prompts.sort.views': 'Most viewed',
+
+    'betaWelcome.badge': 'Beta',
+    'betaWelcome.title': 'Welcome — we’re in beta',
+    'betaWelcome.lead':
+      'Thanks for choosing Aidevix. The site is still taking shape: some sections, content, and features are not complete yet — we’re adding them step by step.',
+    'betaWelcome.point1':
+      'Courses, videos, and other information you see may be limited for now — that’s expected at this stage.',
+    'betaWelcome.point2':
+      'A fuller, stable launch is planned soon; updates will roll out to the site as they’re ready.',
+    'betaWelcome.point3':
+      'If something breaks or you have a question, use “Report a bug” — our team will get back to you.',
+    'betaWelcome.cta': 'Got it, continue',
+    'betaWelcome.closeAria': 'Close notice',
   },
 };

@@ -54,7 +54,7 @@ export default function TwoFactorSetupPage() {
           const msg = err.response?.data?.message;
           if (status === 404) {
             toast.error(
-              '2FA sozlash serverda topilmadi (404). Deploy / API manzilini tekshiring yoki dasturchiga xabar bering.',
+              '2FA 404: Vercel envda NEXT_PUBLIC_BACKEND_URL oxirida /api bo‘lmasin; Railway /health tekshiring; so‘ng redeploy.',
             );
           } else {
             toast.error(msg || '2FA setup ochilmadi');

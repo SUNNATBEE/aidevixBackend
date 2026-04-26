@@ -1,12 +1,18 @@
 /** Barcha UI va metadata (favicon / OG fallback) uchun yagona logotip. `frontend/public/Logo.jpg` */
 export const SITE_LOGO_PATH = '/Logo.jpg' as const
 
+const normalizeOrigin = (raw: string) => {
+  let u = raw.replace(/\/+$/, '');
+  if (u.toLowerCase().endsWith('/api')) u = u.slice(0, -4);
+  return u;
+}
+
 /** Brauzerda admin havolalari uchun (Swagger / admin-docs). Localda NEXT_PUBLIC_BACKEND_URL qo‘ying. */
-export const BACKEND_ORIGIN = (
+export const BACKEND_ORIGIN = normalizeOrigin(
   process.env.NEXT_PUBLIC_BACKEND_URL ||
-  process.env.NEXT_PUBLIC_API_ORIGIN ||
-  'https://aidevix-backend-production.up.railway.app'
-).replace(/\/$/, '')
+    process.env.NEXT_PUBLIC_API_ORIGIN ||
+    'https://aidevix-backend-production.up.railway.app',
+)
 
 // Brauzerda odatda `/api/proxy/` — `next.config` rewrite orqali Express backendga proxylanadi.
 // Vercel'da `NEXT_PUBLIC_API_BASE_URL` ni `/api` qilib qo'ymang (auth so'rovlari Next 404 beradi);
