@@ -1,6 +1,7 @@
 const Payment    = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');
 const Course     = require('../models/Course');
+const User = require('../models/User');
 const crypto = require('crypto');
 
 /**
@@ -49,6 +50,26 @@ const verifyClickSignature = (req) => {
     .digest('hex');
 
   return providedSign === expectedSign;
+};
+
+const PRO_PRICE_UZS = Number(process.env.PRO_SUBSCRIPTION_PRICE_UZS || 99000);
+
+const maybeGrantProSubscription = async (payment, course) => {
+  if (!payment || !course) return;
+  const isAiCourse = course.category === 'ai';
+  const isEnoughAmount = Number(payment.amount || 0) >= PRO_PRICE_UZS;
+  if (!isAiCourse || !isEnoughAmount) return;
+
+  await User.findByIdAndUpdate(payment.userId, {
+    $set: {
+      'proSubscription.active': true,
+      'proSubscription.plan': 'ai_pro',
+      'proSubscription.amount': Number(payment.amount || 0),
+      'proSubscription.purchasedAt': new Date(),
+      'proSubscription.expiresAt': null,
+      'proSubscription.sourcePaymentId': payment._id,
+    },
+  });
 };
 
 /** @desc  To'lovni boshlash | @route POST /api/payments/initiate | @access Private */
@@ -221,6 +242,8 @@ const performTransaction = async (params, id) => {
     return { error: { code: -31008, message: 'Tranzaksiyani bajarib bo\'lmaydi' }, id };
   }
 
+  const course = await Course.findById(payment.courseId);
+
   // Enrollment upsert (idempotent)
   await Enrollment.findOneAndUpdate(
     { userId: payment.userId, courseId: payment.courseId },
@@ -229,15 +252,15 @@ const performTransaction = async (params, id) => {
   );
   // studentsCount faqat shu yerda oshiriladi (atomic update kafolat beradi)
   await Course.findByIdAndUpdate(payment.courseId, { $inc: { studentsCount: 1 } });
+  await maybeGrantProSubscription(payment, course);
 
   // Telegram admin bildirishnoma (Payme)
   try {
     const { getBot } = require('../utils/telegramBot');
-    const User = require('../models/User');
     const bot = getBot();
     if (bot) {
-      const pUser = await User.findById(payment.userId);
-      const pCourse = await Course.findById(payment.courseId);
+        const pUser = await User.findById(payment.userId);
+        const pCourse = course || await Course.findById(payment.courseId);
       if (pUser && pCourse) bot.notifyNewPayment(payment, pUser, pCourse);
     }
   } catch (_) {}
@@ -387,21 +410,23 @@ const clickComplete = async (req, res) => {
       return res.json({ error: -9, error_note: 'To\'lovni qayta ishlash mumkin emas' });
     }
 
+    const course = await Course.findById(payment.courseId);
+
     await Enrollment.findOneAndUpdate(
       { userId: payment.userId, courseId: payment.courseId },
       { userId: payment.userId, courseId: payment.courseId, paymentStatus: 'paid', paymentId: payment._id },
       { upsert: true, new: true }
     );
     await Course.findByIdAndUpdate(payment.courseId, { $inc: { studentsCount: 1 } });
+    await maybeGrantProSubscription(payment, course);
 
     // Telegram admin bildirishnoma (Click)
     try {
       const { getBot } = require('../utils/telegramBot');
-      const User = require('../models/User');
       const bot = getBot();
       if (bot) {
         const cUser = await User.findById(payment.userId);
-        const cCourse = await Course.findById(payment.courseId);
+        const cCourse = course || await Course.findById(payment.courseId);
         if (cUser && cCourse) bot.notifyNewPayment(payment, cUser, cCourse);
       }
     } catch (_) {}

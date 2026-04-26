@@ -53,6 +53,26 @@ const getVideo = async (req, res) => {
     }
 
     // User subscription status is already verified by checkSubscriptions middleware
+    const isAiVideo = video.course?.category === 'ai';
+    if (isAiVideo) {
+      const user = await User.findById(req.user._id).select('proSubscription');
+      const hasPro =
+        Boolean(user?.proSubscription?.active) &&
+        (!user?.proSubscription?.expiresAt || new Date(user.proSubscription.expiresAt).getTime() > Date.now());
+
+      if (!hasPro) {
+        return res.status(402).json({
+          success: false,
+          code: 'PRO_REQUIRED',
+          message: 'Bu AI dars Pro obuna uchun ochiq. Davom etish uchun Pro sotib oling.',
+          data: {
+            requiresPro: true,
+            price: Number(process.env.PRO_SUBSCRIPTION_PRICE_UZS || 99000),
+            currency: 'UZS',
+          },
+        });
+      }
+    }
 
     // Video Bunny.net da mavjudmi va tayyor holatdami?
     let embedUrl = null;
@@ -107,7 +127,10 @@ const useVideoLink = async (req, res) => {
   try {
     const { linkId } = req.params;
 
-    const videoLink = await VideoLink.findById(linkId).populate('user');
+    const videoLink = await VideoLink.findById(linkId).populate('user').populate({
+      path: 'video',
+      populate: { path: 'course', select: 'category title' },
+    });
 
     if (!videoLink) {
       return res.status(404).json({
@@ -162,6 +185,25 @@ const useVideoLink = async (req, res) => {
         },
         missingSubscriptions,
       });
+    }
+
+    const isAiVideo = videoLink.video?.course?.category === 'ai';
+    if (isAiVideo) {
+      const hasPro =
+        Boolean(user?.proSubscription?.active) &&
+        (!user?.proSubscription?.expiresAt || new Date(user.proSubscription.expiresAt).getTime() > Date.now());
+      if (!hasPro) {
+        return res.status(402).json({
+          success: false,
+          code: 'PRO_REQUIRED',
+          message: 'AI kontent uchun Pro obuna talab qilinadi.',
+          data: {
+            requiresPro: true,
+            price: Number(process.env.PRO_SUBSCRIPTION_PRICE_UZS || 99000),
+            currency: 'UZS',
+          },
+        });
+      }
     }
 
     // All checks passed - mark link as used

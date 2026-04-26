@@ -119,6 +119,7 @@ export default function VideoPage() {
     const statusCode = (error as { statusCode?: number })?.statusCode
     const isAuth = statusCode === 401
     const isSub  = statusCode === 403
+    const isPro  = statusCode === 402
     const isBusy = statusCode === 503
     const isNotFound = statusCode === 404
 
@@ -129,17 +130,19 @@ export default function VideoPage() {
           animate={{ y: 0, opacity: 1 }}
           className="text-5xl mb-6"
         >
-          {isAuth ? '🔐' : isSub ? '🔒' : isBusy ? '⏳' : '😕'}
+          {isAuth ? '🔐' : isSub ? '🔒' : isPro ? '💎' : isBusy ? '⏳' : '😕'}
         </motion.div>
         <h2 className="text-2xl font-bold text-white mb-3">
           {isAuth ? 'Tizimga kirish talab qilinadi'
           : isSub  ? 'Obuna talab qilinadi'
+          : isPro  ? 'Pro obuna talab qilinadi'
           : isBusy ? 'Video hali tayyor emas'
           :          'Video topilmadi'}
         </h2>
         <p className="text-gray-400 mb-8 max-w-sm">
           {isAuth ? 'Videoni ko\'rish uchun avval tizimga kiring.'
           : isSub  ? 'Ushbu videoni ko\'rish uchun Telegram va Instagram kanallarimizga obuna bo\'ling.'
+          : isPro  ? 'AI videolar (Cursor, Claude va boshqa agent darslari) faqat Pro foydalanuvchilar uchun ochiq. Narxi: 99 000 so\'m.'
           : isBusy ? 'Video Bunny.net da hali qayta ishlanmoqda yoki yuklanmagan. Iltimos, keyinroq qayta urinib ko\'ring.'
           :          'Bunday video mavjud emas yoki o\'chirib yuborilgan.'}
         </p>
@@ -153,6 +156,14 @@ export default function VideoPage() {
               className="btn btn-primary rounded-full px-8"
             >
               Obuna bo&apos;lish
+            </Link>
+          )}
+          {isPro && (
+            <Link
+              href="/pricing"
+              className="btn btn-primary rounded-full px-8"
+            >
+              Pro sotib olish (99 000 so&apos;m)
             </Link>
           )}
           {isBusy && (

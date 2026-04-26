@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { performSubscriptionCheck } = require('../utils/checkSubscriptions');
 
 /**
  * Promptlar matnini ko'rish — faqat kirgan va Telegram kanal obunasi tasdiqlangan foydalanuvchilar.
@@ -19,16 +20,18 @@ const requireTelegramForPromptsRead = async (req, res, next) => {
     }
 
     const user = await User.findById(req.user._id).select('socialSubscriptions role');
-    const telegramOk = !!user?.socialSubscriptions?.telegram?.subscribed;
+    const { instagramSubscribed, telegramSubscribed, changed } = await performSubscriptionCheck(user);
+    if (changed) await user.save();
 
-    if (!telegramOk) {
+    if (!instagramSubscribed || !telegramSubscribed) {
       return res.status(403).json({
         success: false,
-        code: 'TELEGRAM_CHANNEL_REQUIRED',
+        code: 'SOCIAL_SUBSCRIPTION_REQUIRED',
         isSubscriptionError: true,
-        message: 'Promptlarni ko\'rish uchun Telegram kanaliga obuna bo\'ling va obunani tasdiqlang.',
+        message: 'Promptlarni ko\'rish uchun Telegram va Instagram obunasi talab qilinadi.',
         subscriptions: {
-          telegram: false,
+          instagram: instagramSubscribed,
+          telegram: telegramSubscribed,
         },
       });
     }

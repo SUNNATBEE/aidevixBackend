@@ -15,8 +15,6 @@ import {
   IoInformationCircleOutline, IoLockClosed, IoBookmark, IoBookmarkOutline,
 } from 'react-icons/io5';
 import { useSubscription } from '@/hooks/useSubscription';
-import TelegramVerify from '@components/subscription/TelegramVerify';
-import { SOCIAL_LINKS } from '@utils/constants';
 import { useLang } from '@/context/LangContext';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -474,13 +472,13 @@ function PromptCard({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-type PromptAccess = 'checking' | 'need_login' | 'need_telegram' | 'granted';
+type PromptAccess = 'checking' | 'need_login' | 'need_subscription' | 'granted';
 
 export default function PromptsPage() {
   const { t } = useLang();
   const user = useSelector(selectUser);
   const isAuth = useSelector(selectIsLoggedIn);
-  const { telegram, loading: subLoading, refetch: refetchSubscription } = useSubscription();
+  const { telegram, instagram, loading: subLoading } = useSubscription();
 
   const filterCategories = useMemo(
     () =>
@@ -504,9 +502,9 @@ export default function PromptsPage() {
   const promptAccess: PromptAccess = useMemo(() => {
     if (!isAuth) return 'need_login';
     if (subLoading) return 'checking';
-    if (!telegram?.subscribed) return 'need_telegram';
+    if (!telegram?.subscribed || !instagram?.subscribed) return 'need_subscription';
     return 'granted';
-  }, [isAuth, subLoading, telegram?.subscribed]);
+  }, [isAuth, subLoading, telegram?.subscribed, instagram?.subscribed]);
 
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set());
@@ -729,7 +727,7 @@ export default function PromptsPage() {
                 </button>
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-center text-xs font-medium text-slate-400 sm:text-sm">
-                  {promptAccess === 'checking' ? t('prompts.checkingSub') : t('prompts.waitTelegram')}
+                  {promptAccess === 'checking' ? t('prompts.checkingSub') : 'Telegram va Instagram obunasi kerak'}
                 </div>
               )}
               <div className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-slate-400">
@@ -770,7 +768,7 @@ export default function PromptsPage() {
           </section>
         )}
 
-        {promptAccess === 'need_telegram' && (
+        {promptAccess === 'need_subscription' && (
           <section
             className="mb-10 rounded-3xl border border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] to-transparent p-6 sm:p-10"
             aria-labelledby="prompts-tg-gate-title"
@@ -778,26 +776,15 @@ export default function PromptsPage() {
             <div className="mx-auto max-w-lg text-center">
               <IoLockClosed className="mx-auto mb-4 text-amber-400" size={44} aria-hidden />
               <h2 id="prompts-tg-gate-title" className="mb-2 text-xl font-bold text-white sm:text-2xl">
-                {t('prompts.gateTgTitle')}
+                Promptlar uchun ijtimoiy obuna talab qilinadi
               </h2>
               <p className="mb-6 text-sm leading-relaxed text-slate-400">
-                {t('prompts.gateTgSub')}
+                Promptlarni ko'rish uchun Telegram va Instagram obunangiz faol bo'lishi shart.
               </p>
-              <a
-                href={SOCIAL_LINKS.telegram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mb-8 inline-flex items-center gap-2 rounded-2xl border border-sky-500/40 bg-sky-500/15 px-5 py-2.5 text-sm font-bold text-sky-300 transition-colors hover:bg-sky-500/25"
-              >
-                {t('prompts.gateTgLink')}
-              </a>
-            </div>
-            <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-[#0a0c14]/80 p-4 sm:p-6">
-              <TelegramVerify onTelegramVerified={() => refetchSubscription()} />
             </div>
             <p className="mt-6 text-center text-xs text-slate-500">
               <Link href="/subscription?returnUrl=/prompts" className="text-indigo-400 underline-offset-2 hover:underline">
-                {t('prompts.gateTgFooter')}
+                Obunani tekshirish/yoqish sahifasiga o'tish
               </Link>
             </p>
           </section>

@@ -144,6 +144,35 @@ const userSchema = new mongoose.Schema({
       },
     },
   },
+  // Global AI Pro access (separate from course enrollments)
+  proSubscription: {
+    active: {
+      type: Boolean,
+      default: false,
+    },
+    plan: {
+      type: String,
+      default: 'ai_pro',
+    },
+    amount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    purchasedAt: {
+      type: Date,
+      default: null,
+    },
+    expiresAt: {
+      type: Date,
+      default: null,
+    },
+    sourcePaymentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Payment',
+      default: null,
+    },
+  },
   // Instructor profili uchun (Course Details sahifasida ko'rsatiladi)
   jobTitle: {
     type: String,
@@ -359,6 +388,12 @@ userSchema.methods.resetLoginAttempts = async function () {
 userSchema.methods.hasAllSubscriptions = function () {
   return this.socialSubscriptions.instagram.subscribed &&
          this.socialSubscriptions.telegram.subscribed;
+};
+
+userSchema.methods.hasActivePro = function () {
+  if (!this.proSubscription?.active) return false;
+  if (!this.proSubscription?.expiresAt) return true;
+  return this.proSubscription.expiresAt.getTime() > Date.now();
 };
 
 module.exports = mongoose.model('User', userSchema);

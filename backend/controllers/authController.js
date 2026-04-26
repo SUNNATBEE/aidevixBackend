@@ -91,6 +91,16 @@ const sanitizeUser = (user) => ({
   hasLocalPassword: user.password != null,
   /** Google account linked (sub is never exposed). */
   googleLinked: Boolean(user.googleId),
+  proSubscription: {
+    active: Boolean(
+      user.proSubscription?.active &&
+      (!user.proSubscription?.expiresAt || new Date(user.proSubscription.expiresAt).getTime() > Date.now())
+    ),
+    plan: user.proSubscription?.plan || 'ai_pro',
+    amount: user.proSubscription?.amount || 0,
+    purchasedAt: user.proSubscription?.purchasedAt || null,
+    expiresAt: user.proSubscription?.expiresAt || null,
+  },
 });
 
 /**

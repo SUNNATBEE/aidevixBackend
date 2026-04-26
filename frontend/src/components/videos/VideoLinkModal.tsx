@@ -70,12 +70,12 @@ export default function VideoLinkModal({ isOpen, onClose }) {
     try {
       const resultAction = await dispatch(markVideoLinkUsed(videoLink._id))
       // Check if the action was fulfilled (RTK Thunk pattern)
-      if (markVideoLinkUsed.fulfilled.match(resultAction)) {
+      if (resultAction && markVideoLinkUsed.fulfilled.match(resultAction)) {
         setOpened(true)
         window.open(videoLink.telegramLink, '_blank', 'noopener,noreferrer')
         toast.success('Link muvaffaqiyatli ochildi!')
       } else {
-        toast.error(resultAction.payload || 'Havolani ochishda xato yuz berdi')
+        toast.error((resultAction as any)?.payload || 'Havolani ochishda xato yuz berdi')
       }
     } catch (err) {
       toast.error('Kutilmagan xato yuz berdi')
