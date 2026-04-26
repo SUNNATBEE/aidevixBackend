@@ -1,12 +1,9 @@
 'use client';
 
-// ============================================================
-// OQUVCHI  : ABDUVORIS
-// BRANCH   : feature/abduvoris-lessons
-// ROUTE    : /videos/:id/playground
-// ============================================================
+// Video dars “playground”: Monaco + Pyodide + HTML preview. i18n / a11y / xavfsizlik uchun
+// foydalanuvchi kodi brauzerda bajariladi (ma’lumot uchun sandbox eslatmasi pastda).
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
@@ -39,6 +36,7 @@ import { selectInstagramSub, selectTelegramSub } from '@store/slices/subscriptio
 import { userApi } from '@/api/userApi';
 import { videoApi } from '@/api/videoApi';
 import SubscriptionGate from '@/components/subscription/SubscriptionGate';
+import { useLang } from '@/context/LangContext';
 
 interface OutputLine {
   type: 'log' | 'error' | 'info';
@@ -76,36 +74,35 @@ const DEFAULT_CODES: Record<string, string> = {
 </head>
 <body>
   <div class="card">
-    <h1>Salom Aidevix!</h1>
-    <p>Bu yerda HTML kodingizni yozing va natijani darhol ko'ring.</p>
-    <button style="background: #6366f1; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%;">Tugmani bosing</button>
+    <h1>Hello, Aidevix</h1>
+    <p>Edit HTML here and see the result in the preview panel.</p>
+    <button type="button" style="background: #6366f1; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%;">Click me</button>
   </div>
 </body>
 </html>`,
-  python: `# Python kodingizni yozing
-print("Salom Aidevix!")
+  python: `# Write your Python code here
+print("Hello, Aidevix!")
 
-def salom_ber(ism):
-    return f"Salom, {ism}! Dasturlashga xush kelibsiz."
+def greet(name):
+    return f"Hello, {name}! Welcome to the playground."
 
 if __name__ == "__main__":
-    natija = salom_ber("O'quvchi")
-    print(natija)
-    
-    yosh = 25
-    bal = 95.5
-    print(f"Yosh: {yosh}, Bal: {bal}")`,
-  javascript: `// JavaScript kodingizni yozing
-console.log("Salom Aidevix!");
+    result = greet("learner")
+    print(result)
+    age, score = 25, 95.5
+    print(f"Age: {age}, Score: {score}")`,
+  javascript: `// Write your JavaScript here
+console.log("Hello, Aidevix!");
 
-function salom(ism) {
-  return "Assalomu alaykum, " + ism + "!";
+function greet(name) {
+  return "Hi, " + name + "!";
 }
 
-console.log(salom("O'quvchi"));`
+console.log(greet("learner"));`
 };
 
 export default function VideoPlaygroundPage() {
+  const { t } = useLang();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { current: video, player, loading, fetchById } = useVideos();
@@ -227,27 +224,28 @@ export default function VideoPlaygroundPage() {
     terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [output]);
 
-  const runCode = async () => {
+  const runCode = useCallback(async () => {
     setIsRunning(true);
-    
+
     if (category === 'html') {
       const blob = new Blob([code], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
       setOutputTab('preview');
-      setOutput([{ type: 'info', content: 'Preview yangilandi' }]);
+      setOutput([{ type: 'info', content: t('playground.previewUpdated') }]);
       setIsRunning(false);
       return;
     }
 
+    const userLabel = t('playground.shellUser');
     const logs: OutputLine[] = [
-      { type: 'info', content: '┌── user@aidevix:~/' },
+      { type: 'info', content: `┌── ${userLabel}:~/` },
       { type: 'info', content: `└─ $ ${language} ${fileName}` }
     ];
 
     if (category === 'python' || category === 'ai') {
       if (!pyodide) {
-        logs.push({ type: 'error', content: 'Pyodide hali yuklanmadi...' });
+        logs.push({ type: 'error', content: t('playground.pyodideNotReady') });
         setOutput(logs);
         setIsRunning(false);
         return;
@@ -267,21 +265,38 @@ export default function VideoPlaygroundPage() {
         logs.push({ type: 'error', content: err.message });
       }
     } else {
-      // JavaScript
+      const oldLog = console.log;
       try {
-        const oldLog = console.log;
         console.log = (...args: any[]) => logs.push({ type: 'log', content: args.join(' ') });
-        eval(code);
-        console.log = oldLog;
+        const fn = new Function(code);
+        fn();
       } catch (err: any) {
         logs.push({ type: 'error', content: err.message });
+      } finally {
+        console.log = oldLog;
       }
     }
-    
+
     setOutput(logs);
     setIsRunning(false);
     setOutputTab('terminal');
-  };
+  }, [category, code, fileName, language, pyodide, t]);
+
+  const runCodeRef = useRef(runCode);
+  useEffect(() => {
+    runCodeRef.current = runCode;
+  }, [runCode]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        runCodeRef.current();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Called manually when user marks lesson as done (no onEnded in iframe)
   const handleMarkWatched = async () => {
@@ -289,7 +304,7 @@ export default function VideoPlaygroundPage() {
     try {
       await userApi.addVideoWatchXP(id);
       setXpAdded(true);
-      toast.success('+50 XP! Darsni yakunladingiz.');
+      toast.success(t('playground.toastXp'));
     } catch {
       // silent
     }
@@ -297,7 +312,7 @@ export default function VideoPlaygroundPage() {
 
   const handleQuestionSubmit = () => {
     if (!question.trim()) return;
-    toast.success('Savolingiz yuborildi!');
+    toast.success(t('playground.toastQuestion'));
     setQuestion('');
   };
 
@@ -309,12 +324,22 @@ export default function VideoPlaygroundPage() {
     );
   }
 
-  const courseTitle = video?.course?.title || 'KURS';
-  const videoTitle = video?.title || 'Dars';
+  const courseTitle = video?.course?.title || t('playground.courseFallback');
+  const videoTitle = video?.title || t('playground.videoTitleFallback');
+  const durationMinutes = video?.duration
+    ? Math.max(1, Math.round((video as { duration: number }).duration / 60))
+    : 15;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#0d0f1a] font-sans text-zinc-100 selection:bg-indigo-500/30">
       <style dangerouslySetInnerHTML={{ __html: SCROLLBAR_STYLE }} />
+
+      <a
+        href="#playground-skip-target"
+        className="fixed left-4 top-0 z-[200] -translate-y-full border border-white/20 bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-lg transition focus:translate-y-4 focus:outline focus:ring-2 focus:ring-indigo-300"
+      >
+        {t('playground.skipToEditor')}
+      </a>
 
       {/* ── TOP NAVBAR ── */}
       <header className="z-50 flex h-14 sm:h-16 shrink-0 items-center justify-between border-b border-white/5 bg-[#10121f]/80 px-2 sm:px-4 lg:px-6 backdrop-blur-xl">
@@ -324,41 +349,51 @@ export default function VideoPlaygroundPage() {
               <span className="text-white font-black text-lg italic">A</span>
             </div>
             <span className="truncate bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-base font-black tracking-tight text-transparent sm:text-lg">
-              Aidevix <span className="ml-1 hidden text-xs sm:text-sm font-medium uppercase tracking-widest text-indigo-400 sm:inline">Lab</span>
+              Aidevix <span className="ml-1 hidden text-xs sm:text-sm font-medium uppercase tracking-widest text-indigo-400 sm:inline">{t('playground.brandLab')}</span>
             </span>
           </Link>
-          <div className="hidden h-6 w-px bg-white/10 sm:block" />
-          <div className="hidden items-center gap-3 sm:flex">
+          <div className="hidden h-6 w-px bg-white/10 sm:block" aria-hidden />
+          <div className="hidden items-center gap-3 sm:flex" aria-live="off">
              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Live Session</span>
+                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" aria-hidden />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{t('playground.liveSession')}</span>
              </div>
           </div>
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
           <div className="flex items-center gap-1 sm:gap-2 rounded-xl sm:rounded-2xl bg-indigo-500/10 border border-indigo-500/20 px-2 sm:px-4 py-1.5 sm:py-2">
-            <BsLightningChargeFill className="text-yellow-400" size={14} />
-            <span className="text-[11px] sm:text-xs font-black text-indigo-100">{xp} XP</span>
+            <BsLightningChargeFill className="text-yellow-400" size={14} aria-hidden />
+            <span className="text-[11px] sm:text-xs font-black text-indigo-100"><span className="sr-only">XP: </span>{xp} XP</span>
           </div>
-          <button className="hidden sm:flex w-10 h-10 rounded-2xl bg-white/5 border border-white/10 items-center justify-center hover:bg-white/10 transition-all text-zinc-400 hover:text-white">
+          <button
+            type="button"
+            className="hidden sm:flex w-10 h-10 rounded-2xl bg-white/5 border border-white/10 items-center justify-center hover:bg-white/10 transition-all text-zinc-400 hover:text-white"
+            aria-label={t('playground.shareAria')}
+            disabled
+          >
             <IoShareSocial size={18} />
           </button>
-          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-[1px] cursor-pointer hover:scale-105 transition-transform">
-             <div className="w-full h-full rounded-[15px] bg-[#10121f] flex items-center justify-center">
+          <button
+            type="button"
+            className="h-8 w-8 sm:h-10 sm:w-10 cursor-pointer rounded-xl sm:rounded-2xl border-0 bg-gradient-to-br from-indigo-500 to-purple-600 p-px transition-transform hover:scale-105"
+            aria-label={t('playground.profileAria')}
+          >
+             <div className="flex h-full w-full items-center justify-center rounded-[15px] bg-[#10121f]">
                 <span className="text-xs font-bold text-white">M</span>
              </div>
-          </div>
+          </button>
         </div>
       </header>
 
       {/* ── MAIN CONTENT ── */}
-      <div className="relative flex flex-1 flex-col overflow-hidden lg:flex-row">
+      <main className="relative flex flex-1 flex-col overflow-hidden lg:flex-row" aria-label={t('playground.mainLabel')}>
  
         {/* ── LEFT PANEL: Video + Info ── */}
         <AnimatePresence>
           {isSidebarOpen && (
             <motion.div 
+              id="playground-lesson-panel"
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: isCompact ? '100%' : '45%', opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
@@ -373,13 +408,14 @@ export default function VideoPlaygroundPage() {
           </div>
 
           {/* Video Player — Bunny.net iframe */}
-          <div className="relative mx-3 sm:mx-5 rounded-2xl overflow-hidden bg-black aspect-video border border-white/5 shadow-xl shrink-0">
+          <div className="relative mx-3 sm:mx-5 aspect-video shrink-0 overflow-hidden rounded-2xl border border-white/5 bg-black shadow-xl" role="region" aria-label={t('playground.videoRegion')}>
             {player?.embedUrl ? (
               <iframe
                 src={player.embedUrl}
                 className="absolute inset-0 w-full h-full"
                 allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
+                title={t('playground.videoTitle')}
               />
             ) : (
               /* Placeholder */
@@ -391,10 +427,10 @@ export default function VideoPlaygroundPage() {
                     </div>
                   ))}
                 </div>
-                <button className="relative z-10 w-16 h-16 rounded-full bg-primary/80 hover:bg-primary border border-primary/40 flex items-center justify-center shadow-2xl shadow-primary/30 transition-all hover:scale-110">
-                  <IoPlay size={22} className="ml-1" />
+                <button type="button" className="relative z-10 w-16 h-16 rounded-full bg-primary/80 hover:bg-primary border border-primary/40 flex items-center justify-center shadow-2xl shadow-primary/30 transition-all hover:scale-110" aria-label={t('playground.videoTitle')}>
+                  <IoPlay size={22} className="ml-1" aria-hidden />
                 </button>
-                <p className="relative z-10 text-xs text-zinc-500 mt-3">Video yuklanmoqda...</p>
+                <p className="relative z-10 text-xs text-zinc-500 mt-3">{t('playground.videoLoading')}</p>
               </div>
             )}
           </div>
@@ -404,7 +440,7 @@ export default function VideoPlaygroundPage() {
             <div>
               <h1 className="text-lg sm:text-xl font-black text-white leading-tight tracking-tight">{videoTitle}</h1>
               <p className="text-xs text-zinc-400 mt-2 leading-relaxed max-w-lg">
-                {video?.description || 'Ushbu darsda dasturlashning asosiy tushunchalarini o\'rganamiz va amaliy mashqlar bajaramiz.'}
+                {video?.description || t('playground.lessonFallback')}
               </p>
             </div>
             
@@ -416,31 +452,32 @@ export default function VideoPlaygroundPage() {
                     animate={{ scale: 1, opacity: 1 }}
                     className="flex items-center gap-1.5 bg-green-500/20 border border-green-500/30 text-green-400 text-[10px] font-bold px-3 py-1.5 rounded-full"
                   >
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                    +50 XP QO&apos;SHILDI
+                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" aria-hidden />
+                    {t('playground.markedXp')}
                   </motion.span>
                 )}
                 <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
-                  <IoTime className="text-indigo-400" size={12} />
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">15 daqiqa</span>
+                  <IoTime className="text-indigo-400" size={12} aria-hidden />
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t('playground.durationMin', { n: String(durationMinutes) })}</span>
                 </div>
               </div>
               
               <div className="flex items-center gap-2">
-                <button className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all text-zinc-400 hover:text-white">
-                  <IoBookmark size={16} />
+                <button type="button" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all text-zinc-400 hover:text-white" aria-label={t('playground.resources')}>
+                  <IoBookmark size={16} aria-hidden />
                 </button>
                 {!xpAdded ? (
                   <button 
+                    type="button"
                     onClick={handleMarkWatched}
                     className="flex items-center gap-2 px-3 sm:px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-all text-[11px] sm:text-xs font-bold text-white shadow-lg shadow-indigo-600/20"
                   >
-                    <IoPlay size={14} className="fill-current" />
-                    Yakunladim
+                    <IoPlay size={14} className="fill-current" aria-hidden />
+                    {t('playground.markDone')}
                   </button>
                 ) : (
-                  <div className="px-3 sm:px-5 py-2 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[11px] sm:text-xs font-bold">
-                    ✓ Tugallandi
+                  <div className="px-3 sm:px-5 py-2 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[11px] sm:text-xs font-bold" role="status">
+                    ✓ {t('playground.completed')}
                   </div>
                 )}
               </div>
@@ -451,7 +488,7 @@ export default function VideoPlaygroundPage() {
           <div className="flex flex-col gap-3 px-3 sm:px-5 py-4 shrink-0">
             {/* Resources */}
             <div className="bg-[#13152a] border border-white/5 rounded-2xl p-4">
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Resurslar</p>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">{t('playground.resources')}</p>
               <div className="grid grid-cols-1 gap-2">
                 {(video?.materials?.length ? video.materials : [
                   { name: 'Dars Slaydlari.pdf', url: '#', size: '2MB' },
@@ -478,21 +515,22 @@ export default function VideoPlaygroundPage() {
 
             {/* Next Lesson */}
             <div className="bg-[#13152a] border border-white/5 rounded-2xl p-4">
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Keyingi Dars</p>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">{t('playground.nextLesson')}</p>
               <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-                <div className="w-8 h-8 rounded-lg bg-zinc-700/50 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-zinc-700/50 flex items-center justify-center shrink-0" aria-hidden>
                   <IoLockClosed size={12} className="text-zinc-500" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-white truncate">3. Shartli Operatorlar</p>
-                  <p className="text-[10px] text-zinc-500 mt-0.5">15 daqiqa • 120 XP</p>
+                  <p className="text-xs font-semibold text-white truncate">{t('playground.nextLessonTitle')}</p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">{t('playground.nextLessonMeta')}</p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => router.push(`/courses/${video?.course?._id || ''}`)}
                 className="w-full mt-3 py-1.5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-[11px] text-zinc-400 hover:text-white transition-colors font-medium"
               >
-                Barcha darslarni ko&apos;rish
+                {t('playground.viewAllLessons')}
               </button>
             </div>
           </div>
@@ -500,24 +538,26 @@ export default function VideoPlaygroundPage() {
           {/* Q&A */}
           <div className="mx-3 sm:mx-5 mb-5 bg-[#13152a] border border-white/5 rounded-2xl p-3 sm:p-4 shrink-0">
             <h3 className="text-sm font-bold text-white mb-4">
-              Savol va Javoblar
+              {t('playground.qa')}
               <span className="text-zinc-500 font-normal text-xs ml-2">(12)</span>
             </h3>
             <div className="flex gap-3 items-start">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shrink-0" />
-              <div className="flex-1 relative">
+              <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600" aria-hidden />
+              <div className="relative flex-1">
                 <textarea
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
                   className="w-full bg-black/30 border border-white/10 rounded-xl text-sm text-white placeholder-zinc-600 px-4 py-3 resize-none focus:outline-none focus:border-primary/50 transition-colors"
                   rows={2}
-                  placeholder="Dars bo'yicha savolingiz bormi?"
+                  placeholder={t('playground.qaPlaceholder')}
+                  aria-label={t('playground.qaPlaceholder')}
                 />
                 <button
+                  type="button"
                   onClick={handleQuestionSubmit}
-                  className="absolute bottom-3 right-3 px-4 py-1 rounded-lg bg-primary hover:bg-primary/80 text-white text-xs font-bold transition-colors"
+                  className="absolute bottom-3 right-3 rounded-lg bg-primary px-4 py-1 text-xs font-bold text-white transition-colors hover:bg-primary/80"
                 >
-                  Yuborish
+                  {t('playground.qaSubmit')}
                 </button>
               </div>
             </div>
@@ -528,9 +568,12 @@ export default function VideoPlaygroundPage() {
 
         {/* Sidebar Toggle Button */}
         <button
+          type="button"
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className="absolute left-0 top-1/2 -translate-y-1/2 z-50 w-8 h-24 bg-[#1a1c2e] border border-white/10 border-l-0 rounded-r-2xl hidden lg:flex flex-col items-center justify-center hover:bg-indigo-600 transition-all group shadow-2xl"
-          title={isSidebarOpen ? "Videoni yopish" : "Videoni ochish"}
+          title={isSidebarOpen ? t('playground.sidebarHide') : t('playground.sidebarShow')}
+          aria-expanded={isSidebarOpen}
+          aria-controls="playground-lesson-panel"
         >
           <div className="w-1 h-8 bg-white/10 group-hover:bg-white/40 rounded-full mb-1 transition-colors" />
           <IoChevronForward className={`transition-transform duration-500 text-white/50 group-hover:text-white ${isSidebarOpen ? 'rotate-180' : ''}`} size={14} />
@@ -538,10 +581,16 @@ export default function VideoPlaygroundPage() {
         </button>
 
         {/* ── RIGHT PANEL: Code Editor + Terminal ── */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div
+          id="playground-skip-target"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+          role="region"
+          tabIndex={-1}
+          aria-label={t('playground.editorRegion')}
+        >
 
           {/* Editor header */}
-          <div className="h-10 shrink-0 bg-[#1a1c2e] border-b border-white/5 flex items-center justify-between px-2 sm:px-3">
+          <div className="flex h-10 shrink-0 items-center justify-between border-b border-white/5 bg-[#1a1c2e] px-2 sm:px-3" role="toolbar" aria-label={t('playground.editorToolbar')}>
             <div className="flex items-center gap-1">
               <div className="flex items-center gap-1.5 bg-black/40 border border-white/10 border-b-0 px-3 py-1 rounded-t-lg -mb-[1px]">
                 <FaCode className={category === 'html' ? 'text-orange-500' : category === 'javascript' ? 'text-blue-400' : 'text-yellow-400'} size={12} />
@@ -550,27 +599,32 @@ export default function VideoPlaygroundPage() {
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
               <button
+                type="button"
                 onClick={() => setCode(DEFAULT_CODES[category] || DEFAULT_CODES.html)}
-                className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-white transition-colors"
+                className="flex items-center gap-1 text-[11px] text-zinc-500 transition-colors hover:text-white"
+                aria-label={t('playground.reset')}
               >
-                <IoRefresh size={12} />
-                Reset
+                <IoRefresh size={12} aria-hidden />
+                {t('playground.reset')}
               </button>
-              <div className="w-px h-3 bg-white/10 mx-1" />
+              <div className="mx-1 h-3 w-px bg-white/10" aria-hidden />
               {!isCompact && (
               <button 
+                type="button"
                 onClick={() => setLayoutMode(layoutMode === 'vertical' ? 'horizontal' : 'vertical')}
-                className="flex items-center gap-1.5 text-[10px] text-zinc-400 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-md border border-white/5 font-bold"
-                title="Layoutni o'zgartirish"
+                className="flex items-center gap-1.5 rounded-md border border-white/5 bg-white/5 px-2.5 py-1 text-[10px] font-bold text-zinc-400 transition-all hover:bg-white/10 hover:text-white"
+                title={t('playground.layoutTitle')}
+                aria-pressed={layoutMode === 'horizontal'}
+                aria-label={`${t('playground.layoutTitle')}: ${layoutMode === 'vertical' ? t('playground.layoutHoriz') : t('playground.layoutVert')}`}
               >
-                <div className={`w-3 h-3 border border-current rounded-[2px] relative overflow-hidden ${layoutMode === 'horizontal' ? 'flex' : 'flex-col'}`}>
-                   <div className="flex-1 bg-current opacity-20 border-r border-current" />
+                <div className={`relative h-3 w-3 overflow-hidden rounded-[2px] border border-current ${layoutMode === 'horizontal' ? 'flex' : 'flex-col'}`} aria-hidden>
+                   <div className="flex-1 border-r border-current bg-current opacity-20" />
                    <div className="flex-1" />
                 </div>
-                {layoutMode === 'vertical' ? 'Yonma-yon' : 'Ustma-ust'}
+                {layoutMode === 'vertical' ? t('playground.layoutHoriz') : t('playground.layoutVert')}
               </button>
               )}
-              <button className="text-zinc-500 hover:text-white transition-colors">
+              <button type="button" className="text-zinc-500 transition-colors hover:text-white" aria-label={t('playground.settingsAria')} disabled>
                 <IoSettings size={14} />
               </button>
             </div>
@@ -596,55 +650,81 @@ export default function VideoPlaygroundPage() {
                 lineNumbers: 'on',
                 scrollBeyondLastLine: false,
                 wordWrap: 'on',
+                accessibilitySupport: 'on',
+                automaticLayout: true,
               }}
             />
           </div>
 
           {/* Terminal / Preview */}
-          <div className={`${!isCompact && layoutMode === 'horizontal' ? 'w-1/2' : (isOutputExpanded ? 'h-[58%] sm:h-[65%]' : 'h-11')} transition-all duration-300 shrink-0 flex flex-col border-t border-white/5 bg-[#080914] shadow-[0_-10px_30px_rgba(0,0,0,0.3)]`}>
-            <div className="h-11 shrink-0 bg-[#10121f] border-b border-white/5 flex items-center justify-between px-2 sm:px-4">
-              <div className="flex items-center gap-6 h-full">
+          <div
+            className={`${!isCompact && layoutMode === 'horizontal' ? 'w-1/2' : (isOutputExpanded ? 'h-[58%] sm:h-[65%]' : 'h-11')} flex shrink-0 flex-col border-t border-white/5 bg-[#080914] shadow-[0_-10px_30px_rgba(0,0,0,0.3)] transition-all duration-300`}
+            role="region"
+            aria-label={t('playground.outputRegion')}
+          >
+            <div className="flex h-11 shrink-0 items-center justify-between border-b border-white/5 bg-[#10121f] px-2 sm:px-4">
+              <div className="flex h-full items-center gap-6" role="tablist" aria-label={t('playground.outputRegion')}>
                 <button 
+                  type="button"
+                  role="tab"
+                  id="playground-tab-terminal"
+                  aria-selected={outputTab === 'terminal'}
                   onClick={() => setOutputTab('terminal')}
-                  className={`flex items-center gap-2 h-full px-1 border-b-2 transition-all relative ${outputTab === 'terminal' ? 'border-primary text-white font-bold' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
+                  className={`relative flex h-full items-center gap-2 border-b-2 px-1 transition-all ${outputTab === 'terminal' ? 'border-primary font-bold text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
                 >
-                  <FaTerminal className="text-[10px]" />
-                    <span className="text-[10px] uppercase tracking-wide sm:tracking-widest">Terminal</span>
-                  {outputTab === 'terminal' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+                  <FaTerminal className="text-[10px]" aria-hidden />
+                    <span className="text-[10px] uppercase tracking-wide sm:tracking-widest">{t('playground.tabTerminal')}</span>
+                  {outputTab === 'terminal' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" aria-hidden />}
                 </button>
                 {category === 'html' && (
                   <button 
+                    type="button"
+                    role="tab"
+                    id="playground-tab-preview"
+                    aria-selected={outputTab === 'preview'}
                     onClick={() => setOutputTab('preview')}
-                    className={`flex items-center gap-2 h-full px-1 border-b-2 transition-all relative ${outputTab === 'preview' ? 'border-primary text-white font-bold' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
+                    className={`relative flex h-full items-center gap-2 border-b-2 px-1 transition-all ${outputTab === 'preview' ? 'border-primary font-bold text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
                   >
-                    <IoEye className="text-[10px]" />
-                    <span className="text-[10px] uppercase tracking-wide sm:tracking-widest">Preview</span>
-                    {outputTab === 'preview' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+                    <IoEye className="text-[10px]" aria-hidden />
+                    <span className="text-[10px] uppercase tracking-wide sm:tracking-widest">{t('playground.tabPreview')}</span>
+                    {outputTab === 'preview' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" aria-hidden />}
                   </button>
                 )}
               </div>
               <div className="flex items-center gap-3">
                 <button
+                  type="button"
                   onClick={() => setOutput([])}
-                  className="text-zinc-600 hover:text-zinc-300 transition-colors"
-                  title="Tozalash"
+                  className="text-zinc-600 transition-colors hover:text-zinc-300"
+                  title={t('playground.clearOutput')}
+                  aria-label={t('playground.clearOutput')}
                 >
                   <IoRefresh size={12} />
                 </button>
-                <div className="w-px h-3 bg-white/10 mx-1" />
+                <div className="mx-1 h-3 w-px bg-white/10" aria-hidden />
                 <button
+                  type="button"
                   onClick={() => setIsOutputExpanded(!isOutputExpanded)}
-                  className="text-zinc-600 hover:text-white transition-all hover:scale-110 active:scale-95"
-                  title={isOutputExpanded ? "Yopish" : "Ochish"}
+                  className="text-zinc-600 transition-all hover:scale-110 hover:text-white active:scale-95"
+                  title={isOutputExpanded ? t('playground.collapsePanel') : t('playground.expandPanel')}
+                  aria-expanded={isOutputExpanded}
+                  aria-label={isOutputExpanded ? t('playground.collapsePanel') : t('playground.expandPanel')}
                 >
                   <IoChevronUp className={`transition-transform duration-300 ${isOutputExpanded ? 'rotate-180' : ''}`} size={14} />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 px-4 py-3 overflow-hidden font-mono text-xs relative">
+            <div className="relative flex-1 overflow-hidden px-4 py-3 font-mono text-xs" role="tabpanel" id="playground-output-panel" aria-labelledby={outputTab === 'terminal' ? 'playground-tab-terminal' : 'playground-tab-preview'}>
               {outputTab === 'terminal' ? (
-                <div ref={terminalRef} className="absolute inset-0 px-4 py-3 overflow-y-auto custom-scrollbar">
+                <div
+                  ref={terminalRef}
+                  role="log"
+                  aria-live="polite"
+                  aria-relevant="additions"
+                  aria-atomic="false"
+                  className="custom-scrollbar absolute inset-0 overflow-y-auto px-4 py-3"
+                >
                   <AnimatePresence>
                     {output.map((line, i) => (
                       <motion.div
@@ -665,10 +745,10 @@ export default function VideoPlaygroundPage() {
                     ))}
                   </AnimatePresence>
                   {isRunning && (
-                    <span className="text-zinc-500 animate-pulse text-xs">Bajarilmoqda...</span>
+                    <span className="text-xs text-zinc-500 animate-pulse" aria-live="polite">{t('playground.running')}</span>
                   )}
                   {isPyodideLoading && (
-                    <span className="text-indigo-400 animate-pulse text-xs">Python muhiti yuklanmoqda...</span>
+                    <span className="text-xs text-indigo-400 animate-pulse" aria-live="polite">{t('playground.pyodideLoading')}</span>
                   )}
                   <div ref={terminalEndRef} />
                 </div>
@@ -693,9 +773,10 @@ export default function VideoPlaygroundPage() {
                   <div className="flex-1 bg-white overflow-hidden">
                     <iframe
                       src={previewUrl}
-                      className="w-full h-full border-none"
-                      title="HTML Preview"
+                      className="h-full w-full border-none"
+                      title={t('playground.previewTitle')}
                       scrolling="yes"
+                      sandbox="allow-scripts allow-same-origin"
                       style={{ minHeight: '100%', display: 'block' }}
                     />
                   </div>
@@ -704,20 +785,24 @@ export default function VideoPlaygroundPage() {
             </div>
 
             {/* RUN CODE button */}
-            <div className="px-2 sm:px-3 pb-2 sm:pb-3 shrink-0">
+            <p className="px-2 pb-1 text-center text-[10px] text-zinc-500 sm:px-3">{t('playground.sandboxNote')}</p>
+            <div className="shrink-0 px-2 pb-2 sm:px-3 sm:pb-3">
               <button
+                type="button"
                 onClick={runCode}
                 disabled={isRunning}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black font-black text-sm tracking-widest shadow-lg shadow-green-500/20 transition-all"
+                aria-busy={isRunning}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-500 py-3 text-sm font-black tracking-widest text-black shadow-lg shadow-green-500/20 transition-all hover:bg-green-400 disabled:opacity-50"
               >
-                <IoPlay size={16} />
-                RUN CODE
+                <IoPlay size={16} aria-hidden />
+                {t('playground.runCodeButton')}
               </button>
+              <p className="mt-1 text-center text-[10px] text-zinc-500">{t('playground.runShortcut')}</p>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+        </div>
+      </main>
       {/* Subscription Overlay */}
       {!isSubscribed && (
         <div className="absolute inset-x-0 bottom-0 top-14 z-[100] backdrop-blur-md bg-black/40 flex items-center justify-center p-6 text-center">
@@ -729,21 +814,22 @@ export default function VideoPlaygroundPage() {
             <div className="w-20 h-20 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center mx-auto mb-6">
               <IoLockClosed size={32} className="text-indigo-400" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Playground Shartlari</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">{t('playground.gateTitle')}</h2>
             <p className="text-zinc-400 text-sm sm:text-base mb-6 sm:mb-8">
-              Playground&apos;dan foydalanish va kod yozishni mashq qilish uchun Telegram va Instagram kanallarimizga obuna bo&apos;lishingiz kerak.
+              {t('playground.gateBody')}
             </p>
             <button
+              type="button"
               onClick={() => setShowModal(true)}
-              className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none rounded-full px-5 sm:px-10 h-11 sm:h-14 font-bold text-sm sm:text-lg shadow-xl shadow-indigo-500/20 w-full"
+              className="btn btn-primary h-11 w-full rounded-full border-none bg-indigo-500 px-5 text-sm font-bold shadow-xl shadow-indigo-500/20 hover:bg-indigo-600 sm:h-14 sm:px-10 sm:text-lg"
             >
-              Obunani tasdiqlash
+              {t('playground.gateCta')}
             </button>
             <Link 
               href={`/videos/${id}`}
-              className="mt-4 inline-block text-zinc-500 hover:text-white transition-colors text-sm font-medium"
+              className="mt-4 inline-block text-sm font-medium text-zinc-500 transition-colors hover:text-white"
             >
-              ← Darsga qaytish
+              ← {t('playground.backToLesson')}
             </Link>
           </motion.div>
         </div>

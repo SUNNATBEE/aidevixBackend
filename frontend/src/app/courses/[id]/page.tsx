@@ -254,6 +254,8 @@ export default function CourseDetailPage() {
                 courseVideos={courseVideos}
                 totalSecs={totalSecs}
                 level={level}
+                levelDisplay={levelLabels[level] || level}
+                levelFieldLabel={t('filter.level').replace(/:\s*$/, '')}
                 rating={rating}
                 projects={projects}
                 catColor={catColor}
@@ -343,8 +345,8 @@ export default function CourseDetailPage() {
                       {p.description && <p className="text-xs text-base-content/40 line-clamp-2">{p.description}</p>}
                       {p.technologies?.length > 0 && (
                         <div className="flex flex-wrap gap-1">
-                          {p.technologies.map((t, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded-lg text-xs bg-base-300 text-base-content/45">{t}</span>
+                          {p.technologies.map((tech, i) => (
+                            <span key={i} className="px-2 py-0.5 rounded-lg text-xs bg-base-300 text-base-content/45">{tech}</span>
                           ))}
                         </div>
                       )}
@@ -367,6 +369,8 @@ export default function CourseDetailPage() {
               courseVideos={courseVideos}
               totalSecs={totalSecs}
               level={level}
+              levelDisplay={levelLabels[level] || level}
+              levelFieldLabel={t('filter.level').replace(/:\s*$/, '')}
               rating={rating}
               projects={projects}
               catColor={catColor}
@@ -458,7 +462,17 @@ export default function CourseDetailPage() {
   )
 }
 
-function PriceCardContent({ course, courseVideos, totalSecs, level, rating, projects, isSubscribed, onWatch }) {
+function PriceCardContent({
+  course,
+  courseVideos,
+  totalSecs,
+  levelDisplay,
+  levelFieldLabel,
+  rating,
+  projects,
+  isSubscribed,
+  onWatch,
+}) {
   return (
     <div className="p-4 sm:p-5 space-y-4">
       <div className="space-y-2">
@@ -471,7 +485,7 @@ function PriceCardContent({ course, courseVideos, totalSecs, level, rating, proj
       <div className="space-y-2.5">
         <StatRow icon={<IoBookOutline className="text-primary text-sm" />} label="Darslar" value={courseVideos.length} />
         {totalSecs > 0 && <StatRow icon={<IoTime className="text-primary text-sm" />} label="Umumiy vaqt" value={formatDurationText(totalSecs)} />}
-        <StatRow icon={<IoBarChart className="text-primary text-sm" />} label={t('filter.level').replace(/:\s*$/, '')} value={levelLabels[level] || level} />
+        <StatRow icon={<IoBarChart className="text-primary text-sm" />} label={levelFieldLabel} value={levelDisplay} />
         {rating > 0 && <StatRow icon={<IoStar className="text-yellow-400 text-sm" />} label="Reyting" value={Number(rating).toFixed(1)} />}
         {course.studentsCount > 0 && <StatRow icon={<IoPeople className="text-primary text-sm" />} label="O'quvchilar" value={course.studentsCount.toLocaleString()} />}
         {projects.length > 0 && <StatRow icon={<IoCodeSlash className="text-primary text-sm" />} label="Loyihalar" value={projects.length} />}

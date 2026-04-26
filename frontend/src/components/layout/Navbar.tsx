@@ -32,18 +32,25 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const langRef = useRef<HTMLDivElement>(null)
+  const moreRef = useRef<HTMLLIElement>(null)
 
-  const NAV_LINKS = [
+  /** Chiptada gorizontal skrollsiz: asosiy 4 + qolganlari “Yana” menyusida. */
+  const navPrimary: { label: string; to: string }[] = [
     { label: t('nav.courses'), to: ROUTES.COURSES },
     { label: '⚡ Prompts', to: ROUTES.PROMPTS },
-    { label: t('nav.bugReport'), to: ROUTES.BUG_REPORT },
-    { label: `🧠 ${t('nav.founders')}`, to: ROUTES.TEAM },
     { label: t('nav.challenges'), to: ROUTES.CHALLENGES },
     { label: t('nav.leaderboard'), to: ROUTES.LEADERBOARD },
+  ]
+  const navMore: { label: string; to: string }[] = [
+    { label: t('nav.bugReport'), to: ROUTES.BUG_REPORT },
+    { label: `🧠 ${t('nav.founders')}`, to: ROUTES.TEAM },
     { label: '🗺 Roadmap', to: ROUTES.ROADMAP },
     { label: t('nav.careers'), to: ROUTES.CAREERS },
   ]
+  const allNavMobile = [...navPrimary, ...navMore]
+  const isMoreGroupActive = navMore.some((l) => l.to === pathname)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -56,6 +63,7 @@ export default function Navbar() {
     const onResize = () => {
       if (window.innerWidth >= 1280) {
         setMenuOpen(false)
+        setMoreOpen(false)
       }
     }
 
@@ -76,11 +84,29 @@ export default function Navbar() {
       if (langRef.current && !langRef.current.contains(e.target as Node)) {
         setLangOpen(false)
       }
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false)
+      }
     }
 
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMoreOpen(false)
+        setLangOpen(false)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
+  useEffect(() => {
+    setMoreOpen(false)
+  }, [pathname])
 
   const handleLogout = async () => {
     await logout()
@@ -124,14 +150,14 @@ export default function Navbar() {
               </div>
             </Link>
 
-            <div className="hidden min-w-0 flex-1 px-4 xl:flex xl:justify-center">
-              <ul className={`flex max-w-full items-center gap-1 overflow-x-auto whitespace-nowrap rounded-full border px-2 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${surface}`}>
-                {NAV_LINKS.map((link) => (
-                  <li key={link.label}>
+            <div className="hidden min-w-0 flex-1 px-2 xl:flex xl:justify-center 2xl:px-4">
+              <ul className={`flex max-w-full flex-nowrap items-center justify-center gap-0.5 rounded-full border px-1.5 py-1.5 sm:gap-1 sm:px-2 sm:py-2 ${surface}`}>
+                {navPrimary.map((link) => (
+                  <li key={link.to}>
                     <Link
                       href={link.to}
                       onMouseEnter={playHoverSound}
-                      className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                      className={`rounded-full px-2.5 py-1.5 text-xs font-medium transition-all duration-200 sm:px-4 sm:py-2 sm:text-sm ${
                         pathname === link.to ? activeNavLink : navLinkBase
                       }`}
                     >
@@ -139,6 +165,61 @@ export default function Navbar() {
                     </Link>
                   </li>
                 ))}
+                <li className="relative" ref={moreRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMoreOpen((o) => !o)
+                    }}
+                    onMouseEnter={playHoverSound}
+                    aria-haspopup="menu"
+                    aria-expanded={moreOpen}
+                    aria-label={t('nav.moreAria')}
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-medium transition-all duration-200 sm:px-4 sm:py-2 sm:text-sm ${
+                      isMoreGroupActive || moreOpen ? activeNavLink : navLinkBase
+                    }`}
+                  >
+                    {t('nav.more')}
+                    <svg
+                      className={`h-3 w-3 shrink-0 transition-transform ${moreOpen ? 'rotate-180' : ''}`}
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                      aria-hidden
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                  {moreOpen && (
+                    <ul
+                      role="menu"
+                      className={`absolute left-0 right-0 z-[60] mt-2 min-w-[min(100vw-2rem,16rem)] rounded-[1.25rem] border p-1.5 shadow-2xl backdrop-blur-2xl sm:left-auto sm:right-0 ${dropdownBg}`}
+                    >
+                      {navMore.map((link) => (
+                        <li key={link.to} role="none">
+                          <Link
+                            role="menuitem"
+                            href={link.to}
+                            onClick={() => setMoreOpen(false)}
+                            onMouseEnter={playHoverSound}
+                            className={`block rounded-xl px-3 py-2.5 text-sm font-medium ${
+                              pathname === link.to
+                                ? isDark
+                                  ? 'bg-indigo-500/15 text-indigo-300'
+                                  : 'bg-indigo-50 text-indigo-700'
+                                : dropdownItemColor
+                            }`}
+                          >
+                            {link.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
               </ul>
             </div>
 
@@ -328,9 +409,9 @@ export default function Navbar() {
           style={{ borderTop: menuOpen ? `1px solid ${borderColor}` : 'none' }}
         >
           <div className={`${mobileMenuBg} space-y-2 px-3 py-3 backdrop-blur-2xl sm:px-4 sm:py-4`}>
-            {NAV_LINKS.map((link) => (
+            {allNavMobile.map((link) => (
               <Link
-                key={link.label}
+                key={link.to}
                 href={link.to}
                 onClick={() => setMenuOpen(false)}
                 className={`block rounded-2xl px-4 py-3 text-sm font-medium transition-colors ${pathname === link.to ? activeNavLink : navLinkBase}`}

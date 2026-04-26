@@ -9,41 +9,43 @@ import { useLang } from '@/context/LangContext'
 import { useTheme } from '@/context/ThemeContext'
 
 const SOCIAL = [
-  { icon: <FaTelegram size={15} />, href: SOCIAL_LINKS.telegram, label: 'tg' },
-  { icon: <FaInstagram size={15} />, href: SOCIAL_LINKS.instagram, label: 'in' },
-  { icon: <FaYoutube size={15} />, href: 'https://youtube.com/@aidevix', label: 'yt' },
+  { icon: <FaTelegram size={15} />, href: SOCIAL_LINKS.telegram, label: 'Telegram' },
+  { icon: <FaInstagram size={15} />, href: SOCIAL_LINKS.instagram, label: 'Instagram' },
+  { icon: <FaYoutube size={15} />, href: 'https://youtube.com/@aidevix', label: 'YouTube' },
 ]
+
+type FooterLinkItem = { label: string; to: string }
 
 export default function Footer() {
   const { t } = useLang()
   const { isDark } = useTheme()
 
-  const FOOTER_LINKS = [
+  const FOOTER_LINKS: { title: string; links: FooterLinkItem[] }[] = [
     {
       title: t('footer.platform'),
       links: [
         { label: t('footer.fCourses'), to: ROUTES.COURSES },
-        { label: t('footer.fMentors'), to: '#' },
-        { label: t('footer.fPricing'), to: '#' },
-        { label: t('footer.fEnterprise'), to: '#' },
+        { label: t('footer.fMentors'), to: ROUTES.TEAM },
+        { label: t('footer.fPricing'), to: ROUTES.PRICING },
+        { label: t('footer.fEnterprise'), to: ROUTES.CONTACT },
       ],
     },
     {
       title: t('footer.company'),
       links: [
-        { label: t('footer.fAbout'), to: '#' },
-        { label: t('footer.fBlog'), to: '#' },
+        { label: t('footer.fAbout'), to: ROUTES.ABOUT },
+        { label: t('footer.fBlog'), to: ROUTES.BLOG },
         { label: t('footer.fCareers'), to: ROUTES.CAREERS },
-        { label: t('footer.fContact'), to: '#' },
+        { label: t('footer.fContact'), to: ROUTES.CONTACT },
       ],
     },
     {
       title: t('footer.resources'),
       links: [
-        { label: t('footer.fHelp'), to: '#' },
-        { label: t('footer.fPrivacy'), to: '#' },
-        { label: t('footer.fTerms'), to: '#' },
-        { label: t('footer.sitemap'), to: '#' },
+        { label: t('footer.fHelp'), to: ROUTES.HELP },
+        { label: t('footer.fPrivacy'), to: ROUTES.PRIVACY },
+        { label: t('footer.fTerms'), to: ROUTES.TERMS },
+        { label: t('footer.sitemap'), to: ROUTES.SITEMAP_XML },
       ],
     },
   ]
@@ -81,7 +83,7 @@ export default function Footer() {
                   key={s.label}
                   href={s.href}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   aria-label={s.label}
                   className={`flex h-11 w-11 items-center justify-center rounded-full border transition-all duration-300 hover:-translate-y-1 ${socialText}`}
                   style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.03)', borderColor: borderClr }}
@@ -93,20 +95,20 @@ export default function Footer() {
           </motion.div>
 
           {FOOTER_LINKS.map((group, idx) => (
-            <motion.div 
-              key={group.title} 
+            <motion.div
+              key={group.title}
               initial={{ y: 40, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8, delay: 0.1 * (idx + 1), ease: 'easeOut' }}
-              className="border-t pt-5 lg:border-0 lg:pt-0" 
+              className="border-t pt-5 lg:border-0 lg:pt-0"
               style={{ borderColor: borderClr }}
             >
               <h4 className={`mb-4 text-xs font-semibold uppercase tracking-[0.14em] sm:mb-5 sm:text-sm sm:tracking-[0.24em] ${headingText}`}>{group.title}</h4>
               <ul className="space-y-3">
                 {group.links.map((link) => (
-                  <li key={link.label}>
-                    <Link href={link.to} className={`text-sm transition-colors duration-300 ${linkText}`}>
+                  <li key={link.to + link.label}>
+                    <Link href={link.to} className={`inline-block text-sm transition-colors duration-300 ${linkText}`}>
                       {link.label}
                     </Link>
                   </li>
@@ -117,12 +119,12 @@ export default function Footer() {
         </div>
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 1, delay: 0.5 }}
-        className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-3 py-3 text-center sm:flex-row sm:px-6 sm:text-left lg:px-8" 
+        className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-3 py-3 text-center sm:flex-row sm:px-6 sm:text-left lg:px-8"
         style={{ borderTop: `1px solid ${borderClr}` }}
       >
         <p className={`text-xs ${copyText}`}>{t('footer.copyright')}</p>
@@ -130,7 +132,7 @@ export default function Footer() {
           <span>{t('footer.location')}</span>
           <span className={isDark ? 'text-slate-700' : 'text-slate-300'}>|</span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
             {t('footer.status')}
           </span>
         </div>

@@ -79,4 +79,12 @@ export const ROUTES = {
   ROADMAP:        '/roadmap',
   PUBLIC_PROFILE: (username: string) => `/u/${username}`,
   BUG_REPORT:     '/bug-report',
+  ABOUT:          '/about',
+  BLOG:           '/blog',
+  CONTACT:        '/contact',
+  HELP:           '/help',
+  PRICING:        '/pricing',
+  PRIVACY:        '/privacy',
+  TERMS:          '/terms',
+  SITEMAP_XML:    '/sitemap.xml',
 }

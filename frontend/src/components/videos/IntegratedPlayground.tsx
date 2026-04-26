@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IoPlay, IoRefresh, IoCodeSlash, IoTerminal, IoEye, IoChevronDown, IoChevronUp, IoExpand } from 'react-icons/io5';
 import Link from 'next/link';
+import { useLang } from '@/context/LangContext';
 
 interface IntegratedPlaygroundProps {
   videoId: string;
@@ -14,21 +15,55 @@ interface IntegratedPlaygroundProps {
 
 declare global {
   interface Window {
-    loadPyodide: any;
+    loadPyodide: (opts?: { indexURL?: string }) => Promise<unknown>;
   }
 }
 
+function getDefaultCodeForCategory(category: string): string {
+  if (category === 'html' || category === 'css') {
+    return `<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; }
+  h1 { color: #6366f1; }
+</style>
+</head>
+<body>
+  <h1>Hello, Aidevix</h1>
+  <p>Write HTML here; run to update the preview.</p>
+</body>
+</html>`;
+  }
+  if (category === 'javascript' || category === 'nodejs') {
+    return `// Write your JavaScript here
+console.log("Hello, Aidevix!");
+function greet(name) {
+  return "Hi, " + name;
+}
+console.log(greet("learner"));`;
+  }
+  return `# Write your Python here
+print("Hello, Aidevix!")
+
+def greet(name):
+    return f"Hi, {name}!"
+
+print(greet("learner"))`;
+}
+
 export default function IntegratedPlayground({ videoId, category = 'html', initialCode }: IntegratedPlaygroundProps) {
+  const { t } = useLang();
   const [code, setCode] = useState(initialCode || '');
   const [output, setOutput] = useState<{ type: 'log' | 'error' | 'info'; content: string }[]>([]);
-  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
+  const [viewTab, setViewTab] = useState<'terminal' | 'preview'>('terminal');
   const [isExpanded, setIsExpanded] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [pyodide, setPyodide] = useState<any>(null);
+  const [pyodide, setPyodide] = useState<unknown>(null);
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const runCodeRef = useRef<() => void>(() => {});
 
-  // Load Pyodide if needed
   useEffect(() => {
     if ((category === 'python' || category === 'ai') && !pyodide && !isPyodideLoading) {
       setIsPyodideLoading(true);
@@ -36,7 +71,8 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
       script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
       script.async = true;
       script.onload = async () => {
-        const py = await window.loadPyodide();
+        const api = (window as unknown as { loadPyodide: Window['loadPyodide'] }).loadPyodide;
+        const py = await api();
         setPyodide(py);
         setIsPyodideLoading(false);
       };
@@ -44,112 +80,130 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
     }
   }, [category, pyodide, isPyodideLoading]);
 
-  // Default code based on category
   useEffect(() => {
     if (!initialCode) {
-      if (category === 'html') {
-        setCode('<!DOCTYPE html>\n<html>\n<head>\n<style>\n  body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; }\n  h1 { color: #6366f1; }\n</style>\n</head>\n<body>\n  <h1>Salom Aidevix!</h1>\n  <p>Bu yerda HTML kodingizni yozing...</p>\n</body>\n</html>');
-      } else if (category === 'javascript' || category === 'nodejs') {
-        setCode('// JavaScript kodingizni yozing\nconsole.log("Salom Aidevix!");\n\nfunction salom(ism) {\n  return "Assalomu alaykum, " + ism + "!";\n}\n\nconsole.log(salom("O\'quvchi"));');
-      } else {
-        setCode('# Python kodingizni yozing\nprint("Salom Aidevix!")\n\ndef salom(ism):\n    return f"Assalomu alaykum, {ism}!"\n\nprint(salom("O\'quvchi"))');
-      }
+      setCode(getDefaultCodeForCategory(category));
     }
   }, [category, initialCode]);
 
-  const runCode = async () => {
-    setOutput([{ type: 'info', content: 'Bajarilmoqda...' }]);
-    
+  const runCode = useCallback(async () => {
+    setOutput([{ type: 'info', content: t('playground.running') }]);
+
     if (category === 'html' || category === 'css') {
       const blob = new Blob([code], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
-      setActiveTab('preview');
-      setOutput([{ type: 'log', content: 'Preview yangilandi' }]);
-    } else if (category === 'python' || category === 'ai') {
+      setViewTab('preview');
+      setOutput([{ type: 'log', content: t('playground.previewUpdated') }]);
+      return;
+    }
+
+    if (category === 'python' || category === 'ai') {
       if (!pyodide) {
-        setOutput([{ type: 'error', content: 'Pyodide hali yuklanmadi. Iltimos, bir oz kuting...' }]);
+        setOutput([{ type: 'error', content: t('playground.pyodideNotReady') }]);
         return;
       }
+      const py = pyodide as {
+        runPython: (c: string) => unknown;
+        runPythonAsync: (c: string) => Promise<void>;
+      };
       try {
-        pyodide.runPython(`
+        py.runPython(`
           import sys
           import io
           sys.stdout = io.StringIO()
         `);
-        await pyodide.runPythonAsync(code);
-        const result = pyodide.runPython('sys.stdout.getvalue()');
-        setOutput(result.split('\n').filter((l: string) => l).map((l: string) => ({ type: 'log', content: l })));
-      } catch (err: any) {
-        setOutput([{ type: 'error', content: err.message }]);
+        await py.runPythonAsync(code);
+        const result = String(py.runPython('sys.stdout.getvalue()'));
+        setOutput(
+          result
+            .split('\n')
+            .filter((l: string) => l)
+            .map((l: string) => ({ type: 'log' as const, content: l })),
+        );
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        setOutput([{ type: 'error', content: message }]);
       }
-    } else {
-      // JavaScript/Python basic execution
+      return;
+    }
+
+    if (category === 'javascript' || category === 'nodejs') {
+      const logs: { type: 'log' | 'error' | 'info'; content: string }[] = [];
+      const oldLog = console.log;
       try {
-        const logs: string[] = [];
-        const originalLog = console.log;
-        console.log = (...args) => logs.push(args.join(' '));
-        
-        // Simple eval for JS
-        if (category === 'javascript' || category === 'nodejs') {
-          eval(code);
-          setOutput(logs.map(l => ({ type: 'log', content: l })));
-        } else {
-          // Mock Python for now
-          setOutput([
-            { type: 'log', content: 'Python kodini bajarish uchun Pyodide yuklanmoqda...' },
-            { type: 'info', content: 'Hozircha faqat JS eval ishlaydi.' }
-          ]);
-        }
-        
-        console.log = originalLog;
-      } catch (err: any) {
-        setOutput([{ type: 'error', content: err.message }]);
+        console.log = (...args: unknown[]) => logs.push({ type: 'log', content: args.map(String).join(' ') });
+        const fn = new Function(code);
+        fn();
+        setOutput(logs.length ? logs : [{ type: 'info', content: t('playground.outputEmpty') }]);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        setOutput([{ type: 'error', content: message }]);
+      } finally {
+        console.log = oldLog;
       }
     }
+  }, [category, code, pyodide, t]);
+
+  useEffect(() => {
+    runCodeRef.current = () => {
+      void runCode();
+    };
+  }, [runCode]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        runCodeRef.current();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const applyDefaultCode = () => {
+    setCode(getDefaultCodeForCategory(category));
   };
 
   const resetCode = () => {
-    if (confirm('Kodni tiklamoqchimisiz?')) {
-      setInitialCode();
-      setOutput([]);
+    if (typeof window !== 'undefined' && !window.confirm(t('playground.resetConfirm'))) {
+      return;
     }
+    applyDefaultCode();
+    setOutput([]);
   };
 
-  const setInitialCode = () => {
-    // Logic same as useEffect
-    if (category === 'html') {
-      setCode('<!DOCTYPE html>\n<html>\n<head>\n<style>\n  body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; }\n  h1 { color: #6366f1; }\n</style>\n</head>\n<body>\n  <h1>Salom Aidevix!</h1>\n  <p>Bu yerda HTML kodingizni yozing...</p>\n</body>\n</html>');
-    } else {
-      setCode('// JavaScript/Python kodingizni yozing...');
-    }
-  };
+  const language = category === 'html' || category === 'css' ? 'html' : category === 'javascript' || category === 'nodejs' ? 'javascript' : 'python';
 
   return (
-    <div className="mt-8 bg-[#0d1224] border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
-      {/* Header */}
-      <div className="px-6 py-4 bg-white/5 flex items-center justify-between border-b border-white/5">
+    <div className="mt-8 overflow-hidden rounded-[2rem] border border-white/5 bg-[#0d1224] shadow-2xl">
+      <div className="flex items-center justify-between border-b border-white/5 bg-white/5 px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
+          <div className="rounded-xl bg-indigo-500/10 p-2 text-indigo-400" aria-hidden>
             <IoCodeSlash size={20} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white uppercase tracking-widest">Amaliyot (Playground)</h3>
-            <p className="text-[10px] text-zinc-500 font-medium">Kodni yozing va natijani ko&apos;ring</p>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-white">{t('playground.integratedTitle')}</h3>
+            <p className="text-[10px] font-medium text-zinc-500">{t('playground.integratedSubtitle')}</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
-          <Link 
+          <Link
             href={`/videos/${videoId}/playground`}
-            className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all group"
+            className="group flex items-center gap-2 rounded-xl bg-indigo-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-indigo-400 transition-all hover:bg-indigo-500/20"
+            aria-label={t('playground.fullScreen')}
           >
-            <IoExpand size={14} className="group-hover:scale-110 transition-transform" />
-            Full Screen
+            <IoExpand size={14} className="transition-transform group-hover:scale-110" aria-hidden />
+            {t('playground.fullScreen')}
           </Link>
-          <button 
+          <button
+            type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-2 hover:bg-white/5 rounded-lg text-zinc-400 transition-colors"
+            className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/5"
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? t('playground.collapsePanel') : t('playground.expandPanel')}
           >
             {isExpanded ? <IoChevronUp /> : <IoChevronDown />}
           </button>
@@ -158,22 +212,21 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
 
       <AnimatePresence>
         {isExpanded && (
-          <motion.div 
+          <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="grid grid-cols-1 lg:grid-cols-2 h-[500px]">
-              {/* Editor Column */}
-              <div className="flex flex-col border-r border-white/5 h-full">
-                <div className="h-10 px-4 flex items-center bg-[#080914] border-b border-white/5">
-                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Editor</span>
+            <div className="grid h-[500px] grid-cols-1 lg:grid-cols-2">
+              <div className="flex h-full flex-col border-r border-white/5">
+                <div className="flex h-10 items-center border-b border-white/5 bg-[#080914] px-4" role="toolbar" aria-label={t('playground.editorToolbar')}>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">{t('playground.tabEditor')}</span>
                 </div>
-                <div className="flex-1 min-h-0">
+                <div className="min-h-0 flex-1">
                   <Editor
                     height="100%"
-                    defaultLanguage={category === 'html' ? 'html' : category === 'javascript' ? 'javascript' : 'python'}
+                    defaultLanguage={language}
                     theme="vs-dark"
                     value={code}
                     onChange={(val) => setCode(val || '')}
@@ -184,69 +237,97 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
                       scrollBeyondLastLine: false,
                       padding: { top: 10 },
                       backgroundColor: '#0d1224',
+                      accessibilitySupport: 'on',
+                      automaticLayout: true,
                     }}
                   />
                 </div>
-                <div className="p-4 bg-[#080914] flex items-center justify-between gap-4">
+                <div className="flex items-center justify-between gap-4 bg-[#080914] p-4">
                   <button
+                    type="button"
                     onClick={resetCode}
-                    className="p-2 text-zinc-500 hover:text-white transition-colors"
-                    title="Qayta tiklash"
+                    className="p-2 text-zinc-500 transition-colors hover:text-white"
+                    aria-label={t('playground.reset')}
                   >
                     <IoRefresh size={20} />
                   </button>
-                  <div className="flex items-center gap-2 flex-1">
+                  <div className="flex flex-1 items-center gap-2">
                     <button
-                      onClick={runCode}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
+                      type="button"
+                      onClick={() => {
+                        void runCode();
+                      }}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-500 py-3 font-bold text-white shadow-lg shadow-indigo-500/20 transition-all hover:bg-indigo-600 active:scale-95"
                     >
-                      <IoPlay size={18} />
-                      RUN CODE
+                      <IoPlay size={18} aria-hidden />
+                      {t('playground.runCodeButton')}
                     </button>
-                    <Link 
+                    <Link
                       href={`/videos/${videoId}/playground`}
-                      className="flex items-center justify-center w-12 py-3 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-xl border border-white/10 transition-all"
-                      title="To'liq ekranda ochish"
+                      className="flex w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 py-3 text-zinc-400 transition-all hover:bg-white/10 hover:text-white"
+                      aria-label={t('playground.fullScreen')}
                     >
                       <IoExpand size={18} />
                     </Link>
                   </div>
                 </div>
+                <p className="bg-[#080914] px-4 pb-2 text-center text-[10px] text-zinc-500">{t('playground.runShortcut')}</p>
               </div>
 
-              {/* Output Column */}
-              <div className="flex flex-col h-full bg-[#080914]">
-                <div className="h-10 px-2 flex items-center justify-between border-b border-white/5">
-                  <div className="flex">
-                    <button 
-                      onClick={() => setActiveTab('editor')}
-                      className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'editor' ? 'text-indigo-400 border-b-2 border-indigo-500' : 'text-zinc-500'}`}
+              <div className="flex h-full flex-col bg-[#080914]">
+                <div className="h-10 border-b border-white/5 px-2">
+                  <div className="flex" role="tablist" aria-label={t('playground.outputRegion')}>
+                    <button
+                      type="button"
+                      role="tab"
+                      id="ig-tab-terminal"
+                      aria-selected={viewTab === 'terminal'}
+                      onClick={() => setViewTab('terminal')}
+                      className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all ${
+                        viewTab === 'terminal' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-zinc-500'
+                      }`}
                     >
-                      Terminal
+                      <span className="inline-flex items-center gap-1">
+                        <IoTerminal className="text-[10px]" aria-hidden />
+                        {t('playground.tabTerminal')}
+                      </span>
                     </button>
                     {(category === 'html' || category === 'css') && (
-                      <button 
-                        onClick={() => setActiveTab('preview')}
-                        className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'preview' ? 'text-indigo-400 border-b-2 border-indigo-500' : 'text-zinc-500'}`}
+                      <button
+                        type="button"
+                        role="tab"
+                        id="ig-tab-preview"
+                        aria-selected={viewTab === 'preview'}
+                        onClick={() => setViewTab('preview')}
+                        className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all ${
+                          viewTab === 'preview' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-zinc-500'
+                        }`}
                       >
-                        Preview
+                        <span className="inline-flex items-center gap-1">
+                          <IoEye className="text-[10px]" aria-hidden />
+                          {t('playground.tabPreview')}
+                        </span>
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-auto p-4 font-mono text-sm relative">
-                  {activeTab === 'editor' ? (
-                    <div className="space-y-1">
-                      {output.length === 0 && (
-                        <p className="text-zinc-600 italic">Natija bu yerda ko&apos;rinadi...</p>
-                      )}
+                <div
+                  className="relative flex-1 overflow-auto p-4 font-mono text-sm"
+                  role="tabpanel"
+                  aria-labelledby={viewTab === 'terminal' ? 'ig-tab-terminal' : 'ig-tab-preview'}
+                >
+                  {viewTab === 'terminal' ? (
+                    <div className="space-y-1" role="log" aria-live="polite" aria-relevant="additions">
+                      {output.length === 0 && <p className="italic text-zinc-600">{t('playground.outputEmpty')}</p>}
                       {output.map((line, i) => (
-                        <div 
-                          key={i} 
-                          className={line.type === 'error' ? 'text-red-400' : line.type === 'info' ? 'text-indigo-400' : 'text-green-400'}
+                        <div
+                          key={i}
+                          className={
+                            line.type === 'error' ? 'text-red-400' : line.type === 'info' ? 'text-indigo-400' : 'text-green-400'
+                          }
                         >
-                          {line.type === 'log' && <span className="text-zinc-600 mr-2">»</span>}
+                          {line.type === 'log' && <span className="mr-2 text-zinc-600">»</span>}
                           {line.content}
                         </div>
                       ))}
@@ -255,8 +336,9 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
                     <iframe
                       ref={iframeRef}
                       src={previewUrl}
-                      className="w-full h-full bg-white rounded-lg"
-                      title="Preview"
+                      className="h-full w-full rounded-lg bg-white"
+                      title={t('playground.previewTitle')}
+                      sandbox="allow-scripts allow-same-origin"
                     />
                   )}
                 </div>
