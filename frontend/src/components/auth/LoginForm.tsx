@@ -37,9 +37,18 @@ export default function LoginForm() {
         email: data.email,
         password: data.password,
       }));
-      
+
       if (login.fulfilled.match(result)) {
         forgotPasswordFlow.rememberEmail(data.email);
+        const payload: any = result.payload;
+        if (payload?.requires2FA) {
+          router.push('/auth/2fa-verify');
+          return;
+        }
+        if (payload?.requiresEmailVerification) {
+          router.push(`/auth/verify-email?email=${encodeURIComponent(payload.email || data.email)}`);
+          return;
+        }
         toast.success('Muvaffaqiyatli kirdingiz!');
         router.push('/');
       }

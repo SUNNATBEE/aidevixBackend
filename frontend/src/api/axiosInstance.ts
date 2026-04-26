@@ -100,6 +100,17 @@ api.interceptors.response.use(
       })
     }
 
+    // Admin 2FA enrollment required — auto-redirect once
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.requires2FAEnrollment &&
+      typeof window !== 'undefined' &&
+      !window.location.pathname.startsWith('/auth/2fa-setup')
+    ) {
+      const next = encodeURIComponent(window.location.pathname + window.location.search)
+      window.location.replace(`/auth/2fa-setup?next=${next}`)
+    }
+
     return Promise.reject(error)
   },
 )

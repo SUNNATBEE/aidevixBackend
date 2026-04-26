@@ -12,7 +12,10 @@ const {
   verifyRefreshToken,
   generateResetToken,
   verifyResetToken,
+  generate2FAChallenge,
+  verify2FAChallenge,
 } = require('../utils/jwt');
+const { verifyTotpCode } = require('./twoFactorController');
 const {
   sendWelcomeEmail,
   sendResetCodeEmail,
@@ -47,13 +50,17 @@ const calculateRank = (xp) => {
 
 // Require 8+ chars, upper, lower, digit, special — any printable special char
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,128}$/;
+// Username: ASCII letters, digits, underscore, dot and hyphen only (3-50 chars)
+const usernameRegex = /^[a-z0-9._-]{3,50}$/;
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 const normalizeUsername = (username) => String(username || '').trim().toLowerCase();
 
 // Precomputed dummy hash to keep bcrypt.compare time constant across "user not found" vs "wrong password".
+// Cost MUST match the production hash cost (14) used in User pre-save hook —
+// mismatched costs leak the user-existence signal via response timing.
 // Hash of a random value; attacker can never match this.
-const DUMMY_HASH = '$2a$12$CwTycUXWue0Thq9StjUM0uJ8.eSB6iMGwVlvlJwE3D1aLM2vkChTm';
+const DUMMY_HASH = '$2a$14$9BxHNzsN21NxBCdqgFQu0.xb./zSbPr.GeWqgy85gbqwgzMXEf3qC';
 
 const sanitizeUser = (user) => ({
   _id: user._id,
@@ -70,6 +77,7 @@ const sanitizeUser = (user) => ({
   referralsCount: user.referralsCount || 0,
   lastClaimedDaily: user.lastClaimedDaily || null,
   emailVerified: user.emailVerified ?? false,
+  totpEnabled: user.totpEnabled ?? false,
 });
 
 const issueTokens = async (user) => {
@@ -123,8 +131,11 @@ const register = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Password must be 8–128 chars with upper, lower, digit and special char', 400));
   }
 
-  if (normalizedUsername.length < 3 || normalizedUsername.length > 50) {
-    return next(new ErrorResponse('Username must be 3–50 characters', 400));
+  if (!usernameRegex.test(normalizedUsername)) {
+    return next(new ErrorResponse(
+      'Username must be 3–50 chars; only a-z, 0-9, _, . and - allowed',
+      400
+    ));
   }
 
   const existingUser = await User.findOne({
@@ -205,6 +216,13 @@ const register = asyncHandler(async (req, res, next) => {
 });
 
 // @desc    Login
+//
+// Enumeration-safe flow:
+//  1. Always run bcrypt.compare (against real hash or DUMMY_HASH). Constant time, constant cost.
+//  2. ANY failure (no user / google-only / wrong password) → generic 401 "Invalid credentials".
+//     Account state (locked, inactive, unverified, 2FA-enrolled) is ONLY revealed after a
+//     correct password match — at which point the caller has already proven knowledge of
+//     the credential and there's no enumeration left to exploit.
 const login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
   const normalizedEmail = normalizeEmail(email);
@@ -214,15 +232,28 @@ const login = asyncHandler(async (req, res, next) => {
   }
 
   const user = await User.findOne({ email: normalizedEmail }).select(
-    '+password +failedLoginAttempts +lockUntil +tokenVersion'
+    '+password +failedLoginAttempts +lockUntil +tokenVersion +totpEnabled +totpSecret'
   );
 
-  // Dummy compare to keep timing uniform when user is not found
-  if (!user) {
-    await bcrypt.compare(password, DUMMY_HASH).catch(() => false);
-    securityLogger.loginFailed(req, 'user_not_found', { email: normalizedEmail });
+  const passwordHash = user?.password || DUMMY_HASH;
+  const isMatch = await bcrypt.compare(password, passwordHash).catch(() => false);
+
+  if (!user || !user.password || !isMatch) {
+    if (user && user.password) {
+      await user.registerFailedLogin();
+      securityLogger.loginFailed(req, 'wrong_password', {
+        userId: String(user._id),
+        attempts: user.failedLoginAttempts,
+      });
+    } else if (user && !user.password) {
+      securityLogger.loginFailed(req, 'google_only_account', { userId: String(user._id) });
+    } else {
+      securityLogger.loginFailed(req, 'user_not_found', { email: normalizedEmail });
+    }
     return next(new ErrorResponse('Invalid credentials', 401));
   }
+
+  // From here: password is correct. Account-state errors are safe to reveal.
 
   if (user.isLocked()) {
     securityLogger.loginLocked(req, user);
@@ -233,29 +264,48 @@ const login = asyncHandler(async (req, res, next) => {
     );
   }
 
-  // Google-only account: no password set — timing attack mitigation
-  if (!user.password) {
-    await bcrypt.compare(password, DUMMY_HASH).catch(() => false);
-    securityLogger.loginFailed(req, 'google_only_account', { userId: String(user._id) });
-    return next(new ErrorResponse('Bu hisob Google orqali yaratilgan. Iltimos, Google bilan kiring.', 401));
-  }
-
-  const isMatch = await user.comparePassword(password);
-  if (!isMatch) {
-    await user.registerFailedLogin();
-    securityLogger.loginFailed(req, 'wrong_password', {
-      userId: String(user._id),
-      attempts: user.failedLoginAttempts,
-    });
-    return next(new ErrorResponse('Invalid credentials', 401));
-  }
-
   if (!user.isActive) {
     securityLogger.loginFailed(req, 'account_inactive', { userId: String(user._id) });
     return next(new ErrorResponse('Account deactivated', 403));
   }
 
   await user.resetLoginAttempts();
+
+  // Email verification gate — auto-resend code, do not issue tokens
+  if (!user.emailVerified) {
+    const code = crypto.randomInt(100000, 1000000).toString();
+    await User.updateOne({ _id: user._id }, {
+      $set: {
+        emailVerificationCode: hashToken(code),
+        emailVerificationExpire: new Date(Date.now() + 15 * 60 * 1000),
+        emailVerificationAttempts: 0,
+      },
+    });
+    sendEmailVerificationCode(user.email, user.username, code).catch((err) =>
+      securityLogger.suspicious(req, 'email_verify_send_failed', {
+        userId: String(user._id),
+        error: err.message,
+      })
+    );
+    securityLogger.loginFailed(req, 'email_not_verified', { userId: String(user._id) });
+    return res.status(403).json({
+      success: false,
+      requiresEmailVerification: true,
+      email: user.email,
+      message: 'Email tasdiqlanmagan. Pochtangizga yangi tasdiqlash kodi yuborildi.',
+    });
+  }
+
+  // 2FA gate — if enrolled, return short-lived challenge instead of session tokens
+  if (user.totpEnabled) {
+    const challengeId = generate2FAChallenge({ uid: String(user._id) });
+    securityLogger.loginSuccess(req, user); // password OK; 2FA pending
+    return res.json({
+      success: true,
+      requires2FA: true,
+      challengeId,
+    });
+  }
 
   const { accessToken, refreshToken } = await issueTokens(user);
   attachAuthCookies(res, accessToken, refreshToken);
@@ -266,6 +316,151 @@ const login = asyncHandler(async (req, res, next) => {
     success: true,
     data: { user: sanitizeUser(user) },
   });
+});
+
+// @desc    Complete 2FA login — exchange challengeId + TOTP code for session
+const verify2FALogin = asyncHandler(async (req, res, next) => {
+  const { challengeId, code } = req.body;
+  if (!challengeId || !code) {
+    return next(new ErrorResponse('Challenge va kod majburiy', 400));
+  }
+
+  const decoded = verify2FAChallenge(challengeId);
+  if (!decoded || !decoded.uid) {
+    securityLogger.suspicious(req, '2fa_challenge_invalid');
+    return next(new ErrorResponse('2FA challenge muddati o\'tgan. Qayta login qiling.', 401));
+  }
+
+  const user = await User.findById(decoded.uid).select(
+    '+totpEnabled +totpSecret +totpBackupCodes +tokenVersion'
+  );
+  if (!user || !user.totpEnabled || !user.totpSecret) {
+    return next(new ErrorResponse('2FA holati o\'zgargan. Qayta login qiling.', 401));
+  }
+  if (!user.isActive) {
+    return next(new ErrorResponse('Account deactivated', 403));
+  }
+
+  const totpOk = verifyTotpCode(user.totpSecret, code);
+
+  // Backup code path — single-use, removed after use
+  let backupOk = false;
+  if (!totpOk) {
+    const codeHash = hashToken(String(code).toUpperCase().replace(/\s+/g, ''));
+    const idx = (user.totpBackupCodes || []).findIndex((h) => safeEqual(h, codeHash));
+    if (idx >= 0) {
+      backupOk = true;
+      const remaining = user.totpBackupCodes.filter((_, i) => i !== idx);
+      await User.updateOne({ _id: user._id }, { $set: { totpBackupCodes: remaining } });
+      securityLogger.suspicious(req, '2fa_backup_used', {
+        userId: String(user._id),
+        remaining: remaining.length,
+      });
+    }
+  }
+
+  if (!totpOk && !backupOk) {
+    securityLogger.suspicious(req, '2fa_wrong_code', { userId: String(user._id) });
+    return next(new ErrorResponse('TOTP kodi noto\'g\'ri', 401));
+  }
+
+  const { accessToken, refreshToken } = await issueTokens(user);
+  attachAuthCookies(res, accessToken, refreshToken);
+  securityLogger.loginSuccess(req, user);
+
+  res.json({
+    success: true,
+    data: { user: sanitizeUser(user) },
+  });
+});
+
+// @desc    Public verify email — no auth required (used after login gate blocks unverified users)
+//
+// Generic response for invalid email to prevent enumeration. Does NOT issue session tokens —
+// caller is expected to re-login with email+password after verification (UX-friction-for-clarity trade-off).
+const verifyEmailPublic = asyncHandler(async (req, res, next) => {
+  const { email, code } = req.body;
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail || !code) {
+    return next(new ErrorResponse('Email va kod majburiy', 400));
+  }
+
+  const user = await User.findOne({ email: normalizedEmail }).select(
+    '+emailVerificationCode +emailVerificationExpire +emailVerificationAttempts'
+  );
+
+  // Generic response for "no user / already verified" — no enumeration
+  if (!user || user.emailVerified) {
+    return next(new ErrorResponse('Kod noto\'g\'ri yoki muddati o\'tgan', 400));
+  }
+
+  if (!user.emailVerificationCode || !user.emailVerificationExpire) {
+    return next(new ErrorResponse('Kod noto\'g\'ri yoki muddati o\'tgan', 400));
+  }
+  if (user.emailVerificationExpire.getTime() < Date.now()) {
+    return next(new ErrorResponse('Kod muddati o\'tgan', 400));
+  }
+  if ((user.emailVerificationAttempts || 0) >= 5) {
+    await User.updateOne({ _id: user._id }, {
+      $set: { emailVerificationCode: null, emailVerificationExpire: null, emailVerificationAttempts: 0 },
+    });
+    return next(new ErrorResponse('Juda ko\'p urinish. Yangi kod so\'rang.', 400));
+  }
+  if (!safeEqual(user.emailVerificationCode, hashToken(code))) {
+    await User.updateOne({ _id: user._id }, { $inc: { emailVerificationAttempts: 1 } });
+    return next(new ErrorResponse('Kod noto\'g\'ri', 400));
+  }
+
+  await User.updateOne({ _id: user._id }, {
+    $set: {
+      emailVerified: true,
+      emailVerificationCode: null,
+      emailVerificationExpire: null,
+      emailVerificationAttempts: 0,
+    },
+  });
+  securityLogger.emailVerificationSucceeded(req, user);
+
+  res.json({
+    success: true,
+    message: 'Email tasdiqlandi. Endi login qiling.',
+  });
+});
+
+// @desc    Public resend verification — no auth required, generic response
+const resendVerificationPublic = asyncHandler(async (req, res) => {
+  const normalizedEmail = normalizeEmail(req.body?.email);
+
+  // Always respond uniformly to prevent enumeration
+  const generic = {
+    success: true,
+    message: 'Agar email mavjud va tasdiqlanmagan bo\'lsa, tasdiqlash kodi yuboriladi.',
+  };
+
+  if (!normalizedEmail) return res.json(generic);
+
+  const user = await User.findOne({ email: normalizedEmail });
+  if (!user || user.emailVerified) return res.json(generic);
+
+  const code = crypto.randomInt(100000, 1000000).toString();
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        emailVerificationCode: hashToken(code),
+        emailVerificationExpire: new Date(Date.now() + 15 * 60 * 1000),
+        emailVerificationAttempts: 0,
+      },
+    }
+  );
+  sendEmailVerificationCode(user.email, user.username, code).catch((err) =>
+    securityLogger.suspicious(req, 'email_verify_send_failed', {
+      userId: String(user._id),
+      error: err.message,
+    })
+  );
+
+  res.json(generic);
 });
 
 // @desc    Refresh Token
@@ -554,7 +749,7 @@ const resetPassword = asyncHandler(async (req, res, next) => {
   }
 
   const user = await User.findOne({ email: normalizedEmail }).select(
-    '+resetTokenHash +resetTokenExpire'
+    '+resetTokenHash +resetTokenExpire +tokenVersion +refreshToken'
   );
   if (!user) return next(new ErrorResponse('User not found', 404));
 
@@ -601,7 +796,9 @@ const changePassword = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Password must be 8–128 chars with upper, lower, digit and special char', 400));
   }
 
-  const user = await User.findById(req.user._id).select('+password');
+  const user = await User.findById(req.user._id).select(
+    '+password +tokenVersion +refreshToken'
+  );
   if (!user) return next(new ErrorResponse('User not found', 404));
 
   const isMatch = await user.comparePassword(currentPassword);
@@ -730,7 +927,8 @@ const googleAuth = asyncHandler(async (req, res, next) => {
   const normalizedEmail = normalizeEmail(email);
 
   // googleId bo'yicha yoki email bo'yicha topamiz (mavjud hisob ulash uchun)
-  let user = await User.findOne({ $or: [{ googleId }, { email: normalizedEmail }] }).select('+tokenVersion');
+  let user = await User.findOne({ $or: [{ googleId }, { email: normalizedEmail }] })
+    .select('+tokenVersion +totpEnabled');
 
   let isNew = false;
 
@@ -775,6 +973,18 @@ const googleAuth = asyncHandler(async (req, res, next) => {
     } catch (_) {}
   }
 
+  // 2FA gate also applies to Google login — Google solves "first factor", but TOTP is independent.
+  if (user.totpEnabled) {
+    const challengeId = generate2FAChallenge({ uid: String(user._id) });
+    securityLogger.loginSuccess(req, user);
+    return res.json({
+      success: true,
+      requires2FA: true,
+      challengeId,
+      isNewUser: isNew,
+    });
+  }
+
   const { accessToken, refreshToken } = await issueTokens(user);
   attachAuthCookies(res, accessToken, refreshToken);
   securityLogger.loginSuccess(req, user);
@@ -789,6 +999,7 @@ const googleAuth = asyncHandler(async (req, res, next) => {
 module.exports = {
   register,
   login,
+  verify2FALogin,
   googleAuth,
   refreshToken: refresh,
   logout,
@@ -800,5 +1011,7 @@ module.exports = {
   resetPassword,
   changePassword,
   verifyEmail,
+  verifyEmailPublic,
   resendVerification,
+  resendVerificationPublic,
 };

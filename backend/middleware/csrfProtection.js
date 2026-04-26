@@ -15,10 +15,13 @@ const EXEMPT_PATHS = [
   /^\/api\/auth\/login$/,
   /^\/api\/auth\/register$/,
   /^\/api\/auth\/google$/,
+  /^\/api\/auth\/2fa\/verify-login$/,
   /^\/api\/auth\/refresh-token$/,
   /^\/api\/auth\/forgot-password$/,
   /^\/api\/auth\/verify-code$/,
   /^\/api\/auth\/reset-password$/,
+  /^\/api\/auth\/resend-verification-public$/,
+  /^\/api\/auth\/verify-email-public$/,
   /^\/api\/payments\/(payme|click)(\/.*)?$/, // Payment provider webhooks
   /^\/api\/subscriptions\/telegram\/webhook$/,
 ];

@@ -10,6 +10,35 @@ export const authApi = {
   /** POST /auth/google — Google OAuth (credential = Google ID token) */
   googleAuth: (data: { credential: string }) => api.post('auth/google', data),
 
+  /** POST /auth/2fa/verify-login — exchange challengeId + TOTP code for session */
+  verify2FALogin: (data: { challengeId: string; code: string }) =>
+    api.post('auth/2fa/verify-login', data),
+
+  /** POST /auth/resend-verification-public — public, generic response (no enumeration) */
+  resendVerificationPublic: (data: { email: string }) =>
+    api.post('auth/resend-verification-public', data),
+
+  /** POST /auth/verify-email-public — public verify code (used after login email-gate) */
+  verifyEmailPublic: (data: { email: string; code: string }) =>
+    api.post('auth/verify-email-public', data),
+
+  /** POST /auth/verify-email — authenticated verify (existing logged-in flow) */
+  verifyEmail: (data: { code: string }) => api.post('auth/verify-email', data),
+
+  /** POST /auth/2fa/setup — start enrollment (returns QR + secret) */
+  setup2FA: () => api.post('auth/2fa/setup', {}),
+
+  /** POST /auth/2fa/enable — verify first code, get backup codes */
+  enable2FA: (data: { code: string }) => api.post('auth/2fa/enable', data),
+
+  /** POST /auth/2fa/disable — requires password + TOTP/backup code */
+  disable2FA: (data: { password: string; code: string }) =>
+    api.post('auth/2fa/disable', data),
+
+  /** POST /auth/2fa/backup-codes — regenerate backup codes (invalidates old) */
+  regenerateBackupCodes: (data: { code: string }) =>
+    api.post('auth/2fa/backup-codes', data),
+
   /** POST /auth/refresh-token */
   refresh: () => api.post('auth/refresh-token', {}),
 

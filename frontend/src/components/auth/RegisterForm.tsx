@@ -73,8 +73,21 @@ export default function RegisterForm() {
     const nameParts = data.fullName.trim().split(' ');
     const firstName = nameParts[0];
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-    
-    const username = data.fullName.trim().replace(/\s+/g, '_').toLowerCase();
+
+    // Username: a-z 0-9 _ . - only (matches backend usernameRegex).
+    // Strip everything else so people with non-ASCII names or apostrophes still register cleanly.
+    let username = data.fullName
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')  // strip combining diacritical marks
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9._-]/g, '')
+      .slice(0, 50);
+    if (username.length < 3) {
+      // Fall back to email local-part if name-derived username is too short
+      username = data.email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 50);
+    }
     const email = data.email.trim().toLowerCase();
 
     const result = await (dispatch as any)(registerUser({

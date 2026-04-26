@@ -20,8 +20,13 @@ export default function AdminRoute({ children }: { children?: ReactNode }) {
     }
     if (user?.role !== 'admin') {
       router.replace('/')
+      return
     }
-  }, [loading, isLoggedIn, user?.role, router])
+    // Admin without 2FA → force enrollment (matches backend requireAdmin gate)
+    if (user?.role === 'admin' && !user?.totpEnabled) {
+      router.replace(`/auth/2fa-setup?next=${encodeURIComponent('/admin')}`)
+    }
+  }, [loading, isLoggedIn, user?.role, user?.totpEnabled, router])
 
   if (loading) {
     return null
@@ -32,6 +37,10 @@ export default function AdminRoute({ children }: { children?: ReactNode }) {
   }
 
   if (user?.role !== 'admin') {
+    return null
+  }
+
+  if (user?.role === 'admin' && !user?.totpEnabled) {
     return null
   }
 

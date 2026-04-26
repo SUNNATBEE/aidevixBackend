@@ -23,11 +23,23 @@ export const login = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const { data } = await authApi.login(credentials)
+      // Intermediate states — password OK but session not yet issued
+      if (data.requires2FA) {
+        return { requires2FA: true, challengeId: data.challengeId }
+      }
+      if (data.requiresEmailVerification) {
+        return { requiresEmailVerification: true, email: data.email }
+      }
       tokenStorage.clearTokens()
       tokenStorage.setUser(data.data.user)
       return data.data
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Login yoki parol xato')
+      // Email-verification gate uses HTTP 403 with a flag — surface it to the UI.
+      const body = err.response?.data
+      if (body?.requiresEmailVerification) {
+        return { requiresEmailVerification: true, email: body.email }
+      }
+      return rejectWithValue(body?.message || 'Login yoki parol xato')
     }
   },
 )
@@ -37,11 +49,28 @@ export const googleAuth = createAsyncThunk(
   async (payload: { credential: string }, { rejectWithValue }) => {
     try {
       const { data } = await authApi.googleAuth(payload)
+      if (data.requires2FA) {
+        return { requires2FA: true, challengeId: data.challengeId }
+      }
       tokenStorage.clearTokens()
       tokenStorage.setUser(data.data.user)
       return data.data
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Google orqali kirish amalga oshmadi')
+    }
+  },
+)
+
+export const verify2FALogin = createAsyncThunk(
+  'auth/verify2FALogin',
+  async (payload: { challengeId: string; code: string }, { rejectWithValue }) => {
+    try {
+      const { data } = await authApi.verify2FALogin(payload)
+      tokenStorage.clearTokens()
+      tokenStorage.setUser(data.data.user)
+      return data.data
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || '2FA kodi noto\'g\'ri')
     }
   },
 )
@@ -78,8 +107,13 @@ export const checkAuthStatus = createAsyncThunk(
 const initialState = {
   user:        null,
   isLoggedIn:  false,
-  loading:     false,
+  // true on first mount so ProtectedRoute waits for the bootstrap checkAuthStatus
+  // call before redirecting users with valid session cookies to /login.
+  loading:     true,
   error:       null,
+  // 2FA / verification interstitial state
+  pending2FA:  null as null | { challengeId: string },
+  pendingEmailVerification: null as null | { email: string },
 }
 
 const authSlice = createSlice({
@@ -87,6 +121,8 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     clearError: (state) => { state.error = null },
+    clearPending2FA: (state) => { state.pending2FA = null },
+    clearPendingEmailVerification: (state) => { state.pendingEmailVerification = null },
     updateUser: (state, action) => {
       state.user = { ...(state.user || {}), ...action.payload }
     },
@@ -105,8 +141,24 @@ const authSlice = createSlice({
     }
     const fulfilled = (state, action) => {
       state.loading   = false
-      state.user      = action.payload.user
+      // 2FA pending: don't mark logged in yet
+      if (action.payload?.requires2FA) {
+        state.pending2FA = { challengeId: action.payload.challengeId }
+        state.user = null
+        state.isLoggedIn = false
+        return
+      }
+      // Email verification pending: don't mark logged in
+      if (action.payload?.requiresEmailVerification) {
+        state.pendingEmailVerification = { email: action.payload.email }
+        state.user = null
+        state.isLoggedIn = false
+        return
+      }
+      state.user = action.payload.user
       state.isLoggedIn = true
+      state.pending2FA = null
+      state.pendingEmailVerification = null
     }
 
     builder
@@ -121,6 +173,10 @@ const authSlice = createSlice({
       .addCase(googleAuth.pending,       pending)
       .addCase(googleAuth.fulfilled,     fulfilled)
       .addCase(googleAuth.rejected,      rejected)
+
+      .addCase(verify2FALogin.pending,   pending)
+      .addCase(verify2FALogin.fulfilled, fulfilled)
+      .addCase(verify2FALogin.rejected,  rejected)
 
       .addCase(logout.fulfilled,         (state) => {
         state.loading = false
@@ -137,7 +193,7 @@ const authSlice = createSlice({
   },
 })
 
-export const { clearError, updateUser } = authSlice.actions
+export const { clearError, clearPending2FA, clearPendingEmailVerification, updateUser } = authSlice.actions
 export default authSlice.reducer
 
 // ─── Selectors ────────────────────────────────────────────────
@@ -146,3 +202,5 @@ export const selectIsLoggedIn = (state) => state.auth.isLoggedIn
 export const selectAuthLoading = (state) => state.auth.loading
 export const selectAuthError  = (state) => state.auth.error
 export const selectIsAdmin    = (state) => state.auth.user?.role === 'admin'
+export const selectPending2FA = (state) => state.auth.pending2FA
+export const selectPendingEmailVerification = (state) => state.auth.pendingEmailVerification

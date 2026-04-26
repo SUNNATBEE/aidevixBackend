@@ -180,7 +180,7 @@ const sendEmailVerificationCode = async (email, username, code) => {
       <p style="color:#475569;font-size:16px">Aidevix hisobingizni aktivlashtirish uchun quyidagi kodni kiriting:</p>
       <div style="background:#f1f5f9;border-radius:12px;padding:24px;text-align:center;margin:32px 0">
         <div style="font-size:40px;font-weight:bold;letter-spacing:10px;color:#4f46e5">${code}</div>
-        <p style="color:#64748b;font-size:13px;margin-top:12px">Kod 24 soat davomida amal qiladi</p>
+        <p style="color:#64748b;font-size:13px;margin-top:12px">Kod 15 daqiqa davomida amal qiladi</p>
       </div>
       <p style="color:#64748b;font-size:14px">Agar bu so'rovni siz yubormagan bo'lsangiz, ushbu xabarga e'tibor bermang.</p>
     </div>

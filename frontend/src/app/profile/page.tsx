@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -267,14 +268,23 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Edit Trigger */}
-              <button
-                onClick={() => setEditOpen(true)}
-                className="self-center md:self-start mt-4 py-3 px-6 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-slate-200 font-bold text-sm transition-all flex items-center gap-2 group"
-              >
-                <FiEdit2 className="group-hover:text-indigo-400 transition-colors" />
-                {t('profile.btn.edit')}
-              </button>
+              {/* Edit + security */}
+              <div className="self-center md:self-start mt-4 flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="py-3 px-6 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-slate-200 font-bold text-sm transition-all flex items-center justify-center gap-2 group"
+                >
+                  <FiEdit2 className="group-hover:text-indigo-400 transition-colors" />
+                  {t('profile.btn.edit')}
+                </button>
+                <Link
+                  href="/settings/security"
+                  className="py-3 px-6 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-2xl text-indigo-200 font-bold text-sm transition-all flex items-center justify-center gap-2"
+                >
+                  <FiShield size={18} />
+                  Xavfsizlik / 2FA
+                </Link>
+              </div>
             </div>
           </div>
         </div>

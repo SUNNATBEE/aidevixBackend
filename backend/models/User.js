@@ -174,6 +174,28 @@ const userSchema = new mongoose.Schema({
     default: null,
     select: false,
   },
+  // TOTP 2FA — REQUIRED for admins, optional for users
+  totpEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  totpSecret: {
+    type: String,
+    default: null,
+    select: false,
+  },
+  // Pending secret during enrollment (before user verifies first code)
+  totpPendingSecret: {
+    type: String,
+    default: null,
+    select: false,
+  },
+  // SHA-256 hashes of single-use backup codes (10 codes generated on enable)
+  totpBackupCodes: {
+    type: [String],
+    default: [],
+    select: false,
+  },
   // Avatar rasm URL
   avatar: {
     type: String,
@@ -235,6 +257,15 @@ userSchema.index({ xp: -1 });
 // Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
+
+  // Safety guard — without `+tokenVersion` selected the field is undefined here,
+  // and the increment below would reset it to 1, breaking session invalidation.
+  // New documents (register) start at default 0, so they're allowed.
+  if (!this.isNew && this.tokenVersion === undefined) {
+    return next(new Error(
+      'tokenVersion must be loaded before changing password — use .select("+tokenVersion")'
+    ));
+  }
   try {
     this.password = await bcrypt.hash(this.password, 14);
     this.passwordChangedAt = new Date();

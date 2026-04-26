@@ -36,8 +36,8 @@ const authenticate = async (req, res, next) => {
     }
 
     // password/refreshToken already have `select: false` in schema.
-    // Keep selection simple to reliably include tokenVersion.
-    const user = await User.findById(decoded.userId).select('+tokenVersion');
+    // Keep selection simple but reliably include tokenVersion + totpEnabled (for requireAdmin gate).
+    const user = await User.findById(decoded.userId).select('+tokenVersion +totpEnabled');
 
     if (!user) {
       return unauthorized(res, 'User not found or inactive.');
@@ -66,16 +66,29 @@ const authenticate = async (req, res, next) => {
 };
 
 const requireAdmin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    return next();
+  if (!req.user || req.user.role !== 'admin') {
+    if (req.user) {
+      securityLogger.suspicious(req, 'admin_access_denied', { userId: String(req.user._id) });
+    }
+    return res.status(403).json({
+      success: false,
+      message: 'Admin access required.',
+    });
   }
-  if (req.user) {
-    securityLogger.suspicious(req, 'admin_access_denied', { userId: String(req.user._id) });
+
+  // 2FA HARD requirement for admins. Bypass only the enrollment endpoints
+  // so admins can complete setup; everything else returns 403 with a clear flag.
+  const setupBypass = /^\/api\/auth\/(2fa\/(setup|enable)|me|logout)$/.test(req.originalUrl.split('?')[0]);
+  if (!req.user.totpEnabled && !setupBypass) {
+    securityLogger.suspicious(req, 'admin_missing_2fa', { userId: String(req.user._id) });
+    return res.status(403).json({
+      success: false,
+      requires2FAEnrollment: true,
+      message: 'Admin hisoblar uchun 2FA majburiy. Avval /api/auth/2fa/setup orqali sozlang.',
+    });
   }
-  return res.status(403).json({
-    success: false,
-    message: 'Admin access required.',
-  });
+
+  next();
 };
 
 module.exports = {

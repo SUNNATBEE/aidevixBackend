@@ -24,6 +24,16 @@ export default function GoogleAuthButton({ mode = 'login' }: Props) {
       googleAuth({ credential: credentialResponse.credential })
     );
     if (googleAuth.fulfilled.match(result)) {
+      const payload: any = result.payload;
+      if (payload?.requires2FA) {
+        router.push('/auth/2fa-verify');
+        return;
+      }
+      if (payload?.requiresEmailVerification) {
+        const email = encodeURIComponent(payload.email || '');
+        router.push(`/auth/verify-email?email=${email}`);
+        return;
+      }
       toast.success(
         mode === 'register'
           ? "Google orqali ro'yxatdan o'tdingiz!"
