@@ -24,6 +24,12 @@ const nextConfig = {
         source: '/api-proxy/:path*',
         destination: `${backendBaseUrl}/api/:path*`,
       },
+      // Agar Vercel env da `NEXT_PUBLIC_API_BASE_URL=/api` (noto'g'ri) bo'lib qolsa ham
+      // `POST /api/auth/2fa/setup` kabi so'rovlar Next 404 emas, backendga tushadi.
+      {
+        source: '/api/auth/:path*',
+        destination: `${backendBaseUrl}/api/auth/:path*`,
+      },
     ];
   },
   images: {

@@ -56,6 +56,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
     mentors: 0,
     rating: 0,
   });
+  const [homeStatsLoaded, setHomeStatsLoaded] = useState(false);
   const [newsIndex, setNewsIndex] = useState(0);
   const [aiNews, setAiNews] = useState<AiNewsItem[]>([]);
   const touchStartXRef = useRef<number | null>(null);
@@ -93,7 +94,10 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
           rating: Number(data.rating || 0),
         });
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setHomeStatsLoaded(true);
+      });
     return () => {
       mounted = false;
     };
@@ -125,39 +129,46 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
     };
   }, [isMounted]);
 
+  // Metrikalar serverdan kelguncha `data-value` 0; GSAP bir marta ishga tushsa — doim 0 qoladi.
+  useEffect(() => {
+    if (!isMounted || !homeStatsLoaded || !statsRef.current) return;
+    const el = statsRef.current;
+    const ctx = gsap.context(() => {
+      const counters = el.querySelectorAll('.stat-value');
+      counters.forEach((counter: Element) => {
+        const targetValue = Number(counter.getAttribute('data-value') || '0');
+        const decimals = Number(counter.getAttribute('data-decimals') || '0');
+        const valueProxy = { value: 0 };
+        gsap.fromTo(
+          valueProxy,
+          { value: 0 },
+          {
+            value: targetValue,
+            duration: 1.8,
+            ease: 'power2.out',
+            onUpdate: () => {
+              const current = valueProxy.value;
+              counter.textContent = decimals > 0
+                ? current.toFixed(decimals)
+                : Math.round(current).toString();
+            },
+            scrollTrigger: {
+              trigger: el,
+              start: 'top 82%',
+              once: true,
+            },
+          },
+        );
+      });
+    }, el);
+    requestAnimationFrame(() => ScrollTrigger.refresh());
+    return () => ctx.revert();
+  }, [isMounted, homeStatsLoaded, homeStats.students, homeStats.videos, homeStats.mentors, homeStats.rating]);
+
   useEffect(() => {
     if (!isMounted || !pageRef.current) return;
 
     const ctx = gsap.context(() => {
-      if (statsRef.current) {
-        const counters = statsRef.current.querySelectorAll('.stat-value');
-        counters.forEach((counter: Element) => {
-          const targetValue = Number(counter.getAttribute('data-value') || '0');
-          const decimals = Number(counter.getAttribute('data-decimals') || '0');
-          const valueProxy = { value: 0 };
-          gsap.fromTo(
-            valueProxy,
-            { value: 0 },
-            {
-              value: targetValue,
-              duration: 1.8,
-              ease: 'power2.out',
-              onUpdate: () => {
-                const current = valueProxy.value;
-                counter.textContent = decimals > 0
-                  ? current.toFixed(decimals)
-                  : Math.round(current).toString();
-              },
-              scrollTrigger: {
-                trigger: statsRef.current,
-                start: 'top 82%',
-                once: true,
-              },
-            },
-          );
-        });
-      }
-
       gsap.utils.toArray<HTMLElement>('.reveal-section').forEach((section, index) => {
         const direction = section.getAttribute('data-direction') || 'up';
         let x = 0, y = 0;
@@ -341,6 +352,13 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
     }).catch(() => {});
   };
 
+  const getNewsHref = (item?: AiNewsItem) => {
+    if (!item) return SOCIAL_LINKS.telegram;
+    if (String(item.platform).toLowerCase() === 'telegram') return SOCIAL_LINKS.telegram;
+    if (String(item.platform).toLowerCase() === 'instagram') return SOCIAL_LINKS.instagram;
+    return item.href || SOCIAL_LINKS.telegram;
+  };
+
   if (!isMounted || !isReady) return <HomeSkeleton />;
 
   return (
@@ -418,7 +436,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, ease: 'easeOut' }}
-              href={aiNews[newsIndex]?.href}
+              href={getNewsHref(aiNews[newsIndex])}
               target="_blank"
               rel="noopener noreferrer"
               onMouseEnter={playHoverSound}

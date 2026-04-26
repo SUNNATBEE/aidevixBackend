@@ -50,11 +50,12 @@ export default function TwoFactorVerifyPage() {
       const result = await (dispatch as any)(
         verify2FALogin({ challengeId: pending.challengeId, code: cleaned.toUpperCase() })
       );
-      if (verify2FALogin.fulfilled.match(result)) {
+      if (result && verify2FALogin.fulfilled.match(result)) {
         toast.success('Kirish muvaffaqiyatli');
         router.replace(next);
       } else {
-        toast.error((result.payload as string) || 'Kod noto\'g\'ri');
+        const errMsg = result ? ((result as { payload?: string }).payload as string | undefined) : undefined;
+        toast.error(errMsg || 'Kod noto\'g\'ri');
       }
     } finally {
       setSubmitting(false);

@@ -8,6 +8,9 @@ export const BACKEND_ORIGIN = (
   'https://aidevix-backend-production.up.railway.app'
 ).replace(/\/$/, '')
 
+// Brauzerda odatda `/api/proxy/` — `next.config` rewrite orqali Express backendga proxylanadi.
+// Vercel'da `NEXT_PUBLIC_API_BASE_URL` ni `/api` qilib qo'ymang (auth so'rovlari Next 404 beradi);
+// ishlatmasangiz yoki to'g'ri to'liq origin qo'ying, yoddan `/api/proxy/`.
 const base = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/proxy'
 const withLeading = (base.startsWith('/') || base.startsWith('http')) ? base : `/${base}`
 export const API_BASE_URL = withLeading.endsWith('/') ? withLeading : `${withLeading}/`

@@ -49,8 +49,16 @@ export default function TwoFactorSetupPage() {
           setSecret(data.data.secret);
           setStep('qr');
         })
-        .catch((err) => {
-          toast.error(err.response?.data?.message || '2FA setup ochilmadi');
+        .catch((err: any) => {
+          const status = err.response?.status;
+          const msg = err.response?.data?.message;
+          if (status === 404) {
+            toast.error(
+              '2FA sozlash serverda topilmadi (404). Deploy / API manzilini tekshiring yoki dasturchiga xabar bering.',
+            );
+          } else {
+            toast.error(msg || '2FA setup ochilmadi');
+          }
           router.replace('/profile');
         });
     }
