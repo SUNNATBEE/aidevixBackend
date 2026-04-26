@@ -119,10 +119,13 @@ const verifyTelegram = async (req, res) => {
       },
     });
   } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.error('[verifyTelegram]', error);
+    }
     res.status(500).json({
       success: false,
       message: 'Error verifying Telegram subscription.',
-      error: error.message,
     });
   }
 };
@@ -319,6 +322,8 @@ const checkVerifyToken = async (req, res) => {
       data: {
         linked: true,
         subscribed: isSubscribed,
+        /** Telegram API javob berdimi (false bo‘lsa, tarmoq xatosi — DB holatiga tayanamiz) */
+        telegramApiChecked: subResult.checked,
         telegram: user.socialSubscriptions.telegram,
       },
     });

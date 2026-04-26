@@ -11,14 +11,37 @@ const VALID_MEMBER_STATUSES = ['member', 'administrator', 'creator'];
  * @param {string|number} userId
  * @returns {Promise<{isMember: boolean, status: string|null}>}
  */
+/**
+ * Telegram `getChatMember` — HTTP 200 bo‘lsa ham `ok:false` qaytishi mumkin (Bot API qoidasi).
+ * 429 uchun qisqa retry (rate limit — GDPR / xavfsizlik monitoringida ham tavsiya etiladi).
+ */
 const getChatMemberStatus = async (botToken, chatId, userId) => {
-  const { data } = await axios.get(
-    `https://api.telegram.org/bot${botToken}/getChatMember`,
-    {
+  const url = `https://api.telegram.org/bot${botToken}/getChatMember`;
+
+  const fetchOnce = async () => {
+    const { data } = await axios.get(url, {
       params: { chat_id: chatId, user_id: userId },
-      timeout: 10000,
-    }
-  );
+      timeout: 12000,
+      validateStatus: () => true,
+    });
+    return data;
+  };
+
+  let data = await fetchOnce();
+  if (data?.error_code === 429 && data?.parameters?.retry_after) {
+    const wait = Math.min(10, Number(data.parameters.retry_after) || 3) * 1000;
+    await new Promise((r) => setTimeout(r, wait));
+    data = await fetchOnce();
+  } else if (data?.error_code === 429) {
+    await new Promise((r) => setTimeout(r, 2500));
+    data = await fetchOnce();
+  }
+
+  if (!data?.ok) {
+    const err = new Error(data?.description || 'Telegram getChatMember failed');
+    err.response = { status: data?.error_code === 400 ? 400 : 502, data };
+    throw err;
+  }
 
   const status = data.result?.status || null;
   return {

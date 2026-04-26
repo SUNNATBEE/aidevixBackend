@@ -288,6 +288,11 @@ export const translations: Record<Lang, Record<string, string>> = {
     'auth.login.submit': 'Kirish',
     'auth.login.noAccount': "Hisobingiz yo'qmi?",
     'auth.login.register': "Ro'yxatdan o'tish",
+    'auth.oauth.hintLogin': "Google orqali bir bosqichda xavfsiz kiring",
+    'auth.oauth.hintRegister': "Google hisobi — tezroq ro'yxat, qo'shimcha parol shart emas",
+    'auth.oauth.titleLogin': 'Google bilan kirish',
+    'auth.oauth.titleRegister': "Google orqali ro'yxatdan o'tish",
+    'auth.oauth.badge': 'OAuth 2.0 · Google',
     'auth.login.passwordMinLength': "Parol kamida 6 belgidan iborat bo'lishi kerak",
 
     'auth.register.title': "Ro'yxatdan o'tish",
@@ -437,6 +442,13 @@ export const translations: Record<Lang, Record<string, string>> = {
     'tg.tokenError': 'Token yaratishda xato yuz berdi',
     'tg.success': 'Telegram muvaffaqiyatli tasdiqlandi!',
     'tg.timeout': "Vaqt tugadi. Qaytadan urinib ko'ring.",
+    'tg.privacyShort':
+      "Telegram ID faqat obunani tekshirish uchun ishlatiladi (GDPR maqsad chegarasi).",
+    'tg.copyLink': 'Havolani nusxalash',
+    'tg.linkCopied': 'Nusxalandi — Telegramda oching',
+    'tg.subscribeChannelHint':
+      "Bot bog'landi. Kanalga obuna bo'lmagan bo'lsangiz, 1-qadamdagi kanalga kiring, keyin bu sahifada kuting.",
+    'tg.networkDelay': "Telegram vaqtincha javob bermadi — internetni tekshiring, jarayon avtomatik davom etadi.",
     'tg.linkedId': 'Sizning Telegram ID aniqlandi',
 
     // ─── Instagram Verify ───
@@ -954,6 +966,11 @@ export const translations: Record<Lang, Record<string, string>> = {
     'auth.login.submit': 'Войти',
     'auth.login.noAccount': 'Нет аккаунта?',
     'auth.login.register': 'Зарегистрироваться',
+    'auth.oauth.hintLogin': 'Войдите безопасно через Google',
+    'auth.oauth.hintRegister': 'Аккаунт Google — быстрая регистрация без отдельного пароля',
+    'auth.oauth.titleLogin': 'Вход через Google',
+    'auth.oauth.titleRegister': 'Регистрация через Google',
+    'auth.oauth.badge': 'OAuth 2.0 · Google',
     'auth.login.passwordMinLength': 'Пароль должен содержать не менее 6 символов',
 
     'auth.register.title': 'Регистрация',
@@ -1105,6 +1122,13 @@ export const translations: Record<Lang, Record<string, string>> = {
     'tg.tokenError': 'Ошибка создания токена',
     'tg.success': 'Telegram успешно подтверждён!',
     'tg.timeout': 'Время вышло. Попробуйте снова.',
+    'tg.privacyShort':
+      'Telegram ID используется только для проверки подписки (ограничение цели GDPR).',
+    'tg.copyLink': 'Копировать ссылку',
+    'tg.linkCopied': 'Скопировано — откройте в Telegram',
+    'tg.subscribeChannelHint':
+      'Бот подключён. Если вы не подписаны на канал, откройте шаг 1 и дождитесь на этой странице.',
+    'tg.networkDelay': 'Telegram временно не отвечает — проверьте сеть, процесс продолжится.',
     'tg.linkedId': 'Ваш Telegram ID определён',
 
     // ─── Instagram Verify ───
@@ -1625,6 +1649,11 @@ export const translations: Record<Lang, Record<string, string>> = {
     'auth.login.submit': 'Sign In',
     'auth.login.noAccount': "Don't have an account?",
     'auth.login.register': 'Sign Up',
+    'auth.oauth.hintLogin': 'Sign in securely with one tap via Google',
+    'auth.oauth.hintRegister': 'Use your Google account for the fastest sign-up',
+    'auth.oauth.titleLogin': 'Sign in with Google',
+    'auth.oauth.titleRegister': 'Sign up with Google',
+    'auth.oauth.badge': 'OAuth 2.0 · Google',
     'auth.login.passwordMinLength': 'Password must be at least 6 characters',
 
     'auth.register.title': 'Create Account',
@@ -1776,6 +1805,13 @@ export const translations: Record<Lang, Record<string, string>> = {
     'tg.tokenError': 'Failed to create token',
     'tg.success': 'Telegram verified successfully!',
     'tg.timeout': "Time's up. Please try again.",
+    'tg.privacyShort':
+      'Your Telegram ID is used only to verify channel membership (purpose limitation / GDPR-style transparency).',
+    'tg.copyLink': 'Copy link',
+    'tg.linkCopied': 'Copied — open in Telegram',
+    'tg.subscribeChannelHint':
+      'Bot is linked. If you have not joined the channel yet, use step 1, then wait on this page.',
+    'tg.networkDelay': 'Telegram is temporarily unreachable — check your connection; we will keep retrying.',
     'tg.linkedId': 'Your Telegram ID was identified',
 
     // ─── Instagram Verify ───
