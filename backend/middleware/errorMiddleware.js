@@ -1,5 +1,6 @@
 const ErrorResponse = require('../utils/errorResponse');
 const logger = require('../utils/logger');
+const multer = require('multer');
 
 const errorHandler = (err, req, res, next) => {
   let error = { ...err };
@@ -36,6 +37,28 @@ const errorHandler = (err, req, res, next) => {
 
   if (err.name === 'TokenExpiredError') {
     error = new ErrorResponse('Session expired, please login again', 401);
+  }
+
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      error = new ErrorResponse('Fayl hajmi juda katta. Avatar uchun maksimal 2MB.', 400);
+    } else {
+      error = new ErrorResponse(err.message || 'Fayl yuklashda xatolik.', 400);
+    }
+  }
+
+  // Cloudinary/multipart runtime errors should be returned as client-facing 400
+  if (
+    !error.statusCode &&
+    typeof err.message === 'string' &&
+    (
+      err.message.includes('Invalid image file') ||
+      err.message.includes('Unsupported source URL') ||
+      err.message.includes('File size too large') ||
+      err.message.includes('allowed formats')
+    )
+  ) {
+    error = new ErrorResponse(err.message, 400);
   }
 
   res.status(error.statusCode || 500).json({

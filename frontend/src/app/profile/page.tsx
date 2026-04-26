@@ -185,8 +185,12 @@ export default function ProfilePage() {
       toast.success(t('profile.toast.avatarUpdated'));
       dispatch(fetchUserStats());
       setAvatarPreview(null);
-    } catch (err) {
-      toast.error(t('profile.toast.avatarError'));
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        t('profile.toast.avatarError');
+      toast.error(message);
       setAvatarPreview(null);
     } finally {
       setAvatarUploading(false);

@@ -21,6 +21,7 @@ import { IoPlay, IoArrowForward, IoSchool } from 'react-icons/io5';
 import { HiArrowRight, HiOutlineDesktopComputer, HiOutlineServer, HiOutlineDeviceMobile, HiOutlineDatabase } from 'react-icons/hi';
 import { SiPython, SiFigma } from 'react-icons/si';
 import SiteLogoMark from '@components/common/SiteLogoMark';
+import { SOCIAL_LINKS } from '@utils/constants';
 
 const ThreeHero = dynamic(() => import('@/components/home/ThreeHero'), { ssr: false });
 
@@ -29,6 +30,19 @@ if (typeof window !== 'undefined') {
 }
 
 export default function HomeClient({ initialCourses = [], initialVideos = [] }) {
+  type AiNewsItem = {
+    _id?: string;
+    title: string;
+    summary: string;
+    cta: string;
+    href: string;
+    platform: 'telegram' | 'instagram' | string;
+    imageUrl?: string | null;
+    startsAt?: string | null;
+    endsAt?: string | null;
+    clicks?: number;
+  };
+
   const [isMounted, setIsMounted] = useState(false);
   const [showHeroVisual, setShowHeroVisual] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -42,6 +56,10 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
     mentors: 0,
     rating: 0,
   });
+  const [newsIndex, setNewsIndex] = useState(0);
+  const [aiNews, setAiNews] = useState<AiNewsItem[]>([]);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchEndXRef = useRef<number | null>(null);
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const statsRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
@@ -200,6 +218,41 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
     { name: t('cat.data'), subtitle: t('cat.dataSub'), icon: <HiOutlineDatabase className="w-8 h-8 text-blue-400" />, path: 'malumotlar' },
   ];
 
+  const fallbackAiNews: AiNewsItem[] = [
+    {
+      title: "AI Agentlar davri boshlandi: Cursor va Claude ish oqimlari real biznesga kirib keldi",
+      summary: "Yangi trend: kichik jamoalar ham agentlar bilan katta product tezligiga chiqmoqda.",
+      cta: "To'liq yangilik uchun Telegram",
+      href: SOCIAL_LINKS.telegram,
+      platform: "telegram",
+      imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1600&q=80',
+    },
+    {
+      title: "Prompt engineering endi alohida kasb: kompaniyalar aniq skill bilan mutaxassis qidirmoqda",
+      summary: "Senior darajada prompt yozish orqali sifat, xavfsizlik va xarajat bir vaqtning o'zida optimallashtirilmoqda.",
+      cta: "Batafsil post Instagram'da",
+      href: SOCIAL_LINKS.instagram,
+      platform: "instagram",
+      imageUrl: 'https://images.unsplash.com/photo-1717501219263-19f850be9f62?auto=format&fit=crop&w=1600&q=80',
+    },
+    {
+      title: "AI + kod review: bug'lar kamaydi, release tezligi oshdi",
+      summary: "Agent-first development jarayonida test va review bloklari ko'proq avtomatlashtirilmoqda.",
+      cta: "Yangiliklarni Telegram'da kuzating",
+      href: SOCIAL_LINKS.telegram,
+      platform: "telegram",
+      imageUrl: 'https://images.unsplash.com/photo-1676299081847-824916de030a?auto=format&fit=crop&w=1600&q=80',
+    },
+    {
+      title: "Multi-agent stack: bitta loyiha ichida Claude, Cursor, Copilot birga ishlatilmoqda",
+      summary: "Jamoalar har bir agentni o'z vazifasiga mos qo'llab, natijani sezilarli oshirmoqda.",
+      cta: "Instagram'da trend tahlili",
+      href: SOCIAL_LINKS.instagram,
+      platform: "instagram",
+      imageUrl: 'https://images.unsplash.com/photo-1686191128892-3f6f4e6b7138?auto=format&fit=crop&w=1600&q=80',
+    },
+  ];
+
   const stats = [
     { value: homeStats.students, label: t('stats.students'), color: isDark ? 'text-white' : 'text-gray-900', suffix: '+', decimals: 0 },
     { value: homeStats.videos, label: t('stats.videos'), color: 'bg-gradient-to-r from-amber-400 to-indigo-400 bg-clip-text text-transparent', suffix: '+', decimals: 0 },
@@ -217,6 +270,75 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
 
   const playHoverSound = () => {
     playSound('/sounds/onlyclick.wav');
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/proxy/public/ai-news')
+      .then(async (r) => {
+        if (!r.ok) throw new Error('ai-news fetch failed');
+        return r.json();
+      })
+      .then((json) => {
+        if (!mounted) return;
+        const items = (json?.data?.news || []) as AiNewsItem[];
+        if (items.length > 0) {
+          setAiNews(items);
+        } else {
+          setAiNews(fallbackAiNews);
+        }
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setAiNews(fallbackAiNews);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!aiNews.length) return;
+    const timer = setInterval(() => {
+      setNewsIndex((prev) => (prev + 1) % aiNews.length);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [aiNews.length]);
+
+  const handlePrevNews = () => {
+    if (!aiNews.length) return;
+    setNewsIndex((prev) => (prev - 1 + aiNews.length) % aiNews.length);
+  };
+
+  const handleNextNews = () => {
+    if (!aiNews.length) return;
+    setNewsIndex((prev) => (prev + 1) % aiNews.length);
+  };
+
+  const onNewsTouchStart = (e: React.TouchEvent<HTMLAnchorElement>) => {
+    touchStartXRef.current = e.changedTouches[0]?.clientX ?? null;
+    touchEndXRef.current = null;
+  };
+
+  const onNewsTouchEnd = (e: React.TouchEvent<HTMLAnchorElement>) => {
+    touchEndXRef.current = e.changedTouches[0]?.clientX ?? null;
+    const start = touchStartXRef.current;
+    const end = touchEndXRef.current;
+    if (start == null || end == null) return;
+    const dx = end - start;
+    const threshold = 45;
+    if (dx > threshold) handlePrevNews();
+    if (dx < -threshold) handleNextNews();
+  };
+
+  const trackNewsClick = (id?: string) => {
+    if (!id) return;
+    fetch(`/api/proxy/public/ai-news/${id}/click`, {
+      method: 'POST',
+      credentials: 'include',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+    }).catch(() => {});
   };
 
   if (!isMounted || !isReady) return <HomeSkeleton />;
@@ -289,6 +411,85 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
                 <HiArrowRight className="text-base" />
               </Link>
             </motion.div>
+
+            {aiNews.length > 0 && (
+            <motion.a
+              key={newsIndex}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
+              href={aiNews[newsIndex]?.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              onMouseEnter={playHoverSound}
+              onClick={() => trackNewsClick(aiNews[newsIndex]?._id)}
+              onTouchStart={onNewsTouchStart}
+              onTouchEnd={onNewsTouchEnd}
+              className={`relative mt-6 block overflow-hidden rounded-2xl border p-4 sm:mt-7 sm:rounded-3xl sm:p-5 ${isDark ? 'border-indigo-400/25 hover:border-indigo-300/45' : 'border-indigo-200 hover:border-indigo-400/50'} transition-all duration-300 hover:-translate-y-0.5`}
+            >
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{
+                  backgroundImage: aiNews[newsIndex]?.imageUrl
+                    ? `url("${aiNews[newsIndex]?.imageUrl}")`
+                    : 'none',
+                }}
+              />
+              <div className={`absolute inset-0 ${isDark ? 'bg-slate-950/75' : 'bg-white/80'}`} />
+              <div className={`absolute inset-0 bg-gradient-to-r ${isDark ? 'from-indigo-900/55 via-violet-900/35 to-cyan-900/45' : 'from-indigo-100/75 via-white/55 to-cyan-100/75'}`} />
+              <div className="relative z-10">
+              <div className="flex items-center justify-between gap-3">
+                <div className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${isDark ? 'border-indigo-300/30 text-indigo-200' : 'border-indigo-300 text-indigo-700'}`}>
+                  AI News · {aiNews[newsIndex]?.platform === 'instagram' ? 'Instagram' : 'Telegram'}
+                </div>
+                <div className={`text-xs ${mutedText}`}>{newsIndex + 1}/{aiNews.length}</div>
+              </div>
+              <h3 className="mt-3 text-sm font-extrabold leading-6 sm:text-base">{aiNews[newsIndex]?.title}</h3>
+              <p className={`mt-2 text-xs leading-6 sm:text-sm ${isDark ? 'text-slate-200/90' : mutedText}`}>{aiNews[newsIndex]?.summary}</p>
+              <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-indigo-400">
+                <span>{aiNews[newsIndex]?.cta}</span>
+                <IoArrowForward className="text-base" />
+              </div>
+              <div className="mt-4 flex items-center justify-between">
+                <div className={`text-[11px] ${mutedText}`}>Swipe yoki tugmalar bilan almashtiring</div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); handlePrevNews(); }}
+                    className={`h-8 w-8 rounded-full border text-sm font-bold ${isDark ? 'border-white/15 bg-white/5 text-slate-200 hover:bg-white/10' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'}`}
+                    aria-label="Oldingi yangilik"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); handleNextNews(); }}
+                    className={`h-8 w-8 rounded-full border text-sm font-bold ${isDark ? 'border-white/15 bg-white/5 text-slate-200 hover:bg-white/10' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'}`}
+                    aria-label="Keyingi yangilik"
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
+              {(aiNews[newsIndex]?.startsAt || aiNews[newsIndex]?.endsAt) && (
+                <div className={`mt-2 text-[11px] ${isDark ? 'text-indigo-200/80' : 'text-indigo-700/80'}`}>
+                  {aiNews[newsIndex]?.startsAt ? `Start: ${new Date(aiNews[newsIndex]!.startsAt as string).toLocaleString()}` : ''}
+                  {aiNews[newsIndex]?.startsAt && aiNews[newsIndex]?.endsAt ? ' · ' : ''}
+                  {aiNews[newsIndex]?.endsAt ? `End: ${new Date(aiNews[newsIndex]!.endsAt as string).toLocaleString()}` : ''}
+                </div>
+              )}
+              <div className={`mt-3 h-1 w-full overflow-hidden rounded-full ${isDark ? 'bg-white/10' : 'bg-slate-300/40'}`}>
+                <motion.div
+                  key={`news-progress-${newsIndex}`}
+                  initial={{ width: '0%' }}
+                  animate={{ width: '100%' }}
+                  transition={{ duration: 10, ease: 'linear' }}
+                  className="h-full rounded-full bg-indigo-500"
+                />
+              </div>
+              </div>
+            </motion.a>
+            )}
           </div>
 
           <motion.aside

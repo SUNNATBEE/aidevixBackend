@@ -76,3 +76,21 @@ export const createDailyChallenge = (body: {
   xpReward?: number
   date: string
 }) => axiosInstance.post('challenges/admin', body)
+
+// ─── AI News (admin) ─────────────────────────────────────────────────────────
+export const getAiNewsAdmin = () => axiosInstance.get('admin/ai-news')
+export const createAiNewsAdmin = (body: {
+  title: string
+  summary: string
+  imageUrl?: string
+  platform: 'telegram' | 'instagram'
+  href: string
+  cta?: string
+  order?: number
+  isActive?: boolean
+  startsAt?: string
+  endsAt?: string
+}) => axiosInstance.post('admin/ai-news', body)
+export const updateAiNewsAdmin = (id: string, body: Record<string, unknown>) =>
+  axiosInstance.put(`admin/ai-news/${id}`, body)
+export const deleteAiNewsAdmin = (id: string) => axiosInstance.delete(`admin/ai-news/${id}`)

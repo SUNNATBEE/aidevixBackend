@@ -5,11 +5,9 @@ export const uploadApi = {
     const formData = new FormData()
     formData.append('avatar', file)
 
-    // axiosInstance default Content-Type: application/json bo'lgani uchun,
-    // multipart/form-data uchun axios o'zi to'g'ri boundary qo'shadi.
-    return axiosInstance.post('upload/avatar', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    // Do not set Content-Type manually for FormData.
+    // Browser/XHR will add the correct multipart boundary automatically.
+    return axiosInstance.post('upload/avatar', formData)
   },
 }
 

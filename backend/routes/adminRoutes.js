@@ -6,6 +6,12 @@ const {
   getUserDetail, globalSearch, getAnalytics,
   sendTelegramMessage, bulkLinkBunny, reorderVideos, getCourseEnrollmentStats,
 } = require('../controllers/adminController');
+const {
+  listAiNewsAdmin,
+  createAiNewsAdmin,
+  updateAiNewsAdmin,
+  deleteAiNewsAdmin,
+} = require('../controllers/aiNewsController');
 const { adminListBugReports, adminReviewBugReport } = require('../controllers/bugReportController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
@@ -40,5 +46,11 @@ router.patch('/bug-reports/:id', ...guard, adminReviewBugReport);
 router.post('/telegram',          ...guard, sendTelegramMessage);
 router.post('/videos/bulk-link',  ...guard, bulkLinkBunny);
 router.put('/videos/reorder',     ...guard, reorderVideos);
+
+// AI news management
+router.get('/ai-news', ...guard, listAiNewsAdmin);
+router.post('/ai-news', ...guard, createAiNewsAdmin);
+router.put('/ai-news/:id', ...guard, updateAiNewsAdmin);
+router.delete('/ai-news/:id', ...guard, deleteAiNewsAdmin);
 
 module.exports = router;

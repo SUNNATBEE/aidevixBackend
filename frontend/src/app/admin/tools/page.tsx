@@ -1,9 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createDailyChallenge, sendTelegramMessage, bulkLinkBunny } from '@/api/adminApi';
+import {
+  createDailyChallenge,
+  sendTelegramMessage,
+  bulkLinkBunny,
+  getAiNewsAdmin,
+  createAiNewsAdmin,
+  updateAiNewsAdmin,
+  deleteAiNewsAdmin,
+} from '@/api/adminApi';
 import toast from 'react-hot-toast';
-import { FiSend, FiLink, FiActivity } from 'react-icons/fi';
+import { FiSend, FiLink, FiActivity, FiTrash2, FiRefreshCcw } from 'react-icons/fi';
 
 const TYPES = [
   { value: 'watch_video', label: "Video ko'rish" },
@@ -251,6 +259,255 @@ function BulkLinkSection() {
   );
 }
 
+type AiNewsItem = {
+  _id: string;
+  title: string;
+  summary: string;
+  imageUrl?: string | null;
+  platform: 'telegram' | 'instagram';
+  href: string;
+  cta?: string;
+  order?: number;
+  isActive: boolean;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  clicks?: number;
+};
+
+function AiNewsSection() {
+  const [items, setItems] = useState<AiNewsItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    summary: '',
+    platform: 'telegram',
+    href: 'https://t.me/aidevix',
+    cta: "To'liq yangilikni ko'rish",
+    order: 0,
+    imageUrl: '',
+    startsAt: '',
+    endsAt: '',
+  });
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await getAiNewsAdmin();
+      setItems(((res.data as { data?: { news?: AiNewsItem[] } })?.data?.news) || []);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'AI news roʻyxatini olishda xato');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title.trim() || !form.summary.trim() || !form.href.trim()) {
+      toast.error('title, summary, href majburiy');
+      return;
+    }
+    setCreating(true);
+    try {
+      await createAiNewsAdmin({
+        title: form.title.trim(),
+        summary: form.summary.trim(),
+        platform: form.platform as 'telegram' | 'instagram',
+        href: form.href.trim(),
+        cta: form.cta.trim(),
+        order: Number(form.order) || 0,
+        imageUrl: form.imageUrl.trim() || undefined,
+        startsAt: form.startsAt || undefined,
+        endsAt: form.endsAt || undefined,
+      });
+      toast.success('AI yangilik qoʻshildi');
+      setForm({
+        title: '',
+        summary: '',
+        platform: 'telegram',
+        href: 'https://t.me/aidevix',
+        cta: "To'liq yangilikni ko'rish",
+        order: 0,
+        imageUrl: '',
+        startsAt: '',
+        endsAt: '',
+      });
+      await load();
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || "Qo'shishda xato");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const toggleActive = async (item: AiNewsItem) => {
+    try {
+      await updateAiNewsAdmin(item._id, { isActive: !item.isActive });
+      await load();
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'Statusni yangilashda xato');
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Rostdan ham bu yangilikni o'chirmoqchimisiz?")) return;
+    try {
+      await deleteAiNewsAdmin(id);
+      toast.success("O'chirildi");
+      await load();
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || "O'chirishda xato");
+    }
+  };
+
+  React.useEffect(() => {
+    void load();
+  }, []);
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-xl">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h3 className="font-display text-lg font-bold text-white">AI News Banner boshqaruvi</h3>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-200 hover:bg-white/10"
+        >
+          <FiRefreshCcw className="h-3.5 w-3.5" />
+          Yangilash
+        </button>
+      </div>
+
+      <form onSubmit={createItem} className="space-y-3 rounded-xl border border-white/10 bg-slate-950 p-4">
+        <input
+          value={form.title}
+          onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))}
+          placeholder="Sarlavha"
+          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
+        />
+        <textarea
+          value={form.summary}
+          onChange={(e) => setForm((s) => ({ ...s, summary: e.target.value }))}
+          placeholder="Qisqa summary"
+          rows={2}
+          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
+        />
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <select
+            value={form.platform}
+            onChange={(e) => setForm((s) => ({ ...s, platform: e.target.value }))}
+            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
+          >
+            <option value="telegram">Telegram</option>
+            <option value="instagram">Instagram</option>
+          </select>
+          <input
+            value={form.cta}
+            onChange={(e) => setForm((s) => ({ ...s, cta: e.target.value }))}
+            placeholder="CTA"
+            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
+          />
+          <input
+            type="number"
+            value={form.order}
+            onChange={(e) => setForm((s) => ({ ...s, order: Number(e.target.value) || 0 }))}
+            placeholder="Order"
+            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
+          />
+        </div>
+        <input
+          value={form.imageUrl}
+          onChange={(e) => setForm((s) => ({ ...s, imageUrl: e.target.value }))}
+          placeholder="Thumbnail URL (https://...)"
+          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
+        />
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-xs text-slate-400">Start time (schedule)</label>
+            <input
+              type="datetime-local"
+              value={form.startsAt}
+              onChange={(e) => setForm((s) => ({ ...s, startsAt: e.target.value }))}
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs text-slate-400">End time (ixtiyoriy)</label>
+            <input
+              type="datetime-local"
+              value={form.endsAt}
+              onChange={(e) => setForm((s) => ({ ...s, endsAt: e.target.value }))}
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
+            />
+          </div>
+        </div>
+        <input
+          value={form.href}
+          onChange={(e) => setForm((s) => ({ ...s, href: e.target.value }))}
+          placeholder="https://..."
+          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={creating}
+          className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
+        >
+          {creating ? "Saqlanmoqda..." : "AI news qo'shish"}
+        </button>
+      </form>
+
+      <div className="mt-4 space-y-2">
+        {loading && <p className="text-sm text-slate-500">Yuklanmoqda...</p>}
+        {!loading && items.length === 0 && <p className="text-sm text-slate-500">Hozircha news yo'q</p>}
+        {items.map((item) => (
+          <div key={item._id} className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-slate-950 p-3">
+            <div className="min-w-0">
+              {item.imageUrl && (
+                <img
+                  src={item.imageUrl}
+                  alt={item.title}
+                  className="mb-2 h-20 w-full rounded-lg object-cover"
+                />
+              )}
+              <p className="truncate text-sm font-semibold text-white">{item.title}</p>
+              <p className="mt-1 line-clamp-2 text-xs text-slate-400">{item.summary}</p>
+              <p className="mt-1 text-[11px] text-slate-500">
+                {item.platform} · order: {item.order || 0} · clicks: {item.clicks || 0}
+              </p>
+              <p className="mt-1 text-[11px] text-indigo-300/70">
+                {item.startsAt ? `Start: ${new Date(item.startsAt).toLocaleString()}` : 'Start: hozir'}
+                {item.endsAt ? ` · End: ${new Date(item.endsAt).toLocaleString()}` : ''}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void toggleActive(item)}
+                className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${item.isActive ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-200'}`}
+              >
+                {item.isActive ? 'Aktiv' : 'Noaktiv'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void remove(item._id)}
+                className="rounded-lg bg-rose-500/20 p-2 text-rose-300 hover:bg-rose-500/30"
+                aria-label="Delete"
+              >
+                <FiTrash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminToolsPage() {
   return (
     <div className="space-y-6">
@@ -265,6 +522,7 @@ export default function AdminToolsPage() {
         <TelegramSection />
       </div>
       <BulkLinkSection />
+      <AiNewsSection />
     </div>
   );
 }
