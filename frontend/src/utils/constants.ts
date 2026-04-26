@@ -1,3 +1,6 @@
+/** Barcha UI va metadata (favicon / OG fallback) uchun yagona logotip. `frontend/public/Logo.jpg` */
+export const SITE_LOGO_PATH = '/Logo.jpg' as const
+
 /** Brauzerda admin havolalari uchun (Swagger / admin-docs). Localda NEXT_PUBLIC_BACKEND_URL qo‘ying. */
 export const BACKEND_ORIGIN = (
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -69,6 +72,7 @@ export const ROUTES = {
   LOGIN:          '/login',
   REGISTER:       '/register',
   PROFILE:        '/profile',
+  SETTINGS_SECURITY: '/settings/security',
   SUBSCRIPTION:   '/subscription',
   CAREERS:        '/careers',
   CHALLENGES:     '/challenges',

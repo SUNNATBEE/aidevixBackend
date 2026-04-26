@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Aidevix - Kelajakni kodlashni boshlang',
     description: 'Dasturlashni O\'zbek tilida sifatli o\'rganing.',
-    images: ['/og-home.jpg'],
+    images: ['/Logo.jpg'],
   },
 };
 

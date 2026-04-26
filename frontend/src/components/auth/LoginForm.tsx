@@ -12,23 +12,31 @@ import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
 import { useLang } from '@/context/LangContext';
 import { useTheme } from '@/context/ThemeContext';
 import GoogleAuthButton from './GoogleAuthButton';
+import TurnstileWidget from '@/components/common/TurnstileWidget';
 
 export default function LoginForm() {
   const [showPass, setShowPass] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors } } = useForm();
   const { t } = useLang();
   const { isDark } = useTheme();
-  
+
   const dispatch = useDispatch();
   const router = useRouter();
   const authError = useSelector(selectAuthError);
+  const captchaSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const captchaRequired = Boolean(captchaSiteKey);
 
   useEffect(() => {
     dispatch(clearError());
   }, [dispatch]);
 
   const onSubmit = async (data: any) => {
+    if (captchaRequired && !captchaToken) {
+      toast.error('Iltimos, robot emasligingizni tasdiqlang');
+      return;
+    }
     setIsSubmitting(true);
     dispatch(clearError());
 
@@ -36,6 +44,7 @@ export default function LoginForm() {
       const result = await (dispatch as any)(login({
         email: data.email,
         password: data.password,
+        ...(captchaToken ? { captchaToken } : {}),
       }));
 
       if (login.fulfilled.match(result)) {
@@ -115,7 +124,7 @@ export default function LoginForm() {
             type="button" 
             onClick={() => setShowPass(!showPass)}
             className="absolute right-5 text-gray-500 hover:text-gray-700 focus:outline-none"
-            university-tag="show-password"
+            data-testid="login-toggle-password"
           >
             {showPass ? <FiEyeOff size={18} /> : <FiEye size={18} />}
           </button>
@@ -123,11 +132,22 @@ export default function LoginForm() {
         {errors.password && <p className="text-error text-xs mt-1 ml-4">{(errors.password as any).message}</p>}
       </div>
 
+      {captchaRequired && (
+        <div className="flex justify-center pt-1">
+          <TurnstileWidget
+            siteKey={captchaSiteKey}
+            onToken={setCaptchaToken}
+            onError={() => setCaptchaToken(null)}
+            theme={isDark ? 'dark' : 'light'}
+          />
+        </div>
+      )}
+
       <div className="pt-4">
-        <button 
-          type="submit" 
-          disabled={isSubmitting}
-          className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none w-full rounded-full normal-case text-base font-medium h-12 flex justify-center items-center text-white"
+        <button
+          type="submit"
+          disabled={isSubmitting || (captchaRequired && !captchaToken)}
+          className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none w-full rounded-full normal-case text-base font-medium h-12 flex justify-center items-center text-white disabled:opacity-60"
         >
           {isSubmitting ? (
              <span className="loading loading-spinner loading-md"></span>

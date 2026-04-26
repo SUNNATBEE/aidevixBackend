@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import SiteLogoMark from '@components/common/SiteLogoMark';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Stars, Float, Text, ContactShadows, PerspectiveCamera } from '@react-three/drei';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -100,8 +101,9 @@ const LoadingScreen = ({ onComplete }) => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-8 flex flex-col items-center gap-5"
         >
+          <SiteLogoMark size={72} className="shadow-[0_20px_50px_rgba(139,92,246,0.35)] ring-purple-500/30" />
           <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 animate-pulse">
             Aidevix
           </h1>

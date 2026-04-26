@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { IoHomeOutline, IoSearchOutline } from 'react-icons/io5';
+import { IoHomeOutline } from 'react-icons/io5';
 import { useLang } from '@/context/LangContext';
+import SiteLogoMark from '@components/common/SiteLogoMark';
 
 export default function NotFound() {
   const { t } = useLang();
@@ -18,8 +19,8 @@ export default function NotFound() {
         <div className="relative mb-8">
            <h1 className="select-none text-[clamp(6rem,42vw,14rem)] font-black italic leading-none text-white opacity-5 sm:text-[14rem]">404</h1>
            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="w-20 h-20 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4 shadow-2xl shadow-indigo-500/10">
-                 <IoSearchOutline size={40} className="text-indigo-400" />
+              <div className="mb-4 flex justify-center">
+                <SiteLogoMark size={80} className="rounded-3xl border border-indigo-500/20 shadow-2xl shadow-indigo-500/10" />
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">{t('notFound.title')}</h2>
               <p className="text-gray-400 max-w-xs mx-auto text-sm leading-relaxed">

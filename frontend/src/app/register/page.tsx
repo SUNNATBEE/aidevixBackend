@@ -10,6 +10,7 @@ import { useTheme } from '@/context/ThemeContext';
 import gsap from 'gsap';
 import { FiUserPlus, FiSend, FiInstagram, FiPlayCircle } from 'react-icons/fi';
 import type { Lang } from '@utils/i18n';
+import SiteLogoMark from '@components/common/SiteLogoMark';
 
 const LANG_BADGES: Record<Lang, string> = { uz: 'UZ', ru: 'RU', en: 'EN' };
 
@@ -49,7 +50,7 @@ export default function RegisterPage() {
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] ${isDark ? 'bg-indigo-600/10' : 'bg-white/10'} rounded-full blur-[120px] pointer-events-none`}></div>
         <div className="z-10 max-w-lg mx-auto w-full">
           <div className="flex items-center gap-3 mb-16">
-            <div className="w-8 h-8 rounded bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">&lt;/&gt;</div>
+            <SiteLogoMark size={32} className="rounded-lg ring-white/20" />
             <span className="text-xl font-bold tracking-wide text-white">Aidevix</span>
           </div>
           <h1 className="mb-3 max-w-full text-balance text-2xl font-extrabold leading-tight tracking-tight text-white sm:mb-4 sm:text-4xl md:text-5xl">

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { FaInstagram, FaTelegram, FaYoutube } from 'react-icons/fa'
-import { RiCodeSSlashLine } from 'react-icons/ri'
+import SiteLogoMark from '@components/common/SiteLogoMark'
 import { ROUTES, SOCIAL_LINKS } from '@utils/constants'
 import { useLang } from '@/context/LangContext'
 import { useTheme } from '@/context/ThemeContext'
@@ -71,9 +71,10 @@ export default function Footer() {
           >
             <div className="section-kicker text-indigo-400">Aidevix</div>
             <Link href={ROUTES.HOME} className="group mt-5 flex w-fit items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-[0_12px_30px_rgba(86,98,246,0.3)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:bg-indigo-400">
-                <RiCodeSSlashLine className="text-sm" />
-              </div>
+              <SiteLogoMark
+                size={40}
+                className="shadow-[0_12px_30px_rgba(86,98,246,0.3)] transition-all duration-300 group-hover:-translate-y-0.5 ring-indigo-500/25"
+              />
               <span className={`font-display text-2xl font-semibold tracking-[-0.04em] ${brandText}`}>Aidevix</span>
             </Link>
             <p className={`mt-6 max-w-sm text-sm leading-7 ${descText}`}>{t('footer.desc')}</p>

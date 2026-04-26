@@ -10,19 +10,25 @@ import { IoPersonOutline, IoMailOutline, IoLockClosedOutline, IoEyeOutline, IoEy
 import { FiRefreshCcw } from 'react-icons/fi';
 import { forgotPasswordFlow } from '@utils/forgotPasswordFlow';
 import { useLang } from '@/context/LangContext';
+import { useTheme } from '@/context/ThemeContext';
 import GoogleAuthButton from './GoogleAuthButton';
+import TurnstileWidget from '@/components/common/TurnstileWidget';
 
 export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const { t } = useLang();
-  
+  const { isDark } = useTheme();
+
   const { register, handleSubmit, watch, formState: { errors }, setValue } = useForm();
   const router = useRouter();
   const [refCodeParam, setRefCodeParam] = useState('');
   const dispatch = useDispatch();
   const loading = useSelector(selectAuthLoading);
   const authError = useSelector(selectAuthError);
+  const captchaSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const captchaRequired = Boolean(captchaSiteKey);
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -70,6 +76,11 @@ export default function RegisterForm() {
       return;
     }
 
+    if (captchaRequired && !captchaToken) {
+      toast.error("Iltimos, robot emasligingizni tasdiqlang");
+      return;
+    }
+
     const nameParts = data.fullName.trim().split(' ');
     const firstName = nameParts[0];
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
@@ -96,7 +107,8 @@ export default function RegisterForm() {
       password: data.password,
       firstName,
       lastName,
-      referralCode: data.referralCode || undefined
+      referralCode: data.referralCode || undefined,
+      ...(captchaToken ? { captchaToken } : {})
     }));
 
     if (registerUser.fulfilled.match(result)) {
@@ -270,9 +282,20 @@ export default function RegisterForm() {
       </div>
       {errors.terms && <span className="text-red-500 text-xs -mt-2 block">{(errors.terms as any).message}</span>}
 
+      {captchaRequired && (
+        <div className="flex justify-center pt-2">
+          <TurnstileWidget
+            siteKey={captchaSiteKey}
+            onToken={setCaptchaToken}
+            onError={() => setCaptchaToken(null)}
+            theme={isDark ? 'dark' : 'light'}
+          />
+        </div>
+      )}
+
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || (captchaRequired && !captchaToken)}
         className="w-full mt-6 py-3.5 bg-indigo-500 hover:bg-indigo-600 focus:bg-indigo-600 text-white font-medium rounded-xl transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] hover:shadow-[0_0_25px_rgba(99,102,241,0.4)] active:scale-[0.98] flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? 'Kutib turing...' : "Ro'yxatdan o'tish"}

@@ -29,6 +29,7 @@ import {
 } from 'react-icons/fi';
 import { userApi } from '@api/userApi';
 import SavedPromptsSection from '@components/profile/SavedPromptsSection';
+import { ROUTES } from '@utils/constants';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -278,7 +279,7 @@ export default function ProfilePage() {
                   {t('profile.btn.edit')}
                 </button>
                 <Link
-                  href="/settings/security"
+                  href={ROUTES.SETTINGS_SECURITY}
                   className="py-3 px-6 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-2xl text-indigo-200 font-bold text-sm transition-all flex items-center justify-center gap-2"
                 >
                   <FiShield size={18} />

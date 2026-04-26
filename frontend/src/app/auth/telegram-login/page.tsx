@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { STORAGE_KEYS } from '@utils/constants';
+import SiteLogoMark from '@components/common/SiteLogoMark';
 
 function TelegramLoginContent() {
   const router = useRouter();
@@ -34,12 +35,10 @@ function TelegramLoginContent() {
 
   return (
     <div className="max-w-md w-full text-center space-y-8">
-      {/* Logo */}
-      <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-2xl shadow-blue-600/30">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-          <path d="M10 20L14 4M18 8L22 12L18 16M6 16L2 12L6 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </div>
+      <SiteLogoMark
+        size={80}
+        className="mx-auto rounded-2xl shadow-2xl shadow-blue-600/30 ring-blue-500/30"
+      />
 
       {/* Status Card */}
       <div className="bg-[#0d1224]/60 border border-white/5 rounded-2xl p-8 space-y-6 backdrop-blur-sm">

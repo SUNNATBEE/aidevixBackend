@@ -21,7 +21,7 @@ const api = axios.create({
   withCredentials: true,
 })
 
-// Attach CSRF token for state-changing requests
+// Attach CSRF token for state-changing requests, and lift captchaToken from body to header.
 api.interceptors.request.use((config) => {
   const method = String(config.method || 'get').toLowerCase()
   if (['post', 'put', 'patch', 'delete'].includes(method)) {
@@ -29,6 +29,22 @@ api.interceptors.request.use((config) => {
     if (csrf) {
       config.headers = config.headers || {}
       ;(config.headers as Record<string, string>)['X-CSRF-Token'] = csrf
+    }
+    // Convenience: callers may add `captchaToken` to the body; we forward it as
+    // `X-Captcha-Token` (which the backend `captchaCheck` middleware reads).
+    const body: any = config.data
+    if (
+      body &&
+      typeof body === 'object' &&
+      !(body instanceof FormData) &&
+      'captchaToken' in body &&
+      body.captchaToken
+    ) {
+      config.headers = config.headers || {}
+      ;(config.headers as Record<string, string>)['X-Captcha-Token'] = String(body.captchaToken)
+      // Strip from body so it doesn't pollute backend payloads
+      const { captchaToken, ...rest } = body
+      config.data = rest
     }
   }
   return config

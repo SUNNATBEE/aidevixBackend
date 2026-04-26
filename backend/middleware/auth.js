@@ -37,13 +37,13 @@ const authenticate = async (req, res, next) => {
 
     // password/refreshToken already have `select: false` in schema.
     // Keep selection simple but reliably include tokenVersion + totpEnabled (for requireAdmin gate).
-    const user = await User.findById(decoded.userId).select('+tokenVersion +totpEnabled');
+    const user = await User.findById(decoded.userId).select('+tokenVersion +totpEnabled +deletedAt');
 
     if (!user) {
       return unauthorized(res, 'User not found or inactive.');
     }
 
-    if (!user.isActive) {
+    if (!user.isActive || user.deletedAt) {
       securityLogger.suspicious(req, 'inactive_user_access', { userId: String(user._id) });
       return unauthorized(res, 'User not found or inactive.');
     }

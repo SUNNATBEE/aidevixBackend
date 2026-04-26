@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const description =
       course.description?.slice(0, 160) ||
       `${course.title} — O'zbek tilidagi professional dasturlash kursi.`;
-    const image = course.thumbnail || 'https://aidevix.uz/og-image.jpg';
+    const image = course.thumbnail || 'https://aidevix.uz/Logo.jpg';
     const url = `https://aidevix.uz/courses/${params.id}`;
 
     return {

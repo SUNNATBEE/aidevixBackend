@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { IoClose, IoDownload, IoPhonePortrait } from 'react-icons/io5';
+import { IoClose, IoDownload } from 'react-icons/io5';
+import SiteLogoMark from '@components/common/SiteLogoMark';
 
 const STORAGE_KEY = 'aidevix_pwa_dismissed';
 
@@ -49,9 +50,7 @@ export default function PWAInstallPrompt() {
           className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[900] w-full max-w-sm px-4"
         >
           <div className="bg-[#0d1224] border border-white/10 rounded-3xl p-5 shadow-2xl flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
-              <IoPhonePortrait className="text-2xl text-indigo-400" />
-            </div>
+            <SiteLogoMark size={48} className="flex-shrink-0 border border-indigo-500/20 shadow-md shadow-indigo-500/10" />
             <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-sm">Aidevix ilovasi</p>
               <p className="text-slate-400 text-xs mt-0.5">Qulay o'rganish uchun o'rnating</p>

@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const validator = require('validator');
 
 const User = require('../models/User');
+const Session = require('../models/Session');
 const UserStats = require('../models/UserStats');
 const asyncHandler = require('../middleware/asyncHandler');
 const ErrorResponse = require('../utils/errorResponse');
@@ -14,12 +15,15 @@ const {
   verifyResetToken,
   generate2FAChallenge,
   verify2FAChallenge,
+  REFRESH_ABSOLUTE_TTL_SECONDS,
 } = require('../utils/jwt');
 const { verifyTotpCode } = require('./twoFactorController');
 const {
   sendWelcomeEmail,
   sendResetCodeEmail,
   sendEmailVerificationCode,
+  sendNewDeviceLoginEmail,
+  sendAccountDeletedEmail,
 } = require('../utils/emailService');
 const { OAuth2Client } = require('google-auth-library');
 const {
@@ -31,6 +35,11 @@ const {
   REFRESH_COOKIE_NAME,
 } = require('../utils/authSecurity');
 const securityLogger = require('../utils/securityLogger');
+const { checkPasswordPwned } = require('../utils/hibp');
+const { isPasswordReused } = require('../utils/passwordHistory');
+const { buildFromReq, extractIp, extractUa } = require('../utils/deviceFingerprint');
+const { issueReauthToken } = require('../middleware/stepUp');
+const { softDeleteUser } = require('../utils/accountDeletion');
 
 const authDebug = (...args) => {
   if (process.env.AUTH_DEBUG === 'true') {
@@ -78,39 +87,109 @@ const sanitizeUser = (user) => ({
   lastClaimedDaily: user.lastClaimedDaily || null,
   emailVerified: user.emailVerified ?? false,
   totpEnabled: user.totpEnabled ?? false,
+  /** Present when the loaded document included `+password` (see getMe / login). */
+  hasLocalPassword: user.password != null,
+  /** Google account linked (sub is never exposed). */
+  googleLinked: Boolean(user.googleId),
 });
 
-const issueTokens = async (user) => {
-  // Always read authoritative tokenVersion from DB to avoid mismatches with
-  // documents that may not have `tokenVersion` selected in memory.
+/**
+ * Issue access + refresh tokens.
+ *
+ * If `existingSession` is provided (refresh-rotation path), the session is updated and the
+ * refresh token's `exp` claim is forced to the existing absolute cap (NIST sliding-cap).
+ * Otherwise a brand-new Session is created with absoluteExp = now + REFRESH_ABSOLUTE_TTL_SECONDS.
+ */
+const issueTokens = async (user, req, existingSession = null) => {
   const persisted = await User.findById(user._id).select('+tokenVersion');
   const tokenVersion = persisted?.tokenVersion || 0;
-  authDebug('issueTokens:resolved_token_version', {
-    userId: String(user._id),
-    tokenVersion,
-  });
-  const payload = { userId: user._id, tv: tokenVersion };
-  const accessToken = generateAccessToken(payload);
-  const refreshToken = generateRefreshToken(payload);
 
-  // Use updateOne to avoid triggering document save hooks that may mutate tokenVersion.
+  // Determine absolute exp (epoch seconds)
+  const nowSec = Math.floor(Date.now() / 1000);
+  const absoluteExpSec = existingSession
+    ? Math.floor(existingSession.absoluteExpiresAt.getTime() / 1000)
+    : nowSec + REFRESH_ABSOLUTE_TTL_SECONDS;
+
+  // Persist session BEFORE signing so we can embed its id in the refresh payload.
+  let session = existingSession;
+  if (!session) {
+    session = await Session.create({
+      userId: user._id,
+      refreshTokenHash: 'pending', // overwritten below
+      deviceHash: req ? buildFromReq(req) : null,
+      ip: req ? extractIp(req) : null,
+      ua: req ? String(extractUa(req)).slice(0, 200) : null,
+      lastUsedAt: new Date(),
+      absoluteExpiresAt: new Date(absoluteExpSec * 1000),
+    });
+  }
+
+  const accessPayload = { userId: user._id, tv: tokenVersion };
+  const refreshPayload = { userId: user._id, tv: tokenVersion, sid: String(session._id) };
+  const accessToken = generateAccessToken(accessPayload);
+  const refreshToken = generateRefreshToken(refreshPayload, absoluteExpSec);
+
+  // Persist hash of the new refresh token + bump session lastUsedAt
+  session.refreshTokenHash = hashToken(refreshToken);
+  session.lastUsedAt = new Date();
+  if (req) {
+    session.ip = extractIp(req) || session.ip;
+    session.ua = String(extractUa(req)).slice(0, 200) || session.ua;
+  }
+  await session.save();
+
   await User.updateOne(
     { _id: user._id },
     {
       $set: {
+        // Backward compat: keep the most-recent hash on the user as a fallback / quick gate.
         refreshToken: hashToken(refreshToken),
         lastLogin: new Date(),
       },
     }
   );
+
   authDebug('issueTokens:cookies_prepared', {
     userId: String(user._id),
     tokenVersion,
+    sessionId: String(session._id),
     accessLen: accessToken.length,
     refreshLen: refreshToken.length,
   });
 
-  return { accessToken, refreshToken };
+  return { accessToken, refreshToken, session };
+};
+
+/**
+ * Anomaly check + new-device email.
+ * Returns true if the device is new (and was added to knownDevices).
+ */
+const trackDeviceAndAlert = async (req, user) => {
+  const deviceHash = buildFromReq(req);
+  const fresh = await User.findById(user._id).select('+knownDevices');
+  const known = fresh?.knownDevices || [];
+  const isFirstEver = known.length === 0;
+  const isNew = !known.includes(deviceHash);
+
+  if (isNew) {
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $addToSet: { knownDevices: deviceHash },
+        $set: { lastLoginIp: extractIp(req), lastLoginUa: String(extractUa(req)).slice(0, 200) },
+      }
+    );
+    securityLogger.newDeviceLogin(req, user, deviceHash);
+    // Skip email on the very first login (the user is already on this device).
+    if (!isFirstEver && user.email && !user.email.endsWith('@deleted.aidevix.local')) {
+      sendNewDeviceLoginEmail(user.email, user.username, {
+        ip: extractIp(req),
+        ua: extractUa(req),
+        when: new Date().toISOString(),
+      }).catch(() => {});
+    }
+  }
+  return isNew;
 };
 
 // @desc    Register new user
@@ -134,6 +213,16 @@ const register = asyncHandler(async (req, res, next) => {
   if (!usernameRegex.test(normalizedUsername)) {
     return next(new ErrorResponse(
       'Username must be 3–50 chars; only a-z, 0-9, _, . and - allowed',
+      400
+    ));
+  }
+
+  // HIBP breach check (NIST 800-63B §5.1.1.2). Soft-fails on network errors.
+  const pwned = await checkPasswordPwned(password);
+  if (pwned.pwned) {
+    securityLogger.passwordPwned(req, null, pwned.count);
+    return next(new ErrorResponse(
+      'Bu parol ommaviy ma\'lumot tarqalishida uchragan. Boshqa parol tanlang.',
       400
     ));
   }
@@ -184,8 +273,11 @@ const register = asyncHandler(async (req, res, next) => {
     rankTitle: calculateRank(startingXp),
   });
 
-  const { accessToken, refreshToken } = await issueTokens(user);
+  const { accessToken, refreshToken } = await issueTokens(user, req);
   attachAuthCookies(res, accessToken, refreshToken);
+
+  // Seed knownDevices with the registering device — first login is always known.
+  await trackDeviceAndAlert(req, user);
 
   securityLogger.registerSuccess(req, user);
 
@@ -209,9 +301,10 @@ const register = asyncHandler(async (req, res, next) => {
     if (bot) bot.notifyNewRegistration(user);
   } catch (_) {}
 
+  const registered = await User.findById(user._id).select('+password');
   res.status(201).json({
     success: true,
-    data: { user: sanitizeUser(user) },
+    data: { user: sanitizeUser(registered) },
   });
 });
 
@@ -232,7 +325,7 @@ const login = asyncHandler(async (req, res, next) => {
   }
 
   const user = await User.findOne({ email: normalizedEmail }).select(
-    '+password +failedLoginAttempts +lockUntil +tokenVersion +totpEnabled +totpSecret'
+    '+password +failedLoginAttempts +lockUntil +tokenVersion +totpEnabled +totpSecret +deletedAt'
   );
 
   const passwordHash = user?.password || DUMMY_HASH;
@@ -264,7 +357,7 @@ const login = asyncHandler(async (req, res, next) => {
     );
   }
 
-  if (!user.isActive) {
+  if (!user.isActive || user.deletedAt) {
     securityLogger.loginFailed(req, 'account_inactive', { userId: String(user._id) });
     return next(new ErrorResponse('Account deactivated', 403));
   }
@@ -307,8 +400,9 @@ const login = asyncHandler(async (req, res, next) => {
     });
   }
 
-  const { accessToken, refreshToken } = await issueTokens(user);
+  const { accessToken, refreshToken } = await issueTokens(user, req);
   attachAuthCookies(res, accessToken, refreshToken);
+  await trackDeviceAndAlert(req, user);
 
   securityLogger.loginSuccess(req, user);
 
@@ -332,7 +426,7 @@ const verify2FALogin = asyncHandler(async (req, res, next) => {
   }
 
   const user = await User.findById(decoded.uid).select(
-    '+totpEnabled +totpSecret +totpBackupCodes +tokenVersion'
+    '+totpEnabled +totpSecret +totpBackupCodes +tokenVersion +password'
   );
   if (!user || !user.totpEnabled || !user.totpSecret) {
     return next(new ErrorResponse('2FA holati o\'zgargan. Qayta login qiling.', 401));
@@ -364,8 +458,9 @@ const verify2FALogin = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('TOTP kodi noto\'g\'ri', 401));
   }
 
-  const { accessToken, refreshToken } = await issueTokens(user);
+  const { accessToken, refreshToken } = await issueTokens(user, req);
   attachAuthCookies(res, accessToken, refreshToken);
+  await trackDeviceAndAlert(req, user);
   securityLogger.loginSuccess(req, user);
 
   res.json({
@@ -479,13 +574,13 @@ const refresh = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Invalid or expired refresh token', 401));
   }
 
-  const user = await User.findById(decoded.userId).select('+refreshToken +tokenVersion');
+  const user = await User.findById(decoded.userId).select('+refreshToken +tokenVersion +password');
   if (!user) {
     securityLogger.refreshTokenInvalid(req, 'user_missing');
     return next(new ErrorResponse('Refresh token invalid', 401));
   }
 
-  // Token version gate — password change / force-logout invalidates all outstanding tokens
+  // Token version gate
   if (typeof decoded.tv === 'number' && decoded.tv !== (user.tokenVersion || 0)) {
     authDebug('refresh:token_version_mismatch', {
       userId: String(user._id),
@@ -498,44 +593,87 @@ const refresh = asyncHandler(async (req, res, next) => {
   }
 
   const incomingHash = hashToken(token);
-  const storedHash = user.refreshToken || '';
 
+  // Session-based path (new tokens carry `sid`)
+  if (decoded.sid) {
+    const session = await Session.findOne({ _id: decoded.sid, userId: user._id });
+    if (!session) {
+      // Session was already revoked / never existed → treat as reuse
+      securityLogger.refreshTokenReuse(req, user._id);
+      await Session.deleteMany({ userId: user._id });
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { refreshToken: null }, $inc: { tokenVersion: 1 } }
+      );
+      clearAuthCookies(res);
+      return next(new ErrorResponse('Refresh token compromised. Please login again.', 401));
+    }
+
+    if (!safeEqual(session.refreshTokenHash, incomingHash)) {
+      // Reuse: this token was rotated already. Burn the entire family.
+      securityLogger.refreshTokenReuse(req, user._id);
+      await Session.deleteMany({ userId: user._id });
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { refreshToken: null }, $inc: { tokenVersion: 1 } }
+      );
+      clearAuthCookies(res);
+      return next(new ErrorResponse('Refresh token compromised. Please login again.', 401));
+    }
+
+    // Absolute lifetime cap (NIST 800-63B sliding-cap)
+    if (session.absoluteExpiresAt.getTime() < Date.now()) {
+      securityLogger.refreshAbsoluteCapHit(req, user._id);
+      await Session.deleteOne({ _id: session._id });
+      clearAuthCookies(res);
+      return next(new ErrorResponse('Sessiya muddati tugadi. Qayta login qiling.', 401));
+    }
+
+    if (!user.isActive) {
+      clearAuthCookies(res);
+      return next(new ErrorResponse('Account deactivated', 403));
+    }
+
+    const { accessToken, refreshToken: newRefreshToken } =
+      await issueTokens(user, req, session);
+    attachAuthCookies(res, accessToken, newRefreshToken);
+    return res.json({ success: true, data: { user: sanitizeUser(user) } });
+  }
+
+  // Legacy path — refresh token issued before session model deployed.
+  // Allow ONE rotation, then upgrade onto the session model.
+  const storedHash = user.refreshToken || '';
   if (!storedHash || !safeEqual(storedHash, incomingHash)) {
-    // Reuse detected OR token never issued — invalidate entire family
     securityLogger.refreshTokenReuse(req, user._id);
-    user.refreshToken = null;
-    user.tokenVersion = (user.tokenVersion || 0) + 1;
-    await user.save({ validateModifiedOnly: true });
+    await Session.deleteMany({ userId: user._id });
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { refreshToken: null }, $inc: { tokenVersion: 1 } }
+    );
     clearAuthCookies(res);
     return next(new ErrorResponse('Refresh token compromised. Please login again.', 401));
   }
-
   if (!user.isActive) {
     clearAuthCookies(res);
     return next(new ErrorResponse('Account deactivated', 403));
   }
-
-  const { accessToken, refreshToken: newRefreshToken } = await issueTokens(user);
-  authDebug('refresh:issued_new_tokens', {
-    userId: String(user._id),
-    decodedTv: decoded.tv,
-    dbTv: user.tokenVersion || 0,
-  });
+  const { accessToken, refreshToken: newRefreshToken } = await issueTokens(user, req);
   attachAuthCookies(res, accessToken, newRefreshToken);
-
-  res.json({
-    success: true,
-    data: { user: sanitizeUser(user) },
-  });
+  res.json({ success: true, data: { user: sanitizeUser(user) } });
 });
 
 // @desc    Logout
 const logout = asyncHandler(async (req, res) => {
   if (req.user) {
-    await User.findByIdAndUpdate(req.user._id, {
-      refreshToken: null,
-      $inc: { tokenVersion: 1 },
-    });
+    // Delete the specific session associated with this refresh cookie (don't kill all sessions).
+    const cookies = parseCookies(req.headers.cookie);
+    const incoming = cookies[REFRESH_COOKIE_NAME];
+    if (incoming) {
+      const incomingHash = hashToken(incoming);
+      await Session.deleteOne({ userId: req.user._id, refreshTokenHash: incomingHash });
+    }
+    // Clear legacy fallback hash so old token can't be reused either.
+    await User.findByIdAndUpdate(req.user._id, { refreshToken: null });
     securityLogger.logout(req, req.user._id);
   }
   clearAuthCookies(res);
@@ -544,7 +682,7 @@ const logout = asyncHandler(async (req, res) => {
 
 // @desc    Get Me
 const getMe = asyncHandler(async (req, res) => {
-  let user = await User.findById(req.user._id);
+  let user = await User.findById(req.user._id).select('+password');
 
   if (!user.referralCode) {
     const newReferralCode =
@@ -749,7 +887,7 @@ const resetPassword = asyncHandler(async (req, res, next) => {
   }
 
   const user = await User.findOne({ email: normalizedEmail }).select(
-    '+resetTokenHash +resetTokenExpire +tokenVersion +refreshToken'
+    '+resetTokenHash +resetTokenExpire +tokenVersion +refreshToken +passwordHistory +password'
   );
   if (!user) return next(new ErrorResponse('User not found', 404));
 
@@ -763,17 +901,36 @@ const resetPassword = asyncHandler(async (req, res, next) => {
   }
 
   if (!safeEqual(user.resetTokenHash, hashToken(resetToken))) {
-    // Noto'g'ri token — darhol tozalaymiz (brute-force himoya)
     await User.updateOne({ _id: user._id }, { $set: { resetTokenHash: null, resetTokenExpire: null } });
     return next(new ErrorResponse('Invalid reset token', 400));
   }
 
-  // Single-use: darhol ishlatib bo'lingan deb belgilaymiz, keyin saqlaymiz
+  // HIBP breach check
+  const pwned = await checkPasswordPwned(newPassword);
+  if (pwned.pwned) {
+    securityLogger.passwordPwned(req, user._id, pwned.count);
+    return next(new ErrorResponse(
+      'Bu parol ommaviy ma\'lumot tarqalishida uchragan. Boshqa parol tanlang.',
+      400
+    ));
+  }
+
+  // Password history — reject reuse of any of the last 5
+  const history = [user.password, ...(user.passwordHistory || [])].filter(Boolean);
+  if (await isPasswordReused(newPassword, history)) {
+    securityLogger.passwordReuseRejected(req, user._id);
+    return next(new ErrorResponse('So\'nggi 5 ta paroldan birini takrorlay olmaysiz.', 400));
+  }
+
+  // Single-use: clear reset state first
   user.resetTokenHash = null;
   user.resetTokenExpire = null;
   user.password = newPassword;
   user.refreshToken = null;
-  await user.save(); // pre-save hook: tokenVersion++, passwordChangedAt yangilanadi
+  await user.save(); // pre-save hook: tokenVersion++, history rotated, passwordChangedAt updated
+
+  // Revoke ALL sessions on this user — password compromise scenario
+  await Session.deleteMany({ userId: user._id });
   clearAuthCookies(res);
 
   securityLogger.passwordResetCompleted(req, user);
@@ -797,7 +954,7 @@ const changePassword = asyncHandler(async (req, res, next) => {
   }
 
   const user = await User.findById(req.user._id).select(
-    '+password +tokenVersion +refreshToken'
+    '+password +tokenVersion +refreshToken +passwordHistory'
   );
   if (!user) return next(new ErrorResponse('User not found', 404));
 
@@ -809,9 +966,29 @@ const changePassword = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Joriy parol noto\'g\'ri', 400));
   }
 
+  // HIBP breach check
+  const pwned = await checkPasswordPwned(newPassword);
+  if (pwned.pwned) {
+    securityLogger.passwordPwned(req, user._id, pwned.count);
+    return next(new ErrorResponse(
+      'Bu parol ommaviy ma\'lumot tarqalishida uchragan. Boshqa parol tanlang.',
+      400
+    ));
+  }
+
+  // Password history reuse check
+  const history = [user.password, ...(user.passwordHistory || [])].filter(Boolean);
+  if (await isPasswordReused(newPassword, history)) {
+    securityLogger.passwordReuseRejected(req, user._id);
+    return next(new ErrorResponse('So\'nggi 5 ta paroldan birini takrorlay olmaysiz.', 400));
+  }
+
   user.password = newPassword;
   user.refreshToken = null;
   await user.save();
+
+  // Revoke ALL sessions — password change is a security event
+  await Session.deleteMany({ userId: user._id });
   clearAuthCookies(res);
 
   securityLogger.passwordChanged(req, user);
@@ -985,14 +1162,108 @@ const googleAuth = asyncHandler(async (req, res, next) => {
     });
   }
 
-  const { accessToken, refreshToken } = await issueTokens(user);
+  const { accessToken, refreshToken } = await issueTokens(user, req);
   attachAuthCookies(res, accessToken, refreshToken);
+  await trackDeviceAndAlert(req, user);
   securityLogger.loginSuccess(req, user);
 
+  const oauthUser = await User.findById(user._id).select('+password');
   res.status(isNew ? 201 : 200).json({
     success: true,
-    data: { user: sanitizeUser(user) },
+    data: { user: sanitizeUser(oauthUser) },
     isNewUser: isNew,
+  });
+});
+
+// @desc    Step-up reauth — issue 5-min reauth token.
+//
+// Accepts EITHER:
+//   - `password` (for users with a local password)
+//   - `googleCredential` (Google ID token; for Google-only accounts and as alt path)
+// Used by sensitive operations (account delete, 2FA disable, email change).
+const reauth = asyncHandler(async (req, res, next) => {
+  const { password, googleCredential } = req.body;
+
+  const user = await User.findById(req.user._id).select('+password');
+  if (!user) return next(new ErrorResponse('User not found', 404));
+
+  let verified = false;
+  let method = null;
+
+  if (password && user.password) {
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) {
+      securityLogger.suspicious(req, 'reauth_wrong_password', { userId: String(user._id) });
+      return next(new ErrorResponse('Parol noto\'g\'ri', 401));
+    }
+    verified = true;
+    method = 'password';
+  } else if (googleCredential && user.googleId) {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      return next(new ErrorResponse('Google reauth not configured', 503));
+    }
+    try {
+      const googleClient = new OAuth2Client(clientId);
+      const ticket = await googleClient.verifyIdToken({
+        idToken: googleCredential,
+        audience: clientId,
+      });
+      const payload = ticket.getPayload();
+      // The credential MUST belong to the same Google account linked on this user.
+      if (!payload?.sub || payload.sub !== user.googleId) {
+        securityLogger.suspicious(req, 'reauth_google_account_mismatch', {
+          userId: String(user._id),
+        });
+        return next(new ErrorResponse('Google hisob mos kelmadi', 401));
+      }
+      verified = true;
+      method = 'google';
+    } catch (err) {
+      securityLogger.suspicious(req, 'reauth_google_invalid', {
+        userId: String(user._id),
+        error: err.message,
+      });
+      return next(new ErrorResponse('Google credential noto\'g\'ri', 401));
+    }
+  }
+
+  if (!verified) {
+    return next(new ErrorResponse(
+      user.password
+        ? 'Parol majburiy'
+        : 'Google credential majburiy (hisobingiz Google bilan ulangan)',
+      400
+    ));
+  }
+
+  const reauthToken = issueReauthToken(user._id);
+  res.json({
+    success: true,
+    data: { reauthToken, expiresIn: 300, method },
+  });
+});
+
+// @desc    GDPR right-to-erasure — soft-delete + anonymize own account.
+//          Requires step-up reauth token (verified by middleware).
+const deleteMyAccount = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    clearAuthCookies(res);
+    return res.json({ success: true, message: 'Already deleted' });
+  }
+  const originalEmail = user.email;
+  const originalUsername = user.username;
+  await softDeleteUser(user._id, 'self');
+  clearAuthCookies(res);
+
+  securityLogger.accountDeleted(req, user, 'self');
+  if (originalEmail && !originalEmail.endsWith('@deleted.aidevix.local')) {
+    sendAccountDeletedEmail(originalEmail, originalUsername).catch(() => {});
+  }
+  res.json({
+    success: true,
+    message: 'Hisob o\'chirildi va anonimlashtirildi. Sizning ma\'lumotlaringiz muvaffaqiyatli o\'chirildi.',
   });
 });
 
@@ -1014,4 +1285,6 @@ module.exports = {
   verifyEmailPublic,
   resendVerification,
   resendVerificationPublic,
+  reauth,
+  deleteMyAccount,
 };

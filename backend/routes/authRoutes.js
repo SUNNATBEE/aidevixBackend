@@ -18,6 +18,8 @@ const {
   verifyEmailPublic,
   resendVerification,
   resendVerificationPublic,
+  reauth,
+  deleteMyAccount,
 } = require('../controllers/authController');
 const {
   setup2FA,
@@ -26,6 +28,8 @@ const {
   regenerateBackupCodes,
 } = require('../controllers/twoFactorController');
 const { authenticate } = require('../middleware/auth');
+const captchaCheck = require('../middleware/captchaCheck');
+const { requireRecentReauth } = require('../middleware/stepUp');
 const {
   otpLimiter,
   loginLimiter,
@@ -37,13 +41,13 @@ const {
   totpLimiter,
 } = require('../middleware/rateLimiter');
 
-// Public — limiters tight, CSRF exempt
-router.post('/register', registerLimiter, register);
-router.post('/login', loginLimiter, login);
+// Public — limiters tight, CSRF exempt; CAPTCHA on register/login/forgot.
+router.post('/register', registerLimiter, captchaCheck, register);
+router.post('/login', loginLimiter, captchaCheck, login);
 router.post('/2fa/verify-login', totpLimiter, verify2FALogin);
 router.post('/google', googleLimiter, googleAuth);
 router.post('/refresh-token', refreshLimiter, refreshToken);
-router.post('/forgot-password', otpLimiter, forgotPassword);
+router.post('/forgot-password', otpLimiter, captchaCheck, forgotPassword);
 router.post('/verify-code', otpLimiter, verifyCode);
 router.post('/reset-password', otpLimiter, resetPassword);
 router.post('/resend-verification-public', otpLimiter, resendVerificationPublic);
@@ -57,6 +61,10 @@ router.get('/me', authenticate, getMe);
 router.get('/referrals', authenticate, getReferralStats);
 router.post('/verify-email', authenticate, verifyEmailLimiter, verifyEmail);
 router.post('/resend-verification', authenticate, verifyEmailLimiter, resendVerification);
+
+// Step-up reauth + GDPR right-to-erasure
+router.post('/reauth', authenticate, reauth);
+router.delete('/me', authenticate, requireRecentReauth, deleteMyAccount);
 
 // 2FA management (authenticated)
 router.post('/2fa/setup', authenticate, setup2FA);

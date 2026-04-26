@@ -121,6 +121,49 @@ const securityLogger = {
   csrfRejected: (req) =>
     logger.warn('security.csrf.rejected', baseContext(req)),
 
+  newDeviceLogin: (req, user, deviceHash) =>
+    logger.warn('auth.login.new_device', {
+      ...baseContext(req),
+      userId: String(user._id),
+      email: maskEmail(user.email),
+      deviceHash: deviceHash ? deviceHash.slice(0, 12) : null,
+    }),
+
+  passwordReuseRejected: (req, userId) =>
+    logger.warn('auth.password.reuse_rejected', {
+      ...baseContext(req),
+      userId: userId ? String(userId) : null,
+    }),
+
+  passwordPwned: (req, userId, count) =>
+    logger.warn('auth.password.pwned_rejected', {
+      ...baseContext(req),
+      userId: userId ? String(userId) : null,
+      breachCount: count,
+    }),
+
+  sessionRevoked: (req, userId, sessionId, by) =>
+    logger.info('auth.session.revoked', {
+      ...baseContext(req),
+      userId: userId ? String(userId) : null,
+      sessionId: sessionId ? String(sessionId) : null,
+      by, // 'self' | 'admin' | 'reuse' | 'logout'
+    }),
+
+  refreshAbsoluteCapHit: (req, userId) =>
+    logger.warn('auth.refresh.absolute_cap_hit', {
+      ...baseContext(req),
+      userId: userId ? String(userId) : null,
+    }),
+
+  accountDeleted: (req, user, by) =>
+    logger.warn('auth.account.deleted', {
+      ...baseContext(req),
+      userId: String(user._id),
+      email: maskEmail(user.email),
+      by, // 'self' | 'admin'
+    }),
+
   suspicious: (req, event, meta = {}) =>
     logger.warn(`security.suspicious.${event}`, {
       ...baseContext(req),

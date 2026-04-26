@@ -199,6 +199,54 @@ const sendEmailVerificationCode = async (email, username, code) => {
   });
 };
 
+const sendNewDeviceLoginEmail = async (email, username, { ip, ua, when }) => {
+  const safeUa = String(ua || 'unknown').slice(0, 200).replace(/[<>]/g, '');
+  const safeIp = String(ip || 'unknown').replace(/[<>]/g, '');
+  const html = `<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#f4f7fa;font-family:Arial,sans-serif">
+  <div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden">
+    <div style="background:#dc2626;padding:32px;text-align:center">
+      <div style="font-size:48px">🛡️</div>
+      <h1 style="color:#fff;margin:8px 0">Yangi qurilmadan kirish</h1>
+    </div>
+    <div style="padding:32px">
+      <p style="color:#475569;font-size:16px">Salom, <strong>${username}</strong>!</p>
+      <p style="color:#475569">Hisobingizga yangi qurilmadan kirilgan:</p>
+      <table style="width:100%;background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0;border-collapse:collapse">
+        <tr><td style="padding:6px 12px;color:#64748b">Vaqt:</td><td style="padding:6px 12px;color:#0f172a"><strong>${when}</strong></td></tr>
+        <tr><td style="padding:6px 12px;color:#64748b">IP:</td><td style="padding:6px 12px;color:#0f172a">${safeIp}</td></tr>
+        <tr><td style="padding:6px 12px;color:#64748b">Brauzer / qurilma:</td><td style="padding:6px 12px;color:#0f172a">${safeUa}</td></tr>
+      </table>
+      <p style="color:#475569">Bu siz bo'lsangiz — e'tibor bermang. Bo'lmasa, <strong style="color:#dc2626">darhol parolingizni o'zgartiring</strong> va aktiv sessiyalarni tekshiring.</p>
+      <div style="text-align:center;margin:24px 0">
+        <a href="${process.env.FRONTEND_URL || 'https://aidevix.uz'}/profile/security" style="background:#6366f1;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none">Sessiyalarni boshqarish</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+  await transporter.sendMail({
+    from: FROM,
+    to: email,
+    subject: '🛡️ Yangi qurilmadan Aidevix hisobiga kirish',
+    html,
+  }).catch(() => {});
+};
+
+const sendAccountDeletedEmail = async (email, username) => {
+  await transporter.sendMail({
+    from: FROM,
+    to: email,
+    subject: 'Aidevix hisob o\'chirildi',
+    html: `
+      <h2>Salom, ${username}!</h2>
+      <p>Sizning Aidevix hisobingiz GDPR talabi asosida o'chirildi va anonimlashtirildi.</p>
+      <p>Agar bu xato bo'lsa yoki yordam kerak bo'lsa, support@aidevix.uz ga murojaat qiling.</p>
+    `,
+  }).catch(() => {});
+};
+
 module.exports = {
   sendWelcomeEmail,
   sendEmailVerificationCode,
@@ -209,4 +257,6 @@ module.exports = {
   sendStreakReminderEmail,
   sendQuizResultEmail,
   sendResetCodeEmail,
+  sendNewDeviceLoginEmail,
+  sendAccountDeletedEmail,
 };

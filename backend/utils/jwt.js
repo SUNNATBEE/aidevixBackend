@@ -17,6 +17,11 @@ const VERIFY_OPTS_REFRESH = { algorithms: ['HS256'], issuer: 'aidevix', audience
 const VERIFY_OPTS_RESET = { algorithms: ['HS256'], issuer: 'aidevix', audience: 'aidevix-reset' };
 const VERIFY_OPTS_2FA = { algorithms: ['HS256'], issuer: 'aidevix', audience: 'aidevix-2fa' };
 
+// Absolute lifetime cap on refresh-token families (NIST 800-63B sliding-cap guidance).
+// First-issued refresh sets `exp = now + REFRESH_TOKEN_EXPIRE`. Rotated refreshes copy the
+// SAME `exp` (not a fresh +7d), capping the family. Once expired, user must re-login.
+const REFRESH_ABSOLUTE_TTL_SECONDS = 7 * 24 * 60 * 60;
+
 const generateAccessToken = (payload) => {
   return jwt.sign(payload, ACCESS_TOKEN_SECRET, {
     ...SIGN_OPTS_ACCESS,
@@ -24,11 +29,20 @@ const generateAccessToken = (payload) => {
   });
 };
 
-const generateRefreshToken = (payload) => {
-  return jwt.sign(payload, REFRESH_TOKEN_SECRET, {
-    ...SIGN_OPTS_REFRESH,
-    expiresIn: REFRESH_TOKEN_EXPIRE,
-  });
+/**
+ * Generate refresh token. If `absoluteExp` is provided (epoch seconds), the token's `exp`
+ * claim is forced to that value, propagating the family's hard cap across rotations.
+ * Otherwise a fresh +REFRESH_TOKEN_EXPIRE is set (initial login).
+ */
+const generateRefreshToken = (payload, absoluteExp = null) => {
+  const opts = { ...SIGN_OPTS_REFRESH };
+  const finalPayload = { ...payload };
+  if (absoluteExp && Number.isFinite(absoluteExp)) {
+    finalPayload.exp = absoluteExp;
+  } else {
+    opts.expiresIn = REFRESH_TOKEN_EXPIRE;
+  }
+  return jwt.sign(finalPayload, REFRESH_TOKEN_SECRET, opts);
 };
 
 const verifyAccessToken = (token) => {
@@ -88,4 +102,5 @@ module.exports = {
   verifyRefreshToken,
   verifyResetToken,
   verify2FAChallenge,
+  REFRESH_ABSOLUTE_TTL_SECONDS,
 };

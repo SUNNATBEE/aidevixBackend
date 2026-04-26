@@ -49,13 +49,13 @@ export const metadata: Metadata = {
     siteName: 'Aidevix',
     title: 'Aidevix - Kelajakni kodlashni boshlang',
     description: 'O\'zbek tilidagi eng yirik va zamonaviy dasturlash o\'quv platformasi.',
-    images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'Aidevix Platform' }],
+    images: [{ url: '/Logo.jpg', width: 1200, height: 630, alt: 'Aidevix' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Aidevix - Kelajakni kodlashni boshlang',
     description: 'O\'zbek tilidagi eng yirik va zamonaviy dasturlash o\'quv platformasi.',
-    images: ['/og-image.jpg'],
+    images: ['/Logo.jpg'],
   },
   robots: {
     index: true,
@@ -71,13 +71,15 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
       { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-32x32.ico', sizes: '32x32', type: 'image/x-icon' },
       { url: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/favicon-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: '/apple-touch-icon.png',
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
-  manifest: '/manifest.json',
+  manifest: '/site.webmanifest',
   verification: {
     google: 'TUCRHfBmNAFXN61L3px29vaGKe1epzTfbY1lB0zeydk',
   },

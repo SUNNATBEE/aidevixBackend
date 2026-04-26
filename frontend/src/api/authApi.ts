@@ -51,4 +51,18 @@ export const authApi = {
   /** PUT /auth/change-password */
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     api.put('auth/change-password', data),
+
+  /**
+   * POST /auth/reauth — issue 5-min step-up reauth token.
+   * Pass `password` for local accounts, OR `googleCredential` (Google ID token) for Google-only accounts.
+   */
+  reauth: (data: { password?: string; googleCredential?: string }) =>
+    api.post('auth/reauth', data),
+
+  /**
+   * DELETE /auth/me — GDPR right-to-erasure (soft-delete + anonymize).
+   * Requires `X-Reauth-Token` header (obtain from /auth/reauth).
+   */
+  deleteMyAccount: (reauthToken: string) =>
+    api.delete('auth/me', { headers: { 'X-Reauth-Token': reauthToken } }),
 }

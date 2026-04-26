@@ -20,6 +20,7 @@ import { userApi } from '@/api/userApi';
 import { IoPlay, IoArrowForward, IoSchool } from 'react-icons/io5';
 import { HiArrowRight, HiOutlineDesktopComputer, HiOutlineServer, HiOutlineDeviceMobile, HiOutlineDatabase } from 'react-icons/hi';
 import { SiPython, SiFigma } from 'react-icons/si';
+import SiteLogoMark from '@components/common/SiteLogoMark';
 
 const ThreeHero = dynamic(() => import('@/components/home/ThreeHero'), { ssr: false });
 
@@ -235,6 +236,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
               animate={{ opacity: 1, y: 0 }}
               className={`section-kicker mb-4 inline-flex max-w-full flex-wrap items-center gap-2 border-b sm:mb-6 sm:gap-3 ${hairline} pb-3 sm:pb-4 ${mutedText}`}
             >
+              <SiteLogoMark size={24} className="rounded-lg ring-white/10" />
               <span>Aidevix</span>
               <span>{t('hero.badge')}</span>
             </motion.div>

@@ -10,7 +10,7 @@ import { getRankInfo } from '@utils/xpLevel'
 import { useLang } from '@/context/LangContext'
 import { useTheme } from '@/context/ThemeContext'
 import { HiMenuAlt3, HiX, HiVolumeUp, HiVolumeOff } from 'react-icons/hi'
-import { RiCodeSSlashLine } from 'react-icons/ri'
+import SiteLogoMark from '@components/common/SiteLogoMark'
 import { MdDarkMode, MdLightMode } from 'react-icons/md'
 import { useSound } from '@/context/SoundContext'
 import type { Lang } from '@utils/i18n'
@@ -142,9 +142,11 @@ export default function Navbar() {
         <div className="mx-auto w-full min-w-0 max-w-7xl px-2 sm:px-4 md:px-6 lg:px-8">
           <div className="flex h-14 sm:h-16 items-center justify-between gap-2">
             <Link href={ROUTES.HOME} className="group flex shrink-0 items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-[0_12px_30px_rgba(86,98,246,0.35)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:bg-indigo-400">
-                <RiCodeSSlashLine className="text-sm" />
-              </div>
+              <SiteLogoMark
+                size={36}
+                priority
+                className="shadow-[0_12px_30px_rgba(86,98,246,0.35)] transition-all duration-300 group-hover:-translate-y-0.5 ring-indigo-500/25"
+              />
               <div className="hidden min-[340px]:block leading-none">
                 <span className={`font-display text-lg font-semibold tracking-[-0.04em] ${logoTextColor}`}>Aidevix</span>
               </div>

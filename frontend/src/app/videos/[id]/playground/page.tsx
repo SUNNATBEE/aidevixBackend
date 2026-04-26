@@ -37,6 +37,7 @@ import { userApi } from '@/api/userApi';
 import { videoApi } from '@/api/videoApi';
 import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 import { useLang } from '@/context/LangContext';
+import SiteLogoMark from '@components/common/SiteLogoMark';
 
 interface OutputLine {
   type: 'log' | 'error' | 'info';
@@ -345,9 +346,10 @@ export default function VideoPlaygroundPage() {
       <header className="z-50 flex h-14 sm:h-16 shrink-0 items-center justify-between border-b border-white/5 bg-[#10121f]/80 px-2 sm:px-4 lg:px-6 backdrop-blur-xl">
         <div className="flex min-w-0 items-center gap-2 sm:gap-4 lg:gap-6">
           <Link href="/" className="group flex min-w-0 items-center gap-2">
-            <div className="w-9 h-9 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-              <span className="text-white font-black text-lg italic">A</span>
-            </div>
+            <SiteLogoMark
+              size={36}
+              className="shadow-lg shadow-indigo-500/20 transition-transform group-hover:scale-105 ring-indigo-500/30"
+            />
             <span className="truncate bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-base font-black tracking-tight text-transparent sm:text-lg">
               Aidevix <span className="ml-1 hidden text-xs sm:text-sm font-medium uppercase tracking-widest text-indigo-400 sm:inline">{t('playground.brandLab')}</span>
             </span>

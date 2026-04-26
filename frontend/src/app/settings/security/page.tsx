@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ROUTES } from '@utils/constants';
 import { toast } from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { authApi } from '@api/authApi';
@@ -12,6 +13,8 @@ import {
   selectAuthLoading,
   checkAuthStatus,
 } from '@store/slices/authSlice';
+import SessionDevicesPanel from '@/components/settings/SessionDevicesPanel';
+import AccountDangerZone from '@/components/settings/AccountDangerZone';
 
 type DisableState = { open: boolean; password: string; code: string; submitting: boolean };
 type RegenState = { open: boolean; code: string; submitting: boolean; codes: string[] | null };
@@ -33,9 +36,15 @@ export default function SecuritySettingsPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!isLoggedIn) {
-      router.replace(`/login?next=${encodeURIComponent('/settings/security')}`);
+      router.replace(`/login?next=${encodeURIComponent(ROUTES.SETTINGS_SECURITY)}`);
     }
   }, [authLoading, isLoggedIn, router]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      dispatch(checkAuthStatus() as any);
+    }
+  }, [dispatch, isLoggedIn]);
 
   const isAdmin = user?.role === 'admin';
   const totpOn = !!user?.totpEnabled;
@@ -94,8 +103,10 @@ export default function SecuritySettingsPage() {
         <div>
           <Link href="/profile" className="text-sm text-gray-400 hover:text-white">← Profil</Link>
           <h1 className="text-3xl font-bold mt-2">Xavfsizlik</h1>
-          <p className="text-gray-400 text-sm mt-1">Parol va ikki bosqichli himoyani boshqaring</p>
+          <p className="text-gray-400 text-sm mt-1">Parol, sessiyalar va hisob xavfsizligi</p>
         </div>
+
+        <SessionDevicesPanel />
 
         {/* Password */}
         <section className="bg-[#0d1224]/40 border border-white/5 rounded-2xl p-6">
@@ -197,6 +208,8 @@ export default function SecuritySettingsPage() {
             </div>
           )}
         </section>
+
+        <AccountDangerZone />
 
         {/* Disable modal */}
         {disable.open && (

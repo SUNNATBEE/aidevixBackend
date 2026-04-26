@@ -1,0 +1,166 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
+import { sessionApi, type SessionInfo } from '@/api/sessionApi';
+
+const formatDate = (iso: string) => {
+  try {
+    return new Date(iso).toLocaleString('uz-UZ', { dateStyle: 'medium', timeStyle: 'short' });
+  } catch {
+    return iso;
+  }
+};
+
+const summariseUa = (ua: string | null) => {
+  if (!ua) return "Noma'lum qurilma";
+  const lower = ua.toLowerCase();
+  let os = 'OS';
+  if (lower.includes('windows')) os = 'Windows';
+  else if (lower.includes('mac os') || lower.includes('macintosh')) os = 'macOS';
+  else if (lower.includes('iphone') || lower.includes('ios')) os = 'iOS';
+  else if (lower.includes('android')) os = 'Android';
+  else if (lower.includes('linux')) os = 'Linux';
+
+  let browser = 'Brauzer';
+  if (lower.includes('edg/')) browser = 'Edge';
+  else if (lower.includes('chrome/')) browser = 'Chrome';
+  else if (lower.includes('firefox/')) browser = 'Firefox';
+  else if (lower.includes('safari/')) browser = 'Safari';
+  return `${browser} · ${os}`;
+};
+
+export default function SessionDevicesPanel() {
+  const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [revokingAll, setRevokingAll] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await sessionApi.list();
+      const raw = res.data as { data?: SessionInfo[] };
+      setSessions(Array.isArray(raw.data) ? raw.data : []);
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
+      toast.error(msg || 'Sessiyalarni olishda xatolik');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const revoke = async (id: string) => {
+    setBusyId(id);
+    try {
+      await sessionApi.revoke(id);
+      toast.success('Sessiya bekor qilindi');
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
+      toast.error(msg || 'Bekor qilib bo‘lmadi');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const revokeAllOthers = async () => {
+    if (sessions.length <= 1) return;
+    if (!window.confirm('Boshqa barcha qurilmalardan chiqarilsinmi? U yerda qayta login talab qilinadi.')) {
+      return;
+    }
+    setRevokingAll(true);
+    try {
+      const res = await sessionApi.revokeOthers();
+      const m = (res.data as { message?: string } | undefined)?.message;
+      toast.success(m || 'Boshqa sessiyalar bekor qilindi');
+      await load();
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
+      toast.error(msg || 'Bekor qilib bo‘lmadi');
+    } finally {
+      setRevokingAll(false);
+    }
+  };
+
+  return (
+    <section className="bg-[#0d1224]/40 border border-white/5 rounded-2xl p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-lg font-semibold">Aktiv qurilmalar</h2>
+          <p className="text-gray-400 text-sm mt-0.5">Hisobingizga ulangan seanslar</p>
+        </div>
+        {sessions.length > 1 && (
+          <button
+            type="button"
+            onClick={revokeAllOthers}
+            disabled={revokingAll || loading}
+            className="shrink-0 text-xs sm:text-sm px-4 py-2 rounded-xl bg-orange-500/15 text-orange-200 border border-orange-500/25 hover:bg-orange-500/25 transition disabled:opacity-50"
+          >
+            {revokingAll ? 'Bekor qilinmoqda…' : 'Boshqalarini chiqarish'}
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <p className="text-gray-500 text-sm">Yuklanmoqda…</p>
+      ) : sessions.length === 0 ? (
+        <p className="text-gray-500 text-sm">Aktiv sessiya topilmadi.</p>
+      ) : (
+        <ul className="space-y-3">
+          {sessions.map((s) => (
+            <li
+              key={s.id}
+              className={`rounded-xl border p-4 ${
+                s.current ? 'border-indigo-500/35 bg-indigo-500/[0.07]' : 'border-white/10 bg-white/[0.03]'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-sm text-slate-100">{summariseUa(s.ua)}</span>
+                    {s.current && (
+                      <span className="text-[10px] uppercase tracking-wide bg-indigo-500/25 text-indigo-200 px-2 py-0.5 rounded-md">
+                        Bu qurilma
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    IP: <span className="text-gray-300">{s.ip || '—'}</span>
+                  </p>
+                  <p className="text-xs text-gray-500">Oxirgi faollik: {formatDate(s.lastUsedAt)}</p>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    Yaratildi: {formatDate(s.createdAt)} · Muddat: {formatDate(s.absoluteExpiresAt)}
+                  </p>
+                </div>
+                {!s.current && (
+                  <button
+                    type="button"
+                    onClick={() => revoke(s.id)}
+                    disabled={busyId === s.id}
+                    className="shrink-0 text-xs px-3 py-1.5 rounded-lg bg-rose-500/15 text-rose-200 border border-rose-500/20 hover:bg-rose-500/25 disabled:opacity-50"
+                  >
+                    {busyId === s.id ? '…' : 'Chiqarish'}
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}

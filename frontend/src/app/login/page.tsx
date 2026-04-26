@@ -8,6 +8,7 @@ import { useLang } from '@/context/LangContext';
 import { useTheme } from '@/context/ThemeContext';
 import gsap from 'gsap';
 import type { Lang } from '@utils/i18n';
+import SiteLogoMark from '@components/common/SiteLogoMark';
 
 const LANG_BADGES: Record<Lang, string> = { uz: 'UZ', ru: 'RU', en: 'EN' };
 
@@ -37,8 +38,11 @@ export default function LoginPage() {
     <div className={`flex min-h-screen w-full min-w-0 max-w-full overflow-x-clip font-sans selection:bg-indigo-500/30 ${bg} ${textMain}`}>
       <div className={`hidden lg:flex lg:w-1/2 relative overflow-hidden ${isDark ? 'bg-[#0A0E1A]' : 'bg-indigo-600'} justify-center items-center`}>
         <div className="absolute bottom-24 left-20 z-10 max-w-lg">
-          <div className={`w-14 h-14 ${isDark ? 'bg-indigo-600/20 border-indigo-500/30' : 'bg-white/20 border-white/30'} rounded-xl flex items-center justify-center mb-6 border`}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M10 20L14 4M18 8L22 12L18 16M6 16L2 12L6 8" stroke={isDark ? "#818cf8" : "#ffffff"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <div className="mb-6">
+            <SiteLogoMark
+              size={56}
+              className={`rounded-xl ${isDark ? 'ring-indigo-500/30' : 'ring-white/30'}`}
+            />
           </div>
           <h1 className="text-[3.5rem] font-extrabold mb-4 leading-[1.1] tracking-tight text-white">
             {t('cta.title1')}<br /><span className={isDark ? 'text-indigo-400' : 'text-yellow-300'}>{t('cta.titleHighlight')}</span>

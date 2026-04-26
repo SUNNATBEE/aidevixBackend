@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: { username: string 
     openGraph: {
       title: `${profile.user.username} | Aidevix`,
       description: profile.stats.bio || `Level ${profile.stats.level} dasturchi`,
-      images: profile.user.avatar ? [profile.user.avatar] : ['/og-image.jpg'],
+      images: profile.user.avatar ? [profile.user.avatar] : ['/Logo.jpg'],
     },
   };
 }

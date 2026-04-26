@@ -10,6 +10,7 @@ import { selectUser } from '@store/slices/authSlice';
 import AdminRoute from '@/components/auth/AdminRoute';
 import { ADMIN_NAV } from '@/config/adminNav';
 import { globalSearch } from '@/api/adminApi';
+import SiteLogoMark from '@components/common/SiteLogoMark';
 
 type SearchResults = {
   users: { _id: string; username: string; email: string }[];
@@ -176,9 +177,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const sidebar = (
     <div className="flex h-full flex-col border-r border-white/10 bg-[#0a0c14]/95 backdrop-blur-xl">
       <div className="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 font-display text-lg font-bold text-slate-950 shadow-lg shadow-amber-500/25">
-          A
-        </div>
+        <SiteLogoMark size={40} className="rounded-xl ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/20" />
         <div className="min-w-0">
           <p className="truncate font-display text-sm font-bold tracking-wide text-white">Aidevix Admin</p>
           <p className="truncate text-[11px] text-amber-200/80">Premium boshqaruv paneli</p>

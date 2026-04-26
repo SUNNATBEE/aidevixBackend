@@ -46,6 +46,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     select: false,
   },
+  // Last N bcrypt hashes — newest first. ASVS V2.1.10 (no reuse).
+  passwordHistory: {
+    type: [String],
+    default: [],
+    select: false,
+  },
   tokenVersion: {
     type: Number,
     default: 0,
@@ -63,6 +69,34 @@ const userSchema = new mongoose.Schema({
   },
   lockUntil: {
     type: Date,
+    default: null,
+    select: false,
+  },
+  // Anomaly detection — coarse device fingerprint hashes (SHA-256 of UA + /24 IP).
+  knownDevices: {
+    type: [String],
+    default: [],
+    select: false,
+  },
+  lastLoginIp: {
+    type: String,
+    default: null,
+    select: false,
+  },
+  lastLoginUa: {
+    type: String,
+    default: null,
+    select: false,
+  },
+  // GDPR right-to-erasure — soft-delete + anonymization
+  deletedAt: {
+    type: Date,
+    default: null,
+    select: false,
+    index: true,
+  },
+  deletedBy: {
+    type: String,
     default: null,
     select: false,
   },
@@ -267,6 +301,18 @@ userSchema.pre('save', async function (next) {
     ));
   }
   try {
+    // Capture old bcrypt hash into passwordHistory before overwriting.
+    // Skipped for new docs (no prior hash) and when password is being cleared (e.g., GDPR delete).
+    if (!this.isNew && this.password) {
+      const existing = await this.constructor
+        .findById(this._id)
+        .select('+password +passwordHistory');
+      if (existing?.password) {
+        const next5 = [existing.password, ...(existing.passwordHistory || [])].slice(0, 5);
+        this.passwordHistory = next5;
+      }
+    }
+
     this.password = await bcrypt.hash(this.password, 14);
     this.passwordChangedAt = new Date();
     this.tokenVersion = (this.tokenVersion || 0) + 1;

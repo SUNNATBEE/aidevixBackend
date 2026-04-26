@@ -212,6 +212,7 @@ app.use(csrfProtection);
 
 // Routes — auth'da per-endpoint limitlar aniq belgilangan
 app.use('/api/auth',         require('./routes/authRoutes'));
+app.use('/api/sessions',     require('./routes/sessionRoutes'));
 app.use('/api/subscriptions', require('./routes/subscriptionRoutes'));
 app.use('/api/courses',      require('./routes/courseRoutes'));
 app.use('/api/videos',       require('./routes/videoRoutes'));
@@ -302,6 +303,19 @@ app.get('/health', (req, res) => {
     message: 'Server is running',
     timestamp: new Date().toISOString(),
   });
+});
+
+// security.txt — vulnerability disclosure (RFC 9116)
+const securityTxt = [
+  'Contact: mailto:security@aidevix.uz',
+  'Expires: 2027-01-01T00:00:00.000Z',
+  'Preferred-Languages: uz, en, ru',
+  `Canonical: ${process.env.BACKEND_URL || 'https://aidevix-backend-production.up.railway.app'}/.well-known/security.txt`,
+  'Policy: https://aidevix.uz/security',
+  '',
+].join('\n');
+app.get(['/.well-known/security.txt', '/security.txt'], (req, res) => {
+  res.type('text/plain').send(securityTxt);
 });
 
 // 404 handler
