@@ -4,6 +4,7 @@ const Video      = require('../models/Video');
 const UserStats  = require('../models/UserStats');
 const Enrollment = require('../models/Enrollment');
 const Payment    = require('../models/Payment');
+const { awardXp } = require('../utils/awardXp');
 
 /** @desc  Umumiy statistika | @route GET /api/admin/stats | @access Admin */
 const getDashboardStats = async (req, res) => {
@@ -341,9 +342,74 @@ const getCourseEnrollmentStats = async (req, res) => {
   }
 };
 
+/** @desc  Barcha yozilmalar | @route GET /api/admin/enrollments | @access Admin */
+const getAllEnrollments = async (req, res) => {
+  try {
+    const page        = parseInt(req.query.page)  || 1;
+    const limit       = Math.min(parseInt(req.query.limit) || 20, 100);
+    const search      = (req.query.search || '').trim();
+    const courseId    = req.query.courseId || '';
+    const isCompleted = req.query.isCompleted;
+
+    const filter = {};
+    if (courseId) filter.courseId = courseId;
+    if (isCompleted === 'true')  filter.isCompleted = true;
+    if (isCompleted === 'false') filter.isCompleted = false;
+
+    let query = Enrollment.find(filter)
+      .populate('userId',   'username email avatar')
+      .populate('courseId', 'title thumbnail category')
+      .sort({ createdAt: -1 });
+
+    // Search foydalanuvchi nomi bo'yicha (populate keyin filter)
+    const [all, total] = await Promise.all([
+      query.skip((page - 1) * limit).limit(limit),
+      Enrollment.countDocuments(filter),
+    ]);
+
+    // Agar search bo'lsa — populate bo'lgan natijani filter qilamiz
+    const enrollments = search
+      ? all.filter(e =>
+          e.userId?.username?.toLowerCase().includes(search.toLowerCase()) ||
+          e.userId?.email?.toLowerCase().includes(search.toLowerCase()) ||
+          e.courseId?.title?.toLowerCase().includes(search.toLowerCase())
+        )
+      : all;
+
+    res.json({ success: true, data: { enrollments, pagination: { total, page, limit } } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @desc  Foydalanuvchiga XP berish | @route POST /api/admin/users/:id/award-xp | @access Admin */
+const adminAwardXp = async (req, res) => {
+  try {
+    const { xp, reason } = req.body;
+    const amount = parseInt(xp);
+    if (!amount || amount < 1 || amount > 100000) {
+      return res.status(400).json({ success: false, message: 'XP miqdori 1-100000 orasida bo\'lishi kerak' });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
+
+    const result = await awardXp(req.params.id, amount);
+
+    res.json({
+      success: true,
+      message: `${user.username} ga ${amount} XP berildi`,
+      data: { xp: result.xp, level: result.level, reason: reason || 'Admin tomonidan berildi' },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getDashboardStats, getTopStudents, getCoursesStats, getRecentPayments,
   getUsers, updateUser, deleteUser,
   getUserDetail, globalSearch, getAnalytics,
   sendTelegramMessage, bulkLinkBunny, reorderVideos, getCourseEnrollmentStats,
+  getAllEnrollments, adminAwardXp,
 };

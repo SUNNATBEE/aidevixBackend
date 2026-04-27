@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getUserDetail, unwrapAdmin } from '@/api/adminApi';
-import { FiArrowLeft, FiUser, FiAward, FiBookOpen, FiDollarSign } from 'react-icons/fi';
+import { getUserDetail, awardXpToUser, unwrapAdmin } from '@/api/adminApi';
+import { FiArrowLeft, FiUser, FiAward, FiBookOpen, FiDollarSign, FiZap } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 type UserDetail = {
@@ -19,8 +19,12 @@ type UserDetail = {
 export default function AdminUserDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [data, setData] = useState<UserDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData]           = useState<UserDetail | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [xpModal, setXpModal]     = useState(false);
+  const [xpAmount, setXpAmount]   = useState(100);
+  const [xpReason, setXpReason]   = useState('');
+  const [awarding, setAwarding]   = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -29,6 +33,26 @@ export default function AdminUserDetailPage() {
       .catch(() => toast.error("Foydalanuvchi ma'lumotlarini yuklashda xato"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleAwardXp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!xpAmount || xpAmount < 1) return toast.error('XP miqdorini kiriting');
+    setAwarding(true);
+    try {
+      const res = await awardXpToUser(id, xpAmount, xpReason);
+      const d = (res.data as { data: { xp: number; level: number } }).data;
+      toast.success(`${xpAmount} XP berildi! Yangi XP: ${d.xp}`);
+      setXpModal(false);
+      setXpReason('');
+      // Refresh stats
+      getUserDetail(id).then(r => setData(unwrapAdmin<UserDetail>(r))).catch(() => {});
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'XP berishda xato');
+    } finally {
+      setAwarding(false);
+    }
+  };
 
   const fmt = (n: number) => new Intl.NumberFormat('uz-UZ').format(n || 0);
   const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('uz-UZ') : '—';
@@ -64,20 +88,28 @@ export default function AdminUserDetailPage() {
           <h2 className="font-display text-2xl font-bold text-white">{user.username}</h2>
           <p className="text-sm text-slate-400">{user.email}</p>
         </div>
-        <span className={`ml-auto rounded-full px-3 py-1 text-xs font-semibold ${
-          user.role === 'admin'
-            ? 'border border-amber-500/30 bg-amber-500/15 text-amber-200'
-            : 'border border-slate-600 bg-slate-900 text-slate-300'
-        }`}>
-          {user.role}
-        </span>
-        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
-          user.isActive === false
-            ? 'border border-red-500/30 bg-red-500/10 text-red-300'
-            : 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-        }`}>
-          {user.isActive === false ? 'Bloklangan' : 'Faol'}
-        </span>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setXpModal(true)}
+            className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition-colors"
+          >
+            <FiZap className="h-3.5 w-3.5" /> XP Berish
+          </button>
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            user.role === 'admin'
+              ? 'border border-amber-500/30 bg-amber-500/15 text-amber-200'
+              : 'border border-slate-600 bg-slate-900 text-slate-300'
+          }`}>
+            {user.role}
+          </span>
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            user.isActive === false
+              ? 'border border-red-500/30 bg-red-500/10 text-red-300'
+              : 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+          }`}>
+            {user.isActive === false ? 'Bloklangan' : 'Faol'}
+          </span>
+        </div>
       </div>
 
       {/* Stats cards */}
@@ -169,6 +201,75 @@ export default function AdminUserDetailPage() {
       <p className="text-xs text-slate-600">
         Ro'yxatdan o'tgan: {fmtDate(user.createdAt)} · ID: {user._id}
       </p>
+
+      {/* XP Award Modal */}
+      {xpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-2xl">
+            <div className="mb-5 flex items-center gap-2">
+              <FiZap className="h-5 w-5 text-amber-400" />
+              <h3 className="font-display text-lg font-bold text-white">XP Berish</h3>
+            </div>
+            <p className="mb-4 text-sm text-slate-400">
+              <span className="font-semibold text-white">{user.username}</span> ga XP qo'shish
+            </p>
+            <form onSubmit={handleAwardXp} className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-400">XP miqdori *</label>
+                <div className="flex gap-2">
+                  {[50, 100, 250, 500].map(v => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setXpAmount(v)}
+                      className={`flex-1 rounded-lg border py-1.5 text-xs font-semibold transition-colors ${
+                        xpAmount === v
+                          ? 'border-amber-500/50 bg-amber-500/15 text-amber-300'
+                          : 'border-white/10 text-slate-400 hover:bg-white/5'
+                      }`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  value={xpAmount}
+                  onChange={e => setXpAmount(Number(e.target.value))}
+                  min={1}
+                  max={100000}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-400">Sabab (ixtiyoriy)</label>
+                <input
+                  value={xpReason}
+                  onChange={e => setXpReason(e.target.value)}
+                  placeholder="Musobaqa g'olibi, xizmat uchun..."
+                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-amber-500/50 focus:outline-none"
+                />
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => { setXpModal(false); setXpReason(''); }}
+                  className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm text-slate-300 hover:bg-white/5"
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  type="submit"
+                  disabled={awarding}
+                  className="flex-1 rounded-xl bg-amber-500 py-2.5 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-60"
+                >
+                  {awarding ? 'Berilmoqda...' : `+${xpAmount} XP berish`}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

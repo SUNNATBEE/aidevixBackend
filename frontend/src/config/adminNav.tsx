@@ -8,6 +8,8 @@ import {
   FiDollarSign,
   FiBarChart2,
   FiTool,
+  FiTag,
+  FiList,
 } from 'react-icons/fi';
 
 export type AdminNavItem = {
@@ -46,6 +48,18 @@ export const ADMIN_NAV: AdminNavSection[] = [
         label: "To'lovlar",
         hint: "So'nggi tranzaksiyalar, CSV eksport",
         icon: <FiDollarSign className="h-5 w-5" />,
+      },
+      {
+        href: '/admin/enrollments',
+        label: 'Yozilmalar',
+        hint: "Barcha kurs yozilmalari, progress, filter",
+        icon: <FiList className="h-5 w-5" />,
+      },
+      {
+        href: '/admin/promos',
+        label: 'Promo kodlar',
+        hint: 'Chegirma kodlari CRUD, foiz/fixed',
+        icon: <FiTag className="h-5 w-5" />,
       },
     ],
   },

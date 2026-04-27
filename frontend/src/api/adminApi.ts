@@ -94,3 +94,27 @@ export const createAiNewsAdmin = (body: {
 export const updateAiNewsAdmin = (id: string, body: Record<string, unknown>) =>
   axiosInstance.put(`admin/ai-news/${id}`, body)
 export const deleteAiNewsAdmin = (id: string) => axiosInstance.delete(`admin/ai-news/${id}`)
+
+// ─── Promo Codes (admin) ──────────────────────────────────────────────────────
+export const getPromoCodes = (params?: Record<string, unknown>) =>
+  axiosInstance.get('admin/promos', { params })
+export const createPromoCode = (body: {
+  code: string
+  description?: string
+  type: 'percent' | 'fixed'
+  value: number
+  maxUses?: number | null
+  courseIds?: string[]
+  expiresAt?: string | null
+}) => axiosInstance.post('admin/promos', body)
+export const updatePromoCode = (id: string, body: Record<string, unknown>) =>
+  axiosInstance.put(`admin/promos/${id}`, body)
+export const deletePromoCode = (id: string) => axiosInstance.delete(`admin/promos/${id}`)
+
+// ─── Enrollments (admin) ──────────────────────────────────────────────────────
+export const getAllEnrollments = (params?: Record<string, unknown>) =>
+  axiosInstance.get('admin/enrollments', { params })
+
+// ─── Award XP (admin) ─────────────────────────────────────────────────────────
+export const awardXpToUser = (id: string, xp: number, reason?: string) =>
+  axiosInstance.post(`admin/users/${id}/award-xp`, { xp, reason })

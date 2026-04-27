@@ -5,7 +5,11 @@ const {
   getRecentPayments, getUsers, updateUser, deleteUser,
   getUserDetail, globalSearch, getAnalytics,
   sendTelegramMessage, bulkLinkBunny, reorderVideos, getCourseEnrollmentStats,
+  getAllEnrollments, adminAwardXp,
 } = require('../controllers/adminController');
+const {
+  listPromoCodes, createPromoCode, updatePromoCode, deletePromoCode,
+} = require('../controllers/promoController');
 const {
   listAiNewsAdmin,
   createAiNewsAdmin,
@@ -30,10 +34,20 @@ router.get('/courses/:id/enrollments',    ...guard, getCourseEnrollmentStats);
 router.get('/payments', ...guard, getRecentPayments);
 
 // Users
-router.get('/users',      ...guard, getUsers);
-router.get('/users/:id',  ...guard, getUserDetail);
-router.put('/users/:id',  ...guard, updateUser);
-router.delete('/users/:id', ...guard, deleteUser);
+router.get('/users',               ...guard, getUsers);
+router.get('/users/:id',           ...guard, getUserDetail);
+router.put('/users/:id',           ...guard, updateUser);
+router.delete('/users/:id',        ...guard, deleteUser);
+router.post('/users/:id/award-xp', ...guard, adminAwardXp);
+
+// Enrollments
+router.get('/enrollments', ...guard, getAllEnrollments);
+
+// Promo codes
+router.get('/promos',        ...guard, listPromoCodes);
+router.post('/promos',       ...guard, createPromoCode);
+router.put('/promos/:id',    ...guard, updatePromoCode);
+router.delete('/promos/:id', ...guard, deletePromoCode);
 
 // Search
 router.get('/search', ...guard, globalSearch);
