@@ -460,6 +460,9 @@ const verify2FALogin = asyncHandler(async (req, res, next) => {
         userId: String(user._id),
         remaining: remaining.length,
       });
+      // FIX [MEDIUM]: Kam backup kod qolganida foydalanuvchini ogohlantirish uchun flag.
+      // remaining.length response ga qo'shiladi (quyida backupCodesRemaining).
+      req._backupCodesRemaining = remaining.length;
     }
   }
 
@@ -473,10 +476,15 @@ const verify2FALogin = asyncHandler(async (req, res, next) => {
   await trackDeviceAndAlert(req, user);
   securityLogger.loginSuccess(req, user);
 
-  res.json({
-    success: true,
-    data: { user: sanitizeUser(user) },
-  });
+  const resp = { success: true, data: { user: sanitizeUser(user) } };
+  // Backup kod ishlatilgan bo'lsa — qancha qolganini bildirish
+  if (req._backupCodesRemaining !== undefined) {
+    resp.backupCodesRemaining = req._backupCodesRemaining;
+    if (req._backupCodesRemaining < 3) {
+      resp.backupCodesWarning = 'Backup kodlar kam qoldi. Hisobingizga kirib yangilarini yarating.';
+    }
+  }
+  res.json(resp);
 });
 
 // @desc    Public verify email — no auth required (used after login gate blocks unverified users)
@@ -690,6 +698,22 @@ const logout = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Logged out' });
 });
 
+// @desc    Logout from ALL devices (barcha sessiyalarni o'chirish)
+// FIX [LOW]: "Logout all devices" endpoint — faqat joriy session emas.
+// tokenVersion++ qilish orqali mavjud barcha access tokenlar ham bekor bo'ladi.
+const logoutAll = asyncHandler(async (req, res) => {
+  if (req.user) {
+    await Session.deleteMany({ userId: req.user._id });
+    await User.updateOne(
+      { _id: req.user._id },
+      { $set: { refreshToken: null }, $inc: { tokenVersion: 1 } }
+    );
+    securityLogger.logout(req, req.user._id);
+  }
+  clearAuthCookies(res);
+  res.json({ success: true, message: 'Barcha qurilmalardan chiqildi' });
+});
+
 // @desc    Get Me
 const getMe = asyncHandler(async (req, res) => {
   let user = await User.findById(req.user._id).select('+password');
@@ -737,21 +761,23 @@ const getReferralStats = asyncHandler(async (req, res) => {
 
 // @desc    Claim Daily Reward
 const claimDailyReward = asyncHandler(async (req, res, next) => {
-  const user = await User.findById(req.user._id);
   const now = new Date();
+  const todayStart = new Date(now.toISOString().slice(0, 10) + 'T00:00:00.000Z');
 
-  if (user.lastClaimedDaily) {
-    const lastClaim = new Date(user.lastClaimedDaily);
-    const todayUTC = now.toISOString().slice(0, 10);
-    const lastClaimUTC = lastClaim.toISOString().slice(0, 10);
+  // Atomic check-and-set: prevents double-claim under concurrent requests.
+  const user = await User.findOneAndUpdate(
+    {
+      _id: req.user._id,
+      $or: [{ lastClaimedDaily: null }, { lastClaimedDaily: { $lt: todayStart } }],
+    },
+    { $inc: { xp: 50 }, $set: { lastClaimedDaily: now } },
+    { new: true }
+  );
 
-    if (todayUTC === lastClaimUTC) {
-      return next(new ErrorResponse('Bugun mukofot allaqachon olingan. Ertaga qayta urunib ko\'ring.', 400));
-    }
+  if (!user) {
+    return next(new ErrorResponse('Bugun mukofot allaqachon olingan. Ertaga qayta urunib ko\'ring.', 400));
   }
 
-  user.xp = (user.xp || 0) + 50;
-  user.lastClaimedDaily = now;
   user.rankTitle = calculateRank(user.xp);
 
   let stats = await UserStats.findOne({ userId: user._id });
@@ -1085,6 +1111,12 @@ const googleAuth = asyncHandler(async (req, res, next) => {
   if (!credential || typeof credential !== 'string') {
     return next(new ErrorResponse('Google credential required', 400));
   }
+  // FIX [MEDIUM]: DoS oldini olish — kutilayotgan Google ID token uzunligi max ~4096 char.
+  // Library verifikatsiyasidan OLDIN tekshiriladi.
+  if (credential.length > 5000) {
+    securityLogger.suspicious(req, 'google_credential_too_long', { length: credential.length });
+    return next(new ErrorResponse('Google credential yaroqsiz', 400));
+  }
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
@@ -1284,6 +1316,7 @@ module.exports = {
   googleAuth,
   refreshToken: refresh,
   logout,
+  logoutAll,
   getMe,
   getReferralStats,
   claimDailyReward,

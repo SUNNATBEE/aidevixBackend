@@ -17,7 +17,13 @@ const app = express();
 
 // Trust proxy — Railway/Render uchun. Production'da aniq hop count, dev'da loopback.
 // `true` ishlatish X-Forwarded-For spoofing'ga ochiq qoldiradi.
-app.set('trust proxy', process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY) : 1);
+// FIX [LOW]: TRUST_PROXY env NaN bo'lsa fallback 1 ga qaytadi.
+const _trustProxyRaw = process.env.TRUST_PROXY !== undefined ? Number(process.env.TRUST_PROXY) : 1;
+const _trustProxyVal = Number.isFinite(_trustProxyRaw) ? _trustProxyRaw : 1;
+if (process.env.TRUST_PROXY !== undefined && !Number.isFinite(_trustProxyRaw)) {
+  console.warn('⚠️  TRUST_PROXY env var yaroqsiz qiymat — 1 ga qaytarildi:', process.env.TRUST_PROXY);
+}
+app.set('trust proxy', _trustProxyVal);
 
 // Connect to database (async - won't block server start)
 connectDB().then(async () => {
@@ -123,8 +129,24 @@ app.use((req, res, next) => {
 });
 
 // 3️⃣ Helmet — Security headers (CORS dan KEYIN)
+// FIX [HIGH]: contentSecurityPolicy: false o'rniga explicit directives.
+// Swagger UI uchun: unsafe-inline skript/stil, data: URI rasm — minimal ochiq.
+// Frame/object embed'lar to'sib qo'yildi (XSS himoyasi).
 app.use(helmet({
-  contentSecurityPolicy: false, // Swagger UI uchun o'chirilgan
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'", "'unsafe-inline'", "'unsafe-eval'"],  // Swagger UI talab qiladi
+      styleSrc:   ["'self'", "'unsafe-inline'"],                   // Swagger UI inline-style
+      imgSrc:     ["'self'", "data:", "https:"],                   // Swagger logo + favicon
+      fontSrc:    ["'self'", "data:"],
+      connectSrc: ["'self'"],
+      frameSrc:   ["'none'"],   // Clickjacking himoyasi
+      objectSrc:  ["'none'"],   // Plugin exploit himoyasi
+      baseUri:    ["'self'"],
+      formAction: ["'self'"],
+    },
+  },
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }, // Google OAuth popup uchun

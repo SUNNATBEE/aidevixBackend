@@ -34,7 +34,7 @@ const verifyReauthToken = (token) => {
 };
 
 const requireRecentReauth = (req, res, next) => {
-  const token = req.headers['x-reauth-token'] || req.headers['X-Reauth-Token'];
+  const token = req.headers['x-reauth-token'];
   if (!token) {
     return res.status(401).json({
       success: false,

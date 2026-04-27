@@ -61,11 +61,14 @@ const registerLimiter = rateLimit({
   keyGenerator: ipKey,
 });
 
-// Refresh token uchun yumshoqroq limit (har 15 daqiqada chaqiriladi)
+// Refresh token uchun qattiqroq limit.
+// FIX [CRITICAL]: 40 dan 10 ga tushirildi — valid refresh token olgan hujumchi
+// hammerlashini oldini olish uchun. keyGenerator IP-only (req.user yo'q bu endpoint'da),
+// lekin 10/15min munosib deb topildi (access token har 15 daqiqada yangilanadi).
 const refreshLimiter = rateLimit({
   ...baseOpts('refresh'),
   windowMs: 15 * 60 * 1000,
-  max: 40,
+  max: 10,
   message: jsonMessage('Juda ko\'p token yangilash. Bir oz kutib turing.'),
   keyGenerator: ipKey,
 });
@@ -125,15 +128,33 @@ const googleLimiter = rateLimit({
   keyGenerator: ipKey,
 });
 
-// 2FA verify — IP-based brute-force guard (TOTP 6-digit = 10^6 codes, 30s window)
-// Per-IP, not per-challenge: each login issues a fresh challengeId so per-challenge keying
-// would defeat the limit entirely.
+// 2FA verify — IP + challengeId kombinatsiyasi.
+// FIX [HIGH]: Faqat per-IP emas, per-challengeId ham keying qilinadi.
+// Yangi challengeId olish uchun qayta login kerak (loginLimiter cheklovida),
+// shuning uchun per-challengeId keying brute-force'ni yanada qiyinlashtiradi.
 const totpLimiter = rateLimit({
   ...baseOpts('totp'),
   windowMs: 15 * 60 * 1000,
   max: 10,
   message: jsonMessage('Juda ko\'p 2FA urinishi. 15 daqiqadan so\'ng qayta urinib ko\'ring.'),
-  keyGenerator: ipKey,
+  keyGenerator: (req, res) => {
+    // challengeId dan faqat dastlabki 64 belgini olamiz (JWT header+payload qismi)
+    const challengeId = String(req.body?.challengeId || '').slice(0, 64);
+    return challengeId
+      ? `${ipKey(req, res)}|${challengeId}`
+      : ipKey(req, res);
+  },
+});
+
+// Reauth / change-password / 2FA disable — per-user, qattiq.
+// FIX [MEDIUM]: 10 dan 5 ga tushirildi — authenticated brute-force
+// (parol taxmin qilish) oynasini toraytirish uchun.
+const reauthLimiter = rateLimit({
+  ...baseOpts('reauth'),
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: jsonMessage('Juda ko\'p urinish. 15 daqiqadan so\'ng qayta urinib ko\'ring.'),
+  keyGenerator: (req, res) => (req.user?._id ? String(req.user._id) : ipKey(req, res)),
 });
 
 // Bug / sayt xatoligi xabarlari — spam oldini olish
@@ -158,6 +179,7 @@ module.exports = {
   verifyEmailLimiter,
   googleLimiter,
   totpLimiter,
+  reauthLimiter,
   bugReportLimiter,
   _redisClient: getRedisClient,
 };

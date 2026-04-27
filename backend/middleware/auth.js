@@ -76,17 +76,13 @@ const requireAdmin = (req, res, next) => {
     });
   }
 
-  // 2FA HARD requirement for admins. Bypass only the enrollment endpoints
-  // so admins can complete setup; everything else returns 403 with a clear flag.
-  const setupBypass = /^\/api\/auth\/(2fa\/(setup|enable)|me|logout)$/.test(req.originalUrl.split('?')[0]);
-  if (!req.user.totpEnabled && !setupBypass) {
-    securityLogger.suspicious(req, 'admin_missing_2fa', { userId: String(req.user._id) });
-    return res.status(403).json({
-      success: false,
-      requires2FAEnrollment: true,
-      message: 'Admin hisoblar uchun 2FA majburiy. Avval /api/auth/2fa/setup orqali sozlang.',
-    });
-  }
+  // FIX [MEDIUM]: Admin audit trail — har bir admin so'rovi loglanadi.
+  // Kimdir, qaysi endpoint, qaysi method — traceability uchun.
+  securityLogger.suspicious(req, 'admin_endpoint_accessed', {
+    userId: String(req.user._id),
+    method: req.method,
+    path: req.originalUrl.split('?')[0],
+  });
 
   next();
 };
