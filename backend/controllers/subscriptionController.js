@@ -80,8 +80,15 @@ const verifyTelegram = async (req, res) => {
       });
     }
 
-    // Get channel username from environment or request
-    const channelUsername = process.env.TELEGRAM_CHANNEL_USERNAME || req.body.channelUsername;
+    // Telegram user IDs are positive integers only
+    if (!/^\d{5,15}$/.test(String(telegramUserId))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Noto\'g\'ri Telegram ID formati.',
+      });
+    }
+
+    const channelUsername = process.env.TELEGRAM_CHANNEL_USERNAME;
 
     // Verify subscription
     const verification = await verifyTelegramSubscription(username, telegramUserId, channelUsername);
@@ -194,14 +201,23 @@ const getRealtimeStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     const telegramId = user.telegramUserId || user.socialSubscriptions?.telegram?.telegramUserId;
-    const result = await checkTelegramSubscription(telegramId);
     const instagramOk = user.socialSubscriptions?.instagram?.subscribed || false;
+
+    if (!telegramId) {
+      return res.json({
+        success: true,
+        data: { telegram: false, linked: false, instagram: instagramOk, telegramUserId: null },
+      });
+    }
+
+    const result = await checkTelegramSubscription(telegramId);
     res.json({
       success: true,
       data: {
         telegram: result.subscribed,
+        linked: true,
         instagram: instagramOk,
-        telegramUserId: telegramId || null,
+        telegramUserId: telegramId,
       },
     });
   } catch (err) {
@@ -241,6 +257,19 @@ const linkTelegramByToken = async (token, telegramUserId, telegramUsername) => {
 
     const user = await User.findById(entry.userId);
     if (!user) return false;
+
+    // Bu Telegram ID allaqachon boshqa accountga bog'liq bo'lmasligi kerak
+    const existing = await User.findOne({
+      _id: { $ne: user._id },
+      $or: [
+        { telegramUserId: String(telegramUserId) },
+        { 'socialSubscriptions.telegram.telegramUserId': String(telegramUserId) },
+      ],
+    });
+    if (existing) {
+      console.warn(`[linkTelegramByToken] Telegram ID ${telegramUserId} allaqachon boshqa userga bog'liq`);
+      return false;
+    }
 
     // Telegram ID ni saqlash
     user.telegramUserId = String(telegramUserId);

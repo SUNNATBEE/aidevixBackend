@@ -958,12 +958,17 @@ class AidevixBot {
   async _cmdLogin(chatId, userId) {
     try {
       const User = require('../models/User');
-      const user = await User.findOne({ telegramUserId: String(userId) });
+      const user = await User.findOne({
+        $or: [
+          { telegramUserId: String(userId) },
+          { 'socialSubscriptions.telegram.telegramUserId': String(userId) },
+        ],
+      });
       if (!user) return this.sendMessage(chatId, "⚠️ Hisob topilmadi.");
 
       const jwt = require('jsonwebtoken');
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '15m' });
-      const loginLink = `${this._getFrontendUrl()}/auth/telegram-login?token=${token}`;
+      const loginLink = `${this._getFrontendUrl()}/auth/telegram-login#token=${token}`;
 
       const keyboard = { inline_keyboard: [[{ text: '🔓 Saytga kirish', url: loginLink }]] };
       await this.sendMessage(chatId, `🔐 <b>Magic Login</b>\n\nTugmani bosing va tizimga parolsiz kiring.`, { parse_mode: 'HTML', reply_markup: keyboard });
@@ -983,6 +988,19 @@ class AidevixBot {
   }
 
   // ═══════════════════════════ NOTIFICATIONS ═══════════════════════════
+
+  async notifySubscriptionVerified(user, platform) {
+    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const platformLabel = platform === 'telegram' ? '📱 Telegram' : '📸 Instagram';
+    const username = user.username || user.firstName || user._id;
+    try {
+      await this.sendMessage(
+        adminId,
+        `✅ <b>Yangi obuna tasdiqlandi</b>\n\n${platformLabel}\nFoydalanuvchi: <b>${username}</b>`,
+        { parse_mode: 'HTML' }
+      );
+    } catch (_) {}
+  }
 
   _getLinks() {
     const tgChannel     = process.env.TELEGRAM_CHANNEL_USERNAME || 'aidevix';

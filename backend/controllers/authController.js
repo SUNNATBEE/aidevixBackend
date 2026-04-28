@@ -299,7 +299,9 @@ const register = asyncHandler(async (req, res, next) => {
     emailVerificationCode: hashToken(verifyCode),
     emailVerificationExpire: new Date(Date.now() + 15 * 60 * 1000),
     emailVerificationAttempts: 0,
-  }).exec();
+  }).exec().catch((err) =>
+    securityLogger.suspicious(req, 'email_verify_update_failed', { userId: String(user._id), error: err.message })
+  );
   sendEmailVerificationCode(user.email, user.username, verifyCode).catch((err) =>
     securityLogger.suspicious(req, 'email_verify_send_failed', { userId: String(user._id), error: err.message })
   );

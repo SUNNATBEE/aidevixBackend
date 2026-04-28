@@ -5,6 +5,7 @@ const UserStats  = require('../models/UserStats');
 const Enrollment = require('../models/Enrollment');
 const Payment    = require('../models/Payment');
 const { awardXp } = require('../utils/awardXp');
+const logger     = require('../utils/logger');
 
 /** @desc  Umumiy statistika | @route GET /api/admin/stats | @access Admin */
 const getDashboardStats = async (req, res) => {
@@ -78,8 +79,8 @@ const getCoursesStats = async (req, res) => {
 /** @desc  So'nggi to'lovlar | @route GET /api/admin/payments | @access Admin */
 const getRecentPayments = async (req, res) => {
   try {
-    const page  = parseInt(req.query.page)  || 1;
-    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 20), 100);
 
     const payments = await Payment.find()
       .populate('userId',   'username email')
@@ -109,17 +110,18 @@ const getRecentPayments = async (req, res) => {
 /** @desc  Foydalanuvchilar ro'yxati | @route GET /api/admin/users | @access Admin */
 const getUsers = async (req, res) => {
   try {
-    const page   = parseInt(req.query.page)  || 1;
-    const limit  = Math.min(parseInt(req.query.limit) || 20, 100);
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(Math.max(1, parseInt(req.query.limit) || 20), 100);
     const search = req.query.search || '';
     const role   = req.query.role   || '';
 
+    const VALID_ROLES = ['user', 'admin'];
     const filter = {};
     if (search) filter.$or = [
       { username: { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
       { email:    { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
     ];
-    if (role) filter.role = role;
+    if (role && VALID_ROLES.includes(role)) filter.role = role;
 
     const [users, total] = await Promise.all([
       User.find(filter).select('-password -refreshToken').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
@@ -142,6 +144,13 @@ const updateUser = async (req, res) => {
     const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password -refreshToken');
     if (!user) return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
 
+    logger.info('admin_user_update', {
+      adminId: String(req.user._id),
+      adminUsername: req.user.username,
+      targetUserId: req.params.id,
+      changes: update,
+    });
+
     res.json({ success: true, data: { user } });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Foydalanuvchini tahrirlashda xato' });
@@ -156,6 +165,13 @@ const deleteUser = async (req, res) => {
     }
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
+
+    logger.info('admin_user_delete', {
+      adminId: String(req.user._id),
+      adminUsername: req.user.username,
+      deletedUserId: req.params.id,
+      deletedUsername: user.username,
+    });
 
     res.json({ success: true, message: 'Foydalanuvchi o\'chirildi' });
   } catch (err) {

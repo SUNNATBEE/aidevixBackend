@@ -78,6 +78,16 @@ const initiatePayment = async (req, res) => {
     const { courseId, provider = 'payme' } = req.body;
     if (!courseId) return res.status(400).json({ success: false, message: 'courseId majburiy' });
 
+    if (!['payme', 'click'].includes(provider)) {
+      return res.status(400).json({ success: false, message: 'Noto\'g\'ri to\'lov tizimi' });
+    }
+    if (provider === 'payme' && !process.env.PAYME_MERCHANT_ID) {
+      return res.status(503).json({ success: false, message: 'To\'lov tizimi sozlanmagan' });
+    }
+    if (provider === 'click' && !process.env.CLICK_SERVICE_ID) {
+      return res.status(503).json({ success: false, message: 'To\'lov tizimi sozlanmagan' });
+    }
+
     const course = await Course.findById(courseId);
     if (!course) return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
     if (course.isFree) return res.status(400).json({ success: false, message: 'Bu kurs bepul' });
@@ -91,11 +101,11 @@ const initiatePayment = async (req, res) => {
     if (pendingPayment) {
       let paymentUrl = null;
       if (pendingPayment.provider === 'payme') {
-        const merchantId = process.env.PAYME_MERCHANT_ID || 'YOUR_MERCHANT_ID';
+        const merchantId = process.env.PAYME_MERCHANT_ID;
         const encoded = Buffer.from(`m=${merchantId};ac.order_id=${pendingPayment._id};a=${course.price * 100}`).toString('base64');
         paymentUrl = `https://checkout.paycom.uz/${encoded}`;
       } else if (pendingPayment.provider === 'click') {
-        const serviceId = process.env.CLICK_SERVICE_ID || 'YOUR_SERVICE_ID';
+        const serviceId = process.env.CLICK_SERVICE_ID;
         paymentUrl = `https://my.click.uz/services/pay?service_id=${serviceId}&merchant_id=${serviceId}&amount=${course.price}&transaction_param=${pendingPayment._id}`;
       }
       return res.status(200).json({
