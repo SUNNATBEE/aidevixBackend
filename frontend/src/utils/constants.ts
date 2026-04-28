@@ -7,6 +7,14 @@ const normalizeOrigin = (raw: string) => {
   return u;
 }
 
+const normalizeTelegramLink = (raw?: string) => {
+  const value = (raw || '').trim()
+  if (!value) return 'https://t.me/aidevix'
+  if (value.startsWith('http://') || value.startsWith('https://')) return value
+  if (value.startsWith('@')) return `https://t.me/${value.slice(1)}`
+  return `https://t.me/${value}`
+}
+
 /** Brauzerda admin havolalari uchun (Swagger / admin-docs). Localda NEXT_PUBLIC_BACKEND_URL qo‘ying. */
 export const BACKEND_ORIGIN = normalizeOrigin(
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -49,7 +57,7 @@ export const SORT_OPTIONS = [
 
 
 export const SOCIAL_LINKS = {
-  telegram:  process.env.NEXT_PUBLIC_TELEGRAM_CHANNEL || 'https://t.me/aidevix',
+  telegram:  normalizeTelegramLink(process.env.NEXT_PUBLIC_TELEGRAM_CHANNEL),
   instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL    || 'https://instagram.com/aidevix',
   bot:       process.env.NEXT_PUBLIC_TELEGRAM_BOT     || 'https://t.me/aidevix_bot',
 }
