@@ -36,8 +36,8 @@ export default function LoginPage() {
 
   return (
     <div className={`flex min-h-screen w-full min-w-0 max-w-full overflow-x-clip font-sans selection:bg-indigo-500/30 ${bg} ${textMain}`}>
-      <div className={`hidden lg:flex lg:w-1/2 relative overflow-hidden ${isDark ? 'bg-[#0A0E1A]' : 'bg-indigo-600'} justify-center items-center`}>
-        <div className="absolute bottom-24 left-20 z-10 max-w-lg">
+      <div className={`hidden lg:flex lg:w-1/2 relative overflow-hidden ${isDark ? 'bg-[#0A0E1A]' : 'bg-indigo-600'} items-center`}>
+        <div className="z-10 mx-auto w-full max-w-xl px-10 xl:px-16">
           <div className="mb-6">
             <SiteLogoMark
               size={56}
@@ -55,8 +55,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className={`relative flex w-full min-w-0 flex-col items-center justify-center p-3 sm:p-12 lg:w-1/2 ${bg}`}>
-        <div className="absolute top-4 right-3 sm:top-6 sm:right-6 flex items-center gap-1.5 sm:gap-2">
+      <div className={`relative flex w-full min-w-0 flex-col items-center justify-start p-3 pt-16 sm:p-12 sm:pt-20 lg:w-1/2 lg:justify-center ${bg}`}>
+        <div className="absolute top-4 right-3 z-20 sm:top-6 sm:right-6 flex items-center gap-1.5 sm:gap-2">
           <button onClick={toggleTheme} className={`p-2 rounded-lg ${isDark ? 'text-gray-400 hover:text-yellow-400' : 'text-gray-500 hover:text-indigo-600'}`}>
             {isDark ? '☀' : '☾'}
           </button>

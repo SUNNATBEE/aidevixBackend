@@ -22,7 +22,79 @@ export default function VideoPage() {
   const router = useRouter();
   const { current: video, videoLink, player, loading, error, fetchById } = useVideos();
   const embedUrl = player && typeof player === 'object' && 'embedUrl' in player ? (player as { embedUrl?: string }).embedUrl : undefined;
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const localText = {
+    needLoginTitle: lang === 'en' ? 'Sign in required' : lang === 'ru' ? 'Требуется вход' : 'Tizimga kirish talab qilinadi',
+    needSubTitle: lang === 'en' ? 'Subscription required' : lang === 'ru' ? 'Требуется подписка' : 'Obuna talab qilinadi',
+    needProTitle: lang === 'en' ? 'Pro subscription required' : lang === 'ru' ? 'Требуется Pro подписка' : 'Pro obuna talab qilinadi',
+    videoNotReady: lang === 'en' ? 'Video is not ready yet' : lang === 'ru' ? 'Видео пока не готово' : 'Video hali tayyor emas',
+    videoNotFound: lang === 'en' ? 'Video not found' : lang === 'ru' ? 'Видео не найдено' : 'Video topilmadi',
+    loginDesc: lang === 'en' ? 'Please sign in to watch this video.' : lang === 'ru' ? 'Войдите, чтобы смотреть это видео.' : "Videoni ko'rish uchun avval tizimga kiring.",
+    subDesc:
+      lang === 'en'
+        ? 'Subscribe to our Telegram and Instagram channels to watch this video.'
+        : lang === 'ru'
+          ? 'Чтобы смотреть это видео, подпишитесь на наши Telegram и Instagram каналы.'
+          : "Ushbu videoni ko'rish uchun Telegram va Instagram kanallarimizga obuna bo'ling.",
+    proDesc:
+      lang === 'en'
+        ? 'AI videos are available for Pro users only. Price: 99 000 UZS.'
+        : lang === 'ru'
+          ? 'AI-видео доступны только для Pro пользователей. Цена: 99 000 сум.'
+          : "AI videolar (Cursor, Claude va boshqa agent darslari) faqat Pro foydalanuvchilar uchun ochiq. Narxi: 99 000 so'm.",
+    busyDesc:
+      lang === 'en'
+        ? 'The video is still processing on Bunny.net or has not finished uploading yet. Please try again later.'
+        : lang === 'ru'
+          ? 'Видео еще обрабатывается в Bunny.net или не завершило загрузку. Попробуйте позже.'
+          : "Video Bunny.net da hali qayta ishlanmoqda yoki yuklanmagan. Iltimos, keyinroq qayta urinib ko'ring.",
+    notFoundDesc:
+      lang === 'en'
+        ? 'This video does not exist or has been removed.'
+        : lang === 'ru'
+          ? 'Такого видео нет или оно было удалено.'
+          : "Bunday video mavjud emas yoki o'chirib yuborilgan.",
+    loginBtn: lang === 'en' ? 'Sign in' : lang === 'ru' ? 'Войти' : 'Kirish',
+    subscribeBtn: lang === 'en' ? 'Subscribe' : lang === 'ru' ? 'Подписаться' : "Obuna bo'lish",
+    buyProBtn: lang === 'en' ? 'Buy Pro (99 000 UZS)' : lang === 'ru' ? 'Купить Pro (99 000 сум)' : "Pro sotib olish (99 000 so'm)",
+    reloadBtn: lang === 'en' ? 'Reload' : lang === 'ru' ? 'Перезагрузить' : 'Qayta yuklash',
+    backToCourses: lang === 'en' ? 'Back to courses' : lang === 'ru' ? 'Назад к курсам' : 'Kurslarga qaytish',
+    back: lang === 'en' ? 'Back' : lang === 'ru' ? 'Назад' : 'Orqaga',
+    coursePrefix: lang === 'en' ? 'Course:' : lang === 'ru' ? 'Курс:' : 'Kurs:',
+    lessonFallback: lang === 'en' ? 'Lesson' : lang === 'ru' ? 'Урок' : 'Dars',
+    noDescription:
+      lang === 'en'
+        ? 'No description has been added for this lesson yet.'
+        : lang === 'ru'
+          ? 'Описание для этого урока пока не добавлено.'
+          : "Ushbu dars haqida hozircha tavsif qo'shilmagan.",
+    viewsLabel: lang === 'en' ? 'views' : lang === 'ru' ? 'просмотров' : "marta ko'rilgan",
+    loginToWatch: lang === 'en' ? 'Sign in to continue' : lang === 'ru' ? 'Войдите, чтобы продолжить' : 'Tizimga kiring',
+    needLoginWatch: lang === 'en' ? 'Please sign in to watch this video.' : lang === 'ru' ? 'Чтобы смотреть видео, войдите в систему.' : "Videoni ko'rish uchun avval tizimga kiring.",
+    needSubWatch: lang === 'en' ? 'Subscription required' : lang === 'ru' ? 'Требуется подписка' : 'Obuna talab qilinadi',
+    needSubWatchDesc:
+      lang === 'en'
+        ? 'Subscribe to our Telegram and Instagram channels to access this lesson.'
+        : lang === 'ru'
+          ? 'Подпишитесь на Telegram и Instagram каналы, чтобы смотреть этот урок.'
+          : "Ushbu darsni ko'rish uchun Telegram va Instagram kanallarimizga obuna bo'ling.",
+    unlockSub: lang === 'en' ? 'Subscribe to unlock' : lang === 'ru' ? 'Подписаться для доступа' : "Obuna bo'lish",
+    tgHosted: lang === 'en' ? 'Video is hosted on Telegram' : lang === 'ru' ? 'Видео размещено в Telegram' : "Video Telegram'da joylashgan",
+    tgHostedDesc:
+      lang === 'en'
+        ? 'Tap the button below and open the lesson through our Telegram link.'
+        : lang === 'ru'
+          ? 'Нажмите кнопку ниже и откройте урок по нашей Telegram-ссылке.'
+          : "Ushbu darsni ko'rish uchun quyidagi tugmani bosing va biz taqdim etgan havola orqali videoga o'ting.",
+    watchVideoBtn: lang === 'en' ? 'Watch video' : lang === 'ru' ? 'Смотреть видео' : "Videoni ko'rish",
+    processingTitle: lang === 'en' ? 'Video is processing' : lang === 'ru' ? 'Видео обрабатывается' : 'Video tayyorlanmoqda',
+    processingDesc: lang === 'en' ? 'The video is still being processed. Please wait a little.' : lang === 'ru' ? 'Видео еще обрабатывается. Пожалуйста, подождите.' : 'Video hali ishlanmoqda. Iltimos, bir oz kuting.',
+    refresh: lang === 'en' ? 'Refresh' : lang === 'ru' ? 'Обновить' : 'Yangilash',
+    lessonMaterials: lang === 'en' ? 'Lesson materials' : lang === 'ru' ? 'Материалы урока' : 'Dars Materiallari',
+    qaTitle: lang === 'en' ? 'Questions & Answers' : lang === 'ru' ? 'Вопросы и ответы' : 'Savol va Javoblar',
+    qaPlaceholder: lang === 'en' ? 'Any questions about this lesson?' : lang === 'ru' ? 'Есть вопросы по уроку?' : "Dars bo'yicha savolingiz bormi?",
+    send: lang === 'en' ? 'Send' : lang === 'ru' ? 'Отправить' : 'Yuborish',
+  };
   useSubscription();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const instagram = useSelector(selectInstagramSub);
@@ -133,29 +205,29 @@ export default function VideoPage() {
           {isAuth ? '🔐' : isSub ? '🔒' : isPro ? '💎' : isBusy ? '⏳' : '😕'}
         </motion.div>
         <h2 className="text-2xl font-bold text-white mb-3">
-          {isAuth ? 'Tizimga kirish talab qilinadi'
-          : isSub  ? 'Obuna talab qilinadi'
-          : isPro  ? 'Pro obuna talab qilinadi'
-          : isBusy ? 'Video hali tayyor emas'
-          :          'Video topilmadi'}
+          {isAuth ? localText.needLoginTitle
+          : isSub  ? localText.needSubTitle
+          : isPro  ? localText.needProTitle
+          : isBusy ? localText.videoNotReady
+          :          localText.videoNotFound}
         </h2>
         <p className="text-gray-400 mb-8 max-w-sm">
-          {isAuth ? 'Videoni ko\'rish uchun avval tizimga kiring.'
-          : isSub  ? 'Ushbu videoni ko\'rish uchun Telegram va Instagram kanallarimizga obuna bo\'ling.'
-          : isPro  ? 'AI videolar (Cursor, Claude va boshqa agent darslari) faqat Pro foydalanuvchilar uchun ochiq. Narxi: 99 000 so\'m.'
-          : isBusy ? 'Video Bunny.net da hali qayta ishlanmoqda yoki yuklanmagan. Iltimos, keyinroq qayta urinib ko\'ring.'
-          :          'Bunday video mavjud emas yoki o\'chirib yuborilgan.'}
+          {isAuth ? localText.loginDesc
+          : isSub  ? localText.subDesc
+          : isPro  ? localText.proDesc
+          : isBusy ? localText.busyDesc
+          :          localText.notFoundDesc}
         </p>
         <div className="flex gap-3 flex-wrap justify-center">
           {isAuth && (
-            <Link href="/login" className="btn btn-primary rounded-full px-8">Kirish</Link>
+            <Link href="/login" className="btn btn-primary rounded-full px-8">{localText.loginBtn}</Link>
           )}
           {isSub && (
             <Link
               href={`/subscription?returnUrl=/videos/${id}`}
               className="btn btn-primary rounded-full px-8"
             >
-              Obuna bo&apos;lish
+              {localText.subscribeBtn}
             </Link>
           )}
           {isPro && (
@@ -163,7 +235,7 @@ export default function VideoPage() {
               href="/pricing"
               className="btn btn-primary rounded-full px-8"
             >
-              Pro sotib olish (99 000 so&apos;m)
+              {localText.buyProBtn}
             </Link>
           )}
           {isBusy && (
@@ -171,10 +243,10 @@ export default function VideoPage() {
               onClick={() => window.location.reload()}
               className="btn btn-primary rounded-full px-8"
             >
-              Qayta yuklash
+              {localText.reloadBtn}
             </button>
           )}
-          <Link href="/courses" className="btn btn-outline btn-sm rounded-full px-6 text-white border-white/20">Kurslarga qaytish</Link>
+          <Link href="/courses" className="btn btn-outline btn-sm rounded-full px-6 text-white border-white/20">{localText.backToCourses}</Link>
         </div>
       </div>
     );
@@ -197,7 +269,7 @@ export default function VideoPage() {
           className="mb-6 flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white sm:mb-8 sm:text-base group"
         >
           <IoArrowBack className="group-hover:-translate-x-1 transition-transform" />
-          <span>Orqaga</span>
+          <span>{localText.back}</span>
         </motion.button>
 
         {/* Video Header Section */}
@@ -208,7 +280,7 @@ export default function VideoPage() {
         >
           <div className="flex flex-wrap gap-3 mb-6">
             <span className="badge badge-primary badge-outline px-2 sm:px-3 font-bold text-[10px] uppercase tracking-wider">
-              Kurs: {video.course?.title || 'Dars'}
+              {localText.coursePrefix} {video.course?.title || localText.lessonFallback}
             </span>
           </div>
 
@@ -217,7 +289,7 @@ export default function VideoPage() {
           </h1>
 
           <p className="mb-6 max-w-2xl text-sm leading-relaxed text-gray-400 sm:mb-8 sm:text-lg">
-            {video.description || "Ushbu dars haqida hozircha tavsif qo'shilmagan."}
+            {video.description || localText.noDescription}
           </p>
 
           <div className="flex flex-wrap items-center gap-3 sm:gap-6 pt-5 sm:pt-6 border-t border-white/5">
@@ -228,7 +300,7 @@ export default function VideoPage() {
             <div className="flex items-center gap-2 text-gray-400">
               <IoEye className="text-indigo-400" />
               <span className="text-sm font-medium">
-                {(video.viewCount ?? video.views ?? 0).toLocaleString()} marta ko'rilgan
+                {(video.viewCount ?? video.views ?? 0).toLocaleString()} {localText.viewsLabel}
               </span>
             </div>
             <div className="flex items-center gap-2 text-gray-400">
@@ -274,12 +346,12 @@ export default function VideoPage() {
                   <IoPlay size={32} className="ml-1" />
                 </div>
               </div>
-              <h2 className="mb-2 text-xl sm:text-2xl font-bold text-white">Tizimga kiring</h2>
+              <h2 className="mb-2 text-xl sm:text-2xl font-bold text-white">{localText.loginToWatch}</h2>
               <p className="mb-5 sm:mb-8 max-w-md px-2 sm:px-8 text-sm sm:text-base text-gray-400">
-                Videoni ko&apos;rish uchun avval tizimga kiring.
+                {localText.needLoginWatch}
               </p>
               <Link href="/login" className="btn btn-primary border-none bg-indigo-500 hover:bg-indigo-600 rounded-full px-5 sm:px-10 h-11 sm:h-14 font-bold text-sm sm:text-lg shadow-xl shadow-indigo-500/20">
-                Kirish
+                {localText.loginBtn}
               </Link>
             </div>
           ) : !isSubscribed ? (
@@ -290,15 +362,15 @@ export default function VideoPage() {
                   <IoPlay size={32} className="ml-1" />
                 </div>
               </div>
-              <h2 className="mb-2 text-xl sm:text-2xl font-bold text-white">Obuna talab qilinadi</h2>
+              <h2 className="mb-2 text-xl sm:text-2xl font-bold text-white">{localText.needSubWatch}</h2>
               <p className="mb-5 sm:mb-8 max-w-md px-2 sm:px-8 text-sm sm:text-base text-gray-400">
-                Ushbu darsni ko&apos;rish uchun Telegram va Instagram kanallarimizga obuna bo&apos;ling.
+                {localText.needSubWatchDesc}
               </p>
               <button
                 onClick={handleVideoClick}
                 className="btn btn-primary border-none bg-indigo-500 hover:bg-indigo-600 rounded-full px-5 sm:px-10 h-11 sm:h-14 font-bold text-sm sm:text-lg shadow-xl shadow-indigo-500/20 active:scale-95 transition-all"
               >
-                🔓 Obuna bo&apos;lish
+                🔓 {localText.unlockSub}
               </button>
             </div>
           ) : embedUrl ? (
@@ -318,9 +390,9 @@ export default function VideoPage() {
                   <IoPlay size={32} className="ml-1" />
                 </div>
               </div>
-              <h2 className="mb-2 text-xl sm:text-2xl font-bold text-white">Video Telegram&apos;da joylashgan</h2>
+              <h2 className="mb-2 text-xl sm:text-2xl font-bold text-white">{localText.tgHosted}</h2>
               <p className="mb-5 sm:mb-8 max-w-md px-2 sm:px-8 text-sm sm:text-base text-gray-400">
-                Ushbu darsni ko&apos;rish uchun quyidagi tugmani bosing va biz taqdim etgan havola orqali videoga o&apos;ting.
+                {localText.tgHostedDesc}
               </p>
               <a
                 href={(videoLink as any).telegramLink}
@@ -328,7 +400,7 @@ export default function VideoPage() {
                 rel="noopener noreferrer"
                 className="btn btn-primary h-11 sm:h-14 rounded-full border-none bg-indigo-500 px-5 sm:px-10 text-sm sm:text-lg font-bold shadow-xl shadow-indigo-500/20 hover:bg-indigo-600"
               >
-                ▶ Videoni ko&apos;rish
+                ▶ {localText.watchVideoBtn}
               </a>
             </div>
           ) : (
@@ -337,15 +409,15 @@ export default function VideoPage() {
               <div className="w-20 h-20 rounded-full bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center mb-6">
                 <span className="text-3xl">⏳</span>
               </div>
-              <h2 className="text-xl font-bold text-white mb-2">Video tayyorlanmoqda</h2>
+              <h2 className="text-xl font-bold text-white mb-2">{localText.processingTitle}</h2>
               <p className="text-gray-400 text-center px-8 max-w-md mb-6">
-                Video hali ishlanmoqda. Iltimos, bir oz kuting.
+                {localText.processingDesc}
               </p>
               <button
                 onClick={() => window.location.reload()}
                 className="btn btn-outline text-white border-white/20 rounded-full px-8 hover:bg-white/10"
               >
-                🔄 Yangilash
+                🔄 {localText.refresh}
               </button>
             </div>
           )}
@@ -385,7 +457,7 @@ export default function VideoPage() {
             >
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <IoDocumentText className="text-indigo-400" />
-                Dars Materiallari
+                {localText.lessonMaterials}
               </h3>
               <div className="space-y-3">
                 {video.materials.map((mat: { name: string; url: string }, i: number) => (
@@ -415,7 +487,7 @@ export default function VideoPage() {
             transition={{ delay: 0.5 }}
             className="bg-[#0d1224]/60 border border-white/5 rounded-3xl p-6 sm:p-8"
           >
-            <h3 className="text-lg font-bold text-white mb-6">Savol va Javoblar</h3>
+            <h3 className="text-lg font-bold text-white mb-6">{localText.qaTitle}</h3>
             <div className="flex gap-3 items-start">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shrink-0 shadow-lg" />
               <div className="flex-1 relative">
@@ -424,14 +496,14 @@ export default function VideoPage() {
                   onChange={(e) => setQuestion(e.target.value)}
                   className="w-full bg-black/30 border border-white/10 rounded-2xl text-sm text-white placeholder-gray-600 px-4 py-3 resize-none focus:outline-none focus:border-indigo-500/50 transition-colors"
                   rows={3}
-                  placeholder="Dars bo'yicha savolingiz bormi?"
+                  placeholder={localText.qaPlaceholder}
                 />
                 <button
                   onClick={() => setQuestion('')}
                   disabled={!question.trim()}
                   className="absolute bottom-3 right-3 px-4 py-1.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white text-xs font-bold transition-all shadow-lg active:scale-95"
                 >
-                  Yuborish
+                  {localText.send}
                 </button>
               </div>
             </div>

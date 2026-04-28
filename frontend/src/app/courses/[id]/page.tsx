@@ -112,7 +112,36 @@ function Skeleton() {
 
 // ── Main ──────────────────────────────────────────────────────
 export default function CourseDetailPage() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
+  const localText = {
+    home: lang === 'en' ? 'Home' : lang === 'ru' ? 'Главная' : 'Bosh sahifa',
+    courses: lang === 'en' ? 'Courses' : lang === 'ru' ? 'Курсы' : 'Kurslar',
+    students: lang === 'en' ? 'students' : lang === 'ru' ? 'студентов' : "o'quvchi",
+    instructor: lang === 'en' ? 'Instructor' : lang === 'ru' ? 'Инструктор' : 'Instruktor',
+    whatYouLearn: lang === 'en' ? 'What will you learn?' : lang === 'ru' ? 'Что вы изучите?' : "Nima o'rganasiz?",
+    courseProgram: lang === 'en' ? 'Course Program' : lang === 'ru' ? 'Программа курса' : 'Kurs Dasturi',
+    lessonsSuffix: lang === 'en' ? 'lessons' : lang === 'ru' ? 'уроков' : 'dars',
+    allLessons: lang === 'en' ? 'All lessons' : lang === 'ru' ? 'Все уроки' : 'Barcha darslar',
+    lessonsNotAdded: lang === 'en' ? 'Lessons have not been added yet' : lang === 'ru' ? 'Уроки пока не добавлены' : "Darslar hali qo'shilmagan",
+    practicalProjects: lang === 'en' ? 'Practical Projects' : lang === 'ru' ? 'Практические проекты' : 'Amaliy Loyihalar',
+    recommendedCourses: lang === 'en' ? 'Recommended courses' : lang === 'ru' ? 'Рекомендуемые курсы' : 'Tavsiya etilgan kurslar',
+    subscribedTitle: lang === 'en' ? 'You are subscribed!' : lang === 'ru' ? 'Вы подписаны!' : "Siz obuna bo'lgansiz!",
+    subscribedDesc:
+      lang === 'en'
+        ? 'All subscriptions are verified. You can now watch videos.'
+        : lang === 'ru'
+          ? 'Все подписки подтверждены. Теперь вы можете смотреть видео.'
+          : "Barcha obunalar tasdiqlangan. Videolarni ko'rishingiz mumkin.",
+    watchVideo: lang === 'en' ? 'Watch video' : lang === 'ru' ? 'Смотреть видео' : "Video ko'rish",
+    close: lang === 'en' ? 'Close' : lang === 'ru' ? 'Закрыть' : 'Yopish',
+    watchOrSubscribe: lang === 'en' ? 'Subscribe to watch' : lang === 'ru' ? 'Подписаться и смотреть' : "Obuna bo'lish va ko'rish",
+    lessonsLabel: lang === 'en' ? 'Lessons' : lang === 'ru' ? 'Уроки' : 'Darslar',
+    totalTime: lang === 'en' ? 'Total time' : lang === 'ru' ? 'Общее время' : 'Umumiy vaqt',
+    rating: lang === 'en' ? 'Rating' : lang === 'ru' ? 'Рейтинг' : 'Reyting',
+    learners: lang === 'en' ? 'Learners' : lang === 'ru' ? 'Ученики' : "O'quvchilar",
+    projects: lang === 'en' ? 'Projects' : lang === 'ru' ? 'Проекты' : 'Loyihalar',
+    dateLocale: lang === 'en' ? 'en-US' : lang === 'ru' ? 'ru-RU' : 'uz-UZ',
+  }
   const { id }                                          = useParams()
   const { course, loading }                             = useCourse(id)
   const { courseVideos, loading: vLoad, fetchByCourse } = useVideos()
@@ -172,9 +201,9 @@ export default function CourseDetailPage() {
 
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1 text-xs text-base-content/30 mb-6 flex-wrap">
-          <Link href={ROUTES.HOME} className="hover:text-primary transition-colors">Bosh sahifa</Link>
+          <Link href={ROUTES.HOME} className="hover:text-primary transition-colors">{localText.home}</Link>
           <IoChevronForward className="text-xs opacity-50" />
-          <Link href={ROUTES.COURSES} className="hover:text-primary transition-colors">Kurslar</Link>
+          <Link href={ROUTES.COURSES} className="hover:text-primary transition-colors">{localText.courses}</Link>
           <IoChevronForward className="text-xs opacity-50" />
           <span className="text-base-content/55 line-clamp-1 max-w-[160px] sm:max-w-xs">{course.title}</span>
         </nav>
@@ -217,13 +246,13 @@ export default function CourseDetailPage() {
               {course.studentsCount > 0 && (
                 <span className="flex items-center gap-1 text-xs sm:text-sm text-base-content/40">
                   <IoPeople className="text-primary text-sm" />
-                  {course.studentsCount.toLocaleString()} o'quvchi
+                  {course.studentsCount.toLocaleString()} {localText.students}
                 </span>
               )}
               {course.updatedAt && (
                 <span className="flex items-center gap-1 text-xs sm:text-sm text-base-content/40">
                   <IoCalendar className="text-primary text-sm" />
-                  {new Date(course.updatedAt).toLocaleDateString('uz-UZ')}
+                  {new Date(course.updatedAt).toLocaleDateString(localText.dateLocale)}
                 </span>
               )}
               {course.language && (
@@ -242,7 +271,7 @@ export default function CourseDetailPage() {
                 </div>
                 <div>
                   <p className="font-bold text-sm">{instructorName}</p>
-                  <p className="text-xs text-base-content/35 mt-0.5">{instructorTitle || 'Instruktor'}</p>
+                  <p className="text-xs text-base-content/35 mt-0.5">{instructorTitle || localText.instructor}</p>
                 </div>
               </div>
             )}
@@ -261,6 +290,7 @@ export default function CourseDetailPage() {
                 catColor={catColor}
                 isSubscribed={isSubscribed}
                 onWatch={handleWatch}
+                uiText={localText}
               />
             </div>
 
@@ -269,7 +299,7 @@ export default function CourseDetailPage() {
               <div className="space-y-3">
                 <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
                   <IoCheckmarkCircle className="text-emerald-400" />
-                  Nima o'rganasiz?
+                  {localText.whatYouLearn}
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 sm:p-4 rounded-2xl bg-base-200/50 border border-base-content/5">
                   {course.requirements.map((req, i) => (
@@ -287,11 +317,11 @@ export default function CourseDetailPage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
                   <IoPlay className="text-primary" />
-                  Kurs Dasturi
+                  {localText.courseProgram}
                 </h2>
                 {courseVideos.length > 0 && (
                   <span className="text-xs text-base-content/30">
-                    {courseVideos.length} dars{totalSecs > 0 && ' · ' + formatDurationText(totalSecs)}
+                    {courseVideos.length} {localText.lessonsSuffix}{totalSecs > 0 && ' · ' + formatDurationText(totalSecs)}
                   </span>
                 )}
               </div>
@@ -304,8 +334,8 @@ export default function CourseDetailPage() {
                 </div>
               ) : courseVideos.length > 0 ? (
                 <Accordion
-                  title="Barcha darslar"
-                  subtitle={`${courseVideos.length} ta · ${formatDurationText(totalSecs)}`}
+                  title={localText.allLessons}
+                  subtitle={`${courseVideos.length} ${localText.lessonsSuffix} · ${formatDurationText(totalSecs)}`}
                   defaultOpen
                 >
                   <div className="space-y-0.5">
@@ -314,7 +344,7 @@ export default function CourseDetailPage() {
                 </Accordion>
               ) : (
                 <div className="py-8 text-center text-sm text-base-content/30 rounded-2xl bg-base-200/40 border border-base-content/5">
-                  Darslar hali qo'shilmagan
+                  {localText.lessonsNotAdded}
                 </div>
               )}
             </div>
@@ -324,7 +354,7 @@ export default function CourseDetailPage() {
               <div className="space-y-3">
                 <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
                   <IoCodeSlash className="text-primary" />
-                  Amaliy Loyihalar
+                  {localText.practicalProjects}
                 </h2>
                 <div className="space-y-3">
                   {projects.map((p) => (
@@ -376,6 +406,7 @@ export default function CourseDetailPage() {
               catColor={catColor}
               isSubscribed={isSubscribed}
               onWatch={handleWatch}
+              uiText={localText}
             />
           </motion.div>
         </div>
@@ -390,7 +421,7 @@ export default function CourseDetailPage() {
           >
             <h2 className="text-base sm:text-xl font-bold mb-4 sm:mb-6 flex items-center gap-2">
               <IoFlash className="text-primary" />
-              Tavsiya etilgan kurslar
+              {localText.recommendedCourses}
             </h2>
             <Swiper
               modules={[Navigation]}
@@ -434,9 +465,9 @@ export default function CourseDetailPage() {
             <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
               <IoCheckmarkCircle className="text-emerald-400 text-3xl" />
             </div>
-            <h3 className="text-lg font-bold text-base-content">Siz obuna bo'lgansiz!</h3>
+            <h3 className="text-lg font-bold text-base-content">{localText.subscribedTitle}</h3>
             <p className="text-sm text-base-content/50">
-              Barcha obunalar tasdiqlangan. Videolarni ko'rishingiz mumkin.
+              {localText.subscribedDesc}
             </p>
             <div className="flex flex-col gap-2 pt-2">
               {courseVideos.length > 0 && (
@@ -445,14 +476,14 @@ export default function CourseDetailPage() {
                   className="btn btn-primary btn-block rounded-xl font-bold gap-2"
                 >
                   <IoPlay className="text-base" />
-                  Video ko'rish
+                  {localText.watchVideo}
                 </button>
               )}
               <button
                 onClick={() => setShowSubscribedModal(false)}
                 className="btn btn-ghost btn-sm rounded-xl text-base-content/50"
               >
-                Yopish
+                {localText.close}
               </button>
             </div>
           </motion.div>
@@ -472,23 +503,24 @@ function PriceCardContent({
   projects,
   isSubscribed,
   onWatch,
+  uiText,
 }) {
   return (
     <div className="p-4 sm:p-5 space-y-4">
       <div className="space-y-2">
         <button onClick={onWatch} className="btn btn-primary btn-block rounded-xl font-bold gap-2">
           {isSubscribed ? <IoPlay className="text-base" /> : <IoLockClosed className="text-base" />}
-          {isSubscribed ? 'Videoni ko\'rish' : 'Obuna bo\'lish va ko\'rish'}
+          {isSubscribed ? uiText.watchVideo : uiText.watchOrSubscribe}
         </button>
       </div>
       <div className="divider my-0 opacity-20" />
       <div className="space-y-2.5">
-        <StatRow icon={<IoBookOutline className="text-primary text-sm" />} label="Darslar" value={courseVideos.length} />
-        {totalSecs > 0 && <StatRow icon={<IoTime className="text-primary text-sm" />} label="Umumiy vaqt" value={formatDurationText(totalSecs)} />}
+        <StatRow icon={<IoBookOutline className="text-primary text-sm" />} label={uiText.lessonsLabel} value={courseVideos.length} />
+        {totalSecs > 0 && <StatRow icon={<IoTime className="text-primary text-sm" />} label={uiText.totalTime} value={formatDurationText(totalSecs)} />}
         <StatRow icon={<IoBarChart className="text-primary text-sm" />} label={levelFieldLabel} value={levelDisplay} />
-        {rating > 0 && <StatRow icon={<IoStar className="text-yellow-400 text-sm" />} label="Reyting" value={Number(rating).toFixed(1)} />}
-        {course.studentsCount > 0 && <StatRow icon={<IoPeople className="text-primary text-sm" />} label="O'quvchilar" value={course.studentsCount.toLocaleString()} />}
-        {projects.length > 0 && <StatRow icon={<IoCodeSlash className="text-primary text-sm" />} label="Loyihalar" value={projects.length} />}
+        {rating > 0 && <StatRow icon={<IoStar className="text-yellow-400 text-sm" />} label={uiText.rating} value={Number(rating).toFixed(1)} />}
+        {course.studentsCount > 0 && <StatRow icon={<IoPeople className="text-primary text-sm" />} label={uiText.learners} value={course.studentsCount.toLocaleString()} />}
+        {projects.length > 0 && <StatRow icon={<IoCodeSlash className="text-primary text-sm" />} label={uiText.projects} value={projects.length} />}
       </div>
     </div>
   )
@@ -511,13 +543,13 @@ function DesktopPriceCard(props) {
 }
 
 function MobilePriceCard(props) {
-  const { isSubscribed, onWatch } = props
+  const { isSubscribed, onWatch, uiText } = props
   return (
     <div className="rounded-2xl border border-base-content/8 bg-base-200 overflow-hidden shadow-lg">
       <div className="flex items-center justify-center px-4 py-3">
         <button onClick={onWatch} className="btn btn-primary btn-sm rounded-xl gap-1">
           {isSubscribed ? <IoPlay className="text-sm" /> : <IoLockClosed className="text-sm" />}
-          {isSubscribed ? 'Videoni ko\'rish' : 'Obuna bo\'lish va ko\'rish'}
+          {isSubscribed ? uiText.watchVideo : uiText.watchOrSubscribe}
         </button>
       </div>
     </div>

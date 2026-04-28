@@ -24,6 +24,13 @@ const api = axios.create({
 // Attach CSRF token for state-changing requests, and lift captchaToken from body to header.
 api.interceptors.request.use((config) => {
   const method = String(config.method || 'get').toLowerCase()
+  const isFormData = typeof FormData !== 'undefined' && config.data instanceof FormData
+  if (isFormData) {
+    // Let XHR/fetch set proper multipart boundary for FormData requests.
+    if (config.headers && 'Content-Type' in config.headers) {
+      delete (config.headers as Record<string, string>)['Content-Type']
+    }
+  }
   if (['post', 'put', 'patch', 'delete'].includes(method)) {
     const csrf = readCsrfToken()
     if (csrf) {

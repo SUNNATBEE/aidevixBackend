@@ -38,7 +38,50 @@ export default function ProfilePage() {
   const user = useSelector(selectUser);
   const { xp, level, badges, videosWatched, bio, skills, avatar, loading: statsLoading } = useUserStats();
   const sub = useSubscription();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const profileLocalText = {
+    security2fa: lang === 'en' ? 'Security / 2FA' : lang === 'ru' ? 'Безопасность / 2FA' : 'Xavfsizlik / 2FA',
+    upgradeNow: lang === 'en' ? 'Upgrade Now' : lang === 'ru' ? 'Улучшить сейчас' : 'Upgrade Now',
+    streakShieldTitle: lang === 'en' ? 'Streak Shield' : lang === 'ru' ? 'Щит серии' : 'Streak Shield',
+    streakShieldDesc:
+      lang === 'en'
+        ? 'Protects your streak from a one-day break. You get 1 free shield each week.'
+        : lang === 'ru'
+          ? 'Защищает серию от однодневного пропуска. Каждую неделю вы получаете 1 бесплатный щит.'
+          : 'Streakingizni bir kunlik uzilishdan himoya qiladi. Har hafta 1 ta bepul beriladi.',
+    streakUsing: lang === 'en' ? 'Using...' : lang === 'ru' ? 'Применяется...' : 'Ishlatilmoqda...',
+    streakUse: lang === 'en' ? 'Use Shield' : lang === 'ru' ? 'Использовать щит' : 'Himoyani ishlatish',
+    aiStackTitle:
+      lang === 'en'
+        ? 'AI tools you use'
+        : lang === 'ru'
+          ? 'AI-инструменты, которые вы используете'
+          : 'Siz ishlatadigan AI Tools',
+    selectedCount:
+      lang === 'en'
+        ? 'selected'
+        : lang === 'ru'
+          ? 'выбрано'
+          : 'tanlangan',
+    aiStackSub:
+      lang === 'en'
+        ? 'Select the AI coding tools you use - this will appear on the leaderboard.'
+        : lang === 'ru'
+          ? 'Отметьте AI-инструменты для кодинга, которыми вы пользуетесь - это отобразится в лидерборде.'
+          : "Qaysi AI coding toollardan foydalanishingizni belgilang - leaderboard'da ko'rinadi.",
+    aiStackSaving: lang === 'en' ? 'Saving...' : lang === 'ru' ? 'Сохранение...' : 'Saqlanmoqda...',
+    aiStackSave: lang === 'en' ? 'Save AI Stack' : lang === 'ru' ? 'Сохранить AI Stack' : 'AI Stack ni saqlash',
+    yourStack: lang === 'en' ? 'Your Stack' : lang === 'ru' ? 'Ваш Stack' : "Sizning Stack'ingiz",
+    shieldUsedOk:
+      lang === 'en'
+        ? 'Streak Shield used! Your streak is protected for today 🛡️'
+        : lang === 'ru'
+          ? 'Щит серии активирован! Сегодня ваша серия защищена 🛡️'
+          : 'Streak Shield ishlatildi! Bugungi streakingiz himoyalandi 🛡️',
+    genericError: lang === 'en' ? 'Something went wrong' : lang === 'ru' ? 'Произошла ошибка' : 'Xato yuz berdi',
+    aiStackSaved: lang === 'en' ? 'AI Stack saved! ✅' : lang === 'ru' ? 'AI Stack сохранён! ✅' : 'AI Stack saqlandi! ✅',
+    aiStackSaveError: lang === 'en' ? 'Failed to save' : lang === 'ru' ? 'Ошибка сохранения' : 'Saqlashda xato',
+  };
 
   useEffect(() => {
     if (!authLoading && !isLoggedIn) {
@@ -91,9 +134,9 @@ export default function ProfilePage() {
     try {
       await userApi.useStreakFreeze();
       setStreakFreezes(prev => Math.max(0, prev - 1));
-      toast.success('Streak Shield ishlatildi! Bugungi streakingiz himoyalandi 🛡️');
+      toast.success(profileLocalText.shieldUsedOk);
     } catch (e: any) {
-      toast.error(e?.response?.data?.message || 'Xato yuz berdi');
+      toast.error(e?.response?.data?.message || profileLocalText.genericError);
     } finally {
       setUsingFreeze(false);
     }
@@ -109,9 +152,9 @@ export default function ProfilePage() {
     try {
       setSavingStack(true);
       await dispatch(updateProfileThunk({ aiStack: selectedTools })).unwrap();
-      toast.success('AI Stack saqlandi! ✅');
+      toast.success(profileLocalText.aiStackSaved);
     } catch {
-      toast.error('Saqlashda xato');
+      toast.error(profileLocalText.aiStackSaveError);
     } finally {
       setSavingStack(false);
     }
@@ -170,6 +213,7 @@ export default function ProfilePage() {
   const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
 
     if (file.size > 2 * 1024 * 1024) {
       toast.error(t('profile.toast.avatarSize'));
@@ -287,7 +331,7 @@ export default function ProfilePage() {
                   className="py-3 px-6 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-2xl text-indigo-200 font-bold text-sm transition-all flex items-center justify-center gap-2"
                 >
                   <FiShield size={18} />
-                  Xavfsizlik / 2FA
+                  {profileLocalText.security2fa}
                 </Link>
               </div>
             </div>
@@ -401,7 +445,7 @@ export default function ProfilePage() {
                       <h4 className="text-2xl font-black mb-2 italic">Aidevix Pro</h4>
                       <p className="text-white/70 text-sm mb-6">{t('profile.pro.desc')}</p>
                       <button className="w-full py-3 bg-white text-indigo-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform">
-                        Upgrade Now
+                        {profileLocalText.upgradeNow}
                       </button>
                    </div>
                    <div className="absolute top-[-20%] right-[-20%] w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
@@ -431,13 +475,13 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        Streak Shield
+                        {profileLocalText.streakShieldTitle}
                         <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
                           {streakFreezes} / 5
                         </span>
                       </h3>
                       <p className="text-sm text-slate-400 mt-1">
-                        Streakingizni bir kunlik uzilishdan himoya qiladi. Har hafta 1 ta bepul beriladi.
+                        {profileLocalText.streakShieldDesc}
                       </p>
                       <div className="flex gap-1.5 mt-3">
                         {[...Array(5)].map((_, i) => (
@@ -460,7 +504,7 @@ export default function ProfilePage() {
                     disabled={usingFreeze || streakFreezes <= 0}
                     className="flex-shrink-0 px-6 py-3 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40 text-white font-bold rounded-2xl transition-all active:scale-95 text-sm whitespace-nowrap"
                   >
-                    {usingFreeze ? 'Ishlatilmoqda...' : 'Himoyani ishlatish'}
+                    {usingFreeze ? profileLocalText.streakUsing : profileLocalText.streakUse}
                   </button>
                 </div>
               </div>
@@ -485,11 +529,11 @@ export default function ProfilePage() {
               <div className="bg-[#0d101a] border border-white/5 rounded-3xl p-8 shadow-xl">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                    <span className="text-2xl">⚡</span> Siz ishlatiydigan AI Tools
+                    <span className="text-2xl">⚡</span> {profileLocalText.aiStackTitle}
                   </h3>
-                  <span className="text-xs text-slate-500">{selectedTools.length} / {AI_TOOLS.length} tanlangan</span>
+                  <span className="text-xs text-slate-500">{selectedTools.length} / {AI_TOOLS.length} {profileLocalText.selectedCount}</span>
                 </div>
-                <p className="text-sm text-slate-500 mb-8">Qaysi AI coding toollardan foydalanishingizni belgilang — leaderboard'da ko'rinadi.</p>
+                <p className="text-sm text-slate-500 mb-8">{profileLocalText.aiStackSub}</p>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
                   {AI_TOOLS.map((tool) => {
@@ -521,13 +565,13 @@ export default function ProfilePage() {
                   disabled={savingStack}
                   className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold uppercase text-xs tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50"
                 >
-                  {savingStack ? 'Saqlanmoqda...' : 'AI Stack ni saqlash'}
+                  {savingStack ? profileLocalText.aiStackSaving : profileLocalText.aiStackSave}
                 </button>
               </div>
 
               {selectedTools.length > 0 && (
                 <div className="bg-[#0d101a] border border-white/5 rounded-3xl p-8">
-                  <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Sizning Stack'ingiz</h4>
+                  <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">{profileLocalText.yourStack}</h4>
                   <div className="flex flex-wrap gap-3">
                     {selectedTools.map(tool => {
                       const t = AI_TOOLS.find(a => a.name === tool);

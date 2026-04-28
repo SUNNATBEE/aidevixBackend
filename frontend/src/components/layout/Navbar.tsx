@@ -35,18 +35,23 @@ export default function Navbar() {
   const [moreOpen, setMoreOpen] = useState(false)
   const langRef = useRef<HTMLDivElement>(null)
   const moreRef = useRef<HTMLLIElement>(null)
+  const navLocalText = {
+    prompts: lang === 'en' ? 'Prompts' : lang === 'ru' ? 'Промпты' : 'Prompts',
+    roadmap: lang === 'en' ? 'Roadmap' : lang === 'ru' ? 'Роадмап' : 'Roadmap',
+    adminPanel: lang === 'en' ? 'Admin Panel' : lang === 'ru' ? 'Админ панель' : 'Admin Panel',
+  }
 
   /** Chiptada gorizontal skrollsiz: asosiy 4 + qolganlari “Yana” menyusida. */
   const navPrimary: { label: string; to: string }[] = [
     { label: t('nav.courses'), to: ROUTES.COURSES },
-    { label: '⚡ Prompts', to: ROUTES.PROMPTS },
+    { label: `⚡ ${navLocalText.prompts}`, to: ROUTES.PROMPTS },
     { label: t('nav.challenges'), to: ROUTES.CHALLENGES },
     { label: t('nav.leaderboard'), to: ROUTES.LEADERBOARD },
   ]
   const navMore: { label: string; to: string }[] = [
     { label: t('nav.bugReport'), to: ROUTES.BUG_REPORT },
     { label: `🧠 ${t('nav.founders')}`, to: ROUTES.TEAM },
-    { label: '🗺 Roadmap', to: ROUTES.ROADMAP },
+    { label: `🗺 ${navLocalText.roadmap}`, to: ROUTES.ROADMAP },
     { label: t('nav.careers'), to: ROUTES.CAREERS },
   ]
   const allNavMobile = [...navPrimary, ...navMore]
@@ -129,7 +134,7 @@ export default function Navbar() {
   const surface = isDark ? 'bg-white/[0.04] border-white/10' : 'bg-slate-950/[0.03] border-slate-900/10'
   const navLinkBase = isDark ? 'text-slate-400 hover:text-white hover:bg-white/[0.06]' : 'text-slate-600 hover:text-slate-950 hover:bg-slate-900/[0.05]'
   const activeNavLink = isDark ? 'text-white bg-white/[0.08]' : 'text-slate-950 bg-slate-900/[0.06]'
-  const dropdownBg = isDark ? 'bg-[#0d1017]/96 border-white/10 text-slate-200' : 'bg-white/96 border-slate-900/10 text-slate-800'
+  const dropdownBg = isDark ? 'bg-[#0d1017] border-white/10 text-slate-200' : 'bg-white border-slate-900/10 text-slate-800'
   const dropdownItemColor = isDark ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]' : 'text-slate-700 hover:text-slate-950 hover:bg-slate-900/[0.05]'
   const mobileMenuBg = isDark ? 'bg-[#090b10]/96' : 'bg-white/96'
 
@@ -296,7 +301,7 @@ export default function Navbar() {
                   </div>
 
                   <div className="dropdown dropdown-end">
-                    <label tabIndex={0} className="group flex cursor-pointer items-center gap-2">
+                    <label tabIndex={0} className="group flex min-w-0 cursor-pointer items-center gap-2">
                       {avatarSrc ? (
                         <div className="relative">
                           <img src={avatarSrc} alt="avatar" className="h-10 w-10 rounded-full border-2 border-indigo-500/30 object-cover transition-colors group-hover:border-indigo-400" />
@@ -311,17 +316,17 @@ export default function Navbar() {
                           {avatarLetter}
                         </div>
                       )}
-                      <div className="hidden flex-col items-start leading-none sm:flex">
-                        <span className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      <div className="hidden min-w-0 max-w-[11rem] flex-col items-start leading-none sm:flex">
+                        <span className={`block max-w-full truncate text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                           {user?.firstName || user?.username}
                         </span>
-                        <span className="mt-1 text-[10px] font-bold tracking-[0.24em] text-indigo-400">
+                        <span className="mt-1 block max-w-full truncate text-[10px] font-bold tracking-[0.24em] text-indigo-400">
                           {(user as any)?.rankTitle || 'AMATEUR'}
                         </span>
                       </div>
                     </label>
 
-                    <ul tabIndex={0} className={`dropdown-content menu mt-3 w-72 rounded-[1.5rem] border p-2 shadow-2xl backdrop-blur-3xl z-50 translate-y-2 ${dropdownBg}`}>
+                    <ul tabIndex={0} className={`dropdown-content menu mt-3 w-72 rounded-[1.5rem] border p-2 shadow-2xl z-50 translate-y-2 ${dropdownBg}`}>
                       <div className={`relative mb-2 overflow-hidden rounded-[1.25rem] border p-4 ${isDark ? 'border-white/8 bg-white/[0.03]' : 'border-slate-900/10 bg-slate-950/[0.03]'}`}>
                         <div className="mb-2 flex items-end justify-between">
                           <div className={`text-xs font-semibold ${subText}`}>
@@ -348,7 +353,7 @@ export default function Navbar() {
                       {isAdmin && (
                         <li>
                           <Link href="/admin" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300">
-                            Admin Panel
+                            {navLocalText.adminPanel}
                           </Link>
                         </li>
                       )}

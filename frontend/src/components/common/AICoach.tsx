@@ -42,6 +42,19 @@ const initialMessages: ExtendedMessage[] = [
   },
 ];
 
+function renderBoldSegments(line: string) {
+  const parts = line.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, idx) => {
+    const isBold = part.startsWith('**') && part.endsWith('**') && part.length > 4;
+    if (!isBold) return <span key={`plain-${idx}`}>{part}</span>;
+    return (
+      <strong key={`bold-${idx}`} className="font-semibold text-white">
+        {part.slice(2, -2)}
+      </strong>
+    );
+  });
+}
+
 function formatDuration(seconds?: number): string {
   if (!seconds) return '';
   const m = Math.floor(seconds / 60);
@@ -280,18 +293,13 @@ export default function AICoach() {
                       : 'ml-auto rounded-tr-none border-indigo-500/20 bg-white/10 text-white'
                   }`}
                 >
-                  {/* Render message with basic markdown-like formatting */}
+                  {/* Render message with basic markdown-like formatting (safe, no raw HTML). */}
                   <div className="whitespace-pre-wrap break-words">
                     {message.content.split('\n').map((line, i) => {
-                      // Bold text
-                      const formatted = line.replace(
-                        /\*\*(.+?)\*\*/g,
-                        '<strong class="font-semibold text-white">$1</strong>'
-                      );
                       return (
                         <span key={i}>
                           {i > 0 && <br />}
-                          <span dangerouslySetInnerHTML={{ __html: formatted }} />
+                          {renderBoldSegments(line)}
                         </span>
                       );
                     })}

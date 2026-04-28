@@ -92,6 +92,10 @@ export const checkAuthStatus = createAsyncThunk(
   'auth/checkAuthStatus',
   async (_, { rejectWithValue }) => {
     try {
+      const cachedUser = tokenStorage.getUser()
+      if (!cachedUser) {
+        return rejectWithValue('No cached user')
+      }
       const { data } = await authApi.getMe()
       tokenStorage.clearTokens()
       tokenStorage.setUser(data.data)

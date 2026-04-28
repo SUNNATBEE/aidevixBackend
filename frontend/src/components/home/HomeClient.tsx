@@ -236,7 +236,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
       cta: "To'liq yangilik uchun Telegram",
       href: SOCIAL_LINKS.telegram,
       platform: "telegram",
-      imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1600&q=80',
+      imageUrl: 'https://picsum.photos/seed/aidevix-ai-news-1/1600/900',
     },
     {
       title: "Prompt engineering endi alohida kasb: kompaniyalar aniq skill bilan mutaxassis qidirmoqda",
@@ -244,7 +244,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
       cta: "Batafsil post Instagram'da",
       href: SOCIAL_LINKS.instagram,
       platform: "instagram",
-      imageUrl: 'https://images.unsplash.com/photo-1717501219263-19f850be9f62?auto=format&fit=crop&w=1600&q=80',
+      imageUrl: 'https://picsum.photos/seed/aidevix-ai-news-2/1600/900',
     },
     {
       title: "AI + kod review: bug'lar kamaydi, release tezligi oshdi",
@@ -252,7 +252,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
       cta: "Yangiliklarni Telegram'da kuzating",
       href: SOCIAL_LINKS.telegram,
       platform: "telegram",
-      imageUrl: 'https://images.unsplash.com/photo-1676299081847-824916de030a?auto=format&fit=crop&w=1600&q=80',
+      imageUrl: 'https://picsum.photos/seed/aidevix-ai-news-3/1600/900',
     },
     {
       title: "Multi-agent stack: bitta loyiha ichida Claude, Cursor, Copilot birga ishlatilmoqda",
@@ -260,7 +260,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
       cta: "Instagram'da trend tahlili",
       href: SOCIAL_LINKS.instagram,
       platform: "instagram",
-      imageUrl: 'https://images.unsplash.com/photo-1686191128892-3f6f4e6b7138?auto=format&fit=crop&w=1600&q=80',
+      imageUrl: 'https://picsum.photos/seed/aidevix-ai-news-4/1600/900',
     },
   ];
 

@@ -15,11 +15,23 @@ import { sounds } from '@utils/sounds';
 export default function ReferralPage() {
   const { user, isLoggedIn, loading } = useAuth();
   const router = useRouter();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { isDark } = useTheme();
   const [copied, setCopied] = useState(false);
   const [referralData, setReferralData] = useState<any>(null);
   const [loadingData, setLoadingData] = useState(false);
+  const referralLocalText = {
+    yourCode: lang === 'en' ? 'Your code:' : lang === 'ru' ? 'Ваш код:' : 'Sizning kodingiz:',
+    countSuffix: lang === 'en' ? 'people' : lang === 'ru' ? 'чел' : 'ta',
+    loading: lang === 'en' ? 'Loading...' : lang === 'ru' ? 'Загрузка...' : 'Yuklanmoqda...',
+    noTop:
+      lang === 'en'
+        ? 'No one is in the top ranking yet'
+        : lang === 'ru'
+          ? 'Пока никого нет в топ-рейтинге'
+          : "Hali hech kim top reytingda yo'q",
+    dateLocale: lang === 'en' ? 'en-US' : lang === 'ru' ? 'ru-RU' : 'uz-UZ',
+  };
 
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -63,7 +75,12 @@ export default function ReferralPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const shareText = `🚀 Aidevix platformasida dasturlashni zo'r o'rganish mumkin ekan! ${inviteLink}`;
+  const shareText =
+    lang === 'en'
+      ? `🚀 Learning programming on Aidevix is awesome! ${inviteLink}`
+      : lang === 'ru'
+        ? `🚀 На Aidevix можно круто учиться программированию! ${inviteLink}`
+        : `🚀 Aidevix platformasida dasturlashni zo'r o'rganish mumkin ekan! ${inviteLink}`;
 
   const totalFriends = referralData?.totalFriends ?? ((user as any)?.referralsCount || 0);
   const totalXp = referralData?.totalEarnedXp ?? (totalFriends * 1000);
@@ -114,7 +131,7 @@ export default function ReferralPage() {
 
             {/* My Referral Code Badge */}
             <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className={`text-sm font-medium ${textMuted}`}>Sizning kodingiz:</span>
+              <span className={`text-sm font-medium ${textMuted}`}>{referralLocalText.yourCode}</span>
               <span className="bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 font-mono font-black text-sm sm:text-lg px-3 sm:px-4 py-1 rounded-xl tracking-widest">
                 {referralCode}
               </span>
@@ -140,17 +157,17 @@ export default function ReferralPage() {
               <div className="flex flex-wrap items-center gap-3 mt-2">
                 <span className={`text-sm ${textMuted}`}>{t('referral.shareVia')}</span>
                 <a href={`https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`}
-                  target="_blank" rel="noreferrer"
+                  target="_blank" rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-[#1A2234] border border-white/5 flex items-center justify-center text-[#0088cc] hover:bg-[#0088cc] hover:text-white transition-all hover:scale-110">
                   <FaTelegramPlane size={18} />
                 </a>
                 <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`}
-                  target="_blank" rel="noreferrer"
+                  target="_blank" rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-[#1A2234] border border-white/5 flex items-center justify-center text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all hover:scale-110">
                   <FaWhatsapp size={18} />
                 </a>
                 <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(inviteLink)}`}
-                  target="_blank" rel="noreferrer"
+                  target="_blank" rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-[#1A2234] border border-white/5 flex items-center justify-center text-[#1877F2] hover:bg-[#1877F2] hover:text-white transition-all hover:scale-110">
                   <FaFacebookF size={18} />
                 </a>
@@ -164,7 +181,7 @@ export default function ReferralPage() {
               <h3 className={`text-sm font-medium uppercase tracking-wider mb-2 ${textMuted}`}>{t('referral.totalFriends')}</h3>
               <div className="flex items-baseline gap-2">
                 <span className={`text-4xl sm:text-5xl font-black ${textMain}`}>{loadingData ? '...' : totalFriends}</span>
-                <span className={textMuted}>ta</span>
+                <span className={textMuted}>{referralLocalText.countSuffix}</span>
               </div>
             </div>
             <div className={`w-full h-px ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
@@ -195,7 +212,7 @@ export default function ReferralPage() {
             </div>
             <div className="space-y-3">
               {loadingData ? (
-                <div className="text-center py-6 text-gray-500">Yuklanmoqda...</div>
+                <div className="text-center py-6 text-gray-500">{referralLocalText.loading}</div>
               ) : referralData?.topReferrers?.length > 0 ? (
                 referralData.topReferrers.map((u: any, idx: number) => (
                   <div key={u._id} className={`flex items-center justify-between p-4 rounded-2xl transition-colors ${itemBg}`}>
@@ -216,7 +233,7 @@ export default function ReferralPage() {
                   </div>
                 ))
               ) : (
-                <div className={`text-center py-8 ${textMuted}`}>Hali hech kim top reytingda yo'q</div>
+                <div className={`text-center py-8 ${textMuted}`}>{referralLocalText.noTop}</div>
               )}
             </div>
           </div>
@@ -231,7 +248,7 @@ export default function ReferralPage() {
             </div>
             <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
               {loadingData ? (
-                <div className="text-center py-6 text-gray-500">Yuklanmoqda...</div>
+                <div className="text-center py-6 text-gray-500">{referralLocalText.loading}</div>
               ) : referralData?.myFriends?.length > 0 ? (
                 referralData.myFriends.map((friend: any) => (
                   <div key={friend._id} className={`flex items-center justify-between p-4 border rounded-2xl ${friendBg}`}>
@@ -242,7 +259,7 @@ export default function ReferralPage() {
                       <div>
                         <div className={`font-medium ${textMain}`}>{friend.firstName || friend.username}</div>
                         <div className={`text-xs ${textMuted}`}>
-                          {new Date(friend.createdAt).toLocaleDateString('uz-UZ')} {t('referral.joined')}
+                          {new Date(friend.createdAt).toLocaleDateString(referralLocalText.dateLocale)} {t('referral.joined')}
                         </div>
                       </div>
                     </div>
