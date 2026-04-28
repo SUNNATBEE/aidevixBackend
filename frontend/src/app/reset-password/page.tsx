@@ -21,7 +21,7 @@ function ResetPasswordContent() {
   const cardRef = useRef(null);
   const { t } = useLang();
 
-  const email = searchParams.get('email')?.trim().toLowerCase();
+  const identifier = searchParams.get('identifier') || searchParams.get('email') || '';
   const token = searchParams.get('token');
 
   const password = watch('password', '');
@@ -41,7 +41,7 @@ function ResetPasswordContent() {
   const strengthPercentage = password.length === 0 ? 0 : Math.min((strength / 5) * 100, 100);
 
   useEffect(() => {
-    if (!email || !token) {
+    if (!token) {
       router.push('/forgot-password');
       return;
     }
@@ -56,7 +56,7 @@ function ResetPasswordContent() {
   }, [email, token, router]);
 
   const onSubmit = async (data: any) => {
-    if (!email || !token) return;
+    if (!token) return;
     if (data.password !== data.confirmPassword) {
       toast.error(t('reset.mismatch'));
       return;
@@ -64,10 +64,9 @@ function ResetPasswordContent() {
 
     try {
       setLoading(true);
-      await forgotPasswordApi.resetPassword({ 
-        email, 
-        resetToken: token, 
-        newPassword: data.password 
+      await forgotPasswordApi.resetPassword({
+        resetToken: token,
+        newPassword: data.password,
       });
       toast.success(t('reset.success'));
       router.replace('/login');
@@ -88,7 +87,7 @@ function ResetPasswordContent() {
           <div className="text-center mb-7 sm:mb-10">
             <h2 className="text-[1.45rem] sm:text-[1.75rem] font-bold text-white mb-3">{t('reset.title')}</h2>
             <p className="text-gray-400 text-[0.95rem] px-2 leading-relaxed">
-              <strong>{email}</strong> {t('verify.desc').split(' ').slice(-1)[0] === 'отправленный' ? ' - ' : ''} {t('reset.newPassword').toLowerCase()}
+              {identifier && <><strong>{identifier}</strong> — </>}{t('reset.newPassword').toLowerCase()}
             </p>
           </div>
 

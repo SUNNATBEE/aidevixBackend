@@ -25,6 +25,7 @@ const {
   sendNewDeviceLoginEmail,
   sendAccountDeletedEmail,
 } = require('../utils/emailService');
+const { sendOtpTelegram } = require('../utils/telegramOtpService');
 const { OAuth2Client } = require('google-auth-library');
 const {
   attachAuthCookies,
@@ -64,6 +65,24 @@ const usernameRegex = /^[a-z0-9._-]{3,50}$/;
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 const normalizeUsername = (username) => String(username || '').trim().toLowerCase();
+
+// Returns { user, method, identifier }
+// method: 'email' | 'telegram'
+const resolveIdentifier = async (raw, method = 'email', selectFields = '') => {
+  const id = String(raw || '').trim();
+  if (!id) return { user: null, method, identifier: null };
+
+  let user = null;
+  if (method === 'telegram') {
+    const username = id.replace(/^@/, '').toLowerCase();
+    user = await User.findOne({
+      'socialSubscriptions.telegram.username': username,
+    }).select(selectFields || undefined);
+  } else {
+    user = await User.findOne({ email: normalizeEmail(id) }).select(selectFields || undefined);
+  }
+  return { user, method, identifier: id };
+};
 
 // Precomputed dummy hash to keep bcrypt.compare time constant across "user not found" vs "wrong password".
 // Cost MUST match the production hash cost (14) used in User pre-save hook —
@@ -819,19 +838,19 @@ const claimDailyReward = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Forgot Password
+// @desc    Forgot Password — accepts email or telegram username
 const forgotPassword = asyncHandler(async (req, res) => {
-  const normalizedEmail = normalizeEmail(req.body?.email);
-  const user = await User.findOne({ email: normalizedEmail });
+  const rawIdentifier = req.body?.identifier || req.body?.email;
+  const method = req.body?.method === 'telegram' ? 'telegram' : 'email';
+  const { user, identifier } = await resolveIdentifier(rawIdentifier, method);
 
-  // Respond uniformly to prevent email enumeration
   const genericResponse = {
     success: true,
     message: 'If the account exists, a reset code has been sent',
   };
 
-  if (!user) {
-    securityLogger.passwordResetRequested(req, normalizedEmail, false);
+  if (!user || !identifier) {
+    securityLogger.passwordResetRequested(req, identifier || '', false);
     return res.json(genericResponse);
   }
 
@@ -842,28 +861,37 @@ const forgotPassword = asyncHandler(async (req, res) => {
   await user.save({ validateModifiedOnly: true });
 
   try {
-    await sendResetCodeEmail(user.email, user.username, code);
+    if (method === 'telegram') {
+      const tgId = user.socialSubscriptions?.telegram?.telegramUserId || user.telegramUserId;
+      if (!tgId) throw new Error('Telegram ID topilmadi — avval botni /start qiling');
+      await sendOtpTelegram(tgId, code);
+    } else {
+      await sendResetCodeEmail(user.email, user.username, code);
+    }
   } catch (err) {
-    securityLogger.suspicious(req, 'reset_email_send_failed', {
+    securityLogger.suspicious(req, `reset_${method}_send_failed`, {
       userId: String(user._id),
       error: err.message,
     });
   }
 
-  securityLogger.passwordResetRequested(req, normalizedEmail, true);
+  securityLogger.passwordResetRequested(req, identifier, true);
   res.json(genericResponse);
 });
 
-// @desc    Verify Reset Code
+// @desc    Verify Reset Code — accepts email or telegram username
 const verifyCode = asyncHandler(async (req, res, next) => {
-  const { email, code } = req.body;
-  const normalizedEmail = normalizeEmail(email);
+  const rawIdentifier = req.body?.identifier || req.body?.email;
+  const method = req.body?.method === 'telegram' ? 'telegram' : 'email';
+  const { code } = req.body;
 
-  if (!normalizedEmail || !code) {
-    return next(new ErrorResponse('Email va kod majburiy', 400));
+  if (!rawIdentifier || !code) {
+    return next(new ErrorResponse('Identifier va kod majburiy', 400));
   }
 
-  const user = await User.findOne({ email: normalizedEmail }).select(
+  const { user } = await resolveIdentifier(
+    rawIdentifier,
+    method,
     '+resetPasswordCode +resetPasswordExpire +resetPasswordAttempts'
   );
 
@@ -905,12 +933,11 @@ const verifyCode = asyncHandler(async (req, res, next) => {
   res.json({ success: true, data: { resetToken } });
 });
 
-// @desc    Reset Password
+// @desc    Reset Password — identifier (email or phone) optional; lookup via JWT uid
 const resetPassword = asyncHandler(async (req, res, next) => {
-  const { email, resetToken, newPassword } = req.body;
-  const normalizedEmail = normalizeEmail(email);
+  const { resetToken, newPassword } = req.body;
 
-  if (!normalizedEmail || !resetToken || !newPassword) {
+  if (!resetToken || !newPassword) {
     return next(new ErrorResponse('Majburiy maydonlar to\'ldirilmadi', 400));
   }
 
@@ -918,13 +945,13 @@ const resetPassword = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Password must be 8–128 chars with upper, lower, digit and special char', 400));
   }
 
-  // JWT integrity check first (iss, aud, expiry)
+  // JWT integrity check — uid is the source of truth for lookup
   const decoded = verifyResetToken(resetToken);
-  if (!decoded || decoded.email !== normalizedEmail) {
+  if (!decoded || !decoded.uid) {
     return next(new ErrorResponse('Invalid reset token', 400));
   }
 
-  const user = await User.findOne({ email: normalizedEmail }).select(
+  const user = await User.findById(decoded.uid).select(
     '+resetTokenHash +resetTokenExpire +tokenVersion +refreshToken +passwordHistory +password'
   );
   if (!user) return next(new ErrorResponse('User not found', 404));

@@ -1,192 +1,173 @@
+'use client'
+
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { FaTelegram, FaRobot, FaCheckCircle, FaSpinner } from 'react-icons/fa'
-import { IoCheckmarkCircle, IoCloseCircle, IoInformationCircle, IoCopyOutline } from 'react-icons/io5'
+import { FaTelegram } from 'react-icons/fa'
+import {
+  IoCheckmarkCircle,
+  IoCloseCircle,
+  IoAlertCircle,
+  IoCopyOutline,
+  IoRefresh,
+} from 'react-icons/io5'
 import toast from 'react-hot-toast'
 import { fetchSubscriptionStatus, selectTelegramSub } from '@store/slices/subscriptionSlice'
 import { subscriptionApi } from '@api/subscriptionApi'
 import { SOCIAL_LINKS } from '@utils/constants'
 import { useLang } from '@/context/LangContext'
 
-/** ~3 daqiqa atrofida: interval qadamba-qadam oshadi (Telegram rate limit va batareya uchun). */
+// ~3 daqiqa: urinish oralig'i asta-sekin oshadi
 const MAX_POLL_ATTEMPTS = 52
 
-interface TelegramVerifyProps {
+type Phase = 'start' | 'after_channel' | 'polling' | 'timeout'
+
+type PollPayload = { linked: boolean; subscribed: boolean; telegramApiChecked?: boolean }
+
+export default function TelegramVerify({
+  onTelegramVerified,
+}: {
   onTelegramVerified?: () => void
-}
-
-type PollPayload = {
-  linked: boolean
-  subscribed: boolean
-  telegramApiChecked?: boolean
-}
-
-function stripHtmlTags(s: string) {
-  return s.replace(/<[^>]+>/g, '')
-}
-
-export default function TelegramVerify({ onTelegramVerified }: TelegramVerifyProps): JSX.Element {
+}): JSX.Element {
   const dispatch = useDispatch()
   const telegram = useSelector(selectTelegramSub)
   const { t } = useLang()
 
-  const [isAutoChecking, setIsAutoChecking] = useState(false)
-  const [verifyData, setVerifyData] = useState<{ token: string; botUsername: string } | null>(null)
+  const [phase, setPhase] = useState<Phase>('start')
   const [status, setStatus] = useState<PollPayload>({ linked: false, subscribed: false })
   const [pollCount, setPollCount] = useState(0)
-  const [pollError, setPollError] = useState<string | null>(null)
-  const [lastApiChecked, setLastApiChecked] = useState<boolean | null>(null)
+  const [botLinkLoading, setBotLinkLoading] = useState(false)
+  const [botUrl, setBotUrl] = useState<string | null>(null)
+  const [showChannelReminder, setShowChannelReminder] = useState(false)
   const [showNetworkHint, setShowNetworkHint] = useState(false)
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pollCountRef = useRef(0)
   const mountedRef = useRef(true)
-  const isAutoCheckingRef = useRef(false)
+  const isPollingRef = useRef(false)
 
-  const clearPollTimer = useCallback(() => {
-    if (pollTimerRef.current != null) {
-      clearTimeout(pollTimerRef.current)
-      pollTimerRef.current = null
-    }
+  // ─── Polling helpers ────────────────────────────────────────────────
+  const clearPoll = useCallback(() => {
+    if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null }
   }, [])
 
-  const computeDelayMs = useCallback((attempt: number) => {
-    const hidden = typeof document !== 'undefined' && document.hidden
-    if (hidden) return 10_000
-    const base = Math.min(6500, 2000 + attempt * 140)
-    const jitter = Math.random() * 450
-    return Math.round(base + jitter)
+  const delayMs = useCallback((attempt: number) => {
+    if (typeof document !== 'undefined' && document.hidden) return 10_000
+    return Math.round(Math.min(6500, 2000 + attempt * 140) + Math.random() * 450)
   }, [])
 
   const runPoll = useCallback(async () => {
-    if (!mountedRef.current || !isAutoCheckingRef.current) return
-
+    if (!mountedRef.current || !isPollingRef.current) return
     pollCountRef.current += 1
     setPollCount(pollCountRef.current)
 
     if (pollCountRef.current >= MAX_POLL_ATTEMPTS) {
-      clearPollTimer()
-      isAutoCheckingRef.current = false
-      setIsAutoChecking(false)
-      setPollError(t('tg.timeout'))
-      toast.error(t('tg.timeout'))
+      clearPoll()
+      isPollingRef.current = false
+      setPhase('timeout')
       return
     }
 
     try {
       const res = await subscriptionApi.checkToken()
-      if (!res.data.success) return
+      if (!res.data.success) throw new Error('no success')
+      const payload = res.data.data as PollPayload
+      setStatus(payload)
 
-      const { linked, subscribed, telegramApiChecked } = res.data.data as PollPayload
-      setStatus({ linked, subscribed, telegramApiChecked })
-      if (typeof telegramApiChecked === 'boolean') {
-        setLastApiChecked(telegramApiChecked)
-        if (!telegramApiChecked && pollCountRef.current > 6) setShowNetworkHint(true)
+      if (typeof payload.telegramApiChecked === 'boolean') {
+        if (!payload.telegramApiChecked && pollCountRef.current > 6) setShowNetworkHint(true)
       }
-
-      if (linked && subscribed) {
-        clearPollTimer()
-        isAutoCheckingRef.current = false
-        setIsAutoChecking(false)
+      if (payload.linked && !payload.subscribed && pollCountRef.current > 5) {
+        setShowChannelReminder(true)
+      }
+      if (payload.linked && payload.subscribed) {
+        clearPoll()
+        isPollingRef.current = false
         toast.success(t('tg.success'))
         await dispatch(fetchSubscriptionStatus() as any)
         onTelegramVerified?.()
         return
       }
-    } catch {
-      // tarmoq xatosi — keyingi urinishda davom etamiz
-    }
+    } catch { /* tarmoq xatosi — davom etamiz */ }
 
-    pollTimerRef.current = setTimeout(() => {
-      void runPoll()
-    }, computeDelayMs(pollCountRef.current))
-  }, [clearPollTimer, computeDelayMs, dispatch, onTelegramVerified, t])
+    pollTimerRef.current = setTimeout(() => void runPoll(), delayMs(pollCountRef.current))
+  }, [clearPoll, delayMs, dispatch, onTelegramVerified, t])
 
   const startPolling = useCallback(() => {
-    clearPollTimer()
-    isAutoCheckingRef.current = true
-    pollTimerRef.current = setTimeout(() => {
-      void runPoll()
-    }, 1800)
-  }, [clearPollTimer, runPoll])
+    clearPoll()
+    isPollingRef.current = true
+    pollTimerRef.current = setTimeout(() => void runPoll(), 1800)
+  }, [clearPoll, runPoll])
 
-  const startAutoVerify = async () => {
-    if (isAutoCheckingRef.current) return
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false; isPollingRef.current = false; clearPoll() }
+  }, [clearPoll])
+
+  // ─── Handlers ───────────────────────────────────────────────────────
+  const handleOpenChannel = () => {
+    window.open(SOCIAL_LINKS.telegram, '_blank', 'noopener,noreferrer')
+  }
+
+  const handleChannelConfirm = () => {
+    setPhase('after_channel')
+  }
+
+  const handleConnectBot = async () => {
+    if (isPollingRef.current) return
     try {
-      setPollError(null)
+      setBotLinkLoading(true)
+      setShowChannelReminder(false)
       setShowNetworkHint(false)
-      setLastApiChecked(null)
-      setIsAutoChecking(true)
-      isAutoCheckingRef.current = true
       pollCountRef.current = 0
       setPollCount(0)
+      setStatus({ linked: false, subscribed: false })
 
       const res = await subscriptionApi.generateToken()
-      if (res.data.success) {
-        setVerifyData(res.data.data)
-        const botUrl = `https://t.me/${res.data.data.botUsername}?start=${res.data.data.token}`
-        window.open(botUrl, '_blank', 'noopener,noreferrer')
-        startPolling()
-      } else {
-        setIsAutoChecking(false)
-        isAutoCheckingRef.current = false
-        toast.error(t('tg.tokenError'))
-      }
+      if (!res.data.success) { toast.error(t('tg.tokenError')); return }
+
+      const url = `https://t.me/${res.data.data.botUsername}?start=${res.data.data.token}`
+      setBotUrl(url)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      setPhase('polling')
+      startPolling()
     } catch {
       toast.error(t('tg.tokenError'))
-      setIsAutoChecking(false)
-      isAutoCheckingRef.current = false
+    } finally {
+      setBotLinkLoading(false)
     }
   }
 
   const handleRetry = () => {
-    setPollError(null)
+    clearPoll()
+    isPollingRef.current = false
+    setPhase('start')
     setStatus({ linked: false, subscribed: false })
-    setVerifyData(null)
+    setBotUrl(null)
+    setShowChannelReminder(false)
     setShowNetworkHint(false)
-    setLastApiChecked(null)
-    clearPollTimer()
-    void startAutoVerify()
+    pollCountRef.current = 0
+    setPollCount(0)
   }
 
-  const copyDeepLink = async () => {
-    if (!verifyData) return
-    const url = `https://t.me/${verifyData.botUsername}?start=${verifyData.token}`
-    try {
-      await navigator.clipboard.writeText(url)
-      toast.success(t('tg.linkCopied'))
-    } catch {
-      toast.error(t('tg.tokenError'))
-    }
+  const copyBotLink = async () => {
+    if (!botUrl) return
+    try { await navigator.clipboard.writeText(botUrl); toast.success(t('tg.linkCopied')) }
+    catch { toast.error(t('tg.tokenError')) }
   }
 
-  useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-      isAutoCheckingRef.current = false
-      clearPollTimer()
-    }
-  }, [clearPollTimer])
-
-  const approxSecondsLeft = Math.max(
-    0,
-    Math.floor(((MAX_POLL_ATTEMPTS - pollCount) * 3.2 * 1000) / 1000),
-  )
-
+  // ─── Already verified ───────────────────────────────────────────────
   if (telegram?.subscribed || status.subscribed) {
     return (
-      <div className="glass-card border border-emerald-500/30 p-8 rounded-2xl bg-emerald-500/5 text-center space-y-4">
-        <IoCheckmarkCircle className="text-6xl text-emerald-500 mx-auto" aria-hidden />
+      <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-8 text-center space-y-5">
+        <IoCheckmarkCircle className="text-7xl text-emerald-400 mx-auto" />
         <div>
-          <h3 className="text-xl font-bold text-white">{t('tg.verified')}</h3>
+          <h3 className="text-2xl font-bold text-white">{t('tg.verified')}</h3>
           <p className="text-zinc-400 mt-2">{t('tg.verifiedDesc')}</p>
         </div>
         {onTelegramVerified && (
           <button
-            type="button"
             onClick={onTelegramVerified}
-            className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl transition-all shadow-xl shadow-emerald-500/20"
+            className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white text-lg font-bold rounded-xl transition-all shadow-xl shadow-emerald-500/20"
           >
             {t('tg.continue')}
           </button>
@@ -195,147 +176,271 @@ export default function TelegramVerify({ onTelegramVerified }: TelegramVerifyPro
     )
   }
 
-  const showSubscribeReminder =
-    status.linked && !status.subscribed && pollCount > 5 && lastApiChecked === true
+  // ─── Timeout ────────────────────────────────────────────────────────
+  if (phase === 'timeout') {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-[#1a1218] p-6 space-y-5">
+        <div className="text-center space-y-2">
+          <IoCloseCircle className="text-6xl text-red-400 mx-auto" />
+          <h3 className="text-xl font-bold text-white">{t('tg.timeoutTitle')}</h3>
+          <p className="text-zinc-400 text-sm">{t('tg.timeoutDesc')}</p>
+        </div>
+        <div className="space-y-2 p-4 bg-white/5 rounded-xl border border-white/5">
+          <ChecklistItem done={false} text={t('tg.timeoutCheck1')} />
+          <ChecklistItem done={false} text={t('tg.timeoutCheck2')} />
+        </div>
+        <button
+          onClick={handleRetry}
+          className="w-full py-4 bg-blue-500 hover:bg-blue-600 text-white text-base font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+        >
+          <IoRefresh className="text-xl" />
+          {t('tg.retryBtn')}
+        </button>
+      </div>
+    )
+  }
+
+  // ─── Polling ────────────────────────────────────────────────────────
+  if (phase === 'polling') {
+    const progress = Math.min(100, (pollCount / MAX_POLL_ATTEMPTS) * 100)
+    return (
+      <div className="rounded-2xl border border-white/5 bg-[#1a1c26] p-6 space-y-5">
+        <div className="text-center space-y-1">
+          <div className="w-16 h-16 bg-blue-500/10 border-2 border-blue-500/30 rounded-full flex items-center justify-center mx-auto">
+            <FaTelegram className="text-3xl text-blue-400 animate-pulse" />
+          </div>
+          <h3 className="text-xl font-bold text-white pt-2">{t('tg.pollingTitle')}</h3>
+          <p className="text-zinc-500 text-sm">{t('tg.pollingDesc')}</p>
+        </div>
+
+        {/* Bot status */}
+        <StatusRow
+          done={status.linked}
+          waitText={t('tg.pollingBotWait')}
+          doneText={t('tg.pollingBotDone')}
+        />
+
+        {/* Channel status */}
+        <StatusRow
+          done={status.subscribed}
+          waitText={t('tg.pollingChannelWait')}
+          doneText={t('tg.pollingChannelDone')}
+        />
+
+        {/* Progress bar */}
+        <div className="space-y-1">
+          <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-zinc-600 text-xs text-center">{t('tg.pollingHint')}</p>
+        </div>
+
+        {/* Channel reminder */}
+        {showChannelReminder && (
+          <div className="flex gap-3 p-4 bg-amber-500/10 border border-amber-500/25 rounded-xl">
+            <IoAlertCircle className="text-amber-400 text-2xl shrink-0 mt-0.5" />
+            <p className="text-amber-200 text-sm">{t('tg.channelNotSub')}</p>
+          </div>
+        )}
+
+        {/* Network hint */}
+        {showNetworkHint && (
+          <p className="text-center text-zinc-600 text-xs">{t('tg.networkDelay')}</p>
+        )}
+
+        {/* Bot link copy fallback */}
+        {botUrl && (
+          <button
+            onClick={copyBotLink}
+            className="w-full py-2.5 flex items-center justify-center gap-2 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 text-sm transition-all"
+          >
+            <IoCopyOutline />
+            {t('tg.copyLink')}
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  // ─── After channel (step 2 active) ─────────────────────────────────
+  if (phase === 'after_channel') {
+    return (
+      <div className="rounded-2xl border border-white/5 bg-[#1a1c26] p-6 space-y-5">
+        <Header />
+
+        {/* Step 1 — done */}
+        <StepCard
+          number={1}
+          done
+          title={t('tg.step1Title')}
+          desc={null}
+          action={null}
+        />
+
+        {/* Step 2 — active */}
+        <StepCard
+          number={2}
+          done={false}
+          active
+          title={t('tg.step2Title')}
+          desc={t('tg.step2Desc')}
+          action={
+            <button
+              onClick={handleConnectBot}
+              disabled={botLinkLoading}
+              className="w-full py-4 bg-blue-500 hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed text-white text-base font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+            >
+              <FaTelegram className="text-xl" />
+              {botLinkLoading ? t('tg.step2BtnLoading') : t('tg.step2Btn')}
+            </button>
+          }
+        />
+      </div>
+    )
+  }
+
+  // ─── Start (both steps shown, step 1 active) ───────────────────────
+  return (
+    <div className="rounded-2xl border border-white/5 bg-[#1a1c26] p-6 space-y-5">
+      <Header />
+
+      {/* Step 1 — active */}
+      <StepCard
+        number={1}
+        done={false}
+        active
+        title={t('tg.step1Title')}
+        desc={t('tg.step1Desc')}
+        action={
+          <div className="space-y-2">
+            <button
+              onClick={handleOpenChannel}
+              className="w-full py-4 bg-blue-500 hover:bg-blue-600 text-white text-base font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+            >
+              <FaTelegram className="text-xl" />
+              {t('tg.step1Btn')}
+            </button>
+            <button
+              onClick={handleChannelConfirm}
+              className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 text-sm font-medium rounded-xl transition-all"
+            >
+              {t('tg.step1Confirm')}
+            </button>
+          </div>
+        }
+      />
+
+      {/* Step 2 — greyed out */}
+      <StepCard
+        number={2}
+        done={false}
+        active={false}
+        title={t('tg.step2Title')}
+        desc={null}
+        action={null}
+      />
+    </div>
+  )
+}
+
+// ─── Sub-components ────────────────────────────────────────────────────
+
+function Header() {
+  const { t } = useLang()
+  return (
+    <div className="text-center space-y-2">
+      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-xl shadow-blue-500/20">
+        <FaTelegram className="text-3xl text-white" />
+      </div>
+      <h3 className="text-xl font-bold text-white">{t('tg.title')}</h3>
+    </div>
+  )
+}
+
+function StepCard({
+  number,
+  done,
+  active = false,
+  title,
+  desc,
+  action,
+}: {
+  number: number
+  done: boolean
+  active?: boolean
+  title: string
+  desc: string | null
+  action: React.ReactNode | null
+}) {
+  const borderColor = done
+    ? 'border-emerald-500/30 bg-emerald-500/5'
+    : active
+    ? 'border-blue-500/30 bg-blue-500/5'
+    : 'border-white/5 bg-white/2 opacity-50'
 
   return (
-    <div className="glass-card p-6 rounded-2xl space-y-6 bg-[#1a1c26] border border-white/5 shadow-2xl overflow-hidden relative">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full -mr-16 -mt-16" aria-hidden />
-
-      <div className="text-center space-y-3 relative z-10">
-        <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-blue-500/20 rotate-3">
-          <FaTelegram className="text-4xl text-white -rotate-3" aria-hidden />
-        </div>
-        <h3 className="text-2xl font-black text-white tracking-tight">{t('tg.title')}</h3>
-        <p className="text-sm text-zinc-400 max-w-xs mx-auto">{t('tg.subtitle')}</p>
-      </div>
-
-      <div
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        className="sr-only"
-      >
-        {isAutoChecking
-          ? `${status.linked ? t('tg.checkingChannel') : t('tg.waitingBot')} ${approxSecondsLeft} ${t('tg.timeLeft')}`
-          : ''}
-      </div>
-
-      <div className="space-y-4 relative z-10">
-        <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center gap-4 group hover:bg-white/10 transition-all">
-          <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold shrink-0 border border-blue-500/20">
-            1
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-zinc-200 font-bold">{t('tg.step1')}</p>
-            <p className="text-xs text-zinc-500">{t('tg.step1Sub')}</p>
-          </div>
-          <a
-            href={SOCIAL_LINKS.telegram}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2 bg-blue-500 text-white text-[10px] font-black rounded-lg hover:bg-blue-400 transition-all shrink-0"
-          >
-            {t('tg.subscribe')}
-          </a>
-        </div>
-
+    <div className={`rounded-2xl border-2 p-5 space-y-4 transition-all ${borderColor}`}>
+      <div className="flex items-center gap-3">
         <div
-          className={`p-5 border-2 rounded-2xl transition-all ${
-            status.linked ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-blue-500/5 border-blue-500/20'
+          className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0 border-2 ${
+            done
+              ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+              : active
+              ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+              : 'bg-white/5 border-white/10 text-zinc-500'
           }`}
         >
-          <div className="flex items-start gap-4">
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border ${
-                status.linked ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-blue-500/20 border-blue-500/40 text-blue-400'
-              }`}
-            >
-              {status.linked ? <FaCheckCircle aria-hidden /> : '2'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-bold ${status.linked ? 'text-emerald-400' : 'text-zinc-200'}`}>
-                {status.linked ? t('tg.linked') : t('tg.unlinked')}
-              </p>
-              {!status.linked ? (
-                <button
-                  type="button"
-                  onClick={pollError ? handleRetry : startAutoVerify}
-                  disabled={isAutoChecking}
-                  className="mt-3 w-full py-3 bg-white text-black font-black text-xs rounded-xl hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-xl shadow-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isAutoChecking ? <FaSpinner className="animate-spin" aria-hidden /> : <FaRobot aria-hidden />}
-                  {pollError ? t('tg.retry') : t('tg.linkBot')}
-                </button>
-              ) : (
-                <p className="text-xs text-emerald-500/70 mt-1 font-medium italic">{t('tg.linkedId')}</p>
-              )}
-
-              {verifyData && (
-                <button
-                  type="button"
-                  onClick={() => void copyDeepLink()}
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 py-2 text-[11px] font-semibold text-zinc-300 hover:bg-white/5"
-                >
-                  <IoCopyOutline className="text-base" aria-hidden />
-                  {t('tg.copyLink')}
-                </button>
-              )}
-            </div>
-          </div>
+          {done ? <IoCheckmarkCircle className="text-emerald-400 text-xl" /> : number}
         </div>
-
-        {isAutoChecking && !status.subscribed && (
-          <div className="flex flex-col gap-2 p-4 bg-zinc-900/50 rounded-xl border border-white/5">
-            <div className="flex items-center justify-center gap-3">
-              <FaSpinner className="animate-spin text-blue-400 shrink-0" aria-hidden />
-              <div className="text-center min-w-0">
-                <p className="text-xs text-zinc-400 font-medium">
-                  {status.linked ? t('tg.checkingChannel') : t('tg.waitingBot')}
-                </p>
-                <p className="text-[10px] text-zinc-600 mt-1">
-                  ~{approxSecondsLeft} {t('tg.timeLeft')}
-                </p>
-              </div>
-            </div>
-            <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-800" aria-hidden>
-              <div
-                className="h-full rounded-full bg-blue-500/70 transition-all duration-500"
-                style={{ width: `${Math.min(100, (pollCount / MAX_POLL_ATTEMPTS) * 100)}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {showSubscribeReminder && (
-          <div className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs text-amber-100/90">
-            <IoInformationCircle className="mt-0.5 shrink-0 text-lg text-amber-400" aria-hidden />
-            <p>{t('tg.subscribeChannelHint')}</p>
-          </div>
-        )}
-
-        {showNetworkHint && isAutoChecking && (
-          <div className="flex items-start gap-2 rounded-xl border border-sky-500/20 bg-sky-500/10 p-3 text-xs text-sky-100/90">
-            <IoInformationCircle className="mt-0.5 shrink-0 text-lg text-sky-400" aria-hidden />
-            <p>{t('tg.networkDelay')}</p>
-          </div>
-        )}
-
-        {pollError && (
-          <div className="flex items-center gap-3 p-4 bg-red-500/10 rounded-xl border border-red-500/20">
-            <IoCloseCircle className="text-red-400 text-lg shrink-0" aria-hidden />
-            <p className="text-xs text-red-400 font-medium">{pollError}</p>
-          </div>
-        )}
-
-        <p className="flex items-start gap-2 px-1 text-[10px] leading-relaxed text-zinc-500">
-          <IoInformationCircle className="text-sm shrink-0 mt-0.5" aria-hidden />
-          <span>{stripHtmlTags(t('tg.hint'))}</span>
-        </p>
-        <p className="px-1 text-[10px] leading-relaxed text-zinc-600 border-t border-white/5 pt-3">
-          {t('tg.privacyShort')}
+        <p className={`font-bold text-base ${done ? 'text-emerald-400' : active ? 'text-white' : 'text-zinc-500'}`}>
+          {title}
         </p>
       </div>
+      {desc && <p className="text-zinc-400 text-sm leading-relaxed pl-12">{desc}</p>}
+      {action && <div className="pl-0">{action}</div>}
+    </div>
+  )
+}
+
+function StatusRow({
+  done,
+  waitText,
+  doneText,
+}: {
+  done: boolean
+  waitText: string
+  doneText: string
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 p-4 rounded-xl border transition-all ${
+        done ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-white/5 bg-white/3'
+      }`}
+    >
+      <div className="shrink-0">
+        {done ? (
+          <IoCheckmarkCircle className="text-2xl text-emerald-400" />
+        ) : (
+          <div className="w-6 h-6 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
+        )}
+      </div>
+      <p className={`text-sm font-medium ${done ? 'text-emerald-300' : 'text-zinc-400'}`}>
+        {done ? doneText : waitText}
+      </p>
+    </div>
+  )
+}
+
+function ChecklistItem({ done, text }: { done: boolean; text: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className={`w-5 h-5 rounded-full border-2 shrink-0 mt-0.5 flex items-center justify-center ${done ? 'border-emerald-500 bg-emerald-500/20' : 'border-zinc-600'}`}>
+        {done && <IoCheckmarkCircle className="text-emerald-400 text-sm" />}
+      </div>
+      <p className="text-zinc-300 text-sm">{text}</p>
     </div>
   )
 }

@@ -2,11 +2,14 @@ import api from './axiosInstance';
 
 export const forgotPasswordApi = {
   /** POST /auth/forgot-password */
-  forgotPassword: (data) => api.post('auth/forgot-password', data),
+  forgotPassword: (data: { identifier: string; method?: string; captchaToken?: string }) =>
+    api.post('auth/forgot-password', data),
 
   /** POST /auth/verify-code */
-  verifyCode: (data) => api.post('auth/verify-code', data),
+  verifyCode: (data: { identifier: string; method?: string; code: string }) =>
+    api.post('auth/verify-code', data),
 
   /** POST /auth/reset-password */
-  resetPassword: (data) => api.post('auth/reset-password', data),
+  resetPassword: (data: { resetToken: string; newPassword: string }) =>
+    api.post('auth/reset-password', data),
 };

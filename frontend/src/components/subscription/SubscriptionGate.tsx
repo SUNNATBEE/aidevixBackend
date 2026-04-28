@@ -151,9 +151,7 @@ export default function SubscriptionGate({
         {/* Component based on current step */}
         {currentStep === 'instagram' ? (
           <InstagramVerify
-            videoId={videoId}
-            onVideoAccess={handleInstagramVerified}
-            showVideoButton={false}
+            onVerified={handleInstagramVerified}
           />
         ) : (
           <TelegramVerify

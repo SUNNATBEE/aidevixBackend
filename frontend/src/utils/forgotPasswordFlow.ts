@@ -1,8 +1,7 @@
 const STORAGE_KEY = 'aidevix_forgot_password_state'
-const KNOWN_EMAILS_KEY = 'aidevix_known_emails'
 const CODE_TTL_MS = 10 * 60 * 1000
 
-const normalizeEmail = (email = '') => email.trim().toLowerCase()
+const normalize = (id = '') => id.trim().toLowerCase()
 
 const readState = () => {
   try {
@@ -12,7 +11,7 @@ const readState = () => {
   }
 }
 
-const writeState = (state) => {
+const writeState = (state: object) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
@@ -20,48 +19,17 @@ const clearState = () => {
   localStorage.removeItem(STORAGE_KEY)
 }
 
-const readKnownEmails = () => {
-  try {
-    return JSON.parse(localStorage.getItem(KNOWN_EMAILS_KEY)) || []
-  } catch {
-    return []
-  }
-}
-
-const writeKnownEmails = (emails) => {
-  localStorage.setItem(KNOWN_EMAILS_KEY, JSON.stringify(emails))
-}
-
 export const forgotPasswordFlow = {
-  rememberEmail(email) {
-    const normalized = normalizeEmail(email)
-    if (!normalized) return
-
-    const existing = readKnownEmails()
-    if (!existing.includes(normalized)) {
-      writeKnownEmails([...existing, normalized])
-    }
-  },
-
-  isKnownEmail(email) {
-    const normalized = normalizeEmail(email)
-    if (!normalized) return false
-    return readKnownEmails().includes(normalized)
-  },
-
-  startTimer(email) {
-    const normalized = normalizeEmail(email)
+  startTimer(identifier: string) {
+    const normalized = normalize(identifier)
     const expiresAt = Date.now() + CODE_TTL_MS
-    writeState({
-      email: normalized,
-      expiresAt,
-    })
+    writeState({ identifier: normalized, expiresAt })
   },
 
-  getRemainingSeconds(email) {
+  getRemainingSeconds(identifier: string) {
     const state = readState()
-    const normalized = normalizeEmail(email)
-    if (!state || state.email !== normalized) return 0
+    const normalized = normalize(identifier)
+    if (!state || state.identifier !== normalized) return 0
     const remaining = Math.ceil((state.expiresAt - Date.now()) / 1000)
     return Math.max(0, remaining)
   },
