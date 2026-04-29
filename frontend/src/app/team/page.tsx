@@ -25,121 +25,124 @@ type TeamMember = {
   hideAge?: boolean;
 };
 
-/** Loyiha rahbari — alohida VIP kartada ko‘rsatiladi */
-const FOUNDER_LEAD: TeamMember = {
-  id: 'sunnatbee',
-  name: 'Sunnatbek Yusupov',
-  age: 0,
-  hideAge: true,
-  stack: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS', 'Product vision', 'Team leadership'],
-  contribution:
-    'Aidevix strategiyasi, mahsulot yo‘nalishi va frontend arxitekturasining umumiy rahbari. Investorlar, hamkorlar va jamoani bir maqsad atrofida birlashtirish, platformaning foydalanuvchi tajribasi va o‘sish yo‘nalishlarini belgilash.',
-  imageFile: 'sunnatbee.jpg',
-  badge: 'Rahbariyat',
-  color: '#eab308',
-  accentBg: 'rgba(234,179,8,0.18)',
-  emoji: '👑',
-  roadmapRole: 'Strategiya · boshqaruv · frontend',
-  objectPos: '50% 22%',
-  instagramUrl: 'https://www.instagram.com/sunnatbee?igsh=ZGNxdjd2ajVpc20w',
-  telegramUrl: 'https://t.me/SUNNATBEE',
-};
+function getFounderLead(t: (key: string) => string): TeamMember {
+  return {
+    id: 'sunnatbee',
+    name: 'Sunnatbek Yusupov',
+    age: 0,
+    hideAge: true,
+    stack: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS', 'Product vision', 'Team leadership'],
+    contribution: t('team.member.sunnatbee.contribution'),
+    imageFile: 'sunnatbee.jpg',
+    badge: t('team.member.sunnatbee.badge'),
+    color: '#eab308',
+    accentBg: 'rgba(234,179,8,0.18)',
+    emoji: '👑',
+    roadmapRole: t('team.member.sunnatbee.roadmapRole'),
+    objectPos: '50% 22%',
+    instagramUrl: 'https://www.instagram.com/sunnatbee?igsh=ZGNxdjd2ajVpc20w',
+    telegramUrl: 'https://t.me/SUNNATBEE',
+  };
+}
 
-const LEADERSHIP_ROLES = ['CEO', 'General Director', 'Loyiha asoschisi', 'Frontend developer'];
+function getLeadershipRoles(t: (key: string) => string) {
+  return [
+    t('team.role.ceo'),
+    t('team.role.generalDirector'),
+    t('team.role.founder'),
+    t('team.role.frontendDeveloper'),
+  ];
+}
 
-const MEMBERS: TeamMember[] = [
-  {
-    id: 'sardor',
-    name: 'Sardor',
-    age: 15,
-    stack: ['Next.js 14', 'TypeScript', 'Node.js', 'Express.js', 'MongoDB', 'React Native', 'Tailwind CSS', 'Railway', 'Vercel'],
-    contribution:
-      'Jamoa rahbari (Team Lead) va tester sifatida release sifatini, regressiya va muhim user flowlarni tekshiradi. Railway (backend) + Vercel (frontend) production muhitini sozlash, JWT cookie auth, Mongoose sxemalari, Swagger API va CI/CD jarayonlarida yetakchi rol o‘ynagan.',
-    imageFile: 'Sardor.jpg',
-    badge: 'Team Lead · Tester',
-    color: '#f59e0b',
-    accentBg: 'rgba(245,158,11,0.15)',
-    emoji: '🚀',
-    roadmapRole: 'Team Lead · QA & Production',
-    objectPos: '50% 20%',
-    portfolioUrl: 'https://sardoruz.vercel.app',
-  },
-  {
-    id: 'firdavs',
-    name: 'Firdavs',
-    age: 16,
-    stack: ['React 18', 'TypeScript', 'Next.js 14', 'Redux Toolkit', 'Axios', 'Tailwind CSS'],
-    contribution:
-      'Platforma autentifikatsiya tizimini noldan qurgan. Cookie-based JWT sessiyasi, login/register formlar, ProtectedRoute va AdminRoute komponentlari, email orqali parolni tiklash va kunlik mukofot modali — hammasi Firdavsning ishi.',
-    imageFile: 'Firdavs.jpg',
-    badge: 'Auth Specialist',
-    color: '#6366f1',
-    accentBg: 'rgba(99,102,241,0.15)',
-    emoji: '🔐',
-    roadmapRole: 'Auth & Session System',
-    objectPos: '50% 15%',
-  },
-  {
-    id: 'abduvoris',
-    name: 'Abduvoris',
-    age: 16,
-    stack: ['React 18', 'TypeScript', 'Next.js 14', 'Bunny.net SDK', 'HLS.js', 'Redux Toolkit'],
-    contribution:
-      'Video platformasining asosini yaratgan. Bunny.net Stream bilan token-autentifikatsiyali HLS video pleer, videolar ichidagi quiz tizimi, qidiruv va filtrlash — bular Abduvorisning hissasi. Video yuklanish skeletoni va progress tracking ham uniki.',
-    imageFile: 'Abduvoris.jpg',
-    badge: 'Video Engineer',
-    color: '#06b6d4',
-    accentBg: 'rgba(6,182,212,0.15)',
-    emoji: '🎬',
-    roadmapRole: 'Video Platform & HLS Player',
-    objectPos: '50% 20%',
-  },
-  {
-    id: 'doniyor',
-    name: 'Doniyor',
-    age: 16,
-    stack: ['React 18', 'TypeScript', 'Next.js 14', 'Node.js', 'React Native', 'Redux Toolkit', 'Tailwind CSS'],
-    contribution:
-      'Kurslar katalogini to\'liq qurgan. Kategoriya va narx filtrlar, skeleton loading, yulduzcha reyting tizimi, kursga yozilish oqimi va wishlist — bular Doniyorning loyihaga qo\'shgan hissasi. React Native versiyasi uchun ham komponentlar yozgan.',
-    imageFile: 'Doniyor.jpg',
-    badge: 'Course Architect',
-    color: '#10b981',
-    accentBg: 'rgba(16,185,129,0.15)',
-    emoji: '📚',
-    roadmapRole: 'Course Catalog & Enrollment',
-    objectPos: '50% 20%',
-  },
-  {
-    id: 'suhrob',
-    name: 'Suhrob',
-    age: 14,
-    stack: ['React 18', 'TypeScript', 'Next.js 14', 'Node.js', 'React Native', 'Redux Toolkit'],
-    contribution:
-      'XP asosidagi liderlar jadvalini yaratgan. AMATEUR dan LEGEND gacha bo\'lgan rank tizimi, AI Stack ikonlari (🤖⚡🐙), haftalik statistika va foydalanuvchi pozitsiyasini real vaqtda kuzatish — bu Suhrob yaratgan tizim.',
-    imageFile: 'Suhrob.jpg',
-    badge: 'Ranking Builder',
-    color: '#ec4899',
-    accentBg: 'rgba(236,72,153,0.15)',
-    emoji: '🏆',
-    roadmapRole: 'Leaderboard & XP Ranking',
-    objectPos: '50% 20%',
-  },
-  {
-    id: 'qudrat',
-    name: 'Qudrat',
-    age: 14,
-    stack: ['React 18', 'TypeScript', 'Next.js 14', 'GSAP 3', 'Three.js', 'Framer Motion', 'Node.js'],
-    contribution:
-      'Platforma vizual tajribasini butunlay o\'zgartirgan. GSAP bilan 3D yuklanish ekrani, sahifalar orasidagi silliq o\'tishlar, Three.js fon effektlari va scroll animatsiyalari — bular Qudratning qo\'li. Micro-interaction va UX polishing ham uning ishi.',
-    imageFile: 'Qudrat.jpg',
-    badge: 'Motion Creator',
-    color: '#a855f7',
-    accentBg: 'rgba(168,85,247,0.15)',
-    emoji: '✨',
-    roadmapRole: 'Animations & Visual UX',
-    objectPos: '50% 20%',
-  },
-];
+function getMembers(t: (key: string) => string): TeamMember[] {
+  return [
+    {
+      id: 'sardor',
+      name: 'Sardor',
+      age: 15,
+      stack: ['Next.js 14', 'TypeScript', 'Node.js', 'Express.js', 'MongoDB', 'React Native', 'Tailwind CSS', 'Railway', 'Vercel'],
+      contribution: t('team.member.sardor.contribution'),
+      imageFile: 'Sardor.jpg',
+      badge: t('team.member.sardor.badge'),
+      color: '#f59e0b',
+      accentBg: 'rgba(245,158,11,0.15)',
+      emoji: '🚀',
+      roadmapRole: t('team.member.sardor.roadmapRole'),
+      objectPos: '50% 20%',
+      portfolioUrl: 'https://sardoruz.vercel.app',
+    },
+    {
+      id: 'firdavs',
+      name: 'Firdavs',
+      age: 16,
+      stack: ['React 18', 'TypeScript', 'Next.js 14', 'Redux Toolkit', 'Axios', 'Tailwind CSS'],
+      contribution: t('team.member.firdavs.contribution'),
+      imageFile: 'Firdavs.jpg',
+      badge: t('team.member.firdavs.badge'),
+      color: '#6366f1',
+      accentBg: 'rgba(99,102,241,0.15)',
+      emoji: '🔐',
+      roadmapRole: t('team.member.firdavs.roadmapRole'),
+      objectPos: '50% 15%',
+    },
+    {
+      id: 'abduvoris',
+      name: 'Abduvoris',
+      age: 16,
+      stack: ['React 18', 'TypeScript', 'Next.js 14', 'Bunny.net SDK', 'HLS.js', 'Redux Toolkit'],
+      contribution: t('team.member.abduvoris.contribution'),
+      imageFile: 'Abduvoris.jpg',
+      badge: t('team.member.abduvoris.badge'),
+      color: '#06b6d4',
+      accentBg: 'rgba(6,182,212,0.15)',
+      emoji: '🎬',
+      roadmapRole: t('team.member.abduvoris.roadmapRole'),
+      objectPos: '50% 20%',
+    },
+    {
+      id: 'doniyor',
+      name: 'Doniyor',
+      age: 16,
+      stack: ['React 18', 'TypeScript', 'Next.js 14', 'Node.js', 'React Native', 'Redux Toolkit', 'Tailwind CSS'],
+      contribution: t('team.member.doniyor.contribution'),
+      imageFile: 'Doniyor.jpg',
+      badge: t('team.member.doniyor.badge'),
+      color: '#10b981',
+      accentBg: 'rgba(16,185,129,0.15)',
+      emoji: '📚',
+      roadmapRole: t('team.member.doniyor.roadmapRole'),
+      objectPos: '50% 20%',
+    },
+    {
+      id: 'suhrob',
+      name: 'Suhrob',
+      age: 14,
+      stack: ['React 18', 'TypeScript', 'Next.js 14', 'Node.js', 'React Native', 'Redux Toolkit'],
+      contribution: t('team.member.suhrob.contribution'),
+      imageFile: 'Suhrob.jpg',
+      badge: t('team.member.suhrob.badge'),
+      color: '#ec4899',
+      accentBg: 'rgba(236,72,153,0.15)',
+      emoji: '🏆',
+      roadmapRole: t('team.member.suhrob.roadmapRole'),
+      objectPos: '50% 20%',
+    },
+    {
+      id: 'qudrat',
+      name: 'Qudrat',
+      age: 14,
+      stack: ['React 18', 'TypeScript', 'Next.js 14', 'GSAP 3', 'Three.js', 'Framer Motion', 'Node.js'],
+      contribution: t('team.member.qudrat.contribution'),
+      imageFile: 'Qudrat.jpg',
+      badge: t('team.member.qudrat.badge'),
+      color: '#a855f7',
+      accentBg: 'rgba(168,85,247,0.15)',
+      emoji: '✨',
+      roadmapRole: t('team.member.qudrat.roadmapRole'),
+      objectPos: '50% 20%',
+    },
+  ];
+}
 
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -151,6 +154,7 @@ function getInitials(name: string) {
 
 function LeadershipCard({ member }: { member: TeamMember }) {
   const { t } = useLang();
+  const leadershipRoles = getLeadershipRoles(t);
   const [imgError, setImgError] = useState(false);
 
   return (
@@ -193,7 +197,7 @@ function LeadershipCard({ member }: { member: TeamMember }) {
 
           <div className="relative flex flex-1 flex-col justify-center px-5 py-8 sm:px-8 sm:py-10 lg:max-w-none lg:py-12 lg:pl-10 lg:pr-12">
             <div className="mb-4 flex flex-wrap gap-1.5 sm:gap-2">
-              {LEADERSHIP_ROLES.map((role) => (
+              {leadershipRoles.map((role) => (
                 <span
                   key={role}
                   className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-100/95 sm:px-3 sm:py-1 sm:text-[11px]"
@@ -503,8 +507,9 @@ function RoadmapNode({ member, index }: { member: TeamMember; index: number }) {
 export default function TeamPage() {
   const { t } = useLang();
   const containerRef = useRef<HTMLDivElement>(null);
-  const members = MEMBERS;
-  const allMembers = [FOUNDER_LEAD, ...MEMBERS];
+  const founderLead = getFounderLead(t);
+  const members = getMembers(t);
+  const allMembers = [founderLead, ...members];
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start end', 'end start'] });
   const lineHeight = useTransform(scrollYProgress, [0.35, 0.92], ['0%', '100%']);
   const smoothLine = useSpring(lineHeight as any, { stiffness: 55, damping: 18 });
@@ -595,7 +600,7 @@ export default function TeamPage() {
         >
           {t('team.leadSection')}
         </motion.p>
-        <LeadershipCard member={FOUNDER_LEAD} />
+        <LeadershipCard member={founderLead} />
       </section>
 
       {/* ── CARDS ── */}

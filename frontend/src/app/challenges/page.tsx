@@ -98,6 +98,24 @@ export default function ChallengesPage() {
   const targetCount = challenge?.targetCount || 1;
   const pct = Math.min(100, Math.round((currentCount / targetCount) * 100));
   const completed = Boolean(progress?.isCompleted);
+  const challengeType = String(challenge?.type || '').toLowerCase();
+
+  const localizedTitleByType: Record<string, string> = {
+    watch_video: t('challenges.type.watch_video.title'),
+    complete_quiz: t('challenges.type.complete_quiz.title'),
+    streak: t('challenges.type.streak.title'),
+    share_prompt: t('challenges.type.share_prompt.title'),
+  };
+
+  const localizedDescByType: Record<string, string> = {
+    watch_video: t('challenges.type.watch_video.desc'),
+    complete_quiz: t('challenges.type.complete_quiz.desc'),
+    streak: t('challenges.type.streak.desc'),
+    share_prompt: t('challenges.type.share_prompt.desc'),
+  };
+
+  const challengeTitle = localizedTitleByType[challengeType] || challenge?.title || '';
+  const challengeDescription = localizedDescByType[challengeType] || challenge?.description || '';
 
   return (
     <div className="flex min-h-[80vh] w-full min-w-0 items-center justify-center overflow-x-clip px-3">
@@ -125,8 +143,8 @@ export default function ChallengesPage() {
           transition={{ delay: 0.2 }}
           className="text-base-content/60 mb-8"
         >
-          {challenge.title}
-          {challenge.description ? ` — ${challenge.description}` : ''}
+          {challengeTitle}
+          {challengeDescription ? ` — ${challengeDescription}` : ''}
         </motion.p>
 
         <div className="mb-6 text-sm text-base-content/70">

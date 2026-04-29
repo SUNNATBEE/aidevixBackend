@@ -15,12 +15,14 @@ import {
 } from '@store/slices/authSlice';
 import SessionDevicesPanel from '@/components/settings/SessionDevicesPanel';
 import AccountDangerZone from '@/components/settings/AccountDangerZone';
+import { useLang } from '@/context/LangContext';
 
 type DisableState = { open: boolean; password: string; code: string; submitting: boolean };
 type RegenState = { open: boolean; code: string; submitting: boolean; codes: string[] | null };
 type ChangePwState = { open: boolean; current: string; next: string; confirm: string; submitting: boolean };
 
 export default function SecuritySettingsPage() {
+  const { t } = useLang();
   const router = useRouter();
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
@@ -55,11 +57,11 @@ export default function SecuritySettingsPage() {
     setDisable((s) => ({ ...s, submitting: true }));
     try {
       await authApi.disable2FA({ password: disable.password, code: disable.code });
-      toast.success('2FA o\'chirildi');
+      toast.success(t('security.toast.2faDisabled'));
       setDisable({ open: false, password: '', code: '', submitting: false });
       dispatch(checkAuthStatus() as any);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Xato');
+      toast.error(err.response?.data?.message || t('security.toast.error'));
       setDisable((s) => ({ ...s, submitting: false }));
     }
   };
@@ -71,9 +73,9 @@ export default function SecuritySettingsPage() {
     try {
       const { data } = await authApi.regenerateBackupCodes({ code: regen.code });
       setRegen({ open: true, code: '', submitting: false, codes: data.data.backupCodes });
-      toast.success('Yangi backup kodlar yaratildi');
+      toast.success(t('security.toast.backupRegenerated'));
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Kod noto\'g\'ri');
+      toast.error(err.response?.data?.message || t('security.toast.invalidCode'));
       setRegen((s) => ({ ...s, submitting: false }));
     }
   };
@@ -81,16 +83,16 @@ export default function SecuritySettingsPage() {
   const onChangePw = async (e: React.FormEvent) => {
     e.preventDefault();
     if (changePw.next !== changePw.confirm) {
-      toast.error('Yangi parollar mos emas');
+      toast.error(t('security.toast.passwordMismatch'));
       return;
     }
     setChangePw((s) => ({ ...s, submitting: true }));
     try {
       await authApi.changePassword({ currentPassword: changePw.current, newPassword: changePw.next });
-      toast.success('Parol yangilandi. Qayta login qiling.');
+      toast.success(t('security.toast.passwordChanged'));
       router.replace('/login');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Xato');
+      toast.error(err.response?.data?.message || t('security.toast.error'));
       setChangePw((s) => ({ ...s, submitting: false }));
     }
   };
@@ -101,9 +103,9 @@ export default function SecuritySettingsPage() {
     <div className="min-h-screen bg-[#0A0E1A] text-white py-10 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
-          <Link href="/profile" className="text-sm text-gray-400 hover:text-white">← Profil</Link>
-          <h1 className="text-3xl font-bold mt-2">Xavfsizlik</h1>
-          <p className="text-gray-400 text-sm mt-1">Parol, sessiyalar va hisob xavfsizligi</p>
+          <Link href="/profile" className="text-sm text-gray-400 hover:text-white">← {t('security.backProfile')}</Link>
+          <h1 className="text-3xl font-bold mt-2">{t('security.title')}</h1>
+          <p className="text-gray-400 text-sm mt-1">{t('security.subtitle')}</p>
         </div>
 
         <SessionDevicesPanel />
@@ -112,15 +114,15 @@ export default function SecuritySettingsPage() {
         <section className="bg-[#0d1224]/40 border border-white/5 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h2 className="text-lg font-semibold">Parol</h2>
-              <p className="text-gray-400 text-sm">Hisobingiz parolini o&apos;zgartiring</p>
+              <h2 className="text-lg font-semibold">{t('security.password.title')}</h2>
+              <p className="text-gray-400 text-sm">{t('security.password.subtitle')}</p>
             </div>
             {!changePw.open && (
               <button
                 onClick={() => setChangePw((s) => ({ ...s, open: true }))}
                 className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm"
               >
-                O&apos;zgartirish
+                {t('security.password.change')}
               </button>
             )}
           </div>
@@ -128,21 +130,21 @@ export default function SecuritySettingsPage() {
           {changePw.open && (
             <form onSubmit={onChangePw} className="space-y-3 mt-4">
               <input
-                type="password" placeholder="Joriy parol"
+                type="password" placeholder={t('security.password.currentPlaceholder')}
                 value={changePw.current}
                 onChange={(e) => setChangePw((s) => ({ ...s, current: e.target.value }))}
                 className="w-full bg-[#0A0E1A]/50 border border-white/10 rounded-xl px-4 py-3"
                 autoComplete="current-password"
               />
               <input
-                type="password" placeholder="Yangi parol"
+                type="password" placeholder={t('security.password.newPlaceholder')}
                 value={changePw.next}
                 onChange={(e) => setChangePw((s) => ({ ...s, next: e.target.value }))}
                 className="w-full bg-[#0A0E1A]/50 border border-white/10 rounded-xl px-4 py-3"
                 autoComplete="new-password"
               />
               <input
-                type="password" placeholder="Yangi parolni tasdiqlang"
+                type="password" placeholder={t('security.password.confirmPlaceholder')}
                 value={changePw.confirm}
                 onChange={(e) => setChangePw((s) => ({ ...s, confirm: e.target.value }))}
                 className="w-full bg-[#0A0E1A]/50 border border-white/10 rounded-xl px-4 py-3"
@@ -152,12 +154,12 @@ export default function SecuritySettingsPage() {
                 <button
                   type="submit" disabled={changePw.submitting}
                   className="flex-1 py-3 bg-indigo-500 hover:bg-indigo-600 rounded-xl disabled:opacity-50"
-                >{changePw.submitting ? 'Saqlanmoqda...' : 'Saqlash'}</button>
+                >{changePw.submitting ? t('security.saving') : t('security.save')}</button>
                 <button
                   type="button"
                   onClick={() => setChangePw({ open: false, current: '', next: '', confirm: '', submitting: false })}
                   className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl"
-                >Bekor</button>
+                >{t('security.cancel')}</button>
               </div>
             </form>
           )}
@@ -168,14 +170,14 @@ export default function SecuritySettingsPage() {
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold">Ikki bosqichli autentifikatsiya</h2>
-                {totpOn && <span className="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">YOQILGAN</span>}
-                {!totpOn && <span className="text-xs bg-zinc-500/20 text-zinc-300 px-2 py-0.5 rounded-full">O&apos;CHIRILGAN</span>}
+                <h2 className="text-lg font-semibold">{t('security.twofa.title')}</h2>
+                {totpOn && <span className="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">{t('security.twofa.on')}</span>}
+                {!totpOn && <span className="text-xs bg-zinc-500/20 text-zinc-300 px-2 py-0.5 rounded-full">{t('security.twofa.off')}</span>}
               </div>
               <p className="text-gray-400 text-sm mt-1">
                 {isAdmin
-                  ? 'Admin hisoblar uchun majburiy. O\'chirib bo\'lmaydi.'
-                  : 'TOTP ilova (Google Authenticator, Authy, 1Password) orqali himoya'}
+                  ? t('security.twofa.adminHint')
+                  : t('security.twofa.userHint')}
               </p>
             </div>
           </div>
@@ -185,7 +187,7 @@ export default function SecuritySettingsPage() {
               href="/auth/2fa-setup"
               className="inline-block px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-sm"
             >
-              2FA ni yoqish
+              {t('security.twofa.enable')}
             </Link>
           )}
 
@@ -195,14 +197,14 @@ export default function SecuritySettingsPage() {
                 onClick={() => setRegen({ open: true, code: '', submitting: false, codes: null })}
                 className="w-full text-left px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm"
               >
-                🔑 Backup kodlarni qayta yaratish
+                {t('security.twofa.regen')}
               </button>
               {!isAdmin && (
                 <button
                   onClick={() => setDisable({ open: true, password: '', code: '', submitting: false })}
                   className="w-full text-left px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl text-sm text-rose-300"
                 >
-                  ⚠️ 2FA ni o&apos;chirish
+                  {t('security.twofa.disable')}
                 </button>
               )}
             </div>
@@ -215,30 +217,30 @@ export default function SecuritySettingsPage() {
         {disable.open && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
             <form onSubmit={onDisable} className="w-full max-w-md bg-[#0d1224] border border-white/10 rounded-2xl p-6 space-y-3">
-              <h3 className="text-lg font-semibold">2FA ni o&apos;chirish</h3>
-              <p className="text-sm text-gray-400">Joriy parolingiz va TOTP kodi (yoki backup kod) kerak.</p>
+              <h3 className="text-lg font-semibold">{t('security.disableModal.title')}</h3>
+              <p className="text-sm text-gray-400">{t('security.disableModal.subtitle')}</p>
               <input
-                type="password" placeholder="Joriy parol"
+                type="password" placeholder={t('security.password.currentPlaceholder')}
                 value={disable.password}
                 onChange={(e) => setDisable((s) => ({ ...s, password: e.target.value }))}
                 className="w-full bg-[#0A0E1A]/50 border border-white/10 rounded-xl px-4 py-3"
                 autoComplete="current-password"
               />
               <input
-                type="text" placeholder="TOTP yoki backup kod"
+                type="text" placeholder={t('security.disableModal.codePlaceholder')}
                 value={disable.code}
                 onChange={(e) => setDisable((s) => ({ ...s, code: e.target.value.toUpperCase() }))}
                 className="w-full bg-[#0A0E1A]/50 border border-white/10 rounded-xl px-4 py-3 font-mono"
               />
               <div className="flex gap-2">
                 <button type="submit" disabled={disable.submitting} className="flex-1 py-3 bg-rose-500 hover:bg-rose-600 rounded-xl disabled:opacity-50">
-                  {disable.submitting ? 'O\'chirilmoqda...' : 'O\'chirish'}
+                  {disable.submitting ? t('security.disabling') : t('security.disable')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDisable({ open: false, password: '', code: '', submitting: false })}
                   className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl"
-                >Bekor</button>
+                >{t('security.cancel')}</button>
               </div>
             </form>
           </div>
@@ -250,8 +252,8 @@ export default function SecuritySettingsPage() {
             <div className="w-full max-w-md bg-[#0d1224] border border-white/10 rounded-2xl p-6 space-y-3">
               {!regen.codes && (
                 <form onSubmit={onRegen} className="space-y-3">
-                  <h3 className="text-lg font-semibold">Yangi backup kodlar</h3>
-                  <p className="text-sm text-gray-400">TOTP kodingizni kiriting. Eski backup kodlar bekor qilinadi.</p>
+                  <h3 className="text-lg font-semibold">{t('security.backupModal.newTitle')}</h3>
+                  <p className="text-sm text-gray-400">{t('security.backupModal.newSubtitle')}</p>
                   <input
                     type="text" placeholder="000000" inputMode="numeric" maxLength={6}
                     value={regen.code}
@@ -261,22 +263,22 @@ export default function SecuritySettingsPage() {
                   />
                   <div className="flex gap-2">
                     <button type="submit" disabled={regen.submitting || regen.code.length !== 6} className="flex-1 py-3 bg-indigo-500 hover:bg-indigo-600 rounded-xl disabled:opacity-50">
-                      {regen.submitting ? 'Yaratilmoqda...' : 'Yaratish'}
+                      {regen.submitting ? t('security.creating') : t('security.create')}
                     </button>
                     <button
                       type="button"
                       onClick={() => setRegen({ open: false, code: '', submitting: false, codes: null })}
                       className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl"
-                    >Bekor</button>
+                    >{t('security.cancel')}</button>
                   </div>
                 </form>
               )}
 
               {regen.codes && (
                 <div className="space-y-3">
-                  <h3 className="text-lg font-semibold">🔑 Yangi backup kodlar</h3>
+                  <h3 className="text-lg font-semibold">{t('security.backupModal.generatedTitle')}</h3>
                   <p className="text-sm text-amber-300/90">
-                    Bu kodlarni xavfsiz joyda saqlang. Bu sahifa qayta ko&apos;rsatilmaydi.
+                    {t('security.backupModal.generatedSubtitle')}
                   </p>
                   <div className="grid grid-cols-2 gap-2 bg-white/5 border border-white/10 rounded-xl p-4 font-mono">
                     {regen.codes.map((c) => (
@@ -286,14 +288,14 @@ export default function SecuritySettingsPage() {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(regen.codes!.join('\n'));
-                      toast.success('Nusxalandi');
+                      toast.success(t('security.toast.copied'));
                     }}
                     className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm"
-                  >📋 Hammasini nusxa olish</button>
+                  >{t('security.backupModal.copyAll')}</button>
                   <button
                     onClick={() => setRegen({ open: false, code: '', submitting: false, codes: null })}
                     className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 rounded-xl"
-                  >Saqladim, yopish</button>
+                  >{t('security.backupModal.savedClose')}</button>
                 </div>
               )}
             </div>

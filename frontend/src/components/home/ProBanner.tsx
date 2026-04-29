@@ -90,14 +90,14 @@ const ProBanner = () => {
 
         <div className="hidden w-full max-w-md lg:block">
           <div className={`rounded-[2rem] border p-6 ${isDark ? 'border-white/8 bg-white/[0.03]' : 'border-slate-900/10 bg-white/80'}`}>
-            <div className={`text-[10px] font-semibold uppercase tracking-[0.28em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Membership</div>
+            <div className={`text-[10px] font-semibold uppercase tracking-[0.28em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('pro.membership')}</div>
             <div className={`mt-4 rounded-[1.5rem] border p-5 ${isDark ? 'border-white/8 bg-[#0b0f18]' : 'border-slate-900/10 bg-slate-50'}`}>
               <div className="flex items-start justify-between">
                 <div>
-                  <div className={`${isDark ? 'text-slate-400' : 'text-slate-500'} text-sm`}>Plan status</div>
-                  <div className={`mt-2 font-display text-3xl font-semibold ${isDark ? 'text-white' : 'text-slate-950'}`}>PRO</div>
+                  <div className={`${isDark ? 'text-slate-400' : 'text-slate-500'} text-sm`}>{t('pro.planStatus')}</div>
+                  <div className={`mt-2 font-display text-3xl font-semibold ${isDark ? 'text-white' : 'text-slate-950'}`}>{t('pro.planName')}</div>
                 </div>
-                <div className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-400">Active</div>
+                <div className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-400">{t('pro.active')}</div>
               </div>
               <div className="mt-6 space-y-4">
                 {benefits.map((text, i) => (
@@ -108,8 +108,8 @@ const ProBanner = () => {
                 ))}
               </div>
               <div className={`mt-6 rounded-2xl border px-4 py-3 ${isDark ? 'border-indigo-400/20 bg-indigo-500/10 text-indigo-200' : 'border-indigo-500/20 bg-indigo-50 text-indigo-600'}`}>
-                <div className="text-xs uppercase tracking-[0.24em]">Priority Access</div>
-                <div className="mt-1 text-sm">Yangi kurslarga birinchi kirish va premium roadmap.</div>
+                <div className="text-xs uppercase tracking-[0.24em]">{t('pro.priorityTitle')}</div>
+                <div className="mt-1 text-sm">{t('pro.priorityDesc')}</div>
               </div>
             </div>
           </div>

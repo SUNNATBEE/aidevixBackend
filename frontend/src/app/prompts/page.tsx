@@ -13,7 +13,9 @@ import {
   IoSparkles, IoAdd, IoHeart, IoHeartOutline, IoCopy,
   IoClose, IoFilter, IoTrendingUp, IoTime, IoEye, IoChevronForward,
   IoInformationCircleOutline, IoLockClosed, IoBookmark, IoBookmarkOutline,
+  IoArrowForward, IoLogoInstagram,
 } from 'react-icons/io5';
+import { FaTelegram } from 'react-icons/fa';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useLang } from '@/context/LangContext';
 
@@ -770,23 +772,50 @@ export default function PromptsPage() {
 
         {promptAccess === 'need_subscription' && (
           <section
-            className="mb-10 rounded-3xl border border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] to-transparent p-6 sm:p-10"
+            className="mb-10 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0d101a] via-[#0f1220] to-[#0d101a] p-8 sm:p-12"
             aria-labelledby="prompts-tg-gate-title"
           >
-            <div className="mx-auto max-w-lg text-center">
-              <IoLockClosed className="mx-auto mb-4 text-amber-400" size={44} aria-hidden />
-              <h2 id="prompts-tg-gate-title" className="mb-2 text-xl font-bold text-white sm:text-2xl">
+            {/* glow bg */}
+            <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-3xl">
+              <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-indigo-600/10 blur-3xl" />
+              <div className="absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-purple-600/10 blur-3xl" />
+            </div>
+
+            <div className="mx-auto max-w-md text-center">
+              {/* lock icon */}
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 ring-1 ring-inset ring-white/10 shadow-xl shadow-indigo-500/10">
+                <IoLockClosed className="text-indigo-300" size={28} aria-hidden />
+              </div>
+
+              <h2 id="prompts-tg-gate-title" className="mb-3 text-xl font-black text-white sm:text-2xl">
                 Promptlar uchun ijtimoiy obuna talab qilinadi
               </h2>
-              <p className="mb-6 text-sm leading-relaxed text-slate-400">
-                Promptlarni ko'rish uchun Telegram va Instagram obunangiz faol bo'lishi shart.
+              <p className="mb-2 text-sm leading-relaxed text-slate-400">
+                Promptlarni ko&apos;rish uchun Telegram va Instagram obunangiz faol bo&apos;lishi shart.
               </p>
-            </div>
-            <p className="mt-6 text-center text-xs text-slate-500">
-              <Link href="/subscription?returnUrl=/prompts" className="text-indigo-400 underline-offset-2 hover:underline">
-                Obunani tekshirish/yoqish sahifasiga o'tish
+
+              {/* social badges */}
+              <div className="mb-8 flex items-center justify-center gap-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/25 bg-blue-500/10 px-3 py-1 text-[11px] font-bold text-blue-300">
+                  <FaTelegram size={12} /> Telegram
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-pink-500/25 bg-pink-500/10 px-3 py-1 text-[11px] font-bold text-pink-300">
+                  <IoLogoInstagram size={12} /> Instagram
+                </span>
+              </div>
+
+              {/* CTA button */}
+              <Link
+                href="/subscription?returnUrl=/prompts"
+                className="group relative inline-flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-4 text-base font-bold text-white shadow-lg shadow-indigo-600/30 transition-all duration-300 hover:from-indigo-500 hover:to-violet-500 hover:shadow-indigo-500/40 active:scale-[0.98] sm:w-auto sm:px-10"
+              >
+                <span className="relative z-10 flex items-center gap-2.5">
+                  Obunani tekshirish / yoqish
+                  <IoArrowForward size={18} className="transition-transform duration-300 group-hover:translate-x-1" />
+                </span>
+                <div className="pointer-events-none absolute inset-0 -z-10 translate-x-[-100%] bg-gradient-to-r from-white/0 via-white/10 to-white/0 transition-transform duration-500 group-hover:translate-x-[100%]" />
               </Link>
-            </p>
+            </div>
           </section>
         )}
 

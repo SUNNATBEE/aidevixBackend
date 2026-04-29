@@ -15,6 +15,10 @@ export default function SubscriptionPage() {
   const returnUrl = searchParams.get('returnUrl') || '/courses';
   const { t } = useLang();
 
+  // Sequential flow: Telegram first, then Instagram
+  const showTelegram = !telegram?.subscribed
+  const showInstagram = !!telegram?.subscribed && !instagram?.subscribed
+
   return (
     <div className="min-h-screen bg-[#0A0E1A] text-white pt-24 pb-20 px-4 sm:px-6 lg:px-8 font-sans selection:bg-indigo-500/30">
       <div className="max-w-2xl mx-auto">
@@ -37,7 +41,7 @@ export default function SubscriptionPage() {
         <div className="mb-16">
           <ul className="steps w-full">
             <li className={`step ${telegram?.subscribed ? 'step-primary font-bold text-white' : 'text-gray-500'}`}>Telegram</li>
-            <li className={`step ${instagram?.subscribed ? 'step-primary font-bold text-white' : 'text-gray-500'}`}>Instagram</li>
+            <li className={`step ${telegram?.subscribed && instagram?.subscribed ? 'step-primary font-bold text-white' : 'text-gray-500'}`}>Instagram</li>
             <li className={`step ${allVerified ? 'step-primary font-bold text-white' : 'text-gray-500'}`}>{t('nav.ready')}</li>
           </ul>
         </div>
@@ -54,8 +58,8 @@ export default function SubscriptionPage() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="space-y-8"
               >
-                {!telegram?.subscribed && <TelegramVerify onTelegramVerified={() => refetch()} />}
-                {!instagram?.subscribed && <InstagramVerify showVideoButton={false} onVideoAccess={() => refetch()} />}
+                {showTelegram && <TelegramVerify onTelegramVerified={() => refetch()} />}
+                {showInstagram && <InstagramVerify onVerified={() => refetch()} />}
               </motion.div>
             ) : (
               <motion.div

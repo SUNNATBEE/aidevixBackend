@@ -5,6 +5,7 @@ import { IoClose, IoSend, IoSparkles, IoPlay, IoBook, IoSearch } from 'react-ico
 import { gsap } from 'gsap';
 import { generateCoachReply, type CoachMessage } from '@/utils/coachAssistant';
 import Link from 'next/link';
+import { useLang } from '@/context/LangContext';
 
 const makeMessageId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -32,13 +33,13 @@ type ExtendedMessage = CoachMessage & {
 
 type ChatHistory = { role: 'user' | 'assistant'; content: string }[];
 
-const initialMessages: ExtendedMessage[] = [
+const getInitialMessages = (t: (key: string) => string): ExtendedMessage[] => [
   {
     id: 'welcome',
     role: 'assistant',
-    content: 'Salom! Men Aidevix AI ustozingizman. Savolingizni bering — kodlash, kurs tanlash yoki video dars topishda yordam beraman.',
+    content: t('coach.welcome'),
     timestamp: Date.now(),
-    suggestions: ['Qanday kurslar bor?', 'React o\'rganmoqchiman', 'JavaScript video darslar'],
+    suggestions: [t('coach.suggestion1'), t('coach.suggestion2'), t('coach.suggestion3')],
   },
 ];
 
@@ -108,10 +109,11 @@ function CourseCardItem({ course }: { course: CourseCard }) {
 
 // ------- Main Component -------
 export default function AICoach() {
+  const { t, lang } = useLang();
   const [isOpen, setIsOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ExtendedMessage[]>(initialMessages);
+  const [messages, setMessages] = useState<ExtendedMessage[]>(() => getInitialMessages(t));
   const panelRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -156,6 +158,14 @@ export default function AICoach() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    setMessages((current) => {
+      if (!current.length || current[0]?.id !== 'welcome') return current;
+      const welcome = getInitialMessages(t)[0];
+      return [{ ...current[0], content: welcome.content, suggestions: welcome.suggestions }, ...current.slice(1)];
+    });
+  }, [lang, t]);
 
   const sendMessage = async (overrideText?: string) => {
     const trimmed = (overrideText ?? input).trim();
@@ -236,7 +246,7 @@ export default function AICoach() {
   };
 
   return (
-    <div className="fixed bottom-8 right-8 z-[100] font-sans">
+    <div className="fixed bottom-4 right-4 z-[100] font-sans sm:bottom-8 sm:right-8">
       <button
         ref={buttonRef}
         onClick={toggleCoach}
@@ -256,7 +266,7 @@ export default function AICoach() {
       {isOpen && (
         <div
           ref={panelRef}
-          className="coach-window absolute bottom-20 right-0 flex h-[520px] w-[380px] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#12141c]/95 shadow-2xl backdrop-blur-2xl"
+          className="coach-window absolute bottom-20 right-0 flex h-[min(520px,72vh)] w-[min(380px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#12141c]/95 shadow-2xl backdrop-blur-2xl max-sm:fixed max-sm:bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] max-sm:left-2 max-sm:right-2 max-sm:h-[70vh] max-sm:w-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/5 bg-indigo-600/10 p-4">
@@ -265,18 +275,18 @@ export default function AICoach() {
                 <IoSparkles className="text-lg" />
               </div>
               <div>
-                <h4 className="text-sm font-bold tracking-tight text-white">Aidevix AI Coach</h4>
+                <h4 className="text-sm font-bold tracking-tight text-white">{t('coach.title')}</h4>
                 <div className="flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
                   <span className="mt-0.5 text-[10px] font-black uppercase tracking-widest leading-none text-white/40">
-                    Smart Assistant
+                    {t('coach.smartAssistant')}
                   </span>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-[9px] font-semibold text-indigo-400">
-                AI + Video Search
+                {t('coach.aiVideoSearch')}
               </span>
             </div>
           </div>
@@ -310,7 +320,7 @@ export default function AICoach() {
                 {message.role === 'assistant' && message.videos && message.videos.length > 0 && (
                   <div className="mt-2 space-y-1.5 pl-1">
                     <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-indigo-400">
-                      <IoPlay className="text-xs" /> Topilgan videolar
+                      <IoPlay className="text-xs" /> {t('coach.foundVideos')}
                     </p>
                     {message.videos.map((v) => (
                       <VideoCardItem key={v._id} video={v} />
@@ -322,7 +332,7 @@ export default function AICoach() {
                 {message.role === 'assistant' && message.courses && message.courses.length > 0 && (
                   <div className="mt-2 space-y-1.5 pl-1">
                     <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
-                      <IoBook className="text-xs" /> Tegishli kurslar
+                      <IoBook className="text-xs" /> {t('coach.relatedCourses')}
                     </p>
                     {message.courses.map((c) => (
                       <CourseCardItem key={c._id} course={c} />
@@ -355,7 +365,7 @@ export default function AICoach() {
                   <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-400 [animation-delay:0.2s]" />
                   <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-400 [animation-delay:0.4s]" />
                 </div>
-                <span className="text-[10px] text-white/30">Javob tayyorlanmoqda...</span>
+                <span className="text-[10px] text-white/30">{t('coach.typing')}</span>
               </div>
             )}
             <div ref={endRef} />
@@ -368,7 +378,7 @@ export default function AICoach() {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Savol yoki video/kurs qidirish..."
+                placeholder={t('coach.inputPlaceholder')}
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={handleKeyDown}

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { IoLogoInstagram, IoCheckmarkCircle, IoClose } from 'react-icons/io5'
 import toast from 'react-hot-toast'
+import { useLang } from '@/context/LangContext'
 
 interface InstagramSubscriptionVerificationProps {
   videoId?: string
@@ -15,6 +16,7 @@ export default function InstagramSubscriptionVerification({
   onClose,
   onSuccess
 }: InstagramSubscriptionVerificationProps) {
+  const { t } = useLang()
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false)
   const [isChecking, setIsChecking] = useState<boolean>(false)
   const [hasVisitedProfile, setHasVisitedProfile] = useState<boolean>(false)
@@ -23,12 +25,12 @@ export default function InstagramSubscriptionVerification({
     // Instagram profilini yangi tabda ochish
     window.open('https://instagram.com/aidevix_official', '_blank', 'noopener,noreferrer')
     setHasVisitedProfile(true)
-    toast.success('Instagram sahifasi ochildi! Obuna bo\'ling va qaytib keling')
+    toast.success(t('igv.openedToast'))
   }
 
   const handleCheckSubscription = async (): Promise<void> => {
     if (!hasVisitedProfile) {
-      toast.error('Avval Instagram sahifamizga o\'ting va obuna bo\'ling!')
+      toast.error(t('igv.visitFirstToast'))
       return
     }
 
@@ -43,17 +45,17 @@ export default function InstagramSubscriptionVerification({
 
       if (subscriptionResult) {
         setIsSubscribed(true)
-        toast.success('🎉 Ajoyib! Instagram obunangiz tasdiqlandi!')
+        toast.success(t('igv.successToast'))
         
         // 1 soniya kutib onSuccess chaqirish
         setTimeout(() => {
           onSuccess()
         }, 1000)
       } else {
-        toast.error('Obuna topilmadi. Iltimos, @aidevix_official ga obuna bo\'ling va qaytadan urinib ko\'ring')
+        toast.error(t('igv.notFoundToast'))
       }
     } catch (error) {
-      toast.error('Tekshirishda xato yuz berdi. Qaytadan urinib ko\'ring')
+      toast.error(t('igv.errorToast'))
     } finally {
       setIsChecking(false)
     }
@@ -81,10 +83,10 @@ export default function InstagramSubscriptionVerification({
               
               <div>
                 <h3 className="text-2xl font-bold text-white mb-2">
-                  Obuna tasdiqlandi!
+                  {t('igv.successTitle')}
                 </h3>
                 <p className="text-zinc-400">
-                  Instagram obunangiz muvaffaqiyatli tekshirildi. Endi videolarni ko'rishingiz mumkin.
+                  {t('igv.successDesc')}
                 </p>
               </div>
 
@@ -117,10 +119,10 @@ export default function InstagramSubscriptionVerification({
               <IoLogoInstagram className="text-3xl text-white" />
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">
-              Instagram Obunasi
+              {t('igv.title')}
             </h2>
             <p className="text-zinc-400 text-sm">
-              Videolarni ko'rish uchun Instagram sahifamizga obuna bo'ling
+              {t('igv.subtitle')}
             </p>
           </div>
 
@@ -133,7 +135,7 @@ export default function InstagramSubscriptionVerification({
                   1
                 </div>
                 <h3 className="text-lg font-semibold text-white">
-                  Instagram sahifasiga o'ting
+                  {t('igv.step1Title')}
                 </h3>
               </div>
               
@@ -143,14 +145,14 @@ export default function InstagramSubscriptionVerification({
               >
                 <div className="flex items-center justify-center gap-2">
                   <IoLogoInstagram className="text-xl" />
-                  <span>@aidevix_official ga o'tish</span>
+                  <span>{t('igv.openButton')}</span>
                 </div>
               </button>
 
               {hasVisitedProfile && (
                 <div className="flex items-center gap-2 text-green-400 text-sm">
                   <IoCheckmarkCircle className="text-lg" />
-                  <span>Instagram sahifasi ochildi</span>
+                  <span>{t('igv.openedHint')}</span>
                 </div>
               )}
             </div>
@@ -166,7 +168,7 @@ export default function InstagramSubscriptionVerification({
                 <h3 className={`text-lg font-semibold transition-colors ${
                   hasVisitedProfile ? 'text-white' : 'text-zinc-500'
                 }`}>
-                  Obunani tekshiring
+                  {t('igv.step2Title')}
                 </h3>
               </div>
 
@@ -182,16 +184,16 @@ export default function InstagramSubscriptionVerification({
                 {isChecking ? (
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Tekshirilmoqda...</span>
+                    <span>{t('igv.checking')}</span>
                   </div>
                 ) : (
-                  'Obunani tekshirish'
+                  t('igv.checkButton')
                 )}
               </button>
 
               {!hasVisitedProfile && (
                 <p className="text-zinc-500 text-xs text-center">
-                  Avval 1-qadamni bajaring
+                  {t('igv.step1Required')}
                 </p>
               )}
             </div>
@@ -200,8 +202,7 @@ export default function InstagramSubscriptionVerification({
           {/* Info */}
           <div className="mt-8 p-4 bg-zinc-800/50 border border-zinc-700 rounded-xl">
             <p className="text-zinc-400 text-xs text-center">
-              💡 Obuna bo'lgandan keyin "Obunani tekshirish" tugmasini bosing. 
-              Tizim avtomatik ravishda obunangizni tasdiqlaydi.
+              {t('igv.info')}
             </p>
           </div>
         </div>

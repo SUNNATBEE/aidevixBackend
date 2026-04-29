@@ -231,33 +231,33 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
 
   const fallbackAiNews: AiNewsItem[] = [
     {
-      title: "AI Agentlar davri boshlandi: Cursor va Claude ish oqimlari real biznesga kirib keldi",
-      summary: "Yangi trend: kichik jamoalar ham agentlar bilan katta product tezligiga chiqmoqda.",
-      cta: "To'liq yangilik uchun Telegram",
+      title: t('home.news1.title'),
+      summary: t('home.news1.summary'),
+      cta: t('home.news1.cta'),
       href: SOCIAL_LINKS.telegram,
       platform: "telegram",
       imageUrl: 'https://picsum.photos/seed/aidevix-ai-news-1/1600/900',
     },
     {
-      title: "Prompt engineering endi alohida kasb: kompaniyalar aniq skill bilan mutaxassis qidirmoqda",
-      summary: "Senior darajada prompt yozish orqali sifat, xavfsizlik va xarajat bir vaqtning o'zida optimallashtirilmoqda.",
-      cta: "Batafsil post Instagram'da",
+      title: t('home.news2.title'),
+      summary: t('home.news2.summary'),
+      cta: t('home.news2.cta'),
       href: SOCIAL_LINKS.instagram,
       platform: "instagram",
       imageUrl: 'https://picsum.photos/seed/aidevix-ai-news-2/1600/900',
     },
     {
-      title: "AI + kod review: bug'lar kamaydi, release tezligi oshdi",
-      summary: "Agent-first development jarayonida test va review bloklari ko'proq avtomatlashtirilmoqda.",
-      cta: "Yangiliklarni Telegram'da kuzating",
+      title: t('home.news3.title'),
+      summary: t('home.news3.summary'),
+      cta: t('home.news3.cta'),
       href: SOCIAL_LINKS.telegram,
       platform: "telegram",
       imageUrl: 'https://picsum.photos/seed/aidevix-ai-news-3/1600/900',
     },
     {
-      title: "Multi-agent stack: bitta loyiha ichida Claude, Cursor, Copilot birga ishlatilmoqda",
-      summary: "Jamoalar har bir agentni o'z vazifasiga mos qo'llab, natijani sezilarli oshirmoqda.",
-      cta: "Instagram'da trend tahlili",
+      title: t('home.news4.title'),
+      summary: t('home.news4.summary'),
+      cta: t('home.news4.cta'),
       href: SOCIAL_LINKS.instagram,
       platform: "instagram",
       imageUrl: 'https://picsum.photos/seed/aidevix-ai-news-4/1600/900',
@@ -458,7 +458,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
               <div className="relative z-10">
               <div className="flex items-center justify-between gap-3">
                 <div className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${isDark ? 'border-indigo-300/30 text-indigo-200' : 'border-indigo-300 text-indigo-700'}`}>
-                  AI News · {aiNews[newsIndex]?.platform === 'instagram' ? 'Instagram' : 'Telegram'}
+                  {t('home.newsBadge')} · {aiNews[newsIndex]?.platform === 'instagram' ? 'Instagram' : 'Telegram'}
                 </div>
                 <div className={`text-xs ${mutedText}`}>{newsIndex + 1}/{aiNews.length}</div>
               </div>
@@ -469,13 +469,13 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
                 <IoArrowForward className="text-base" />
               </div>
               <div className="mt-4 flex items-center justify-between">
-                <div className={`text-[11px] ${mutedText}`}>Swipe yoki tugmalar bilan almashtiring</div>
+                <div className={`text-[11px] ${mutedText}`}>{t('home.newsSwipeHint')}</div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={(e) => { e.preventDefault(); handlePrevNews(); }}
                     className={`h-8 w-8 rounded-full border text-sm font-bold ${isDark ? 'border-white/15 bg-white/5 text-slate-200 hover:bg-white/10' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'}`}
-                    aria-label="Oldingi yangilik"
+                    aria-label={t('home.newsPrevAria')}
                   >
                     ‹
                   </button>
@@ -483,7 +483,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
                     type="button"
                     onClick={(e) => { e.preventDefault(); handleNextNews(); }}
                     className={`h-8 w-8 rounded-full border text-sm font-bold ${isDark ? 'border-white/15 bg-white/5 text-slate-200 hover:bg-white/10' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'}`}
-                    aria-label="Keyingi yangilik"
+                    aria-label={t('home.newsNextAria')}
                   >
                     ›
                   </button>
@@ -491,9 +491,9 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
               </div>
               {(aiNews[newsIndex]?.startsAt || aiNews[newsIndex]?.endsAt) && (
                 <div className={`mt-2 text-[11px] ${isDark ? 'text-indigo-200/80' : 'text-indigo-700/80'}`}>
-                  {aiNews[newsIndex]?.startsAt ? `Start: ${new Date(aiNews[newsIndex]!.startsAt as string).toLocaleString()}` : ''}
+                  {aiNews[newsIndex]?.startsAt ? `${t('home.newsStartLabel')}: ${new Date(aiNews[newsIndex]!.startsAt as string).toLocaleString()}` : ''}
                   {aiNews[newsIndex]?.startsAt && aiNews[newsIndex]?.endsAt ? ' · ' : ''}
-                  {aiNews[newsIndex]?.endsAt ? `End: ${new Date(aiNews[newsIndex]!.endsAt as string).toLocaleString()}` : ''}
+                  {aiNews[newsIndex]?.endsAt ? `${t('home.newsEndLabel')}: ${new Date(aiNews[newsIndex]!.endsAt as string).toLocaleString()}` : ''}
                 </div>
               )}
               <div className={`mt-3 h-1 w-full overflow-hidden rounded-full ${isDark ? 'bg-white/10' : 'bg-slate-300/40'}`}>
@@ -551,7 +551,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
               <IoSchool className="text-2xl text-indigo-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className={`text-xs uppercase tracking-widest mb-1 ${mutedText}`}>Davom ettiramizmi?</div>
+              <div className={`text-xs uppercase tracking-widest mb-1 ${mutedText}`}>{t('home.continueTitle')}</div>
               <h3 className="font-semibold text-lg truncate">{continueLearning.course?.title}</h3>
               <p className={`text-sm mt-1 ${mutedText}`}>{continueLearning.nextVideo?.title}</p>
               <div className="mt-3 flex items-center gap-3">
@@ -568,7 +568,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
               href={`/videos/${continueLearning.nextVideo?._id}`}
               className="flex h-12 w-full flex-shrink-0 items-center justify-center gap-2 rounded-full bg-indigo-500 px-5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-indigo-400 sm:w-auto sm:px-6"
             >
-              <IoPlay className="text-base" /> Davom ettirish
+              <IoPlay className="text-base" /> {t('home.continueAction')}
             </Link>
           </div>
         </motion.section>
@@ -578,7 +578,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
         <div className={`grid gap-px overflow-hidden rounded-2xl border sm:rounded-[2rem] ${hairline} ${softSurface} backdrop-blur-2xl md:grid-cols-4`}>
           {stats.map((stat, i) => (
             <div key={i} className={`min-w-0 px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10 ${i < stats.length - 1 ? 'md:border-r' : ''} ${hairline}`}>
-              <div className={`text-[10px] uppercase tracking-[0.2em] sm:text-xs sm:tracking-[0.3em] ${mutedText}`}>Metric 0{i + 1}</div>
+              <div className={`text-[10px] uppercase tracking-[0.2em] sm:text-xs sm:tracking-[0.3em] ${mutedText}`}>{t('home.metricLabel', { n: `0${i + 1}` })}</div>
               <div className={`mt-3 flex min-w-0 items-end text-3xl font-black tracking-[-0.05em] sm:mt-4 sm:text-4xl sm:tracking-[-0.06em] md:text-5xl ${stat.color}`}>
                 <span className="stat-value" data-value={String(stat.value)} data-decimals={String(stat.decimals)}>0</span>
                 {stat.suffix}

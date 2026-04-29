@@ -275,7 +275,7 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
           1
         </div>
         <p className="text-zinc-300 text-sm">
-          Instagram&apos;da <strong className="text-pink-400">@aidevix</strong> ga obuna bo&apos;ling
+          {t('ig.step1a')} <strong className="text-pink-400">@aidevix</strong> {t('ig.step1b')}
         </p>
       </div>
 
@@ -283,7 +283,7 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
         <div className="w-7 h-7 rounded-full bg-pink-500/20 border border-pink-500/30 text-pink-400 text-xs font-bold flex items-center justify-center shrink-0">
           2
         </div>
-        <p className="text-zinc-300 text-sm">Instagram username&apos;ingizni kiriting va tasdiqlang</p>
+        <p className="text-zinc-300 text-sm">{t('ig.step2')}</p>
       </div>
 
       <div className="space-y-3 pt-1">

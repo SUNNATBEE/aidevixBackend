@@ -5,6 +5,7 @@ import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { authApi } from '@/api/authApi';
 import { toast } from 'react-hot-toast';
 import { IoLockClosed, IoClose } from 'react-icons/io5';
+import { useLang } from '@/context/LangContext';
 
 type Props = {
   open: boolean;
@@ -21,9 +22,11 @@ export default function ReauthModal({
   open,
   onClose,
   onVerified,
-  reason = "Bu amal uchun kimligingizni qayta tasdiqlang",
+  reason,
   isGoogleOnly = false,
 }: Props) {
+  const { t } = useLang();
+  const resolvedReason = reason || t('reauth.defaultReason');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,14 +63,14 @@ export default function ReauthModal({
     try {
       const res = await authApi.reauth({ password });
       const token = (res.data as { data?: { reauthToken?: string } })?.data?.reauthToken;
-      if (!token) throw new Error('Reauth token kelmadi');
+      if (!token) throw new Error(t('reauth.tokenMissing'));
       finishWithToken(token);
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined;
-      const text = msg || (err instanceof Error ? err.message : 'Tasdiqlash amalga oshmadi');
+      const text = msg || (err instanceof Error ? err.message : t('reauth.verifyFailed'));
       setError(text);
       toast.error(text);
     } finally {
@@ -77,7 +80,7 @@ export default function ReauthModal({
 
   const onGoogleSuccess = async (cred: CredentialResponse) => {
     if (!cred.credential) {
-      toast.error('Google credential olinmadi');
+      toast.error(t('reauth.googleCredentialMissing'));
       return;
     }
     setSubmitting(true);
@@ -85,14 +88,14 @@ export default function ReauthModal({
     try {
       const res = await authApi.reauth({ googleCredential: cred.credential });
       const token = (res.data as { data?: { reauthToken?: string } })?.data?.reauthToken;
-      if (!token) throw new Error('Reauth token kelmadi');
+      if (!token) throw new Error(t('reauth.tokenMissing'));
       finishWithToken(token);
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined;
-      const text = msg || 'Google bilan tasdiqlash amalga oshmadi';
+      const text = msg || t('reauth.googleVerifyFailed');
       setError(text);
       toast.error(text);
     } finally {
@@ -117,15 +120,15 @@ export default function ReauthModal({
               <IoLockClosed className="text-xl" />
             </span>
             <div className="min-w-0">
-              <h2 className="text-lg font-semibold text-white leading-tight">Qayta tasdiqlash</h2>
-              <p className="text-sm text-slate-400 mt-1">{reason}</p>
+              <h2 className="text-lg font-semibold text-white leading-tight">{t('reauth.title')}</h2>
+              <p className="text-sm text-slate-400 mt-1">{resolvedReason}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="shrink-0 rounded-lg p-2 text-slate-500 hover:text-white hover:bg-white/5 transition"
-            aria-label="Yopish"
+            aria-label={t('reauth.close')}
           >
             <IoClose className="text-xl" />
           </button>
@@ -134,7 +137,7 @@ export default function ReauthModal({
         {isGoogleOnly ? (
           <div className="space-y-4">
             <p className="text-sm text-slate-300">
-              Hisobingiz Google bilan bog‘langan. Davom etish uchun Google orqali tasdiqlang.
+              {t('reauth.googleOnlyHint')}
             </p>
             {error && (
               <div className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-lg p-3">
@@ -144,26 +147,26 @@ export default function ReauthModal({
             <div className="flex justify-center [&>div]:w-full">
               <GoogleLogin
                 onSuccess={onGoogleSuccess}
-                onError={() => toast.error('Google xatolik')}
+                onError={() => toast.error(t('reauth.googleError'))}
                 theme="filled_black"
                 size="large"
                 text="continue_with"
                 useOneTap={false}
               />
             </div>
-            {submitting && <p className="text-center text-xs text-slate-500">Tekshirilmoqda…</p>}
+            {submitting && <p className="text-center text-xs text-slate-500">{t('reauth.verifying')}</p>}
             <button
               type="button"
               onClick={onClose}
               className="w-full py-2.5 rounded-xl border border-white/10 text-slate-300 text-sm hover:bg-white/5"
             >
-              Bekor qilish
+              {t('reauth.cancel')}
             </button>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-2">Joriy parol</label>
+              <label className="block text-xs font-medium text-slate-500 mb-2">{t('reauth.currentPassword')}</label>
               <input
                 type="password"
                 autoFocus
@@ -186,14 +189,14 @@ export default function ReauthModal({
                 onClick={onClose}
                 className="flex-1 py-3 rounded-xl border border-white/10 text-slate-300 text-sm hover:bg-white/5"
               >
-                Bekor
+                {t('reauth.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={submitting || !password.trim()}
                 className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-45 text-white text-sm font-medium"
               >
-                {submitting ? 'Tekshirilmoqda…' : 'Tasdiqlash'}
+                {submitting ? t('reauth.verifying') : t('reauth.confirm')}
               </button>
             </div>
           </form>
