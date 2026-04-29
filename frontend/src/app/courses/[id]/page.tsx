@@ -28,6 +28,7 @@ import { formatDurationText, formatDuration } from '@utils/formatDuration'
 import { ROUTES } from '@utils/constants'
 import api from '@api/axiosInstance'
 import { useLang } from '@/context/LangContext'
+import { localizeCourseText } from '@/utils/courseTextFallback'
 const LEVEL_COLORS = { beginner: 'badge-success', intermediate: 'badge-warning', advanced: 'badge-error' }
 const CAT_TEXT = {
   html: 'text-orange-400', css: 'text-blue-400', javascript: 'text-yellow-400',
@@ -186,6 +187,7 @@ export default function CourseDetailPage() {
   const instructorName = typeof course.instructor === 'object' ? course.instructor?.username : course.instructor
   const instructorTitle = typeof course.instructor === 'object' ? course.instructor?.jobTitle : null
   const catColor       = CAT_TEXT[course.category] || 'text-violet-400'
+  const localizedCourse = localizeCourseText(lang, course.title, course.description)
 
   const handleWatch = () => {
     if (isSubscribed) {
@@ -205,7 +207,7 @@ export default function CourseDetailPage() {
           <IoChevronForward className="text-xs opacity-50" />
           <Link href={ROUTES.COURSES} className="hover:text-primary transition-colors">{localText.courses}</Link>
           <IoChevronForward className="text-xs opacity-50" />
-          <span className="text-base-content/55 line-clamp-1 max-w-[160px] sm:max-w-xs">{course.title}</span>
+          <span className="text-base-content/55 line-clamp-1 max-w-[160px] sm:max-w-xs">{localizedCourse.title}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
@@ -220,7 +222,7 @@ export default function CourseDetailPage() {
             <div className="flex flex-wrap gap-2">
               {course.category && (
                 <span className={'badge badge-outline text-xs font-bold capitalize ' + catColor}>
-                  {course.category}
+                  {t(`cat.${course.category}`)}
                 </span>
               )}
               <span className={'badge text-xs font-semibold ' + (LEVEL_COLORS[level] || 'badge-ghost')}>
@@ -231,11 +233,11 @@ export default function CourseDetailPage() {
             {/* Title */}
             <div className="space-y-3">
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-base-content leading-tight">
-                {course.title}
+                {localizedCourse.title}
               </h1>
-              {course.description && (
+              {localizedCourse.description && (
                 <p className="text-base-content/55 leading-relaxed text-sm sm:text-base">
-                  {course.description}
+                  {localizedCourse.description}
                 </p>
               )}
             </div>
@@ -271,7 +273,7 @@ export default function CourseDetailPage() {
                 </div>
                 <div>
                   <p className="font-bold text-sm">{instructorName}</p>
-                  <p className="text-xs text-base-content/35 mt-0.5">{instructorTitle || localText.instructor}</p>
+                  <p className="text-xs text-base-content/35 mt-0.5">{instructorTitle || t('courses.instructorFallback')}</p>
                 </div>
               </div>
             )}
@@ -532,7 +534,7 @@ function DesktopPriceCard(props) {
     <div className="rounded-2xl border border-base-content/8 bg-base-200 overflow-hidden shadow-2xl shadow-base-content/5">
       <div className="relative h-44 bg-base-300 overflow-hidden">
         {course.thumbnail
-          ? <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+          ? <img src={course.thumbnail} alt={localizeCourseText(props.uiText.dateLocale === 'ru-RU' ? 'ru' : props.uiText.dateLocale === 'en-US' ? 'en' : 'uz', course.title).title} className="w-full h-full object-cover" />
           : <div className={'w-full h-full flex items-center justify-center text-5xl font-black opacity-10 ' + catColor}>{course.category?.toUpperCase().slice(0, 2)}</div>
         }
         <div className="absolute inset-0 bg-gradient-to-t from-base-200/90 to-transparent" />

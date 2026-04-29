@@ -9,6 +9,7 @@ import { ROUTES } from '@/utils/constants';
 import { formatDurationText } from '@/utils/formatDuration';
 import { useSound } from '@/context/SoundContext';
 import { useLang } from '@/context/LangContext';
+import { localizeCourseText } from '@/utils/courseTextFallback';
 
 const CAT = {
   html:       { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400',  label: 'HTML',   glow: 'hover:shadow-orange-500/10'  },
@@ -31,7 +32,7 @@ interface CourseProps {
 export default function CourseCard({ course, index = 0, className = '' }: CourseProps) {
   const cardRef = useRef(null)
   const { playSound } = useSound()
-  const { t } = useLang()
+  const { t, lang } = useLang()
 
   useEffect(() => {
     if (!cardRef.current) return
@@ -62,6 +63,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
   const isNew = course.createdAt
     ? Date.now() - new Date(course.createdAt).getTime() < 14 * 24 * 60 * 60 * 1000
     : false
+  const localizedCourse = localizeCourseText(lang, course.title, course.description)
 
   return (
     <Link
@@ -80,7 +82,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
         {course.thumbnail ? (
           <Image
             src={course.thumbnail}
-            alt={course.title}
+            alt={localizedCourse.title}
             fill
             className="object-cover group-hover:scale-110 transition-transform duration-700"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
@@ -134,7 +136,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
           </div>
 
           <h3 className="line-clamp-2 text-lg font-semibold leading-snug tracking-[-0.03em] text-white transition-colors duration-300 group-hover:text-indigo-300">
-            {course.title}
+            {localizedCourse.title}
           </h3>
 
           <div className="flex items-center gap-2 group/author">

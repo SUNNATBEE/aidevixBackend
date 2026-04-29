@@ -22,6 +22,7 @@ import { HiArrowRight, HiOutlineDesktopComputer, HiOutlineServer, HiOutlineDevic
 import { SiPython, SiFigma } from 'react-icons/si';
 import SiteLogoMark from '@components/common/SiteLogoMark';
 import { SOCIAL_LINKS } from '@utils/constants';
+import { localizeNewsItem } from '@utils/newsTextFallback';
 
 const ThreeHero = dynamic(() => import('@/components/home/ThreeHero'), { ssr: false });
 
@@ -46,7 +47,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
   const [isMounted, setIsMounted] = useState(false);
   const [showHeroVisual, setShowHeroVisual] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { isDark } = useTheme();
   const { playSound } = useSound();
   const [continueLearning, setContinueLearning] = useState<any>(null);
@@ -264,6 +265,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
     },
   ];
 
+
   const stats = [
     { value: homeStats.students, label: t('stats.students'), color: isDark ? 'text-white' : 'text-gray-900', suffix: '+', decimals: 0 },
     { value: homeStats.videos, label: t('stats.videos'), color: 'bg-gradient-to-r from-amber-400 to-indigo-400 bg-clip-text text-transparent', suffix: '+', decimals: 0 },
@@ -294,19 +296,19 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
         if (!mounted) return;
         const items = (json?.data?.news || []) as AiNewsItem[];
         if (items.length > 0) {
-          setAiNews(items);
+          setAiNews(items.map((item) => localizeNewsItem(lang, item)));
         } else {
-          setAiNews(fallbackAiNews);
+          setAiNews(fallbackAiNews.map((item) => localizeNewsItem(lang, item)));
         }
       })
       .catch(() => {
         if (!mounted) return;
-        setAiNews(fallbackAiNews);
+        setAiNews(fallbackAiNews.map((item) => localizeNewsItem(lang, item)));
       });
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     if (!aiNews.length) return;

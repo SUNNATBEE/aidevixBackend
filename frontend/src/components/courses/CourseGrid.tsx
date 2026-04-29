@@ -1,8 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import CourseCard from './CourseCard'
 import CourseSkeleton from './CourseSkeleton'
+import { useLang } from '@/context/LangContext'
 
 export default function CourseGrid({ courses = [], loading = false, emptyText = 'Kurs topilmadi' }) {
+  const { t } = useLang()
   if (loading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
@@ -24,7 +26,7 @@ export default function CourseGrid({ courses = [], loading = false, emptyText = 
           🔍
         </div>
         <p className="text-base-content/40 text-base font-medium">{emptyText}</p>
-        <p className="text-base-content/25 text-sm mt-1">Boshqa kategoriya yoki kalit so'z sinab ko'ring</p>
+        <p className="text-base-content/25 text-sm mt-1">{t('courses.emptyHint')}</p>
       </motion.div>
     )
   }
