@@ -7,8 +7,8 @@ export const authApi = {
   /** POST /auth/login */
   login: (data) => api.post('auth/login', data),
 
-  /** POST /auth/google — Google OAuth (credential = Google ID token) */
-  googleAuth: (data: { credential: string }) => api.post('auth/google', data),
+  /** POST /auth/google — Google OAuth (credential = ID token) yoki (accessToken = access token) */
+  googleAuth: (data: { credential?: string; accessToken?: string }) => api.post('auth/google', data),
 
   /** POST /auth/2fa/verify-login — exchange challengeId + TOTP code for session */
   verify2FALogin: (data: { challengeId: string; code: string }) =>

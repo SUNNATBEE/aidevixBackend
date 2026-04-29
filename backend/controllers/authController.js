@@ -27,6 +27,7 @@ const {
 } = require('../utils/emailService');
 const { sendOtpTelegram } = require('../utils/telegramOtpService');
 const { OAuth2Client } = require('google-auth-library');
+const axios = require('axios');
 const {
   attachAuthCookies,
   clearAuthCookies,
@@ -1135,16 +1136,10 @@ const resendVerification = asyncHandler(async (req, res, next) => {
 
 // @desc    Google OAuth — ID token verification (Sign in / Sign up)
 const googleAuth = asyncHandler(async (req, res, next) => {
-  const { credential } = req.body;
+  const { credential, accessToken: googleAccessToken } = req.body;
 
-  if (!credential || typeof credential !== 'string') {
+  if (!credential && !googleAccessToken) {
     return next(new ErrorResponse('Google credential required', 400));
-  }
-  // FIX [MEDIUM]: DoS oldini olish — kutilayotgan Google ID token uzunligi max ~4096 char.
-  // Library verifikatsiyasidan OLDIN tekshiriladi.
-  if (credential.length > 5000) {
-    securityLogger.suspicious(req, 'google_credential_too_long', { length: credential.length });
-    return next(new ErrorResponse('Google credential yaroqsiz', 400));
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -1153,14 +1148,43 @@ const googleAuth = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Google authentication not configured', 503));
   }
 
-  const googleClient = new OAuth2Client(clientId);
   let googlePayload;
-  try {
-    const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: clientId });
-    googlePayload = ticket.getPayload();
-  } catch (err) {
-    securityLogger.suspicious(req, 'google_auth_token_invalid', { error: err.message });
-    return next(new ErrorResponse('Google autentifikatsiya amalga oshmadi', 401));
+
+  if (credential) {
+    // ID token yo'li (eski)
+    if (typeof credential !== 'string' || credential.length > 5000) {
+      securityLogger.suspicious(req, 'google_credential_too_long', { length: credential?.length });
+      return next(new ErrorResponse('Google credential yaroqsiz', 400));
+    }
+    const googleClient = new OAuth2Client(clientId);
+    try {
+      const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: clientId });
+      googlePayload = ticket.getPayload();
+    } catch (err) {
+      securityLogger.suspicious(req, 'google_auth_token_invalid', { error: err.message });
+      return next(new ErrorResponse('Google autentifikatsiya amalga oshmadi', 401));
+    }
+  } else {
+    // access_token yo'li — useGoogleLogin hook ishlatganda
+    if (typeof googleAccessToken !== 'string' || googleAccessToken.length > 2048) {
+      return next(new ErrorResponse('Google access token yaroqsiz', 400));
+    }
+    try {
+      const { data } = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${googleAccessToken}` },
+        timeout: 8000,
+      });
+      googlePayload = {
+        sub: data.sub,
+        email: data.email,
+        given_name: data.given_name,
+        family_name: data.family_name,
+        email_verified: data.email_verified,
+      };
+    } catch (err) {
+      securityLogger.suspicious(req, 'google_access_token_invalid', { error: err.message });
+      return next(new ErrorResponse('Google access token tekshirilmadi', 401));
+    }
   }
 
   const { sub: googleId, email, given_name: firstName, family_name: lastName, email_verified } = googlePayload;

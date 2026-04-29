@@ -1,6 +1,6 @@
 'use client';
 
-import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { useGoogleLogin } from '@react-oauth/google';
 import { useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
@@ -9,50 +9,69 @@ import { googleAuth, clearError } from '@store/slices/authSlice';
 import { useTheme } from '@/context/ThemeContext';
 import { useLang } from '@/context/LangContext';
 import { FcGoogle } from 'react-icons/fc';
-import { FiShield } from 'react-icons/fi';
+import { FiShield, FiLoader } from 'react-icons/fi';
+import { useState } from 'react';
 
 interface Props {
   mode?: 'login' | 'register';
-  /** Qo'shimcha wrapper className (form ichida joylash) */
   className?: string;
 }
 
-/**
- * Google OAuth — rasmiy `GoogleLogin` vidjeti, premium chrome va tema moslashuvi.
- */
 export default function GoogleAuthButton({ mode = 'login', className }: Props) {
   const dispatch = useDispatch();
   const router = useRouter();
   const { isDark } = useTheme();
   const { t } = useLang();
+  const [loading, setLoading] = useState(false);
 
-  const handleSuccess = async (credentialResponse: CredentialResponse) => {
-    if (!credentialResponse.credential) {
-      toast.error('Google credential olinmadi');
-      return;
-    }
-    dispatch(clearError());
-    const result = await (dispatch as any)(googleAuth({ credential: credentialResponse.credential }));
-    if (result && googleAuth.fulfilled.match(result)) {
-      const payload: any = result?.payload;
-      if (payload?.requires2FA) {
-        router.push('/auth/2fa-verify');
-        return;
+  const isRegister = mode === 'register';
+  const hint = isRegister ? t('auth.oauth.hintRegister') : t('auth.oauth.hintLogin');
+
+  const handleSuccess = async (accessToken: string) => {
+    setLoading(true);
+    try {
+      dispatch(clearError());
+      const result = await (dispatch as any)(googleAuth({ accessToken }));
+      if (result && googleAuth.fulfilled.match(result)) {
+        const payload: any = result?.payload;
+        if (payload?.requires2FA) {
+          router.push('/auth/2fa-verify');
+          return;
+        }
+        if (payload?.requiresEmailVerification) {
+          const email = encodeURIComponent(payload.email || '');
+          router.push(`/auth/verify-email?email=${email}`);
+          return;
+        }
+        toast.success(
+          isRegister
+            ? "Google orqali ro'yxatdan o'tdingiz!"
+            : 'Google orqali muvaffaqiyatli kirdingiz!',
+        );
+        router.push('/');
       }
-      if (payload?.requiresEmailVerification) {
-        const email = encodeURIComponent(payload.email || '');
-        router.push(`/auth/verify-email?email=${email}`);
-        return;
-      }
-      toast.success(
-        mode === 'register' ? "Google orqali ro'yxatdan o'tdingiz!" : 'Google orqali muvaffaqiyatli kirdingiz!',
-      );
-      router.push('/');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const hint = mode === 'register' ? t('auth.oauth.hintRegister') : t('auth.oauth.hintLogin');
-  const isRegister = mode === 'register';
+  // useGoogleLogin — popup ni asosiy oynadan ochadi (iframe emas).
+  // Bu window.opener null bo'lishini oldini oladi.
+  const login = useGoogleLogin({
+    onSuccess: (tokenResponse) => {
+      void handleSuccess(tokenResponse.access_token);
+    },
+    onError: () => {
+      setLoading(false);
+      toast.error('Google orqali amalga oshmadi');
+    },
+    flow: 'implicit',
+  });
+
+  const handleClick = () => {
+    if (loading) return;
+    login();
+  };
 
   return (
     <div className={clsx('w-full', className)}>
@@ -105,7 +124,10 @@ export default function GoogleAuthButton({ mode = 'login', className }: Props) {
               </div>
             </div>
             <FiShield
-              className={clsx('hidden h-5 w-5 shrink-0 sm:block', isDark ? 'text-emerald-400/80' : 'text-emerald-600/70')}
+              className={clsx(
+                'hidden h-5 w-5 shrink-0 sm:block',
+                isDark ? 'text-emerald-400/80' : 'text-emerald-600/70',
+              )}
               aria-hidden
             />
           </div>
@@ -119,19 +141,31 @@ export default function GoogleAuthButton({ mode = 'login', className }: Props) {
             {hint}
           </p>
 
-            <div className="flex w-full justify-center [&>div]:w-full [&>div>div]:w-full [&>div>div>div]:w-full [&_iframe]:!max-w-full">
-            <GoogleLogin
-              onSuccess={handleSuccess}
-              onError={() => toast.error('Google orqali amalga oshmadi')}
-              theme={isDark ? 'filled_black' : 'outline'}
-              size="large"
-              shape="pill"
-              width="384"
-              text={isRegister ? 'signup_with' : 'continue_with'}
-              logo_alignment="left"
-              useOneTap={false}
-            />
-          </div>
+          <button
+            onClick={handleClick}
+            disabled={loading}
+            className={clsx(
+              'flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all',
+              'border',
+              isDark
+                ? 'border-white/10 bg-white/5 text-white hover:bg-white/10 active:bg-white/5'
+                : 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100 active:bg-slate-50',
+              loading && 'cursor-not-allowed opacity-60',
+            )}
+          >
+            {loading ? (
+              <FiLoader className="h-5 w-5 animate-spin text-indigo-400" />
+            ) : (
+              <FcGoogle className="h-5 w-5 shrink-0" />
+            )}
+            <span>
+              {loading
+                ? 'Yuklanmoqda...'
+                : isRegister
+                ? t('auth.oauth.titleRegister')
+                : t('auth.oauth.titleLogin')}
+            </span>
+          </button>
 
           <p
             className={clsx(
