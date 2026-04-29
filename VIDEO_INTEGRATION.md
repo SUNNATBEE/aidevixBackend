@@ -558,6 +558,3 @@ console.log('Expires:', new Date(Number(exp) * 1000))
 | Swagger login | `Aidevix` / `sunnatbee` |
 | Production backend | `https://aidevix-backend-production.up.railway.app` |
 | Bunny.net panel | `https://bunny.net` |
-
-> **Eslatma:** `backend/` papkadagi hech qanday faylga tegma.
-> Sen faqat `frontend/` papkada ishlaysan.

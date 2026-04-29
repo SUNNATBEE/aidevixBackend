@@ -104,6 +104,7 @@ class AidevixBot {
         case 'cb_magic_login': await this._cmdLogin(chatId, userId, firstName); break;
         case 'cb_get_stats': await this._cmdStats(chatId, userId, firstName); break;
         case 'cb_get_referral': await this._cmdReferral(chatId, userId, firstName); break;
+        case 'cb_check_sub': return this._cmdCheckSub(chatId, userId, id);
         case 'news_react_fire': await this.answerCallbackQuery(id, 'Olov bo\'ldi! 🔥'); break;
         case 'news_react_rocket': await this.answerCallbackQuery(id, 'Rahmat! 🚀'); break;
         case 'news_react_bulb': await this.answerCallbackQuery(id, 'Foydali bo\'ldi! 💡'); break;
@@ -193,7 +194,7 @@ class AidevixBot {
 
   /**
    * /start <token> orqali foydalanuvchini Telegram ID bilan bog'laydi.
-   * Frontend polling /subscriptions/check-token shu link holatini kuzatadi.
+   * Bog'langandan keyin obuna haqiqatan tekshiriladi va aniq feedback beriladi.
    */
   async _handleVerifyToken(chatId, userId, username, token) {
     try {
@@ -209,13 +210,16 @@ class AidevixBot {
         return;
       }
 
-      await this.sendMessage(
-        chatId,
-        `✅ <b>Telegram profilingiz bog'landi!</b>\n\n` +
-          `Endi Aidevix sahifasiga qayting — obuna holati avtomatik yangilanadi.\n\n` +
-          `Agar kanalga hali obuna bo'lmagan bo'lsangiz, avval kanalga obuna bo'ling.`,
-        { parse_mode: 'HTML' }
-      );
+      // Profil bog'landi — endi haqiqiy obuna holatini Telegram API orqali tekshiramiz
+      const { checkTelegramSubscription } = require('./socialVerification');
+      const subResult = await checkTelegramSubscription(String(userId));
+
+      if (subResult.subscribed) {
+        await this._sendSubscribedMessage(chatId);
+        return;
+      }
+
+      await this._sendNotSubscribedMessage(chatId, /* firstAttempt */ true);
     } catch (e) {
       await this.sendMessage(
         chatId,
@@ -223,6 +227,89 @@ class AidevixBot {
         { parse_mode: 'HTML' }
       );
     }
+  }
+
+  /** "Obunani tekshirish" tugmasi bosilganda ishlaydi */
+  async _cmdCheckSub(chatId, userId, queryId) {
+    try {
+      const { checkTelegramSubscription } = require('./socialVerification');
+      const subResult = await checkTelegramSubscription(String(userId));
+
+      if (subResult.subscribed) {
+        // DB da subscribed=true qilish (frontend polling darhol tasdiqlay olsin)
+        try {
+          const User = require('../models/User');
+          const { invalidate } = require('./subscriptionCache');
+          const user = await User.findOne({
+            $or: [
+              { telegramUserId: String(userId) },
+              { 'socialSubscriptions.telegram.telegramUserId': String(userId) },
+            ],
+          });
+          if (user) {
+            user.socialSubscriptions = user.socialSubscriptions || {};
+            user.socialSubscriptions.telegram = user.socialSubscriptions.telegram || {};
+            if (!user.socialSubscriptions.telegram.subscribed) {
+              user.socialSubscriptions.telegram.subscribed = true;
+              user.socialSubscriptions.telegram.verifiedAt = new Date();
+              await user.save();
+              invalidate(user._id);
+              try { this.notifySubscriptionVerified(user, 'telegram'); } catch (_) {}
+            }
+          }
+        } catch (_) {}
+
+        await this._sendSubscribedMessage(chatId);
+        return this.answerCallbackQuery(queryId, '✅ Obuna tasdiqlandi!');
+      }
+
+      await this._sendNotSubscribedMessage(chatId, /* firstAttempt */ false);
+      return this.answerCallbackQuery(queryId, '❌ Hali obuna emassiz');
+    } catch (e) {
+      return this.answerCallbackQuery(queryId, '❌ Xatolik');
+    }
+  }
+
+  async _sendSubscribedMessage(chatId) {
+    await this.sendMessage(
+      chatId,
+      `✅ <b>Tabriklaymiz! Obuna tasdiqlandi.</b>\n\n` +
+        `Profilingiz Aidevix bilan bog'landi va kanal obunasi tekshirildi.\n` +
+        `Endi saytga qaytib, barcha imkoniyatlardan foydalanishingiz mumkin.`,
+      {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🌐 Saytga qaytish', url: this._getFrontendUrl() }],
+          ],
+        },
+      }
+    );
+  }
+
+  async _sendNotSubscribedMessage(chatId, firstAttempt) {
+    const { tgChannel, tgChannelLink } = this._getLinks();
+    const headline = firstAttempt
+      ? `📢 <b>So'nggi qadam: kanalga obuna bo'ling</b>`
+      : `❌ <b>Hali kanalga obuna bo'lmagansiz</b>`;
+
+    await this.sendMessage(
+      chatId,
+      `${headline}\n\n` +
+        `Davom etish uchun <b>@${tgChannel}</b> kanaliga obuna bo'ling:\n\n` +
+        `1️⃣ Pastdagi tugma orqali kanalga o'ting\n` +
+        `2️⃣ Telegramda <b>"Obuna bo'lish"</b> tugmasini bosing\n` +
+        `3️⃣ Botga qayting va <b>"Obunani tekshirish"</b> tugmasini bosing`,
+      {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: `📢 @${tgChannel} kanaliga o'tish`, url: tgChannelLink }],
+            [{ text: '✅ Obunani tekshirish', callback_data: 'cb_check_sub' }],
+          ],
+        },
+      }
+    );
   }
 
   async _cmdStats(chatId, userId, firstName) {

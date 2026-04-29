@@ -13,13 +13,12 @@ import {
 import toast from 'react-hot-toast'
 import { fetchSubscriptionStatus, selectTelegramSub } from '@store/slices/subscriptionSlice'
 import { subscriptionApi } from '@api/subscriptionApi'
-import { SOCIAL_LINKS } from '@utils/constants'
 import { useLang } from '@/context/LangContext'
 
 // ~3 daqiqa: urinish oralig'i asta-sekin oshadi
 const MAX_POLL_ATTEMPTS = 52
 
-type Phase = 'start' | 'after_channel' | 'polling' | 'timeout'
+type Phase = 'start' | 'polling' | 'timeout'
 
 type PollPayload = { linked: boolean; subscribed: boolean; telegramApiChecked?: boolean }
 
@@ -104,14 +103,6 @@ export default function TelegramVerify({
   }, [clearPoll])
 
   // ─── Handlers ───────────────────────────────────────────────────────
-  const handleOpenChannel = () => {
-    window.open(SOCIAL_LINKS.telegram, '_blank', 'noopener,noreferrer')
-  }
-
-  const handleChannelConfirm = () => {
-    setPhase('after_channel')
-  }
-
   const handleConnectBot = async () => {
     if (isPollingRef.current) return
     try {
@@ -265,83 +256,28 @@ export default function TelegramVerify({
     )
   }
 
-  // ─── After channel (step 2 active) ─────────────────────────────────
-  if (phase === 'after_channel') {
-    return (
-      <div className="rounded-2xl border border-white/5 bg-[#1a1c26] p-6 space-y-5">
-        <Header />
-
-        {/* Step 1 — done */}
-        <StepCard
-          number={1}
-          done
-          title={t('tg.step1Title')}
-          desc={null}
-          action={null}
-        />
-
-        {/* Step 2 — active */}
-        <StepCard
-          number={2}
-          done={false}
-          active
-          title={t('tg.step2Title')}
-          desc={t('tg.step2Desc')}
-          action={
-            <button
-              onClick={handleConnectBot}
-              disabled={botLinkLoading}
-              className="w-full py-4 bg-blue-500 hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed text-white text-base font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
-            >
-              <FaTelegram className="text-xl" />
-              {botLinkLoading ? t('tg.step2BtnLoading') : t('tg.step2Btn')}
-            </button>
-          }
-        />
-      </div>
-    )
-  }
-
-  // ─── Start (both steps shown, step 1 active) ───────────────────────
+  // ─── Start (single button — bot guides the rest) ───────────────────
   return (
     <div className="rounded-2xl border border-white/5 bg-[#1a1c26] p-6 space-y-5">
       <Header />
 
-      {/* Step 1 — active */}
-      <StepCard
-        number={1}
-        done={false}
-        active
-        title={t('tg.step1Title')}
-        desc={t('tg.step1Desc')}
-        action={
-          <div className="space-y-2">
-            <button
-              onClick={handleOpenChannel}
-              className="w-full py-4 bg-blue-500 hover:bg-blue-600 text-white text-base font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
-            >
-              <FaTelegram className="text-xl" />
-              {t('tg.step1Btn')}
-            </button>
-            <button
-              onClick={handleChannelConfirm}
-              className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 text-sm font-medium rounded-xl transition-all"
-            >
-              {t('tg.step1Confirm')}
-            </button>
-          </div>
-        }
-      />
+      <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5 space-y-3">
+        <p className="text-zinc-300 text-sm leading-relaxed">{t('tg.start.desc')}</p>
+        <ol className="space-y-2.5 text-sm">
+          <StepBullet num={1} text={t('tg.start.step1')} />
+          <StepBullet num={2} text={t('tg.start.step2')} />
+          <StepBullet num={3} text={t('tg.start.step3')} />
+        </ol>
+      </div>
 
-      {/* Step 2 — greyed out */}
-      <StepCard
-        number={2}
-        done={false}
-        active={false}
-        title={t('tg.step2Title')}
-        desc={null}
-        action={null}
-      />
+      <button
+        onClick={handleConnectBot}
+        disabled={botLinkLoading}
+        className="w-full py-4 bg-blue-500 hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed text-white text-base font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+      >
+        <FaTelegram className="text-xl" />
+        {botLinkLoading ? t('tg.step2BtnLoading') : t('tg.connectBtn')}
+      </button>
     </div>
   )
 }
@@ -360,48 +296,14 @@ function Header() {
   )
 }
 
-function StepCard({
-  number,
-  done,
-  active = false,
-  title,
-  desc,
-  action,
-}: {
-  number: number
-  done: boolean
-  active?: boolean
-  title: string
-  desc: string | null
-  action: React.ReactNode | null
-}) {
-  const borderColor = done
-    ? 'border-emerald-500/30 bg-emerald-500/5'
-    : active
-    ? 'border-blue-500/30 bg-blue-500/5'
-    : 'border-white/5 bg-white/2 opacity-50'
-
+function StepBullet({ num, text }: { num: number; text: string }) {
   return (
-    <div className={`rounded-2xl border-2 p-5 space-y-4 transition-all ${borderColor}`}>
-      <div className="flex items-center gap-3">
-        <div
-          className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0 border-2 ${
-            done
-              ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
-              : active
-              ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
-              : 'bg-white/5 border-white/10 text-zinc-500'
-          }`}
-        >
-          {done ? <IoCheckmarkCircle className="text-emerald-400 text-xl" /> : number}
-        </div>
-        <p className={`font-bold text-base ${done ? 'text-emerald-400' : active ? 'text-white' : 'text-zinc-500'}`}>
-          {title}
-        </p>
-      </div>
-      {desc && <p className="text-zinc-400 text-sm leading-relaxed pl-12">{desc}</p>}
-      {action && <div className="pl-0">{action}</div>}
-    </div>
+    <li className="flex items-start gap-3">
+      <span className="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-500/40 text-blue-300 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+        {num}
+      </span>
+      <span className="text-zinc-300">{text}</span>
+    </li>
   )
 }
 

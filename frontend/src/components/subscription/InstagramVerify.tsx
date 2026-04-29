@@ -14,7 +14,8 @@ interface InstagramVerifyProps {
 }
 
 const IG_PAGE = 'https://instagram.com/aidevix'
-const COUNTDOWN_SEC = 10
+const FIRST_COUNTDOWN = 10   // 1-urinish: 10 sek → har doim fail
+const SECOND_COUNTDOWN = 5   // 2-urinish: 5 sek → tasdiqlandi
 
 export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
   const dispatch = useDispatch()
@@ -22,18 +23,20 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
 
   const [phase, setPhase] = useState<Phase>('input')
   const [username, setUsername] = useState('')
-  const [countdown, setCountdown] = useState(COUNTDOWN_SEC)
+  const [countdown, setCountdown] = useState(FIRST_COUNTDOWN)
   const [apiLoading, setApiLoading] = useState(false)
 
   const usernameRef = useRef('')
+  const attemptRef = useRef(0)            // 0 = 1-urinish, 1+ = 2-urinish
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const returnTriggeredRef = useRef(false)
 
-  // ─── Countdown + API call ───────────────────────────────────────────
+  // ─── Countdown ──────────────────────────────────────────────────────
   const startCountdown = useCallback(() => {
     if (countdownRef.current) clearInterval(countdownRef.current)
+    const sec = attemptRef.current === 0 ? FIRST_COUNTDOWN : SECOND_COUNTDOWN
     setPhase('checking')
-    setCountdown(COUNTDOWN_SEC)
+    setCountdown(sec)
 
     countdownRef.current = setInterval(() => {
       setCountdown((prev) => {
@@ -46,7 +49,7 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
     }, 1000)
   }, [])
 
-  // When countdown hits 0 → call API
+  // Countdown tugaganda API chaqirish
   useEffect(() => {
     if (countdown === 0 && phase === 'checking') {
       void callVerifyApi()
@@ -55,6 +58,14 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
   }, [countdown])
 
   const callVerifyApi = async () => {
+    // 1-urinish: har doim fail — userni haqiqatan Instagram ga borishga majburlash
+    if (attemptRef.current === 0) {
+      attemptRef.current = 1
+      setPhase('failed')
+      return
+    }
+
+    // 2-urinish: haqiqiy API call (soft-check, username berilsa tasdiqlanadi)
     setApiLoading(true)
     try {
       const res = await (dispatch as any)(
@@ -75,7 +86,7 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
     }
   }
 
-  // ─── Detect user returning to tab ──────────────────────────────────
+  // ─── Foydalanuvchi tabga qaytganini aniqlash ────────────────────────
   useEffect(() => {
     if (phase !== 'opened') return
     returnTriggeredRef.current = false
@@ -86,7 +97,6 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
       startCountdown()
     }
 
-    // Short delay so it doesn't fire immediately when the new tab opens
     const setup = setTimeout(() => {
       window.addEventListener('focus', trigger)
       document.addEventListener('visibilitychange', () => {
@@ -100,7 +110,6 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
     }
   }, [phase, startCountdown])
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (countdownRef.current) clearInterval(countdownRef.current)
@@ -110,20 +119,21 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
   // ─── Handlers ──────────────────────────────────────────────────────
   const handleOpenInstagram = () => {
     const clean = username.trim().replace(/^@/, '')
-    if (!clean) {
-      toast.error(t('ig.noUsername'))
-      return
-    }
+    if (!clean) { toast.error(t('ig.noUsername')); return }
     usernameRef.current = clean
     window.open(IG_PAGE, '_blank', 'noopener,noreferrer')
     setPhase('opened')
   }
 
-  const handleRetry = () => {
+  // "Tekshirish" — 2-urinish: Instagram ochib, tab ga qaytganda 5 sek countdown
+  const handleRetryWithInstagram = () => {
     if (countdownRef.current) clearInterval(countdownRef.current)
     returnTriggeredRef.current = false
-    setPhase('input')
-    setCountdown(COUNTDOWN_SEC)
+    const clean = username.trim().replace(/^@/, '')
+    if (!clean) { toast.error(t('ig.noUsername')); return }
+    usernameRef.current = clean
+    window.open(IG_PAGE, '_blank', 'noopener,noreferrer')
+    setPhase('opened')
   }
 
   const handleManualCheck = () => {
@@ -142,7 +152,6 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
           <p className="text-zinc-400 text-sm">@{usernameRef.current}</p>
         </div>
 
-        {/* Warning about unsubscribing */}
         <div className="mx-4 mb-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex gap-3">
           <IoWarning className="text-amber-400 text-xl shrink-0 mt-0.5" />
           <div>
@@ -165,7 +174,8 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
 
   // ─── Render: checking ──────────────────────────────────────────────
   if (phase === 'checking') {
-    const progress = ((COUNTDOWN_SEC - countdown) / COUNTDOWN_SEC) * 100
+    const totalSec = attemptRef.current === 0 ? FIRST_COUNTDOWN : SECOND_COUNTDOWN
+    const progress = ((totalSec - countdown) / totalSec) * 100
 
     return (
       <div className="rounded-2xl border border-white/5 bg-[#1a1c26] p-6 space-y-5">
@@ -203,34 +213,28 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
           <p className="text-zinc-400 text-sm">{t('ig.failedDesc')}</p>
         </div>
 
-        {/* Re-enter username */}
         <div className="space-y-3">
           <input
             type="text"
             placeholder={t('ig.placeholder')}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleRetryWithInstagram()}
             className="w-full px-4 py-3 bg-zinc-800/60 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-pink-500/50 transition-colors text-sm"
           />
           <button
-            onClick={() => {
-              const clean = username.trim().replace(/^@/, '')
-              if (!clean) { toast.error(t('ig.noUsername')); return }
-              usernameRef.current = clean
-              window.open(IG_PAGE, '_blank', 'noopener,noreferrer')
-              setPhase('opened')
-            }}
-            className="w-full py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+            onClick={handleRetryWithInstagram}
+            className="w-full py-3.5 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20"
           >
-            <IoRefresh />
-            {t('ig.retryBtn')}
+            <IoLogoInstagram className="text-lg" />
+            {t('ig.retryOpenBtn')}
           </button>
         </div>
       </div>
     )
   }
 
-  // ─── Render: opened (waiting for user to return) ───────────────────
+  // ─── Render: opened (tabga qaytish kutilmoqda) ─────────────────────
   if (phase === 'opened') {
     return (
       <div className="rounded-2xl border border-white/5 bg-[#1a1c26] p-6 space-y-5">
@@ -251,18 +255,11 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
         >
           {t('ig.manualCheck')}
         </button>
-
-        <button
-          onClick={handleRetry}
-          className="w-full py-2 text-zinc-500 hover:text-zinc-300 text-xs transition-colors"
-        >
-          ← {t('ig.retryBtn')}
-        </button>
       </div>
     )
   }
 
-  // ─── Render: input (default) ───────────────────────────────────────
+  // ─── Render: input (boshlang'ich) ──────────────────────────────────
   return (
     <div className="rounded-2xl border border-white/5 bg-[#1a1c26] p-6 space-y-5">
       <div className="text-center space-y-2">
@@ -273,20 +270,20 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
         <p className="text-zinc-400 text-sm">{t('ig.subtitle')}</p>
       </div>
 
-      {/* Step 1 indicator */}
       <div className="flex items-center gap-3 p-3 bg-white/3 rounded-xl border border-white/5">
         <div className="w-7 h-7 rounded-full bg-pink-500/20 border border-pink-500/30 text-pink-400 text-xs font-bold flex items-center justify-center shrink-0">
           1
         </div>
-        <p className="text-zinc-300 text-sm">Instagram'da <strong className="text-pink-400">@aidevix</strong> ga obuna bo'ling</p>
+        <p className="text-zinc-300 text-sm">
+          Instagram&apos;da <strong className="text-pink-400">@aidevix</strong> ga obuna bo&apos;ling
+        </p>
       </div>
 
-      {/* Step 2 indicator */}
       <div className="flex items-center gap-3 p-3 bg-white/3 rounded-xl border border-white/5">
         <div className="w-7 h-7 rounded-full bg-pink-500/20 border border-pink-500/30 text-pink-400 text-xs font-bold flex items-center justify-center shrink-0">
           2
         </div>
-        <p className="text-zinc-300 text-sm">Instagram username'ingizni kiriting va tasdiqlang</p>
+        <p className="text-zinc-300 text-sm">Instagram username&apos;ingizni kiriting va tasdiqlang</p>
       </div>
 
       <div className="space-y-3 pt-1">

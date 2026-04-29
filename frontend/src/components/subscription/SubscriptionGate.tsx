@@ -123,18 +123,22 @@ export default function SubscriptionGate({
 
         {/* Progress indicator */}
         <div className="mb-4 flex items-center justify-center gap-2">
-          <div className={`w-3 h-3 rounded-full transition-colors ${
-            currentStep === 'instagram' ? 'bg-pink-500' :
-            !needsInstagram ? 'bg-green-500' : 'bg-zinc-600'
-          }`} />
-          {totalSteps > 1 && (
+          {totalSteps > 1 ? (
             <>
+              <div className={`w-3 h-3 rounded-full transition-colors ${
+                currentStep === 'instagram' ? 'bg-pink-500' :
+                !needsInstagram ? 'bg-green-500' : 'bg-zinc-600'
+              }`} />
               <div className="w-8 h-0.5 bg-zinc-600" />
               <div className={`w-3 h-3 rounded-full transition-colors ${
                 currentStep === 'telegram' ? 'bg-blue-500' :
                 !needsTelegram ? 'bg-green-500' : 'bg-zinc-600'
               }`} />
             </>
+          ) : (
+            <div className={`w-3 h-3 rounded-full transition-colors ${
+              currentStep === 'instagram' ? 'bg-pink-500' : 'bg-blue-500'
+            }`} />
           )}
         </div>
 

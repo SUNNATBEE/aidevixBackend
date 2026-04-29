@@ -1,14 +1,6 @@
 # CLAUDE.md (frontend)
 
-## 🚫 MUHIM QOIDA — BACKEND GA TEGMA!
-
-**HECH QACHON `backend/` papkadagi fayllarni o'zgartirma, o'chirma, yaratma!**
-**HECH QACHON root darajadagi fayllarni o'zgartirma (package.json, railway.toml, .gitignore)!**
-
-Backend O'QITUVCHI tomonidan boshqariladi. Siz faqat `frontend/` papkada ishlaysiz.
 Swagger docs: `/api-docs` (login: Aidevix / sunnatbee)
-
----
 
 See root `CLAUDE.md` for full architecture. This file covers frontend-specific quick reference.
 

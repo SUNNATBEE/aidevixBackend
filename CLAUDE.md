@@ -233,7 +233,6 @@ Rank: `AMATEUR → CANDIDATE → JUNIOR → MIDDLE → SENIOR → MASTER → LEG
 - `socialVerification.js` checks **only public channel** (@aidevix)
 - Instagram: soft-check (always true if username provided)
 - `backend/seeders/seedCourses.js`: destructive — requires `ALLOW_DESTRUCTIVE_SEED=true`
-- `frontend/CLAUDE.md`: backend fayllarini o'zgartirish TAQIQLANGAN
 
 ## Key Env Vars
 
