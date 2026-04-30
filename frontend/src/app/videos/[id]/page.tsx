@@ -14,8 +14,13 @@ import { formatDuration } from '@utils/formatDuration';
 import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 import { videoApi } from '@/api/videoApi';
 import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import VideoComments from '@/components/videos/VideoComments';
-import IntegratedPlayground from '@/components/videos/IntegratedPlayground';
+
+const IntegratedPlayground = dynamic(
+  () => import('@/components/videos/IntegratedPlayground'),
+  { ssr: false, loading: () => <div className="rounded-lg bg-slate-900/40 p-8 text-center text-sm text-slate-400">Playground yuklanmoqda...</div> }
+);
 
 export default function VideoPage() {
   const { id }: { id: string } = useParams();

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { HiBolt } from 'react-icons/hi2'
 import { FaTrophy } from 'react-icons/fa'
 
@@ -40,6 +40,7 @@ const getInitials = (name='') =>
 
 function PodiumCard({ user, rank }: { user: any, rank: number }) {
   const { t } = useLang();
+  const reduceMotion = useReducedMotion();
   if (!user) return null
   const username = user.user?.username || user.username || t('auth.register.username')
   const sList: any = {
@@ -51,8 +52,8 @@ function PodiumCard({ user, rank }: { user: any, rank: number }) {
 
   return (
     <motion.div
-      initial={{opacity:0,y:60}} animate={{opacity:1,y:0}}
-      transition={{delay:rank*0.1,type:'spring',stiffness:160,damping:18}}
+      initial={reduceMotion ? false : {opacity:0,y:60}} animate={{opacity:1,y:0}}
+      transition={reduceMotion ? { duration: 0 } : {delay:rank*0.1,type:'spring',stiffness:160,damping:18}}
       className={`${s.wrap} flex-1 min-w-0 max-w-[132px] min-[360px]:max-w-[160px]`}
     >
       <div className={`relative flex flex-col items-center px-2.5 min-[360px]:px-3 pt-5 min-[360px]:pt-6 pb-4 rounded-2xl border ${s.card}`} style={{boxShadow:s.shadow}}>
@@ -62,7 +63,7 @@ function PodiumCard({ user, rank }: { user: any, rank: number }) {
         {rank===1 && <FaTrophy className="text-yellow-400 text-3xl mb-2 drop-shadow-lg" />}
         <div className={`${s.sz} rounded-full border-2 ${s.ab} flex items-center justify-center font-bold text-lg overflow-hidden bg-base-300 flex-shrink-0`}>
           {user.user?.avatar || user.avatar
-            ? <img src={user.user?.avatar||user.avatar} alt={username} className="w-full h-full object-cover" />
+            ? <img src={user.user?.avatar||user.avatar} alt={username} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
             : <span>{getInitials(username)}</span>}
         </div>
         <p className={`${rank===1?'text-sm min-[360px]:text-base font-black':'text-xs min-[360px]:text-sm font-bold'} mt-2 text-center truncate w-full`}>{username}</p>
@@ -96,6 +97,7 @@ function PodiumCard({ user, rank }: { user: any, rank: number }) {
 }
 
 export default function LeaderboardPage() {
+  const reduceMotion = useReducedMotion()
   const [activeTab, setActiveTab] = useState('all')
   const [pageNum, setPageNum]     = useState(1)
   const [apiUsers, setApiUsers]   = useState<any[]>([])
@@ -204,7 +206,7 @@ export default function LeaderboardPage() {
 
         {isLoggedIn && (
           <motion.div
-            initial={{opacity:0,y:-16}} animate={{opacity:1,y:0}}
+            initial={reduceMotion ? false : {opacity:0,y:-16}} animate={{opacity:1,y:0}}
             className="mb-5 sm:mb-6 w-full overflow-hidden rounded-xl border border-primary/30"
             style={{background:'linear-gradient(135deg,rgba(99,102,241,0.2) 0%,rgba(139,92,246,0.12) 50%,rgba(15,15,25,0.98) 100%)'}}
           >
@@ -252,7 +254,7 @@ export default function LeaderboardPage() {
           </motion.div>
         )}
 
-            <motion.h1 initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} className="mb-4 max-w-full text-balance text-xl font-black tracking-tight sm:mb-5 sm:text-2xl md:text-4xl">
+            <motion.h1 initial={reduceMotion ? false : {opacity:0,y:-12}} animate={{opacity:1,y:0}} className="mb-4 max-w-full text-balance text-xl font-black tracking-tight sm:mb-5 sm:text-2xl md:text-4xl">
           GLOBAL <span className="text-primary">AUTHORITY</span>
         </motion.h1>
 

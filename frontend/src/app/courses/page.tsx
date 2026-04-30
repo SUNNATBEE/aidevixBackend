@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
 import { IoSearch, IoClose, IoOptions } from 'react-icons/io5'
 import { useCourses } from '@hooks/useCourses'
 import CourseGrid from '@components/courses/CourseGrid'
@@ -22,17 +21,14 @@ function CoursesContent() {
   const searchParams = useSearchParams()
   const [search, setSearch]             = useState(searchParams?.get('search') || '')
   const [showFilter, setShowFilter]     = useState(false)
-  const [isReady, setIsReady]           = useState(false)
   const debouncedSearch                 = useDebounce(search, 500)
 
   const { t } = useLang()
   const { courses, loading, filters, pages, total, fetchAll, setFilter, setPage } = useCourses()
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsReady(true), 1500)
     const cat = searchParams?.get('category')
     if (cat) setFilter({ category: cat })
-    return () => clearTimeout(timer)
   }, [])
 
   useEffect(() => {
@@ -51,35 +47,12 @@ function CoursesContent() {
   const clearSearch = useCallback(() => setSearch(''), [])
   const hasMore     = filters.page < pages
 
-  if (!isReady) {
-    return (
-      <div className="min-h-screen w-full min-w-0 max-w-full overflow-x-clip px-3 pb-16 pt-20 sm:px-4 sm:pb-20 sm:pt-24">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-12 space-y-4">
-            <div className="skeleton h-4 w-24" />
-            <div className="skeleton h-12 w-64" />
-          </div>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="skeleton h-72 w-full rounded-[2rem]" />
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-base-100">
       <div className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-8 md:py-12 lg:px-8">
 
         {/* ── Header ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-6 sm:mb-10"
-        >
+        <div className="mb-6 sm:mb-10">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div className="min-w-0">
               <h1 className="max-w-full text-balance text-xl font-black leading-tight text-base-content sm:text-2xl md:text-4xl">
@@ -96,15 +69,10 @@ function CoursesContent() {
               </div>
             )}
           </div>
-        </motion.div>
+        </div>
 
         {/* ── Search + Filter toggle ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.08 }}
-          className="flex gap-2 mb-4"
-        >
+        <div className="flex gap-2 mb-4">
           <div className="relative flex-1">
             <IoSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/35 text-sm pointer-events-none" />
             <input
@@ -114,19 +82,14 @@ function CoursesContent() {
               placeholder={t('courses.search')}
               className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-base-200 border border-base-content/8 focus:border-primary/40 focus:outline-none text-sm transition-colors placeholder:text-base-content/30"
             />
-            <AnimatePresence>
-              {search && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.7 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.7 }}
-                  onClick={clearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/35 hover:text-base-content transition-colors"
-                >
-                  <IoClose className="text-sm" />
-                </motion.button>
-              )}
-            </AnimatePresence>
+            {search && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/35 hover:text-base-content transition-colors"
+              >
+                <IoClose className="text-sm" />
+              </button>
+            )}
           </div>
 
           <button
@@ -141,28 +104,19 @@ function CoursesContent() {
             <IoOptions className="text-base" />
             <span className="hidden xs:inline">Filter</span>
           </button>
-        </motion.div>
+        </div>
 
         <div className="hidden lg:block mb-6">
           <CourseFilter />
         </div>
 
-        <AnimatePresence>
-          {showFilter && (
-            <motion.div
-              key="mobile-filter"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.25 }}
-              className="overflow-hidden mb-4 lg:hidden"
-            >
-              <div className="pb-2">
-                <CourseFilter />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {showFilter && (
+          <div className="overflow-hidden mb-4 lg:hidden">
+            <div className="pb-2">
+              <CourseFilter />
+            </div>
+          </div>
+        )}
 
         <CourseGrid
           courses={courses}
@@ -183,18 +137,14 @@ function CoursesContent() {
         )}
 
         {!loading && hasMore && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex justify-center mt-8 sm:mt-12"
-          >
+          <div className="flex justify-center mt-8 sm:mt-12">
             <button
               onClick={() => setPage(filters.page + 1)}
               className="btn btn-outline btn-primary rounded-2xl px-8 sm:px-12"
             >
               {t('courses.loadMore')}
             </button>
-          </motion.div>
+          </div>
         )}
 
           <p className="text-center text-xs text-base-content/25 mt-8">

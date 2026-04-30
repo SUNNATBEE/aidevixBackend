@@ -10,7 +10,6 @@ import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 import CourseCard from '@/components/courses/CourseCard';
 import VideoCard from '@/components/videos/VideoCard';
 import ProBanner from '@/components/home/ProBanner';
-import HomeSkeleton from '@/components/home/HomeSkeleton';
 import { useLang } from '@/context/LangContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useSound } from '@/context/SoundContext';
@@ -60,6 +59,8 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
   const [homeStatsLoaded, setHomeStatsLoaded] = useState(false);
   const [newsIndex, setNewsIndex] = useState(0);
   const [aiNews, setAiNews] = useState<AiNewsItem[]>([]);
+  const [enableNewsImages, setEnableNewsImages] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
   const touchEndXRef = useRef<number | null>(null);
   const isLoggedIn = useSelector(selectIsLoggedIn);
@@ -69,6 +70,23 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
   useEffect(() => {
     setIsMounted(true);
     setIsReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const connection = (navigator as Navigator & {
+      connection?: { saveData?: boolean };
+    }).connection;
+
+    const updatePreference = () => {
+      const isSmallScreen = window.innerWidth < 768;
+      setReduceMotion(Boolean(media.matches) || Boolean(connection?.saveData) || isSmallScreen);
+    };
+
+    updatePreference();
+    media.addEventListener('change', updatePreference);
+    return () => media.removeEventListener('change', updatePreference);
   }, []);
 
   useEffect(() => {
@@ -111,7 +129,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
     let idleId: number | null = null;
 
     const enable = () => {
-      if (window.innerWidth >= 768) {
+      if (!reduceMotion && window.innerWidth >= 768) {
         setShowHeroVisual(true);
       }
     };
@@ -128,11 +146,11 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
       }
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isMounted]);
+  }, [isMounted, reduceMotion]);
 
   // Metrikalar serverdan kelguncha `data-value` 0; GSAP bir marta ishga tushsa — doim 0 qoladi.
   useEffect(() => {
-    if (!isMounted || !homeStatsLoaded || !statsRef.current) return;
+    if (!isMounted || !homeStatsLoaded || !statsRef.current || reduceMotion) return;
     const el = statsRef.current;
     const ctx = gsap.context(() => {
       const counters = el.querySelectorAll('.stat-value');
@@ -164,10 +182,10 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
     }, el);
     requestAnimationFrame(() => ScrollTrigger.refresh());
     return () => ctx.revert();
-  }, [isMounted, homeStatsLoaded, homeStats.students, homeStats.videos, homeStats.mentors, homeStats.rating]);
+  }, [isMounted, homeStatsLoaded, homeStats.students, homeStats.videos, homeStats.mentors, homeStats.rating, reduceMotion]);
 
   useEffect(() => {
-    if (!isMounted || !pageRef.current) return;
+    if (!isMounted || !pageRef.current || reduceMotion) return;
 
     const ctx = gsap.context(() => {
       gsap.utils.toArray<HTMLElement>('.reveal-section').forEach((section, index) => {
@@ -218,7 +236,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
     }, pageRef);
 
     return () => ctx.revert();
-  }, [isMounted]);
+  }, [isMounted, reduceMotion]);
 
   const categories = [
     { name: t('cat.frontend'), subtitle: t('cat.frontendSub'), icon: <HiOutlineDesktopComputer className="w-8 h-8 text-white" />, path: 'frontend' },
@@ -287,26 +305,47 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
 
   useEffect(() => {
     let mounted = true;
-    fetch('/api/proxy/public/ai-news')
-      .then(async (r) => {
-        if (!r.ok) throw new Error('ai-news fetch failed');
-        return r.json();
-      })
-      .then((json) => {
-        if (!mounted) return;
-        const items = (json?.data?.news || []) as AiNewsItem[];
-        if (items.length > 0) {
-          setAiNews(items.map((item) => localizeNewsItem(lang, item)));
-        } else {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
+
+    const loadNews = () => {
+      fetch('/api/proxy/public/ai-news')
+        .then(async (r) => {
+          if (!r.ok) throw new Error('ai-news fetch failed');
+          return r.json();
+        })
+        .then((json) => {
+          if (!mounted) return;
+          const items = (json?.data?.news || []) as AiNewsItem[];
+          if (items.length > 0) {
+            setAiNews(items.map((item) => localizeNewsItem(lang, item)));
+          } else {
+            setAiNews(fallbackAiNews.map((item) => localizeNewsItem(lang, item)));
+          }
+        })
+        .catch(() => {
+          if (!mounted) return;
           setAiNews(fallbackAiNews.map((item) => localizeNewsItem(lang, item)));
-        }
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setAiNews(fallbackAiNews.map((item) => localizeNewsItem(lang, item)));
-      });
+        });
+    };
+
+    const enableImages = () => setEnableNewsImages(true);
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(loadNews, { timeout: 2500 });
+    } else {
+      timeoutId = setTimeout(loadNews, 1200);
+    }
+
+    const imageDelayId = setTimeout(enableImages, 3000);
+
     return () => {
       mounted = false;
+      if (idleId !== null && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId) clearTimeout(timeoutId);
+      clearTimeout(imageDelayId);
     };
   }, [lang]);
 
@@ -361,8 +400,6 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
     return item.href || SOCIAL_LINKS.telegram;
   };
 
-  if (!isMounted || !isReady) return <HomeSkeleton />;
-
   return (
     <div ref={pageRef} className={`min-h-screen w-full min-w-0 max-w-full font-sans selection:bg-indigo-500/30 ${pageBg}`}>
       <section className={`relative isolate w-full min-w-0 overflow-x-clip px-3 pt-6 sm:px-4 sm:pt-8 ${heroText}`}>
@@ -373,46 +410,35 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
 
         <div className="relative z-10 mx-auto grid w-full min-w-0 max-w-7xl grid-cols-1 min-h-[calc(100svh-5rem)] items-end gap-8 pb-12 pt-16 sm:gap-12 sm:pb-16 sm:pt-20 xl:grid-cols-[minmax(0,1.15fr)_22rem] xl:gap-16 xl:pb-20">
           <div className="min-w-0 max-w-4xl">
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
+            <div
               className={`section-kicker mb-4 inline-flex max-w-full flex-wrap items-center gap-2 border-b sm:mb-6 sm:gap-3 ${hairline} pb-3 sm:pb-4 ${mutedText}`}
             >
               <SiteLogoMark size={24} className="rounded-lg ring-white/10" />
               <span>Aidevix</span>
               <span>{t('hero.badge')}</span>
-            </motion.div>
+            </div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.05 }}
+            <h1
               className="max-w-full break-words font-display text-[clamp(1.55rem,min(10vw,12vh),2.85rem)] font-bold leading-[1.02] tracking-[-0.03em] sm:text-[clamp(2.1rem,9vw,4.25rem)] sm:tracking-[-0.05em] lg:max-w-5xl lg:text-[clamp(3.25rem,6.5vw,7rem)]"
             >
               {t('hero.title1')}{' '}
               <span className={`bg-clip-text text-transparent bg-gradient-to-r ${
-                isDark 
-                  ? 'from-indigo-300 via-purple-400 to-violet-400' 
+                isDark
+                  ? 'from-indigo-300 via-purple-400 to-violet-400'
                   : 'from-indigo-600 via-purple-600 to-violet-700'
               }`}>
                 {t('hero.titleHighlight')}
               </span>{' '}
               {t('hero.title2')}
-            </motion.h1>
+            </h1>
 
-            <motion.p
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.12 }}
+            <p
               className={`mt-6 max-w-2xl text-[0.9375rem] leading-7 sm:mt-8 sm:text-base sm:leading-8 md:text-lg ${mutedText}`}
             >
               {t('hero.subtitle')}
-            </motion.p>
+            </p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
+            <div
               className="mt-8 flex w-full min-w-0 flex-col gap-3 sm:mt-10 sm:flex-row sm:items-center sm:gap-4"
             >
               <Link
@@ -430,13 +456,13 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
                 {t('hero.cta2')}
                 <HiArrowRight className="text-base" />
               </Link>
-            </motion.div>
+            </div>
 
             {aiNews.length > 0 && (
             <motion.a
               key={newsIndex}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+              animate={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
               transition={{ duration: 0.45, ease: 'easeOut' }}
               href={getNewsHref(aiNews[newsIndex])}
               target="_blank"
@@ -450,7 +476,7 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
               <div
                 className="absolute inset-0 bg-cover bg-center"
                 style={{
-                  backgroundImage: aiNews[newsIndex]?.imageUrl
+                  backgroundImage: enableNewsImages && aiNews[newsIndex]?.imageUrl
                     ? `url("${aiNews[newsIndex]?.imageUrl}")`
                     : 'none',
                 }}

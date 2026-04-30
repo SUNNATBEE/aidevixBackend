@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { useTheme } from '@/context/ThemeContext';
 import { useLang } from '@/context/LangContext';
@@ -18,6 +18,7 @@ const ROADMAP_COLORS = [
 export default function RoadmapPage() {
   const { t } = useLang();
   const { isDark } = useTheme();
+  const reduceMotion = useReducedMotion();
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [paths, setPaths] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +42,11 @@ export default function RoadmapPage() {
     <div className={`min-h-screen w-full min-w-0 max-w-full overflow-x-clip px-3 pb-16 pt-20 sm:px-4 sm:pb-20 sm:pt-24 ${bgClass}`}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16">
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-16"
+        >
           <div className={`inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest mb-4 px-4 py-2 rounded-full border ${isDark ? 'border-white/10 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
             <IoSchool /> {t('roadmap.badge')}
           </div>
@@ -61,9 +66,9 @@ export default function RoadmapPage() {
           {paths.map((path, i) => (
             <motion.button
               key={path.id}
-              initial={{ opacity: 0, y: 24 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
+              transition={reduceMotion ? { duration: 0 } : { delay: i * 0.1 }}
               onClick={() => setSelectedPath(selectedPath === path.id ? null : path.id)}
               className={`relative text-left rounded-3xl border p-6 transition-all duration-300 bg-gradient-to-br ${path.color} ${path.borderColor} ${
                 selectedPath === path.id ? 'scale-[1.02] shadow-2xl' : 'hover:scale-[1.01]'
@@ -89,7 +94,7 @@ export default function RoadmapPage() {
           {paths.map((path) => selectedPath === path.id && (
           <motion.div
             key={path.id}
-            initial={{ opacity: 0, y: 24 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-16"
           >
@@ -106,9 +111,9 @@ export default function RoadmapPage() {
                 {path.steps.map((step, i) => (
                   <motion.div
                     key={step.category}
-                    initial={{ opacity: 0, x: -16 }}
+                    initial={reduceMotion ? false : { opacity: 0, x: -16 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.08 }}
+                    transition={reduceMotion ? { duration: 0 } : { delay: i * 0.08 }}
                     className={`relative flex items-start gap-5 rounded-2xl border p-6 ${cardClass} sm:ml-8`}
                   >
                     {/* Step number circle */}

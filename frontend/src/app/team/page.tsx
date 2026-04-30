@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring, useReducedMotion } from 'framer-motion';
 import { FaInstagram, FaTelegram } from 'react-icons/fa';
 import { useLang } from '@/context/LangContext';
 
@@ -175,6 +175,8 @@ function LeadershipCard({ member }: { member: TeamMember }) {
               <img
                 src={`/team/${member.imageFile}`}
                 alt={member.name}
+              loading="lazy"
+              decoding="async"
                 className="max-h-[min(72vh,520px)] w-full object-contain object-center p-4 sm:max-h-[560px] sm:p-5 lg:h-full lg:max-h-none lg:min-h-[400px] lg:object-contain lg:p-6"
                 style={{ objectPosition: member.objectPos ?? '50% center' }}
                 onError={() => setImgError(true)}
@@ -258,7 +260,7 @@ function LeadershipCard({ member }: { member: TeamMember }) {
   );
 }
 
-function TiltCard({ member, index }: { member: TeamMember; index: number }) {
+function TiltCard({ member, index, reduceMotion = false }: { member: TeamMember; index: number; reduceMotion?: boolean }) {
   const { t } = useLang();
   const [imgError, setImgError] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -266,13 +268,14 @@ function TiltCard({ member, index }: { member: TeamMember; index: number }) {
   const [hovered, setHovered] = useState(false);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (reduceMotion) return;
     const el = cardRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
     setTilt({ x: y * 12, y: -x * 12 });
-  }, []);
+  }, [reduceMotion]);
 
   const handleMouseLeave = useCallback(() => {
     setTilt({ x: 0, y: 0 });
@@ -287,10 +290,14 @@ function TiltCard({ member, index }: { member: TeamMember; index: number }) {
       viewport={{ once: true, margin: '-50px' }}
       transition={{ duration: 0.6, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setHovered(true)}
+      onMouseEnter={() => {
+        if (!reduceMotion) setHovered(true);
+      }}
       onMouseLeave={handleMouseLeave}
       style={{
-        transform: `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateZ(${hovered ? 6 : 0}px) scale(${hovered ? 1.02 : 1})`,
+        transform: reduceMotion
+          ? 'none'
+          : `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateZ(${hovered ? 6 : 0}px) scale(${hovered ? 1.02 : 1})`,
         transition: hovered ? 'transform 0.12s ease-out' : 'transform 0.5s cubic-bezier(0.22,1,0.36,1)',
         transformStyle: 'preserve-3d',
       }}
@@ -321,6 +328,8 @@ function TiltCard({ member, index }: { member: TeamMember; index: number }) {
             <img
               src={`/team/${member.imageFile}`}
               alt={member.name}
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover"
               style={{ objectPosition: member.objectPos ?? '50% 20%' }}
               onError={() => setImgError(true)}
@@ -506,6 +515,7 @@ function RoadmapNode({ member, index }: { member: TeamMember; index: number }) {
 
 export default function TeamPage() {
   const { t } = useLang();
+  const reduceMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
   const founderLead = getFounderLead(t);
   const members = getMembers(t);
@@ -615,7 +625,7 @@ export default function TeamPage() {
         </motion.p>
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {members.map((m, i) => (
-            <TiltCard key={m.id} member={m} index={i} />
+            <TiltCard key={m.id} member={m} index={i} reduceMotion={Boolean(reduceMotion)} />
           ))}
         </div>
       </section>

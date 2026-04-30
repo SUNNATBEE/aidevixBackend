@@ -10,6 +10,9 @@ import ScrollToTop from '@/components/layout/ScrollToTop';
 const DailyRewardModal = dynamic(() => import('@components/common/DailyRewardModal'), { ssr: false });
 const LiveActivityTicker = dynamic(() => import('@components/common/LiveActivityTicker'), { ssr: false });
 const AICoach = dynamic(() => import('@components/common/AICoach'), { ssr: false });
+const ExitIntentModal = dynamic(() => import('@components/common/ExitIntentModal'), { ssr: false });
+const BetaWelcomeModal = dynamic(() => import('@components/common/BetaWelcomeModal'), { ssr: false });
+const PWAInstallPrompt = dynamic(() => import('@components/common/PWAInstallPrompt'), { ssr: false });
 
 export default function ClientLayoutWrapper({
   children,
@@ -18,6 +21,7 @@ export default function ClientLayoutWrapper({
 }) {
   const [isMounted, setIsMounted] = useState(false);
   const [showEnhancements, setShowEnhancements] = useState(false);
+  const [showDeferredPrompts, setShowDeferredPrompts] = useState(false);
   const pathname = usePathname();
   
   useEffect(() => {
@@ -63,6 +67,37 @@ export default function ClientLayoutWrapper({
     };
   }, [isMounted, hideLayout, pathname]);
 
+  useEffect(() => {
+    if (!isMounted || hideLayout) {
+      setShowDeferredPrompts(false);
+      return;
+    }
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
+
+    const enableDeferredPrompts = () => {
+      const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+      const shouldDeferForPerf = window.innerWidth < 768 || Boolean(connection?.saveData);
+      if (!shouldDeferForPerf) {
+        setShowDeferredPrompts(true);
+      }
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(enableDeferredPrompts, { timeout: 3000 });
+    } else {
+      timeoutId = setTimeout(enableDeferredPrompts, 1800);
+    }
+
+    return () => {
+      if (idleId !== null && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isMounted, hideLayout, pathname]);
+
   return (
     <>
       {isMounted && !hideLayout && <Navbar />}
@@ -74,6 +109,9 @@ export default function ClientLayoutWrapper({
 
       {showEnhancements && showAmbientWidgets && <LiveActivityTicker />}
       {showEnhancements && showAmbientWidgets && <AICoach />}
+      {showDeferredPrompts && <BetaWelcomeModal />}
+      {showDeferredPrompts && <ExitIntentModal />}
+      {showDeferredPrompts && <PWAInstallPrompt />}
       {isMounted && !hideLayout && <Footer />}
       {isMounted && <ScrollToTop />}
     </>

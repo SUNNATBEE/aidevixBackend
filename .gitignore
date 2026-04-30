@@ -58,6 +58,9 @@ coverage/
 # News scheduler cache
 .sent_news.json
 
+# AutoFix runtime
+.autofix/
+
 # Temporary files
 *.tmp
 *.temp

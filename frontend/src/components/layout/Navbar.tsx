@@ -15,9 +15,7 @@ import { MdDarkMode, MdLightMode } from 'react-icons/md'
 import { useSound } from '@/context/SoundContext'
 import type { Lang } from '@utils/i18n'
 
-import 'flag-icons/css/flag-icons.min.css'
-
-const LANG_FLAGS: Record<Lang, string> = { uz: 'fi-uz', ru: 'fi-ru', en: 'fi-us' }
+const LANG_FLAGS: Record<Lang, string> = { uz: '🇺🇿', ru: '🇷🇺', en: '🇺🇸' }
 const LANG_NAMES: Record<Lang, string> = { uz: 'UZ', ru: 'RUS', en: 'ENG' }
 
 export default function Navbar() {
@@ -236,6 +234,7 @@ export default function Navbar() {
                 onMouseEnter={playHoverSound}
                 className={`rounded-full border p-3 transition-all duration-300 ${surface} ${isDark ? 'text-slate-400 hover:text-amber-300' : 'text-slate-500 hover:text-indigo-600'}`}
                 title={isDark ? t('theme.light') : t('theme.dark')}
+                aria-label={isDark ? t('theme.light') : t('theme.dark')}
               >
                 {isDark ? <MdLightMode size={18} /> : <MdDarkMode size={18} />}
               </button>
@@ -245,6 +244,7 @@ export default function Navbar() {
                 onMouseEnter={playHoverSound}
                 className={`rounded-full border p-3 transition-all duration-300 ${surface} ${isDark ? 'text-slate-400 hover:text-indigo-400' : 'text-slate-500 hover:text-indigo-600'}`}
                 title={isSoundEnabled ? t('nav.soundOff') : t('nav.soundOn')}
+                aria-label={isSoundEnabled ? t('nav.soundOff') : t('nav.soundOn')}
               >
                 {isSoundEnabled ? <HiVolumeUp size={18} /> : <HiVolumeOff size={18} />}
               </button>
@@ -254,8 +254,11 @@ export default function Navbar() {
                   onClick={() => setLangOpen(!langOpen)}
                   onMouseEnter={playHoverSound}
                   className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-all duration-300 ${surface} ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'}`}
+                  aria-haspopup="menu"
+                  aria-expanded={langOpen}
+                  aria-label={t('nav.language')}
                 >
-                  <span className={`fi ${LANG_FLAGS[lang]}`}></span>
+                  <span aria-hidden>{LANG_FLAGS[lang]}</span>
                   <span>{t('nav.language')}</span>
                   <svg className={`h-3 w-3 transition-transform ${langOpen ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
@@ -276,7 +279,7 @@ export default function Navbar() {
                           lang === l ? (isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600') : dropdownItemColor
                         }`}
                       >
-                        <span className={`fi ${LANG_FLAGS[l]}`}></span>
+                        <span aria-hidden>{LANG_FLAGS[l]}</span>
                         <span className="font-medium">{LANG_NAMES[l]}</span>
                       </button>
                     ))}
@@ -396,7 +399,11 @@ export default function Navbar() {
             </div>
 
             <div className="flex items-center gap-1.5 xl:hidden">
-              <button onClick={toggleTheme} className={`rounded-full border p-2 ${surface} ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <button
+                onClick={toggleTheme}
+                className={`rounded-full border p-2 ${surface} ${isDark ? 'text-slate-400' : 'text-slate-500'}`}
+                aria-label={isDark ? t('theme.light') : t('theme.dark')}
+              >
                 {isDark ? <MdLightMode size={20} /> : <MdDarkMode size={20} />}
               </button>
               <button 
@@ -437,7 +444,7 @@ export default function Navbar() {
                     onClick={() => setLang(l)}
                     className={`flex-1 rounded-xl py-2 text-xs font-bold transition-colors ${lang === l ? 'bg-indigo-500 text-white' : isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-slate-900/[0.04] text-slate-500 hover:bg-slate-900/[0.08]'}`}
                   >
-                    <span className={`fi ${LANG_FLAGS[l]} mr-1.5`}></span>
+                    <span className="mr-1.5" aria-hidden>{LANG_FLAGS[l]}</span>
                     {LANG_NAMES[l]}
                   </button>
                 ))}

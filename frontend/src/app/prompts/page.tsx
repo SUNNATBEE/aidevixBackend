@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector } from 'react-redux';
@@ -380,6 +378,9 @@ function PromptCard({
         <img
           src={prompt.author?.avatar || `https://ui-avatars.com/api/?name=${prompt.author?.username || 'U'}&background=312e81&color=fff&size=48`}
           alt={prompt.author?.username || ''}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
           className="h-11 w-11 rounded-2xl object-cover border border-white/5 shrink-0"
         />
         <div className="min-w-0 flex-1 pr-12">
@@ -589,6 +590,7 @@ export default function PromptsPage() {
   useEffect(() => {
     if (promptAccess !== 'granted') return;
     const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       const params: Record<string, string | number> = { sort, page: 1, limit: 12 };
       if (category !== 'all') params.category = category;
       if (tool !== 'all') params.tool = tool;
@@ -605,7 +607,7 @@ export default function PromptsPage() {
           // no-op
         }
       })();
-    }, 30000);
+    }, 60000);
     return () => clearInterval(interval);
   }, [promptAccess, category, tool, sort, isAuth, t]);
 

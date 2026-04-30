@@ -10,10 +10,12 @@ import {
   IoChevronUp, IoPlay, IoLockClosed, IoCheckmarkCircle,
   IoCodeSlash, IoRocket, IoFlash,
 } from 'react-icons/io5'
-import { Swiper, SwiperSlide } from 'swiper/react'
-import { Navigation } from 'swiper/modules'
-import 'swiper/css'
-import 'swiper/css/navigation'
+import dynamic from 'next/dynamic'
+
+const RecommendedCarousel = dynamic(
+  () => import('@components/courses/RecommendedCarousel'),
+  { ssr: false, loading: () => <div className="h-40 rounded-lg bg-slate-900/30" /> }
+)
 
 import { useSelector } from 'react-redux'
 import { selectIsLoggedIn } from '@store/slices/authSlice'
@@ -425,20 +427,7 @@ export default function CourseDetailPage() {
               <IoFlash className="text-primary" />
               {localText.recommendedCourses}
             </h2>
-            <Swiper
-              modules={[Navigation]}
-              slidesPerView={2}
-              spaceBetween={12}
-              navigation
-              breakpoints={{ 768: { slidesPerView: 2, spaceBetween: 16 }, 1024: { slidesPerView: 3, spaceBetween: 20 } }}
-              className="!pb-1"
-            >
-              {recommended.map((c, i) => (
-                <SwiperSlide key={c._id}>
-                  <CourseCard course={c} index={i} />
-                </SwiperSlide>
-              ))}
-            </Swiper>
+            <RecommendedCarousel courses={recommended} />
           </motion.div>
         )}
       </div>

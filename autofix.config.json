@@ -1,0 +1,26 @@
+{
+  "watch": {
+    "paths": ["backend", "frontend/src"],
+    "extensions": ["js", "ts", "tsx", "jsx"],
+    "debounceMs": 1500
+  },
+  "checks": {
+    "backendSyntax": true,
+    "frontendTypecheck": true,
+    "frontendLint": false
+  },
+  "fixer": {
+    "model": "claude-sonnet-4-6",
+    "maxIterations": 3,
+    "timeoutMs": 180000
+  },
+  "git": {
+    "autoStashBeforeFix": false,
+    "autoCommitOnFix": false,
+    "commitPrefix": "autofix:"
+  },
+  "notify": {
+    "telegram": false,
+    "onErrorOnly": true
+  }
+}

@@ -22,6 +22,18 @@ const backendBaseUrl = (() => {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+  },
+  experimental: {
+    optimizePackageImports: [
+      'react-icons',
+      'framer-motion',
+      '@reduxjs/toolkit',
+      'react-redux',
+      'swiper',
+    ],
+  },
   async headers() {
     return [
       {
@@ -74,6 +86,10 @@ const nextConfig = {
       { protocol: 'https', hostname: 'iframe.mediadelivery.net' },
       { protocol: 'https', hostname: 'assets.mixkit.co' },
     ],
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [360, 640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
     unoptimized: process.env.NODE_ENV === 'development',
   },
 };
