@@ -279,3 +279,146 @@ canvas {
     font-size: 12.5px;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   LIGHT MODE GLOBAL OVERRIDES
+   Many pages use hardcoded dark bg-[#xxx] / text-white / border-white
+   classes that don't respond to theme. These rules remap them in light
+   mode without touching every component.
+   ───────────────────────────────────────────────────────────────── */
+
+html.light-mode,
+html[data-theme='light'] {
+  /* === Hardcoded dark backgrounds → white cards ===
+     Attribute selector catches base + opacity variants like bg-[#0A0E1A]/40 */
+  [class*="bg-[#0A0E1A]"],
+  [class*="bg-[#08090d]"],
+  [class*="bg-[#050507]"],
+  [class*="bg-[#080914]"],
+  [class*="bg-[#090b10]"],
+  [class*="bg-[#0a0c14]"],
+  [class*="bg-[#0d0f1a]"],
+  [class*="bg-[#0d1017]"],
+  [class*="bg-[#0d101a]"],
+  [class*="bg-[#0d1224]"],
+  [class*="bg-[#0f121c]"],
+  [class*="bg-[#10121f]"],
+  [class*="bg-[#10131a]"],
+  [class*="bg-[#11131a]"],
+  [class*="bg-[#11141b]"],
+  [class*="bg-[#111318]"],
+  [class*="bg-[#12141c]"],
+  [class*="bg-[#13152a]"],
+  [class*="bg-[#131B31]"],
+  [class*="bg-[#1a1218]"],
+  [class*="bg-[#1a1c26]"],
+  [class*="bg-[#1a1c2e]"],
+  [class*="bg-[#1A2234]"],
+  [class*="bg-[#1c1500]"],
+  [class*="bg-[#130e00]"] {
+    background-color: #ffffff;
+  }
+
+  /* Page wrappers (min-h-screen) get a soft neutral instead of stark white */
+  .min-h-screen[class*="bg-[#0A0E1A]"],
+  .min-h-screen[class*="bg-[#050507]"],
+  .min-h-screen[class*="bg-[#08090d]"],
+  .min-h-screen[class*="bg-[#090b10]"] {
+    background-color: #f7f8fc;
+  }
+
+  /* === White overlay backgrounds (transparent on dark) → light gray === */
+  .bg-white\/3 { background-color: rgba(15, 23, 42, 0.03); }
+  .bg-white\/5 { background-color: rgba(15, 23, 42, 0.04); }
+  .bg-white\/8 { background-color: rgba(15, 23, 42, 0.05); }
+  .bg-white\/10 { background-color: rgba(15, 23, 42, 0.06); }
+  .bg-white\/12 { background-color: rgba(15, 23, 42, 0.07); }
+  .bg-white\/15 { background-color: rgba(15, 23, 42, 0.08); }
+  .bg-white\/20 { background-color: rgba(15, 23, 42, 0.10); }
+
+  /* === White borders → dark borders === */
+  .border-white\/5 { border-color: rgba(15, 23, 42, 0.06); }
+  .border-white\/8 { border-color: rgba(15, 23, 42, 0.08); }
+  .border-white\/10 { border-color: rgba(15, 23, 42, 0.09); }
+  .border-white\/12 { border-color: rgba(15, 23, 42, 0.10); }
+  .border-white\/15 { border-color: rgba(15, 23, 42, 0.12); }
+  .border-white\/20 { border-color: rgba(15, 23, 42, 0.15); }
+  .border-white\/30 { border-color: rgba(15, 23, 42, 0.20); }
+
+  /* === Text colors: dark-only → readable on light bg === */
+  .text-white         { color: #1e293b; }   /* slate-800 */
+  .text-slate-100     { color: #1e293b; }
+  .text-slate-200     { color: #334155; }   /* slate-700 */
+  .text-slate-300     { color: #475569; }   /* slate-600 */
+  .text-slate-400     { color: #64748b; }   /* slate-500 */
+  .text-slate-500     { color: #94a3b8; }
+  .text-gray-100      { color: #1e293b; }
+  .text-gray-200      { color: #334155; }
+  .text-gray-300      { color: #475569; }
+  .text-gray-400      { color: #64748b; }
+  .text-gray-500      { color: #6b7280; }
+
+  /* === Restore WHITE text on colored solid buttons/gradients === */
+  .bg-indigo-500.text-white,
+  .bg-indigo-600.text-white,
+  .bg-indigo-700.text-white,
+  .bg-purple-500.text-white,
+  .bg-purple-600.text-white,
+  .bg-violet-500.text-white,
+  .bg-violet-600.text-white,
+  .bg-blue-500.text-white,
+  .bg-blue-600.text-white,
+  .bg-emerald-500.text-white,
+  .bg-emerald-600.text-white,
+  .bg-green-500.text-white,
+  .bg-green-600.text-white,
+  .bg-rose-500.text-white,
+  .bg-rose-600.text-white,
+  .bg-red-500.text-white,
+  .bg-red-600.text-white,
+  .bg-amber-500.text-white,
+  .bg-orange-500.text-white,
+  .bg-pink-500.text-white,
+  .bg-pink-600.text-white,
+  .bg-yellow-500.text-white,
+  .bg-yellow-600.text-white,
+  .bg-cyan-500.text-white,
+  [class*='bg-gradient-'].text-white,
+  .btn-primary.text-white {
+    color: #ffffff;
+  }
+
+  /* Restore white text inside any colored button / gradient parent */
+  .bg-indigo-500 .text-white,
+  .bg-indigo-600 .text-white,
+  .bg-purple-600 .text-white,
+  .btn-primary .text-white,
+  [class*='bg-gradient-'] .text-white {
+    color: #ffffff;
+  }
+
+  /* === Selection color in light mode === */
+  ::selection {
+    background: rgba(99, 102, 241, 0.25);
+    color: #0f172a;
+  }
+
+  /* === Inputs that hardcode dark styles → readable on light card === */
+  input.bg-\[\#0A0E1A\]\/50,
+  textarea.bg-\[\#0A0E1A\]\/50,
+  select.bg-\[\#0A0E1A\]\/50 {
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+  input.bg-white\/5,
+  textarea.bg-white\/5,
+  select.bg-white\/5 {
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+
+  /* Placeholder text */
+  .placeholder-gray-500::placeholder { color: #94a3b8; }
+  .placeholder-slate-500::placeholder { color: #94a3b8; }
+  .placeholder-white\/40::placeholder { color: rgba(15, 23, 42, 0.4); }
+}
