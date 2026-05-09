@@ -459,15 +459,22 @@ html[data-theme='light'] {
   .text-white         { color: #1e293b; }   /* slate-800 */
   .text-white\/95     { color: #1e293b; }
   .text-white\/90     { color: #1e293b; }
+  .text-white\/85     { color: #1e293b; }
   .text-white\/80     { color: #334155; }   /* slate-700 */
+  .text-white\/75     { color: #334155; }
   .text-white\/70     { color: #475569; }   /* slate-600 */
+  .text-white\/65     { color: #475569; }
   .text-white\/60     { color: #64748b; }   /* slate-500 */
+  .text-white\/55     { color: #64748b; }
   .text-white\/50     { color: #64748b; }
   .text-white\/45     { color: #64748b; }
   .text-white\/40     { color: #94a3b8; }   /* slate-400 */
+  .text-white\/35     { color: #94a3b8; }
   .text-white\/30     { color: #94a3b8; }
   .text-white\/25     { color: #94a3b8; }
   .text-white\/20     { color: #94a3b8; }
+  .text-white\/15     { color: #cbd5e1; }   /* slate-300 (light placeholder/icon) */
+  .text-white\/10     { color: #cbd5e1; }
   .text-slate-100     { color: #1e293b; }
   .text-slate-200     { color: #334155; }   /* slate-700 */
   .text-slate-300     { color: #475569; }   /* slate-600 */
