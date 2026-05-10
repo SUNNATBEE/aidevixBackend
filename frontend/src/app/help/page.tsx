@@ -1,4 +1,15 @@
-import PlaceholderPage from '@/components/common/PlaceholderPage';
+import { Metadata } from 'next';
+import HelpClient from './HelpClient';
+
+export const metadata: Metadata = {
+  title: 'Yordam markazi — Aidevix',
+  description: 'Aidevix yordam markazi: tez-tez beriladigan savollar, yo\'riqnomalar va kontaktlar.',
+  openGraph: {
+    title: 'Aidevix Yordam markazi',
+    description: 'Savolingiz bormi? Tez javobingizni shu yerdan topasiz.',
+  },
+};
+
 export default function HelpPage() {
-  return <PlaceholderPage titleKey="placeholder.help.title" descriptionKey="placeholder.help.desc" />;
+  return <HelpClient />;
 }

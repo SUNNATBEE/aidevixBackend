@@ -3,6 +3,7 @@ const UserStats = require('../models/UserStats');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 const Prompt = require('../models/Prompt');
+const validator = require('validator');
 
 const getLiveActivity = async (_req, res) => {
   try {
@@ -109,9 +110,98 @@ const getRoadmap = async (_req, res) => {
   }
 };
 
+/**
+ * @desc  Public contact form — Telegram admin'ga xabar yuboradi
+ * @route POST /api/public/contact
+ * @access Public (rate-limited)
+ * Body: { name, email, subject, message, _honeypot? }
+ *
+ * Honeypot `_honeypot` field — bot'lar to'ldiradi, biz silently rad qilamiz.
+ */
+const submitContact = async (req, res) => {
+  try {
+    const { name, email, subject, message, _honeypot } = req.body || {};
+
+    // Honeypot — bot to'ldirgan bo'lsa, soxta success qaytaramiz (bot bilmaydi)
+    if (_honeypot && String(_honeypot).trim().length > 0) {
+      return res.json({ success: true, message: 'Yuborildi' });
+    }
+
+    // Validatsiya
+    const cleanName = String(name || '').trim();
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const cleanSubject = String(subject || '').trim();
+    const cleanMessage = String(message || '').trim();
+
+    if (cleanName.length < 2 || cleanName.length > 100) {
+      return res.status(400).json({ success: false, message: 'Ism 2-100 belgi bo\'lsin' });
+    }
+    if (!validator.isEmail(cleanEmail)) {
+      return res.status(400).json({ success: false, message: 'Email yaroqsiz' });
+    }
+    if (cleanSubject.length < 3 || cleanSubject.length > 200) {
+      return res.status(400).json({ success: false, message: 'Mavzu 3-200 belgi bo\'lsin' });
+    }
+    if (cleanMessage.length < 10 || cleanMessage.length > 5000) {
+      return res.status(400).json({ success: false, message: 'Xabar 10-5000 belgi bo\'lsin' });
+    }
+
+    // Telegram admin xabarnomasi
+    try {
+      const { getBot } = require('../utils/telegramBot');
+      const bot = getBot();
+      const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '').trim();
+      if (bot && adminId) {
+        const safe = (s) => String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').slice(0, 4000);
+        const text =
+          `📩 <b>Yangi contact xabari</b>\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `👤 <b>${safe(cleanName)}</b>\n` +
+          `📧 ${safe(cleanEmail)}\n` +
+          `📌 <b>${safe(cleanSubject)}</b>\n\n` +
+          `${safe(cleanMessage)}`;
+        await bot.sendMessage(adminId, text, { parse_mode: 'HTML' });
+      }
+    } catch (_) {
+      // Telegram fail — admin keyin emaildan ko'radi
+    }
+
+    // Email orqali ham xabar berish (admin uchun)
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: Number(process.env.EMAIL_PORT) || 587,
+        secure: Number(process.env.EMAIL_PORT) === 465,
+        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      });
+      const adminEmail = process.env.CONTACT_NOTIFY_EMAIL || process.env.EMAIL_USER;
+      if (adminEmail) {
+        await transporter.sendMail({
+          from: `"Aidevix Contact" <${process.env.EMAIL_USER}>`,
+          to: adminEmail,
+          replyTo: cleanEmail,
+          subject: `[Contact] ${cleanSubject}`,
+          text: `From: ${cleanName} <${cleanEmail}>\n\n${cleanMessage}`,
+        });
+      }
+    } catch (_) {
+      // Email fail — Telegram orqali yetib bordi
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Xabaringiz qabul qilindi. Tez orada javob beramiz.',
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getLiveActivity,
   getTeamMembers,
   getRoadmap,
+  submitContact,
 };
 

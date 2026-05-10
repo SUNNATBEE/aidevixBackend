@@ -1,4 +1,15 @@
-import PlaceholderPage from '@/components/common/PlaceholderPage';
+import { Metadata } from 'next';
+import ContactClient from './ContactClient';
+
+export const metadata: Metadata = {
+  title: 'Aloqa — Aidevix',
+  description: 'Aidevix bilan bog\'lanish — savol, taklif, hamkorlik. Bizga yozing, biz javob beramiz.',
+  openGraph: {
+    title: 'Aidevix — Aloqa',
+    description: 'Savol, taklif yoki hamkorlik uchun yozing.',
+  },
+};
+
 export default function ContactPage() {
-  return <PlaceholderPage titleKey="placeholder.contact.title" descriptionKey="placeholder.contact.desc" />;
+  return <ContactClient />;
 }

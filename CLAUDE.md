@@ -28,9 +28,9 @@ Repo summary for agents and contributors. Read this before any work.
 ```
 backend/
 ├── index.js                          # Express app entry, all routes registered
-├── controllers/                      # 17 controllers
-│   ├── authController.js             # register, login, daily-reward, forgot/reset password
-│   ├── courseController.js           # CRUD, categories, recommend, rate
+├── controllers/                      # 28+ controllers
+│   ├── authController.js             # register, login, daily-reward, forgot/reset, **telegramMiniAppAuth**
+│   ├── courseController.js           # CRUD, categories, recommend (aiStack-based), rate
 │   ├── videoController.js            # CRUD, Bunny.net, questions
 │   ├── xpController.js               # XP, quiz submit, profile update (aiStack), leaderboard
 │   ├── rankingController.js          # Top users (with aiStack), top courses, weekly
@@ -38,11 +38,13 @@ backend/
 │   ├── promptController.js           # Prompt Library CRUD, like, featured
 │   ├── subscriptionController.js     # Telegram/Instagram verify, token linking
 │   ├── paymentController.js          # Payme/Click payment processing
-│   ├── enrollmentController.js       # Course enrollment + progress
+│   ├── enrollmentController.js       # Course enrollment + progress + continueLearning
 │   ├── certificateController.js      # Certificate generate, verify, download
 │   ├── projectController.js          # Practical projects per course
+│   ├── playgroundController.js       # ← 2026-05-11 AI Code Playground review (Groq)
 │   ├── adminController.js            # Admin stats, manage users/courses/payments
 │   ├── followController.js           # User follow/unfollow
+│   ├── userController.js             # public profile (certs/prompts/follow), homeStats
 │   ├── wishlistController.js         # Course wishlist
 │   ├── sectionController.js          # Course sections
 │   └── uploadController.js           # File/avatar upload (Cloudinary)
@@ -71,30 +73,33 @@ backend/
 │   └── swaggerAdmin.js               # Admin Swagger spec
 └── utils/
     ├── newsScheduler.js              # Kunlik AI news (10:00, 16:00, 20:00 Toshkent)
-    ├── challengeScheduler.js         # Kunlik DailyChallenge + bot announce (00:00)
+    ├── challengeScheduler.js         # Kunlik DailyChallenge + bot announce (00:00) — atomic upsert
+    ├── digestScheduler.js            # ← 2026-05-11 Haftalik digest (Yakshanba 09:00)
     ├── telegramBot.js                # Bot + /postnews admin command
+    ├── telegramWebAppAuth.js         # ← 2026-05-11 TMA initData HMAC validate
     ├── socialVerification.js         # Telegram getChatMember API
     ├── checkSubscriptions.js         # performSubscriptionCheck()
-    ├── subscriptionCache.js          # Subscription result caching
+    ├── subscriptionCache.js          # Subscription result caching (MAX_ENTRIES=50000, LRU prune)
     ├── schedulerState.js             # Scheduler run state tracking
     ├── bunny.js                      # Bunny.net signed URL generator
     ├── jwt.js                        # Token sign/verify
-    ├── emailService.js               # Nodemailer
+    ├── emailService.js               # Nodemailer (sendWeeklyDigestEmail kiritildi)
     ├── badgeService.js               # Auto badge award
     ├── authSecurity.js               # Auth security helpers
     ├── errorResponse.js              # Standardized error response helper
-    └── logger.js                     # Structured HTTP request logger
+    └── logger.js                     # Structured HTTP request logger (sensitive param mask)
 
 frontend/
 ├── src/api/
 │   ├── axiosInstance.ts              # Axios + cookie auth (withCredentials: true)
-│   ├── authApi.ts                    # register, login, logout, me, daily-reward
-│   ├── courseApi.ts                  # getAllCourses, getCourse, top, rate
+│   ├── authApi.ts                    # register, login, logout, me, daily-reward, telegramMiniAppAuth
+│   ├── courseApi.ts                  # getAllCourses, getCourse, top, rate, getForUser (aiStack tavsiya)
 │   ├── videoApi.ts                   # getCourseVideos, getVideo, search, questions
 │   ├── subscriptionApi.ts            # status, verifyTelegram, generateToken, checkToken
 │   ├── rankingApi.ts                 # topCourses, topUsers, userPosition, weekly
-│   ├── userApi.ts                    # getUserStats, submitQuiz, updateProfile
+│   ├── userApi.ts                    # getUserStats, submitQuiz, updateProfile, getContinueLearning
 │   ├── promptApi.ts                  # getAll, getFeatured, getOne, create, like, delete
+│   ├── playgroundApi.ts              # ← 2026-05-11 AI Code Playground review
 │   ├── adminApi.ts                   # getDashboardStats, getUsers, getRecentPayments, CRUD
 │   ├── forgotPasswordApi.ts
 │   └── uploadApi.ts                  # uploadFile, uploadAvatar
@@ -111,21 +116,27 @@ frontend/
 │   ├── auth/         LoginForm, RegisterForm, ProtectedRoute, AdminRoute
 │   ├── common/
 │   │   ├── AICoach.tsx               # Floating AI assistant (calls Next.js /api/coach)
+│   │   ├── PwaInstallPrompt.tsx      # PWA install banner + SW update notification (2026-05-11)
+│   │   ├── TelegramMiniAppBridge.tsx # ← 2026-05-11 TMA auto-login
 │   │   └── DailyRewardModal, Badge, Button, Input, Loader, Modal, StarRating...
-│   ├── courses/      CourseCard, CourseFilter, CourseGrid, CourseSkeleton
+│   ├── courses/      CourseCard, CourseFilter, CourseGrid, CourseSkeleton, RecommendedCarousel
+│   ├── home/         HomeClient, ContinueWatching, RecommendedForYou (2026-05-11)
 │   ├── videos/       VideoCard, VideoLinkModal, VideoRating
 │   ├── subscription/ SubscriptionGate, TelegramVerify, InstagramVerify
 │   ├── leaderboard/  LeaderboardTable (AI Stack icons), LevelUpModal, UserXPCard
-│   ├── layout/       Navbar (⚡ Prompts link), Footer, ScrollToTop
+│   ├── layout/       Navbar (⚡ Prompts link), Footer, ScrollToTop, ClientLayoutWrapper
 │   └── ranking/      CourseRankCard
 ├── src/app/                          # Next.js App Router
-│   ├── page.tsx                      # Homepage
+│   ├── page.tsx                      # Homepage (+ ContinueWatching + RecommendedForYou)
 │   ├── courses/[id]/page.tsx         # Course detail
 │   ├── videos/[id]/page.tsx          # Video player
 │   ├── profile/page.tsx              # Profile + AI Stack tab (4th tab)
 │   ├── prompts/page.tsx              # Prompt Library
 │   ├── leaderboard/page.tsx          # XP leaderboard
 │   ├── challenges/page.tsx           # Daily challenges
+│   ├── playground/page.tsx           # ← 2026-05-11 AI Code Playground (Monaco)
+│   ├── u/[username]/page.tsx         # Public profile (SSR + SEO metadata)
+│   ├── offline/page.tsx              # PWA offline fallback
 │   ├── referral/page.tsx             # Referral program
 │   ├── pricing/page.tsx
 │   ├── blog/page.tsx / about/page.tsx / careers/page.tsx / contact/page.tsx
@@ -188,6 +199,41 @@ Frontend (TelegramVerify.tsx):
 - **Challenge turlari:** watch_video, complete_quiz, streak, share_prompt
 - **Pool:** Hafta kuni bo'yicha navbat bilan
 - **Env:** `CHALLENGE_SCHEDULER_ENABLED=false` — o'chirish
+- **Race-condition fix (2026-05-11):** `findOne → create` o'rniga atomic `create` + duplicate-key catch. `date` unique index multi-instance restart'da duplicate post oldini oladi.
+
+## Weekly Digest Scheduler (digestScheduler.js) — 2026-05-11 yangi
+
+- **Vaqt:** Har yakshanba 09:00 Toshkent (15min interval ichida tekshiriladi)
+- **Maqsad:** Faol foydalanuvchilarga haftalik xulosa — email + Telegram bot orqali
+- **Tarkib:** Bu hafta XP, streak, jami XP, ranking, yangi badgelar, davom ettirish CTA
+- **Filter:** Faqat `UserStats.weeklyXp > 0 || xp > 0` bo'lganlar (faol user)
+- **Batch:** 100tadan, throttle 50ms (Telegram rate limit himoyasi)
+- **Idempotent:** `lastDigestDate` — bir kunda ikki marta jo'natilmaydi
+- **Env:** `DIGEST_ENABLED=false` — o'chirish (default: true)
+
+## Telegram Mini App (TMA) — 2026-05-11 yangi
+
+```
+POST /api/auth/telegram-init { initData }   # HMAC validate + auto login/register
+```
+
+- **HMAC validate:** `utils/telegramWebAppAuth.js` — Telegram WebApp.initData (24h replay window, timing-safe equality)
+- **Auto-register:** TG user mavjud bo'lmasa username/photo/firstName Telegram'dan olinadi, `telegramUserId` ulanadi, placeholder email (`tg_<id>@tg.aidevix.local`)
+- **Rate limit:** `telegramAuthLimiter` 30/15min per IP
+- **CSRF exempt:** `/api/auth/telegram-init` (login analoglari kabi)
+- **Frontend:** `TelegramMiniAppBridge.tsx` `ClientLayoutWrapper` ichida, Telegram WebApp SDK + initData → backend → cookie auth. Faqat Telegram useragent yoki `tgWebAppData` paramda yuklanadi.
+
+## AI Code Playground (`/playground`) — 2026-05-11 yangi
+
+```
+POST /api/playground/review { code, language, prompt? }
+```
+
+- **Til:** 18 ta (JS/TS/Python/Go/Rust/Java/C++/SQL/HTML/CSS va h.k.)
+- **AI:** Groq `llama-3.3-70b-versatile`, JSON response (score, summary, issues[], improvements[], rewrite)
+- **Rate limit:** 15/15min per user
+- **Timeout:** 25s (AbortSignal). Groq mavjud bo'lmasa → fallback heuristic javob
+- **Frontend:** `/playground` sahifa — Monaco editor + real-time AI review panel (severity-coded issues, "Qo'llash" tugmasi rewrite uchun)
 
 ## Prompt Library
 
@@ -234,19 +280,37 @@ Rank: `AMATEUR → CANDIDATE → JUNIOR → MIDDLE → SENIOR → MASTER → LEG
 - Instagram: soft-check (always true if username provided)
 - `backend/seeders/seedCourses.js`: destructive — requires `ALLOW_DESTRUCTIVE_SEED=true`
 
-## Key Env Vars
+## Security Hardening (2026-05-11 audit)
+
+Quyidagi xato/zaifliklar shu kuni tuzatildi — kelajakda regresslarga yo'l qo'ymaslik kerak:
+
+- **`errorMiddleware.js`** — CastError `err.value` clientga qaytarilmaydi (ID enumeration himoyasi); stack trace **hech qachon** response'da emas, faqat logger'da; 500'lar prod'da generic message
+- **`logger.js`** — HTTP request log'larda `?token=`, `?code=`, `?password=`, `?secret=`, `?access_token=`, `?refresh_token=`, `?authorization=`, `?api_key=` qiymatlari `***` bilan maskalanadi
+- **`Session.refreshTokenHash`** — `select: false` (tasodifiy log/serializatsiyaga tushmaslik uchun). Refresh comparison: `.select('+refreshTokenHash')` zarur (`authController.refresh`)
+- **`subscriptionCache.js`** — `MAX_ENTRIES=50000` LRU-style prune (unbounded DoS himoyasi)
+- **`/2fa/disable` + `/2fa/backup-codes`** — `requireRecentReauth` middleware (account takeover himoyasi)
+- **`courseRoutes`** — barcha `:id` parametrlarda `validateObjectId()` (yaroqsiz ID → 404, CastError → 500 emas)
+- **`challengeScheduler` race fix** — atomic `create` + duplicate-key catch (multi-instance restart safety)
+- **`courseController.getCourse`** — background `findByIdAndUpdate(...).exec().catch()` (unhandledRejection oldini olish)
+- **`PromoCode.js`** — `code` field'da `unique:true` + `.index({code:1})` duplicate index olib tashlandi (Mongoose warning)
+
+## Key Env Vars (Railway — backend)
 
 ```
-TELEGRAM_BOT_TOKEN
+TELEGRAM_BOT_TOKEN                       # Bot + TMA HMAC validate (telegramWebAppAuth.js)
 TELEGRAM_CHANNEL_USERNAME=aidevix        # Public channel (subscription gate)
 TELEGRAM_ADMIN_CHAT_ID=697727022         # Admin Telegram ID
-GROQ_API_KEY                             # Groq AI (news + coach)
+GROQ_API_KEY                             # Groq AI (news + coach + playground review)
 NEWS_ENABLED=true                        # AI news scheduler
 CHALLENGE_SCHEDULER_ENABLED=true         # Daily challenge scheduler
+DIGEST_ENABLED=true                      # Weekly digest scheduler (2026-05-11 yangi)
 BUNNY_STREAM_API_KEY, BUNNY_LIBRARY_ID, BUNNY_TOKEN_KEY
 FRONTEND_URL                             # CORS allowed origins (comma-separated)
 BACKEND_URL                              # Self URL (Railway)
+REDIS_URL                                # Multi-instance rate limit uchun (Upstash). Yo'q bo'lsa per-instance.
 ```
+
+> ⚠️ `TELEGRAM_BOT_TOKEN` va `GROQ_API_KEY` — **secret kalitlar**. Vercel (frontend)'ga HECH QACHON qo'ymang.
 
 ## High-signal Files
 
@@ -255,16 +319,31 @@ BACKEND_URL                              # Self URL (Railway)
 - `backend/controllers/adminController.js` — admin stats, users, payments
 - `backend/controllers/xpController.js` — XP, quiz, profile (aiStack)
 - `backend/controllers/promptController.js` — Prompt Library
+- `backend/controllers/userController.js` — public profile (certs/prompts/follow counts)
+- `backend/controllers/playgroundController.js` — AI Code Playground Groq integration
 - `backend/middleware/subscriptionCheck.js` — subscription gate
+- `backend/middleware/csrfProtection.js` — CSRF whitelist (include `/api/auth/telegram-init`)
 - `backend/utils/newsScheduler.js` — AI news
 - `backend/utils/challengeScheduler.js` — daily challenge + bot
+- `backend/utils/digestScheduler.js` — weekly digest (Yakshanba 09:00)
+- `backend/utils/telegramWebAppAuth.js` — TMA initData HMAC validate
 - `backend/models/User.js` — aiStack, socialSubscriptions, gamification
+- `backend/models/Session.js` — `refreshTokenHash: select:false` (refresh logic'da `+refreshTokenHash` zarur)
 
 **Frontend:**
 - `frontend/src/api/adminApi.ts` — admin API calls + `unwrapAdmin<T>` helper
+- `frontend/src/api/playgroundApi.ts` — AI Code Playground API
 - `frontend/src/config/adminNav.tsx` — ADMIN_NAV sidebar config
 - `frontend/src/app/admin/layout.tsx` — AdminRoute wrapper, sidebar
+- `frontend/src/app/u/[username]/PublicProfileClient.tsx` — public profile UI
+- `frontend/src/app/playground/PlaygroundClient.tsx` — Monaco editor + AI review
 - `frontend/src/api/axiosInstance.ts` — Axios + cookie auth
+- `frontend/src/components/common/TelegramMiniAppBridge.tsx` — TMA auto-login
+- `frontend/src/components/common/PwaInstallPrompt.tsx` — install banner + SW update prompt
+- `frontend/src/components/home/ContinueWatching.tsx` — keyingi video widget
+- `frontend/src/components/home/RecommendedForYou.tsx` — aiStack-based tavsiyalar
+- `frontend/public/sw.js` — Service Worker v3 (network-first nav, SWR static)
+- `frontend/public/manifest.json` — PWA manifest (4 shortcut)
 - `frontend/src/utils/constants.ts` — ROUTES, BACKEND_ORIGIN, API_BASE_URL
 
 ## Verification Commands

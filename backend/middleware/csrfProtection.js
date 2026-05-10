@@ -25,6 +25,7 @@ const EXEMPT_PATHS = [
   /^\/api\/auth\/verify-email-public$/,
   /^\/api\/payments\/(payme|click)(\/.*)?$/, // Payment provider webhooks
   /^\/api\/subscriptions\/telegram\/webhook$/,
+  /^\/api\/public\/contact$/, // Public contact form — auth cookie yo'q, faqat anti-spam limiter
 ];
 
 const isExempt = (path) => EXEMPT_PATHS.some((re) => re.test(path));
