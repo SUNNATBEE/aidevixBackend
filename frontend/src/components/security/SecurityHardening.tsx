@@ -1,23 +1,19 @@
 'use client';
 
 /**
- * Client-side xavfsizlik qatlamlari.
+ * Client-side xavfsizlik qatlamlari (yumshatilgan rejim).
  *
- * MUHIM ESLATMA: Hech qanday client-side himoya 100% emas. Brauzer
- * o'rnatilgan tomonidan boshqariladi va hacker xohlasa har qanday
- * JS-deterrentni o'chiradi. Asosiy himoya backend'da (httpOnly
- * cookies, CSP, rate limit, server-side validation). Bu komponent —
- * "ko'rinadigan" sezilarli to'siq:
+ * MUHIM: Asosiy himoya backend'da (httpOnly cookies, CSP, rate limit,
+ * server-side validation). Bu komponent endi DevTools'ni bloklamaydi —
+ * F12, Ctrl+Shift+I, right-click, anti-debugger loop hammasi olib
+ * tashlangan. Qoldirilgan qatlamlar:
  *
  *  1. Console banner — Self-XSS hujumlaridan ogohlantirish
  *  2. Production'da `console.*` ni neytrallash — log'larda token sizishini kamaytirish
- *  3. Anti-debugger — DevTools ochilganda performance jarima
- *  4. window.__REDUX_DEVTOOLS_EXTENSION__ ni o'chirish
- *  5. React DevTools ni production'da yashirish
- *  6. Right-click va F12 — faqat ko'rinadigan UX deterrent (optional)
+ *  3. window.__REDUX_DEVTOOLS_EXTENSION__ ni o'chirish (Redux state himoyasi)
+ *  4. React DevTools hook'ini neytrallash
  *
- * Faqat production'da ishlaydi (NODE_ENV === 'production'). Dev'da
- * to'liq devtools mavjud bo'lishi shart.
+ * Faqat production'da ishlaydi (NODE_ENV === 'production').
  */
 
 import { useEffect } from 'react';
@@ -105,93 +101,7 @@ export default function SecurityHardening() {
       } catch { /* jim */ }
     } catch { /* jim */ }
 
-    // ────────────────────────────────────────────────────────────────
-    // 4. DevTools ochilganda anti-debugger — performance jarima
-    //    Bu hackerlarni butunlay to'xtatmaydi (Sources panel'da
-    //    "Never pause here" bilan o'chirilishi mumkin), lekin oddiy
-    //    skript bolalari uchun yetarli to'siq.
-    //
-    //    setInterval bilan har 1 sek `debugger` chaqirilsa — DevTools
-    //    ochiq bo'lsa sahifa muzlaydi, yopiq bo'lsa optimizator o'tib
-    //    ketadi.
-    // ────────────────────────────────────────────────────────────────
-    const debuggerLoop = setInterval(() => {
-      try {
-        // eslint-disable-next-line no-debugger
-        debugger;
-      } catch { /* jim */ }
-    }, 1500);
-
-    // ────────────────────────────────────────────────────────────────
-    // 5. DevTools open detection — vizual deterrent
-    //    window.outerWidth - innerWidth > 160px → DevTools ochilgan
-    //    deb taxmin qilamiz (docked panel). Detect bo'lsa — body'ga
-    //    `data-devtools-open` attribute qo'yiladi (CSS overlay uchun).
-    // ────────────────────────────────────────────────────────────────
-    let lastDetected = false;
-    const checkDevtools = () => {
-      const threshold = 160;
-      const horiz = window.outerWidth - window.innerWidth > threshold;
-      const vert = window.outerHeight - window.innerHeight > threshold;
-      const detected = horiz || vert;
-      if (detected !== lastDetected) {
-        lastDetected = detected;
-        if (detected) {
-          document.documentElement.setAttribute('data-devtools-open', 'true');
-        } else {
-          document.documentElement.removeAttribute('data-devtools-open');
-        }
-      }
-    };
-    const devtoolsTimer = setInterval(checkDevtools, 800);
-
-    // ────────────────────────────────────────────────────────────────
-    // 6. Page-level guards
-    // ────────────────────────────────────────────────────────────────
-
-    // Right-click — kontekst menyusini bloklash (oddiy deterrent)
-    const onContext = (e: MouseEvent) => {
-      // Form input'larida kontekst menyusi qoladi (UX uchun)
-      const t = e.target as HTMLElement | null;
-      const tag = t?.tagName?.toUpperCase();
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      e.preventDefault();
-    };
-
-    // F12, Ctrl+Shift+I/J/C, Ctrl+U — DevTools shortcut'larini bloklash
-    const onKey = (e: KeyboardEvent) => {
-      const k = e.key;
-      const ctrl = e.ctrlKey || e.metaKey;
-      const shift = e.shiftKey;
-      // F12
-      if (k === 'F12') { e.preventDefault(); return; }
-      // Ctrl+Shift+I/J/C (Inspector, Console, picker)
-      if (ctrl && shift && ['I', 'J', 'C', 'i', 'j', 'c'].includes(k)) { e.preventDefault(); return; }
-      // Ctrl+U — View Source
-      if (ctrl && (k === 'U' || k === 'u')) { e.preventDefault(); return; }
-      // Ctrl+S — Save page (HTML yuklab olish)
-      if (ctrl && (k === 'S' || k === 's')) { e.preventDefault(); return; }
-    };
-
-    document.addEventListener('contextmenu', onContext);
-    document.addEventListener('keydown', onKey);
-
-    // ────────────────────────────────────────────────────────────────
-    // 7. Drag-and-drop bloklash (rasm/fayl tekshiruvi orqali tahlil)
-    // ────────────────────────────────────────────────────────────────
-    const onDragStart = (e: DragEvent) => {
-      const t = e.target as HTMLElement | null;
-      if (t?.tagName === 'IMG') e.preventDefault();
-    };
-    document.addEventListener('dragstart', onDragStart);
-
-    return () => {
-      clearInterval(debuggerLoop);
-      clearInterval(devtoolsTimer);
-      document.removeEventListener('contextmenu', onContext);
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('dragstart', onDragStart);
-    };
+    return () => {};
   }, []);
 
   return null;
