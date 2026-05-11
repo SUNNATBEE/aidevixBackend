@@ -10,6 +10,7 @@ import {
 } from 'react-icons/io5';
 import { FaTelegramPlane } from 'react-icons/fa';
 import { useTheme } from '@/context/ThemeContext';
+import { useLang } from '@/context/LangContext';
 import { contactApi } from '@/api/contactApi';
 
 type FormState = {
@@ -20,17 +21,18 @@ type FormState = {
   _honeypot: string;
 };
 
-const SUBJECT_PRESETS: Record<string, string> = {
-  'team-plan': 'Team / Enterprise tarifi',
-  partnership: 'Hamkorlik taklifi',
-  bug: 'Texnik muammo',
-  general: 'Umumiy savol',
-};
-
 export default function ContactClient() {
   const { isDark } = useTheme();
+  const { t } = useLang();
   const sp = useSearchParams();
   const subjectParam = sp.get('subject');
+
+  const SUBJECT_PRESETS: Record<string, string> = {
+    'team-plan': t('contact.subj.team'),
+    partnership: t('contact.subj.partnership'),
+    bug: t('contact.subj.bug'),
+    general: t('contact.subj.general'),
+  };
 
   const [form, setForm] = useState<FormState>({
     name: '',
@@ -58,23 +60,20 @@ export default function ContactClient() {
     e.preventDefault();
     setStatus(null);
 
-    if (form.name.trim().length < 2) return setStatus({ type: 'error', message: 'Ismni to\'liq kiriting' });
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setStatus({ type: 'error', message: 'Email yaroqsiz' });
-    if (form.subject.trim().length < 3) return setStatus({ type: 'error', message: 'Mavzuni to\'ldiring' });
-    if (form.message.trim().length < 10) return setStatus({ type: 'error', message: 'Xabaringiz juda qisqa (min 10 belgi)' });
+    if (form.name.trim().length < 2) return setStatus({ type: 'error', message: t('contact.error.name') });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setStatus({ type: 'error', message: t('contact.error.email') });
+    if (form.subject.trim().length < 3) return setStatus({ type: 'error', message: t('contact.error.subject') });
+    if (form.message.trim().length < 10) return setStatus({ type: 'error', message: t('contact.error.message') });
 
     setSubmitting(true);
     try {
       await contactApi.submit(form);
-      setStatus({
-        type: 'success',
-        message: 'Xabaringiz qabul qilindi. Tez orada (24 soat ichida) javob beramiz.',
-      });
+      setStatus({ type: 'success', message: t('contact.success') });
       setForm({ name: '', email: '', subject: '', message: '', _honeypot: '' });
     } catch (err: any) {
       setStatus({
         type: 'error',
-        message: err?.response?.data?.message || 'Xato yuz berdi. Telegram orqali bog\'lansangiz tezroq javob olasiz.',
+        message: err?.response?.data?.message || t('contact.error.generic'),
       });
     } finally {
       setSubmitting(false);
@@ -91,27 +90,9 @@ export default function ContactClient() {
   }`;
 
   const CONTACTS = [
-    {
-      icon: <IoMail />,
-      label: 'Email',
-      value: 'support@aidevix.uz',
-      href: 'mailto:support@aidevix.uz',
-      accent: 'text-indigo-400',
-    },
-    {
-      icon: <FaTelegramPlane />,
-      label: 'Telegram',
-      value: '@aidevix_support',
-      href: 'https://t.me/aidevix_support',
-      accent: 'text-sky-400',
-    },
-    {
-      icon: <IoLogoInstagram />,
-      label: 'Instagram',
-      value: '@aidevix.uz',
-      href: 'https://instagram.com/aidevix.uz',
-      accent: 'text-pink-400',
-    },
+    { icon: <IoMail />, label: 'Email', value: 'support@aidevix.uz', href: 'mailto:support@aidevix.uz', accent: 'text-indigo-400' },
+    { icon: <FaTelegramPlane />, label: 'Telegram', value: '@aidevix_support', href: 'https://t.me/aidevix_support', accent: 'text-sky-400' },
+    { icon: <IoLogoInstagram />, label: 'Instagram', value: '@aidevix.uz', href: 'https://instagram.com/aidevix.uz', accent: 'text-pink-400' },
   ];
 
   return (
@@ -124,14 +105,12 @@ export default function ContactClient() {
           className="text-center mb-12 max-w-2xl mx-auto"
         >
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-400 mb-3">
-            Aloqa
+            {t('contact.kicker')}
           </div>
           <h1 className="font-display text-3xl sm:text-5xl font-black tracking-[-0.04em] mb-4">
-            Biz bilan bog'laning
+            {t('contact.title')}
           </h1>
-          <p className={`text-sm sm:text-base ${muted}`}>
-            Savol, taklif, hamkorlik — bizga yozing. 24 soat ichida javob beramiz.
-          </p>
+          <p className={`text-sm sm:text-base ${muted}`}>{t('contact.subtitle')}</p>
         </motion.div>
 
         <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-6">
@@ -143,10 +122,10 @@ export default function ContactClient() {
             className={`rounded-3xl border p-6 sm:p-8 ${cardBg}`}
             noValidate
           >
-            <h2 className="text-lg font-black mb-1">Bizga yozing</h2>
-            <p className={`text-xs mb-6 ${muted}`}>* belgisi bilan ko'rsatilgan maydonlar majburiy</p>
+            <h2 className="text-lg font-black mb-1">{t('contact.form.title')}</h2>
+            <p className={`text-xs mb-6 ${muted}`}>{t('contact.form.required')}</p>
 
-            {/* Honeypot — bot detektor (ko'zga ko'rinmaydi) */}
+            {/* Honeypot */}
             <input
               type="text"
               name="company_url"
@@ -161,7 +140,7 @@ export default function ContactClient() {
             <div className="grid sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${muted}`}>
-                  Ism *
+                  {t('contact.form.name')} *
                 </label>
                 <input
                   type="text"
@@ -174,7 +153,7 @@ export default function ContactClient() {
               </div>
               <div>
                 <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${muted}`}>
-                  Email *
+                  {t('contact.form.email')} *
                 </label>
                 <input
                   type="email"
@@ -189,13 +168,13 @@ export default function ContactClient() {
 
             <div className="mb-4">
               <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${muted}`}>
-                Mavzu *
+                {t('contact.form.subject')} *
               </label>
               <input
                 type="text"
                 value={form.subject}
                 onChange={(e) => update('subject', e.target.value.slice(0, 200))}
-                placeholder="Misol: Team obuna haqida savol"
+                placeholder={t('contact.form.subjectPh')}
                 required
                 className={inputBase}
               />
@@ -203,12 +182,12 @@ export default function ContactClient() {
 
             <div className="mb-4">
               <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${muted}`}>
-                Xabar * <span className="text-slate-500">({form.message.length}/5000)</span>
+                {t('contact.form.message')} * <span className="text-slate-500">({form.message.length}/5000)</span>
               </label>
               <textarea
                 value={form.message}
                 onChange={(e) => update('message', e.target.value.slice(0, 5000))}
-                placeholder="Savolingizni batafsil yozing..."
+                placeholder={t('contact.form.messagePh')}
                 required
                 rows={6}
                 className={`${inputBase} resize-y min-h-[140px]`}
@@ -241,11 +220,11 @@ export default function ContactClient() {
               {submitting ? (
                 <>
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Yuborilmoqda...
+                  {t('contact.form.submitting')}
                 </>
               ) : (
                 <>
-                  <IoSend /> Yuborish
+                  <IoSend /> {t('contact.form.submit')}
                 </>
               )}
             </button>
@@ -259,7 +238,7 @@ export default function ContactClient() {
           >
             <div className={`rounded-3xl border p-6 ${cardBg}`}>
               <h3 className="font-bold text-sm uppercase tracking-widest text-slate-400 mb-4">
-                To'g'ridan-to'g'ri
+                {t('contact.side.direct')}
               </h3>
               <div className="space-y-3">
                 {CONTACTS.map((c) => (
@@ -286,36 +265,34 @@ export default function ContactClient() {
 
             <div className={`rounded-3xl border p-6 ${cardBg}`}>
               <h3 className="font-bold text-sm uppercase tracking-widest text-slate-400 mb-4">
-                Ish vaqtimiz
+                {t('contact.side.hours')}
               </h3>
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-2">
                   <IoTimeOutline className={muted} />
-                  <span>Du–Ju: 09:00 – 18:00 (UTC+5)</span>
+                  <span>{t('contact.side.workhours')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <IoLocationOutline className={muted} />
-                  <span>Toshkent, O'zbekiston</span>
+                  <span>{t('contact.side.location')}</span>
                 </div>
                 <div className="flex items-start gap-2 mt-2 text-xs">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 animate-pulse flex-shrink-0" />
-                  <span className={muted}>Telegram support 24/7 javob beradi</span>
+                  <span className={muted}>{t('contact.side.support247')}</span>
                 </div>
               </div>
             </div>
 
             <div className={`rounded-3xl border p-6 ${cardBg}`}>
               <h3 className="font-bold text-sm uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
-                <IoChatbubbles /> Yordam markazi
+                <IoChatbubbles /> {t('contact.side.help.title')}
               </h3>
-              <p className={`text-sm mb-4 ${muted}`}>
-                Avval FAQ va tez-tez beriladigan savollar bo'limini ko'ring — javobingiz u yerda bo'lishi mumkin.
-              </p>
+              <p className={`text-sm mb-4 ${muted}`}>{t('contact.side.help.text')}</p>
               <Link
                 href="/help"
                 className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-400 hover:text-indigo-300"
               >
-                Yordam markaziga o'tish →
+                {t('contact.side.help.cta')} →
               </Link>
             </div>
           </motion.div>

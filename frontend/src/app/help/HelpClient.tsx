@@ -10,137 +10,32 @@ import {
 } from 'react-icons/io5';
 import { FaTelegramPlane } from 'react-icons/fa';
 import { useTheme } from '@/context/ThemeContext';
+import { useLang } from '@/context/LangContext';
 
-type FAQItem = { q: string; a: string };
-type Category = { id: string; icon: React.ReactNode; title: string; description: string; items: FAQItem[] };
-
-const CATEGORIES: Category[] = [
-  {
-    id: 'getting-started',
-    icon: <IoSparkles />,
-    title: 'Boshlanish',
-    description: 'Aidevix bilan ishni boshlash',
-    items: [
-      {
-        q: 'Aidevix nima?',
-        a: 'Aidevix — O\'zbek tilidagi AI-first dasturlash platformasi. Bizda 50+ kurs, Prompt Library, AI Code Playground, daily challenges va sertifikatlar bor. Maqsadimiz — sizni AI tools (Claude, Cursor, Copilot) bilan ishlashga tayyorlash.',
-      },
-      {
-        q: 'Qanday ro\'yxatdan o\'taman?',
-        a: 'Bosh sahifaning yuqori burchagida "Ro\'yxatdan o\'tish" tugmasini bosing. Email + parol bilan yoki Google orqali tez ro\'yxatdan o\'tishingiz mumkin. Telegram Mini App orqali ham — bot ichida sahifa ochiladi va avtomatik login bo\'ladi.',
-      },
-      {
-        q: 'Telegram kanalga obuna nega kerak?',
-        a: 'Kurs videolarini ko\'rish uchun @aidevix kanaliga obuna bo\'lishingiz kerak. Bu bizning asosiy biznes modelimiz va siz uchun yangiliklarni birinchidan eshitishingiz uchun. Profil → "Telegramni tasdiqlash" tugmasi orqali bog\'lanasiz.',
-      },
-      {
-        q: 'Aidevix bepulmi?',
-        a: 'Asosiy imkoniyatlar (tanlangan kurslar, Prompt Library, XP, daily reward, basic Playground) bepul. Premium kurslar va kengaytirilgan AI Coach uchun Pro tarif (oyiga 99 000 so\'m). Tariflar haqida → /pricing.',
-      },
-    ],
-  },
-  {
-    id: 'courses',
-    icon: <IoVideocam />,
-    title: 'Kurslar va videolar',
-    description: 'O\'qish jarayoni',
-    items: [
-      {
-        q: 'Kursga qanday yozilaman?',
-        a: 'Kurs sahifasida "Yozilish" tugmasini bosing. Bepul kurslar uchun darhol kirish ochiladi. Pullik kurslar uchun Click yoki Payme orqali to\'lovni amalga oshirasiz.',
-      },
-      {
-        q: 'Video ko\'rsa XP olamanmi?',
-        a: 'Ha. Har bir video ko\'rilganda +50 XP. Quiz to\'liq to\'g\'ri javob bersangiz +100 XP bonus. Daily challenge yakuniga yetkazsangiz +80-250 XP.',
-      },
-      {
-        q: 'Video to\'xtab qoldi/yuklamayapti?',
-        a: '1) Internet ulanishingizni tekshiring. 2) Telegram @aidevix kanaliga obunangizni tasdiqlang (Profil → Obunalar). 3) Brauzeringizni yangilang. 4) Hali ham muammo bo\'lsa — /contact orqali yozing.',
-      },
-      {
-        q: 'Sertifikat qanday olaman?',
-        a: 'Kursning barcha videolarini ko\'rib chiqib, oxirgi quizdan o\'tsangiz, avtomatik sertifikat beriladi. Email va Telegram orqali xabar keladi. Profil → "Sertifikatlarim" bo\'limidan ko\'rishingiz va PDF yuklab olishingiz mumkin.',
-      },
-    ],
-  },
-  {
-    id: 'xp',
-    icon: <IoTrophy />,
-    title: 'XP, Level va Reyting',
-    description: 'Gamification tizimi',
-    items: [
-      {
-        q: 'XP nima va qanday olinadi?',
-        a: 'XP = Experience Points. Har bir harakat uchun beriladi: video (+50), quiz (+10/savol, +100 bonus), daily challenge (+80-250), prompt yaratish (+30), project tugatish (+200), daily login reward (+30-100).',
-      },
-      {
-        q: 'Streak nima va nima foydasi bor?',
-        a: 'Streak — har kuni platforma\'ga kirib biror harakat qilsangiz oshib boradi. 7 kun streak = +200 XP bonus, 30 kun streak = "Streak Master" badge + premium imkoniyatlar. Streak buzilsa qaytadan boshlanadi (haftada 1 marta freeze ishlatib ushlab turish mumkin).',
-      },
-      {
-        q: 'Level qanday ko\'tariladi?',
-        a: 'Har 1000 XP — 1 ta yangi level. Level 5 da — Corporal, Level 15 — Sergeant, va h.k. Profil va leaderboard da level/rank ko\'rinadi. Public profile (/u/username) da hammaga ko\'rsata olasiz.',
-      },
-      {
-        q: 'Leaderboard\'ga qanday tushaman?',
-        a: 'Avtomatik — XP qancha bo\'lsa, leaderboard\'da pastdan o\'rin olasiz. Haftalik leaderboard alohida — har dushanba 00:00 reset bo\'ladi. Top 3 ga prizes beriladi.',
-      },
-    ],
-  },
-  {
-    id: 'payments',
-    icon: <IoCard />,
-    title: 'To\'lov va Pro obuna',
-    description: 'Tarif va to\'lov masalalari',
-    items: [
-      {
-        q: 'Qanday to\'lov turlari qabul qilinadi?',
-        a: 'Click va Payme orqali UzCard/Humo, Visa, MasterCard. To\'lov darhol ishga tushadi. Pro yillik obuna uchun 16% chegirma.',
-      },
-      {
-        q: 'Pro obunani qanday bekor qilaman?',
-        a: 'Profile → Sozlamalar → Obuna → "Obunani bekor qilish". Joriy davr oxirigacha Pro imkoniyatlar saqlanib qoladi. Avtomatik yangilanish o\'chiriladi.',
-      },
-      {
-        q: 'Pulni qaytarish (refund) bormi?',
-        a: 'Ha. Pro obunani sotib olgandan 7 kun ichida pulingiz to\'liq qaytariladi — sababsiz. /contact ga yozing.',
-      },
-      {
-        q: 'Promokod qayerga kiritiladi?',
-        a: 'To\'lov sahifasida "Promokod" maydoni bor. PromoCode va kurs uchun amal qiladi. Tugagan promo ishlamaydi.',
-      },
-    ],
-  },
-  {
-    id: 'account',
-    icon: <IoShieldCheckmark />,
-    title: 'Hisob va xavfsizlik',
-    description: 'Parol, 2FA, sessiyalar',
-    items: [
-      {
-        q: 'Parolimni unutdim, nima qilay?',
-        a: '"Login" sahifasida → "Parolni unutdingizmi?" → emailingizni kiriting → 6 raqamli kod keladi → yangi parol o\'rnatasiz. Kod 10 daqiqada amal qiladi.',
-      },
-      {
-        q: '2FA qanday yoqaman?',
-        a: 'Profile → Sozlamalar → 2FA → "Yoqish". Google Authenticator yoki Authy app\'ida QR kodni o\'qing. 10 ta backup kod ham beriladi — xavfsiz joyda saqlang. 2FA ni o\'chirish parol qayta tasdiqlashni talab qiladi.',
-      },
-      {
-        q: 'Boshqa qurilmalardan chiqishni qanday boshqaraman?',
-        a: 'Profile → Sozlamalar → Faol sessiyalar — barcha kirgan qurilmalarni ko\'rasiz va birini yoki barchasini bir vaqtda chiqarib yuborishingiz mumkin. Yangi qurilmadan kirsangiz, emailga xabar keladi.',
-      },
-      {
-        q: 'Hisobimni qanday o\'chiraman?',
-        a: 'Profile → Sozlamalar → "Hisobni o\'chirish" (GDPR). Parolni qayta tasdiqlashingiz kerak. Ma\'lumotlaringiz anonim qilinadi va 30 kundan keyin to\'liq o\'chiriladi.',
-      },
-    ],
-  },
+const CATEGORY_ICONS = [
+  { id: 'start', icon: <IoSparkles /> },
+  { id: 'courses', icon: <IoVideocam /> },
+  { id: 'xp', icon: <IoTrophy /> },
+  { id: 'pay', icon: <IoCard /> },
+  { id: 'acc', icon: <IoShieldCheckmark /> },
 ];
 
 export default function HelpClient() {
   const { isDark } = useTheme();
+  const { t } = useLang();
   const [search, setSearch] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+
+  const CATEGORIES = CATEGORY_ICONS.map(({ id, icon }) => ({
+    id,
+    icon,
+    title: t(`help.cat.${id}.title`),
+    description: t(`help.cat.${id}.desc`),
+    items: [1, 2, 3, 4].map((n) => ({
+      q: t(`help.cat.${id}.q${n}`),
+      a: t(`help.cat.${id}.a${n}`),
+    })),
+  }));
 
   const filtered = useMemo(() => {
     if (!search.trim()) return CATEGORIES;
@@ -153,7 +48,8 @@ export default function HelpClient() {
         ),
       }))
       .filter((cat) => cat.items.length > 0);
-  }, [search]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, t]);
 
   const totalQuestions = filtered.reduce((sum, cat) => sum + cat.items.length, 0);
 
@@ -171,14 +67,12 @@ export default function HelpClient() {
           className="text-center mb-10 max-w-2xl mx-auto"
         >
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-400 mb-3">
-            Yordam markazi
+            {t('help.kicker')}
           </div>
           <h1 className="font-display text-3xl sm:text-5xl font-black tracking-[-0.04em] mb-4">
-            Qanday yordam bera olamiz?
+            {t('help.title')}
           </h1>
-          <p className={`text-sm sm:text-base ${muted}`}>
-            Aidevix bo'yicha eng ko'p beriladigan savollar va javoblari.
-          </p>
+          <p className={`text-sm sm:text-base ${muted}`}>{t('help.subtitle')}</p>
         </motion.div>
 
         {/* Search */}
@@ -188,7 +82,7 @@ export default function HelpClient() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value.slice(0, 80))}
-            placeholder="Savolingizni yozing... (masalan: 'parolni unutdim')"
+            placeholder={t('help.search')}
             className={`flex-1 bg-transparent outline-none text-sm ${
               isDark ? 'placeholder:text-slate-500' : 'placeholder:text-slate-400'
             }`}
@@ -197,7 +91,7 @@ export default function HelpClient() {
             <span className={`text-xs px-2 py-1 rounded-md ${
               isDark ? 'bg-white/5' : 'bg-slate-100'
             }`}>
-              {totalQuestions} ta natija
+              {t('help.results').replace('{0}', String(totalQuestions))}
             </span>
           )}
         </div>
@@ -206,15 +100,13 @@ export default function HelpClient() {
         {filtered.length === 0 ? (
           <div className={`rounded-3xl border p-12 text-center ${cardBg}`}>
             <IoBookOutline className="text-5xl mx-auto text-slate-500 mb-3" />
-            <h3 className="font-bold text-lg mb-1">Natija topilmadi</h3>
-            <p className={`text-sm mb-5 ${muted}`}>
-              Boshqa kalit so'z bilan urinib ko'ring yoki bizga to'g'ridan-to'g'ri yozing.
-            </p>
+            <h3 className="font-bold text-lg mb-1">{t('help.empty.title')}</h3>
+            <p className={`text-sm mb-5 ${muted}`}>{t('help.empty.text')}</p>
             <Link
               href="/contact"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-500 text-white font-bold text-sm hover:shadow-lg hover:shadow-indigo-500/30"
             >
-              <IoChatbubbles /> Aloqa sahifasiga o'tish
+              <IoChatbubbles /> {t('help.empty.cta')}
             </Link>
           </div>
         ) : (
@@ -284,16 +176,14 @@ export default function HelpClient() {
 
         {/* Contact CTA */}
         <div className={`mt-14 rounded-3xl border p-6 sm:p-8 text-center ${cardBg}`}>
-          <h3 className="font-display text-xl sm:text-2xl font-black mb-2">Javob topa olmadingizmi?</h3>
-          <p className={`text-sm mb-5 max-w-md mx-auto ${muted}`}>
-            Bizga to'g'ridan-to'g'ri yozing — 24 soat ichida javob beramiz. Telegram orqali bog'lansangiz tezroq.
-          </p>
+          <h3 className="font-display text-xl sm:text-2xl font-black mb-2">{t('help.cta.title')}</h3>
+          <p className={`text-sm mb-5 max-w-md mx-auto ${muted}`}>{t('help.cta.text')}</p>
           <div className="flex flex-wrap gap-3 justify-center">
             <Link
               href="/contact"
               className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-indigo-500 text-white font-bold text-sm hover:shadow-lg hover:shadow-indigo-500/30"
             >
-              <IoMail /> Email orqali
+              <IoMail /> {t('help.cta.email')}
             </Link>
             <a
               href="https://t.me/aidevix_support"
@@ -301,7 +191,7 @@ export default function HelpClient() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-sky-500 text-white font-bold text-sm hover:shadow-lg hover:shadow-sky-500/30"
             >
-              <FaTelegramPlane /> Telegram
+              <FaTelegramPlane /> {t('help.cta.tg')}
             </a>
             <a
               href="https://youtube.com/@aidevix"
@@ -311,7 +201,7 @@ export default function HelpClient() {
                 isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-white border-slate-200 hover:bg-slate-100'
               }`}
             >
-              <IoLogoYoutube /> YouTube qo'llanmalar
+              <IoLogoYoutube /> {t('help.cta.yt')}
             </a>
           </div>
         </div>

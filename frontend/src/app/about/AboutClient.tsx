@@ -7,6 +7,7 @@ import {
   IoPeople, IoTrophy, IoSparkles, IoArrowForward,
 } from 'react-icons/io5';
 import { useTheme } from '@/context/ThemeContext';
+import { useLang } from '@/context/LangContext';
 
 type Stats = {
   students?: number;
@@ -15,60 +16,38 @@ type Stats = {
   rating?: number;
 };
 
-const VALUES = [
-  {
-    icon: <IoGlobe />,
-    title: 'O\'zbek tilida',
-    text: 'Hamma kontent o\'zbek tilida — yangi boshlovchilar uchun ona tilida o\'rganish qulay.',
-    accent: 'from-blue-500 to-cyan-500',
-  },
-  {
-    icon: <IoSparkles />,
-    title: 'AI birinchi',
-    text: 'Claude, Cursor, Copilot — biz an\'anaviy dasturlashdan tashqari, AI tools bilan ishlashni o\'rgatamiz.',
-    accent: 'from-indigo-500 to-purple-500',
-  },
-  {
-    icon: <IoCode />,
-    title: 'Amaliyot bilan',
-    text: 'Har bir kursda real loyihalar, AI Code Playground, prompt library — bilim emas, ko\'nikma beramiz.',
-    accent: 'from-pink-500 to-red-500',
-  },
-  {
-    icon: <IoShieldCheckmark />,
-    title: 'Tartibli o\'sish',
-    text: 'XP, daily challenges va leaderboard — har kungi kichik qadamlar katta natija beradi.',
-    accent: 'from-amber-500 to-orange-500',
-  },
-  {
-    icon: <IoPeople />,
-    title: 'Hamjamiyat',
-    text: 'Telegram kanal, Discord, real-time leaderboard. Yolg\'iz emassiz.',
-    accent: 'from-emerald-500 to-teal-500',
-  },
-  {
-    icon: <IoTrophy />,
-    title: 'Sertifikat va karyera',
-    text: 'Tugatgan har bir kurs uchun verified sertifikat. Ish topishga yordam — Careers bo\'limi.',
-    accent: 'from-yellow-500 to-amber-500',
-  },
+const VALUE_ICONS = [
+  { icon: <IoGlobe />, accent: 'from-blue-500 to-cyan-500' },
+  { icon: <IoSparkles />, accent: 'from-indigo-500 to-purple-500' },
+  { icon: <IoCode />, accent: 'from-pink-500 to-red-500' },
+  { icon: <IoShieldCheckmark />, accent: 'from-amber-500 to-orange-500' },
+  { icon: <IoPeople />, accent: 'from-emerald-500 to-teal-500' },
+  { icon: <IoTrophy />, accent: 'from-yellow-500 to-amber-500' },
 ];
 
-const TIMELINE = [
-  { year: '2025 Q3', title: 'G\'oya tug\'ildi', text: 'O\'zbek dasturchilariga AI tools bo\'yicha to\'liq qo\'llanma yo\'qligini ko\'rdik.' },
-  { year: '2025 Q4', title: 'Birinchi kurslar', text: 'Bepul kurslar va Telegram kanal ishga tushdi.' },
-  { year: '2026 Q1', title: 'Platforma launch', text: 'aidevix.uz to\'liq platforma — XP, sertifikat, Prompt Library.' },
-  { year: '2026 Q2', title: 'Telegram Mini App + AI Playground', text: 'TMA, AI Code Playground va haftalik AI digest.' },
-  { year: '2026+', title: 'Kelajak', text: 'Mobile app, live coding session, mentorship marketplace.' },
-];
+const TIMELINE_YEARS = ['2025 Q3', '2025 Q4', '2026 Q1', '2026 Q2', '2026+'];
 
 export default function AboutClient({ stats }: { stats: Stats | null }) {
   const { isDark } = useTheme();
+  const { t } = useLang();
+
   const bgClass = isDark ? 'bg-[#0A0E1A] text-white' : 'bg-slate-50 text-slate-900';
   const cardBg = isDark ? 'bg-[#0d1224]/70 border-white/5' : 'bg-white border-slate-200';
   const muted = isDark ? 'text-slate-400' : 'text-slate-600';
 
   const fmt = (n?: number) => (n || 0).toLocaleString();
+
+  const VALUES = VALUE_ICONS.map((v, i) => ({
+    ...v,
+    title: t(`about.value.${i + 1}.title`),
+    text: t(`about.value.${i + 1}.text`),
+  }));
+
+  const TIMELINE = TIMELINE_YEARS.map((year, i) => ({
+    year,
+    title: t(`about.timeline.${i + 1}.title`),
+    text: t(`about.timeline.${i + 1}.text`),
+  }));
 
   return (
     <div className={`min-h-screen pt-24 pb-20 ${bgClass}`}>
@@ -80,18 +59,16 @@ export default function AboutClient({ stats }: { stats: Stats | null }) {
           className="text-center mb-20 max-w-3xl mx-auto"
         >
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-400 mb-3">
-            Biz haqimizda
+            {t('about.kicker')}
           </div>
           <h1 className="font-display text-3xl sm:text-5xl md:text-6xl font-black tracking-[-0.04em] mb-5">
-            O'zbek dasturchilarining{' '}
+            {t('about.title.1')}
             <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              yangi avlodi
+              {t('about.title.2')}
             </span>
           </h1>
           <p className={`text-base sm:text-lg leading-relaxed ${muted}`}>
-            Aidevix — O'zbekistondagi birinchi AI-first dasturlash platformasi.
-            Biz dasturlashni nafaqat tushuntiramiz, balki Claude, Cursor va boshqa
-            AI tools bilan <strong>10x tezroq</strong> ishlashni o'rgatamiz.
+            {t('about.intro')}
           </p>
         </motion.section>
 
@@ -104,10 +81,10 @@ export default function AboutClient({ stats }: { stats: Stats | null }) {
             className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-20"
           >
             {[
-              { label: 'O\'quvchilar', value: fmt(stats.students), color: 'text-indigo-400' },
-              { label: 'Video darslar', value: fmt(stats.videos), color: 'text-cyan-400' },
-              { label: 'Mentorlar', value: fmt(stats.mentors), color: 'text-pink-400' },
-              { label: 'O\'rtacha reyting', value: `${stats.rating || 0}/5`, color: 'text-yellow-400' },
+              { label: t('about.stats.students'), value: fmt(stats.students), color: 'text-indigo-400' },
+              { label: t('about.stats.videos'), value: fmt(stats.videos), color: 'text-cyan-400' },
+              { label: t('about.stats.mentors'), value: fmt(stats.mentors), color: 'text-pink-400' },
+              { label: t('about.stats.rating'), value: `${stats.rating || 0}/5`, color: 'text-yellow-400' },
             ].map((s, i) => (
               <div key={i} className={`rounded-3xl border p-5 sm:p-6 text-center ${cardBg}`}>
                 <div className={`text-2xl sm:text-3xl font-black ${s.color}`}>{s.value}</div>
@@ -122,18 +99,13 @@ export default function AboutClient({ stats }: { stats: Stats | null }) {
           <div className="grid lg:grid-cols-[1fr_1.4fr] gap-10 items-center">
             <div>
               <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-400 mb-3">
-                Bizning missiyamiz
+                {t('about.mission.kicker')}
               </div>
               <h2 className="font-display text-3xl sm:text-4xl font-black tracking-tight mb-5">
-                Har bir o'zbek dasturchisi AI bilan ishlashga tayyor bo'lsin
+                {t('about.mission.title')}
               </h2>
-              <p className={`text-base leading-7 ${muted}`}>
-                AI dunyoni o'zgartirmoqda — va biz O'zbekistondagi har bir talaba, ishchi va
-                ishbilarmonga shu yangi tilni ona tilida o'rgatishni xohlaymiz.
-              </p>
-              <p className={`text-base leading-7 mt-3 ${muted}`}>
-                Maqsad: 2030 yilgacha O'zbekistonda 100,000+ AI-fluent dasturchi tayyorlash.
-              </p>
+              <p className={`text-base leading-7 ${muted}`}>{t('about.mission.p1')}</p>
+              <p className={`text-base leading-7 mt-3 ${muted}`}>{t('about.mission.p2')}</p>
             </div>
 
             <div className={`rounded-3xl border p-6 sm:p-8 ${cardBg} relative overflow-hidden`}>
@@ -141,12 +113,11 @@ export default function AboutClient({ stats }: { stats: Stats | null }) {
               <IoHeart className="text-4xl text-pink-400 mb-4 relative" />
               <blockquote className="relative">
                 <p className={`text-lg leading-relaxed font-medium ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
-                  "Bilim eski edi — endi vositalar bor. Biz vositalarni o'zbek tilida o'rgatib,
-                  har bir talabani global standartga tayyorlaymiz."
+                  {t('about.mission.quote')}
                 </p>
                 <footer className="mt-5 text-sm">
-                  <div className="font-bold">Aidevix jamoasi</div>
-                  <div className={muted}>2026 yil missiyamiz</div>
+                  <div className="font-bold">{t('about.mission.author')}</div>
+                  <div className={muted}>{t('about.mission.year')}</div>
                 </footer>
               </blockquote>
             </div>
@@ -157,16 +128,16 @@ export default function AboutClient({ stats }: { stats: Stats | null }) {
         <section className="mb-20">
           <div className="text-center mb-10">
             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-400 mb-3">
-              Bizning qiymatlarimiz
+              {t('about.values.kicker')}
             </div>
             <h2 className="font-display text-3xl sm:text-4xl font-black tracking-tight">
-              Nima bilan farq qilamiz?
+              {t('about.values.title')}
             </h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {VALUES.map((v, i) => (
               <motion.div
-                key={v.title}
+                key={i}
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-50px' }}
@@ -187,9 +158,11 @@ export default function AboutClient({ stats }: { stats: Stats | null }) {
         <section className="mb-20">
           <div className="text-center mb-10">
             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-400 mb-3">
-              Bizning yo'limiz
+              {t('about.timeline.kicker')}
             </div>
-            <h2 className="font-display text-3xl sm:text-4xl font-black tracking-tight">Aidevix qisqa tarixi</h2>
+            <h2 className="font-display text-3xl sm:text-4xl font-black tracking-tight">
+              {t('about.timeline.title')}
+            </h2>
           </div>
 
           <div className="relative max-w-3xl mx-auto">
@@ -232,17 +205,17 @@ export default function AboutClient({ stats }: { stats: Stats | null }) {
           <div className="relative">
             <IoRocket className="text-5xl mx-auto text-indigo-400 mb-4" />
             <h2 className="font-display text-2xl sm:text-3xl font-black tracking-tight mb-3">
-              Sayohatga qo'shiling
+              {t('about.cta.title')}
             </h2>
             <p className={`max-w-xl mx-auto text-base mb-6 ${muted}`}>
-              Bepul ro'yxatdan o'ting va birinchi kursingizni boshlang. Aidevix sizni kutmoqda.
+              {t('about.cta.subtitle')}
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
               <Link
                 href="/register"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold text-sm hover:shadow-lg hover:shadow-indigo-500/30 transition-shadow"
               >
-                Bepul boshlash <IoArrowForward />
+                {t('about.cta.start')} <IoArrowForward />
               </Link>
               <Link
                 href="/courses"
@@ -250,7 +223,7 @@ export default function AboutClient({ stats }: { stats: Stats | null }) {
                   isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-white border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                <IoSchool /> Kurslarni ko'rish
+                <IoSchool /> {t('about.cta.courses')}
               </Link>
             </div>
           </div>

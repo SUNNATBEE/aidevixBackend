@@ -163,8 +163,22 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
 
   // Metrikalar serverdan kelguncha `data-value` 0; GSAP bir marta ishga tushsa — doim 0 qoladi.
   useEffect(() => {
-    if (!isMounted || !homeStatsLoaded || !statsRef.current || reduceMotion) return;
+    if (!isMounted || !homeStatsLoaded || !statsRef.current) return;
     const el = statsRef.current;
+
+    // Mobile / prefers-reduced-motion: animatsiyasiz to'g'ridan-to'g'ri qiymat o'rnatiladi
+    if (reduceMotion) {
+      el.querySelectorAll('.stat-value').forEach((counter: Element) => {
+        const targetValue = Number(counter.getAttribute('data-value') || '0');
+        const decimals = Number(counter.getAttribute('data-decimals') || '0');
+        counter.textContent = decimals > 0
+          ? targetValue.toFixed(decimals)
+          : Math.round(targetValue).toString();
+      });
+      return;
+    }
+
+    // Desktop: GSAP scroll-triggered counter
     const ctx = gsap.context(() => {
       const counters = el.querySelectorAll('.stat-value');
       counters.forEach((counter: Element) => {

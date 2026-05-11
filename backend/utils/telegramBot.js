@@ -27,6 +27,9 @@ class AidevixBot {
       console.warn('⚠️ Webhook o\'chirishda xatolik (lekin davom etamiz):', e.message);
     }
 
+    // Telegramdagi "/" menyusiga buyruqlarni o'rnatish — UX uchun muhim
+    this._registerBotCommands().catch(() => {});
+
     console.log('🤖 Aidevix Senior Bot ishga tushdi...');
     while (true) {
       try {
@@ -64,12 +67,20 @@ class AidevixBot {
         return this._cmdStart(chatId, userId, firstName, username);
       }
 
-      const [cmd, ...args] = text.split(' ');
+      // Reply-keyboard tugmalari (matn orqali) — buyruq sifatida normallashtiramiz
+      const aliased = this._aliasReplyButton(text);
+      const effectiveText = aliased || text;
+
+      const [cmd, ...args] = effectiveText.split(' ');
       switch (cmd) {
         case '/id': await this.sendMessage(chatId, `🆔 Sizning Telegram ID: <code>${userId}</code>`, { parse_mode: 'HTML' }); break;
         case '/login': await this._cmdLogin(chatId, userId, firstName); break;
         case '/stats': await this._cmdStats(chatId, userId, firstName); break;
         case '/referral': await this._cmdReferral(chatId, userId, firstName); break;
+        case '/menu': await this._cmdMenu(chatId, userId, firstName); break;
+        case '/courses': await this._cmdCourses(chatId, firstName); break;
+        case '/news': await this._cmdNewsForUser(chatId); break;
+        case '/leaderboard': await this._cmdLeaderboard(chatId); break;
         case '/postnews': await this._cmdPostNews(chatId, userId); break;
         case '/channels': await this._cmdChannels(chatId, userId); break;
         case '/settopic':    await this._cmdSetTopic(chatId, userId, args); break;
@@ -79,7 +90,7 @@ class AidevixBot {
         case '/status':  await this._cmdStatus(chatId, userId); break;
         case '/logs':    await this._cmdLogs(chatId, userId, args); break;
         case '/admin':   await this._cmdAdminPanel(chatId, userId); break;
-        case '/help': await this._cmdHelp(chatId, firstName); break;
+        case '/help': await this._cmdHelp(chatId, userId, firstName); break;
       }
     }
 
@@ -105,6 +116,10 @@ class AidevixBot {
         case 'cb_get_stats': await this._cmdStats(chatId, userId, firstName); break;
         case 'cb_get_referral': await this._cmdReferral(chatId, userId, firstName); break;
         case 'cb_check_sub': return this._cmdCheckSub(chatId, userId, id);
+        case 'cb_main_menu': await this._cmdMenu(chatId, userId, firstName); break;
+        case 'cb_help': await this._cmdHelp(chatId, userId, firstName); break;
+        case 'cb_courses': await this._cmdCourses(chatId, firstName); break;
+        case 'cb_leaderboard': await this._cmdLeaderboard(chatId); break;
         case 'news_react_fire': await this.answerCallbackQuery(id, 'Olov bo\'ldi! 🔥'); break;
         case 'news_react_rocket': await this.answerCallbackQuery(id, 'Rahmat! 🚀'); break;
         case 'news_react_bulb': await this.answerCallbackQuery(id, 'Foydali bo\'ldi! 💡'); break;
@@ -164,32 +179,132 @@ class AidevixBot {
 
   async _cmdStart(chatId, userId, firstName) {
     const frontendUrl = this._getFrontendUrl();
-    const msg =
-      `🚀 <b>Aidevix Akademiyasi — Kelajak Markaziga Xush Kelibsiz!</b>\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `👋 Salom, <b>${firstName}</b>!\n\n` +
-      `Siz zamonaviy IT va Sun'iy Intellekt olamiga kirish eshigidasiz.\n\n` +
-      `🔑 <b>Sizning Shaxsiy ID:</b>\n` +
-      `┌─────────────────────┐\n` +
-      `│  <code>${userId}</code>\n` +
-      `└─────────────────────┘\n\n` +
-      `⚡ <b>Imkoniyatlar:</b>\n` +
-      `• AI sohasidagi eng so'nggi trendlar\n` +
-      `• Prompt Engineering sirlari\n` +
-      `• Professional sertifikatlar\n\n` +
-      `👇 <b>Akademiyaga kirish uchun quyidagi tugmani bosing:</b>`;
-
     const { tgChannelLink, igLink } = this._getLinks();
-    const keyboard = {
+
+    const msg =
+      `👋 Salom, <b>${firstName}</b>!\n\n` +
+      `<b>Aidevix Akademiyasi</b> — AI va dasturlash bo'yicha o'zbek tilidagi eng to'liq o'quv platforma 🇺🇿\n\n` +
+      `🎯 <b>Nima qila olasiz:</b>\n` +
+      `   📚 Kurslar va amaliy loyihalar\n` +
+      `   🤖 AI Coach — har qanday savol\n` +
+      `   🏆 XP, daraja va sertifikatlar\n` +
+      `   🎁 Do'stlaringizni taklif qilib bonus oling\n\n` +
+      `Pastdagi menyu doimiy turadi — tezkor harakat uchun ishlating 👇`;
+
+    // Inline (qisqa) — birinchi tezkor harakatlar
+    const inlineKeyboard = {
       inline_keyboard: [
         [{ text: '🚀 Akademiyaga kirish', web_app: { url: frontendUrl } }],
-        [{ text: '📊 Statistikam', callback_data: 'cb_get_stats' }, { text: '👥 Taklifnomalar', callback_data: 'cb_get_referral' }],
-        [{ text: '📢 AI Kanal', url: tgChannelLink }, { text: '📸 Instagram', url: igLink }],
-        [{ text: '🔐 Shaxsiy kabinet', callback_data: 'cb_magic_login' }],
-      ]
+        [
+          { text: '📊 Statistikam', callback_data: 'cb_get_stats' },
+          { text: '🎁 Taklif et', callback_data: 'cb_get_referral' },
+        ],
+        [
+          { text: '📢 Kanal', url: tgChannelLink },
+          { text: '📸 Instagram', url: igLink },
+        ],
+      ],
     };
 
-    await this.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard });
+    await this.sendMessage(chatId, msg, {
+      parse_mode: 'HTML',
+      reply_markup: inlineKeyboard,
+    });
+
+    // Doimiy reply keyboard — har doim pastda turadi
+    await this._showMainMenu(chatId, userId);
+  }
+
+  /** /menu — bosh menyuga qaytish */
+  async _cmdMenu(chatId, userId, firstName) {
+    await this.sendMessage(
+      chatId,
+      `🏠 <b>Bosh menyu</b>\n\nQuyidagi tugmalar orqali tezkor harakat qiling.`,
+      { parse_mode: 'HTML' }
+    );
+    await this._showMainMenu(chatId, userId);
+  }
+
+  /** Doimiy reply keyboard'ni ko'rsatish */
+  async _showMainMenu(chatId, userId) {
+    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const isAdmin = String(userId) === adminId;
+
+    const rows = [
+      [{ text: '👤 Profilim' }, { text: '🏆 Reyting' }],
+      [{ text: '📚 Kurslar' }, { text: '🔥 Yangiliklar' }],
+      [{ text: '🎁 Do\'st taklif et' }, { text: '🌐 Saytga kirish' }],
+      [{ text: 'ℹ️ Yordam' }],
+    ];
+    if (isAdmin) rows.push([{ text: '🎛 Admin Panel' }]);
+
+    await this.sendMessage(chatId, '⌨️ Menyu yangilandi', {
+      reply_markup: {
+        keyboard: rows,
+        resize_keyboard: true,
+        is_persistent: true,
+      },
+    });
+  }
+
+  /** Reply keyboard tugmasi matnini buyruqqa o'giradi */
+  _aliasReplyButton(text) {
+    if (!text) return null;
+    const t = text.trim();
+    const map = {
+      '👤 Profilim': '/stats',
+      '🏆 Reyting': '/leaderboard',
+      '📚 Kurslar': '/courses',
+      '🔥 Yangiliklar': '/news',
+      "🎁 Do'st taklif et": '/referral',
+      '🌐 Saytga kirish': '/login',
+      'ℹ️ Yordam': '/help',
+      '🎛 Admin Panel': '/admin',
+      '🏠 Bosh menyu': '/menu',
+    };
+    return map[t] || null;
+  }
+
+  /** Telegramning "/" menyusiga buyruqlarni o'rnatadi */
+  async _registerBotCommands() {
+    const userCommands = [
+      { command: 'start', description: '🚀 Botni ishga tushirish' },
+      { command: 'menu', description: '🏠 Bosh menyu' },
+      { command: 'stats', description: '📊 Statistikam' },
+      { command: 'courses', description: '📚 Kurslar' },
+      { command: 'leaderboard', description: '🏆 TOP foydalanuvchilar' },
+      { command: 'news', description: '🔥 So\'nggi AI yangiliklari' },
+      { command: 'referral', description: "🎁 Do'st taklif et" },
+      { command: 'login', description: '🔐 Saytga kirish (parolsiz)' },
+      { command: 'help', description: 'ℹ️ Yordam va buyruqlar' },
+    ];
+    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+
+    try {
+      // Hammaga ko'rinadigan buyruqlar
+      await axios.post(`${this.apiUrl}/setMyCommands`, {
+        commands: userCommands,
+        scope: { type: 'default' },
+      });
+
+      // Adminga qo'shimcha buyruqlar
+      if (adminId) {
+        const adminCommands = [
+          ...userCommands,
+          { command: 'admin', description: '🎛 Admin Panel' },
+          { command: 'status', description: '📡 Schedulerlar holati' },
+          { command: 'channels', description: '📢 Bot kanallari' },
+          { command: 'logs', description: '📋 So\'nggi habarlar' },
+          { command: 'postnews', description: '📰 Yangilik yuborish' },
+        ];
+        await axios.post(`${this.apiUrl}/setMyCommands`, {
+          commands: adminCommands,
+          scope: { type: 'chat', chat_id: Number(adminId) },
+        });
+      }
+    } catch (e) {
+      console.warn('[Bot] setMyCommands xatoligi:', e.message);
+    }
   }
 
   /**
@@ -312,45 +427,212 @@ class AidevixBot {
     );
   }
 
-  async _cmdStats(chatId, userId, firstName) {
+  async _cmdStats(chatId, userId) {
     try {
       const User = require('../models/User');
       const UserStats = require('../models/UserStats');
-      const user = await User.findOne({ $or: [{ telegramUserId: String(userId) }, { 'socialSubscriptions.telegram.telegramUserId': String(userId) }] });
+      const user = await User.findOne({
+        $or: [
+          { telegramUserId: String(userId) },
+          { 'socialSubscriptions.telegram.telegramUserId': String(userId) },
+        ],
+      });
 
-      if (!user) return this.sendMessage(chatId, `⚠️ Ro'yxatdan o'ting: <a href="https://aidevix.uz">aidevix.uz</a>`, { parse_mode: 'HTML' });
+      if (!user) {
+        return this.sendMessage(
+          chatId,
+          `⚠️ <b>Hisob topilmadi.</b>\n\nAvval <b>aidevix.uz</b> saytida ro'yxatdan o'ting va Telegramni bog'lang.`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🌐 Ro\'yxatdan o\'tish', url: this._getFrontendUrl() + '/register' }],
+                [{ text: '🏠 Bosh menyu', callback_data: 'cb_main_menu' }],
+              ],
+            },
+          }
+        );
+      }
 
       const stats = await UserStats.findOne({ userId: user._id });
-      const rankEmoji = { AMATEUR: '🥉', CANDIDATE: '🥈', JUNIOR: '🥇', MIDDLE: '⭐', SENIOR: '🌟', MASTER: '💎', LEGEND: '👑' };
+      const rankEmoji = {
+        AMATEUR: '🥉', CANDIDATE: '🥈', JUNIOR: '🥇',
+        MIDDLE: '⭐', SENIOR: '🌟', MASTER: '💎', LEGEND: '👑',
+      };
+
+      const xp = user.xp || 0;
       const level = stats?.level || 1;
-      const progress = '▓'.repeat(Math.min(level % 10 || 1, 10)) + '░'.repeat(Math.max(0, 10 - (level % 10 || 1)));
+      // Keyingi darajagacha real progress (har 1000 XP — yangi level)
+      const xpPerLevel = 1000;
+      const xpInLevel = xp % xpPerLevel;
+      const filled = Math.min(10, Math.round((xpInLevel / xpPerLevel) * 10));
+      const bar = '▰'.repeat(filled) + '▱'.repeat(10 - filled);
+      const pct = Math.round((xpInLevel / xpPerLevel) * 100);
+
+      const aiStack = (user.aiStack || []).slice(0, 4).join(' • ') || '—';
+      const name = user.firstName || user.username || 'Foydalanuvchi';
 
       const msg =
-        `📊 <b>Aidevix Dashboard | ${user.firstName || user.username}</b>\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `👤 <b>Daraja:</b> ${rankEmoji[user.rankTitle] || '🏅'} ${user.rankTitle || 'AMATEUR'}\n` +
-        `📈 <b>Level:</b> ${level} [${progress}]\n` +
-        `⚡ <b>XP:</b> ${(user.xp || 0).toLocaleString()}\n\n` +
-        `📝 <b>Aktivlik:</b>\n• Darslar: <b>${stats?.videosWatched || 0} ta</b>\n• Testlar: <b>${stats?.quizzesCompleted || 0} ta</b>\n🔥 <b>Streak:</b> ${user.streak || 0} kun`;
+        `📊 <b>${name}</b>\n` +
+        `<i>Aidevix profili</i>\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `${rankEmoji[user.rankTitle] || '🏅'} <b>Daraja:</b> ${user.rankTitle || 'AMATEUR'}\n` +
+        `📈 <b>Level ${level}</b>  ${bar}  ${pct}%\n` +
+        `⚡ <b>XP:</b> ${xp.toLocaleString()} / ${(level * xpPerLevel).toLocaleString()}\n` +
+        `🔥 <b>Streak:</b> ${user.streak || 0} kun\n\n` +
+        `📝 <b>Aktivlik</b>\n` +
+        `   🎬 Darslar: <b>${stats?.videosWatched || 0}</b>\n` +
+        `   🧪 Testlar: <b>${stats?.quizzesCompleted || 0}</b>\n` +
+        `   🎓 Sertifikatlar: <b>${stats?.certificatesEarned || 0}</b>\n\n` +
+        `🤖 <b>AI Stack:</b> ${aiStack}`;
 
-      await this.sendMessage(chatId, msg, { parse_mode: 'HTML' });
-    } catch (e) { this.sendMessage(chatId, '❌ Xatolik yuz berdi.'); }
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: '🌐 Profilni ochish', url: this._getFrontendUrl() + '/profile' }],
+          [
+            { text: '🏆 Reyting', callback_data: 'cb_leaderboard' },
+            { text: '📚 Kurslar', callback_data: 'cb_courses' },
+          ],
+          [{ text: '🏠 Bosh menyu', callback_data: 'cb_main_menu' }],
+        ],
+      };
+
+      await this.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard });
+    } catch (e) {
+      this.sendMessage(chatId, '❌ Statistikani olishda xatolik yuz berdi.');
+    }
+  }
+
+  /** /courses — kurslar qisqa ko'rinishi */
+  async _cmdCourses(chatId, firstName) {
+    const url = this._getFrontendUrl();
+    const msg =
+      `📚 <b>Aidevix kurslari</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `Saytdagi to'liq kurslar katalogini oching:\n` +
+      `   • AI va Prompt Engineering\n` +
+      `   • Claude Code, Cursor, Copilot\n` +
+      `   • Vibe Coding va Architecture\n` +
+      `   • Amaliy loyihalar bilan\n\n` +
+      `Har bir kurs oxirida — sertifikat 🎓`;
+
+    await this.sendMessage(chatId, msg, {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🚀 Kurslarni ochish', web_app: { url: url + '/courses' } }],
+          [{ text: '🌐 Brauzerda ochish', url: url + '/courses' }],
+          [{ text: '🏠 Bosh menyu', callback_data: 'cb_main_menu' }],
+        ],
+      },
+    });
+  }
+
+  /** /news — foydalanuvchi uchun yangiliklar */
+  async _cmdNewsForUser(chatId) {
+    const { tgChannel, tgChannelLink } = this._getLinks();
+    const msg =
+      `🔥 <b>So'nggi AI yangiliklari</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `Har kuni 3 marta — Claude, Codex, Cursor, Copilot va Windsurf bo'yicha yangiliklar <b>@${tgChannel}</b> kanaliga jo'natiladi.\n\n` +
+      `🕐 Jadval: 10:00, 16:00, 20:00 (Toshkent)\n` +
+      `🤖 AI tahlil: o'zbek tilida + amaliy maslahat`;
+
+    await this.sendMessage(chatId, msg, {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: `📢 @${tgChannel} ga obuna`, url: tgChannelLink }],
+          [{ text: '🏠 Bosh menyu', callback_data: 'cb_main_menu' }],
+        ],
+      },
+    });
+  }
+
+  /** /leaderboard — TOP foydalanuvchilar */
+  async _cmdLeaderboard(chatId) {
+    try {
+      const User = require('../models/User');
+      const top = await User.find({ isBlocked: { $ne: true } })
+        .sort({ xp: -1 })
+        .limit(10)
+        .select('firstName username xp rankTitle');
+
+      const medals = ['🥇', '🥈', '🥉'];
+      const lines = top.map((u, i) => {
+        const place = medals[i] || `${i + 1}.`;
+        const name = (u.firstName || u.username || 'Foydalanuvchi').substring(0, 22);
+        const xp = (u.xp || 0).toLocaleString();
+        return `${place} <b>${name}</b> — ${xp} XP`;
+      });
+
+      const msg =
+        `🏆 <b>TOP-10 foydalanuvchilar</b>\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n\n` +
+        (lines.join('\n') || 'Hali statistika yo\'q.');
+
+      await this.sendMessage(chatId, msg, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🌐 To\'liq reyting', url: this._getFrontendUrl() + '/leaderboard' }],
+            [{ text: '🏠 Bosh menyu', callback_data: 'cb_main_menu' }],
+          ],
+        },
+      });
+    } catch (e) {
+      this.sendMessage(chatId, '❌ Reytingni olishda xatolik.');
+    }
   }
 
   async _cmdReferral(chatId, userId) {
     try {
       const User = require('../models/User');
-      const user = await User.findOne({ $or: [{ telegramUserId: String(userId) }] });
-      if (!user) return this.sendMessage(chatId, "⚠️ Ro'yxatdan o'ting: aidevix.uz");
+      const user = await User.findOne({
+        $or: [
+          { telegramUserId: String(userId) },
+          { 'socialSubscriptions.telegram.telegramUserId': String(userId) },
+        ],
+      });
+      if (!user) {
+        return this.sendMessage(chatId, "⚠️ Avval aidevix.uz da ro'yxatdan o'ting.", {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🌐 Ro\'yxatdan o\'tish', url: this._getFrontendUrl() + '/register' }],
+              [{ text: '🏠 Bosh menyu', callback_data: 'cb_main_menu' }],
+            ],
+          },
+        });
+      }
 
-      const refLink = `${this._getFrontendUrl()}/register?ref=${user.referralCode || user._id}`;
-      const msg = 
-        `👥 <b>Aidevix Referal Dasturi</b>\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `🏅 <b>Sizning holatingiz:</b>\n• Taklif qilinganlar: <b>${user.referralsCount || 0} ta</b>\n• Jami bonus: <b>${(user.referralsCount || 0) * 500} XP</b>\n\n` +
-        `🔗 <b>Shaxsiy taklif havolangiz:</b>\n<code>${refLink}</code>`;
+      const refCode = user.referralCode || user._id;
+      const refLink = `${this._getFrontendUrl()}/register?ref=${refCode}`;
+      const count = user.referralsCount || 0;
+      const bonus = count * 500;
 
-      await this.sendMessage(chatId, msg, { parse_mode: 'HTML' });
+      // Foydalanuvchi pastdagi share tugmasini bossa, do'stiga yuboradigan matn
+      const shareText =
+        `🚀 Aidevix Akademiyasiga qo'shiling — AI va dasturlash bo'yicha eng yaxshi o'zbekcha platforma!\n\n` +
+        `Mening havolam orqali ro'yxatdan o'tsangiz, ikkalamizga ham bonus XP beriladi 🎁\n\n${refLink}`;
+
+      const msg =
+        `🎁 <b>Do'st taklif et — XP yutib ol</b>\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `🤝 <b>Taklif qilinganlar:</b> ${count} ta\n` +
+        `⚡ <b>Yig'ilgan bonus:</b> ${bonus.toLocaleString()} XP\n\n` +
+        `Har bir do'st uchun — <b>+500 XP</b> 🎯\n\n` +
+        `🔗 <b>Sizning havolangiz:</b>\n<code>${refLink}</code>\n\n` +
+        `Pastdagi tugma orqali do'stlaringizga bir bosishda yuboring 👇`;
+
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: "📤 Do'stga yuborish", switch_inline_query: shareText }],
+          [{ text: '🌐 Referal sahifasi', url: this._getFrontendUrl() + '/referral' }],
+          [{ text: '🏠 Bosh menyu', callback_data: 'cb_main_menu' }],
+        ],
+      };
+
+      await this.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard });
     } catch (e) {}
   }
 
@@ -750,6 +1032,7 @@ class AidevixBot {
           { text: '📡 Kanallar', callback_data: 'adm_channels' },
           { text: '🔄 Yangilashtirish', callback_data: 'adm_home' },
         ],
+        [{ text: '🏠 Bosh menyu', callback_data: 'cb_main_menu' }],
       ],
     };
     return { text, keyboard };
@@ -1014,32 +1297,59 @@ class AidevixBot {
     } catch (e) { return this.answerCallbackQuery(queryId, '❌ ' + e.message); }
   }
 
-  /** /help — Barcha buyruqlar */
-  async _cmdHelp(chatId) {
-    const msg =
-      `📖 <b>Aidevix Bot Buyruqlari</b>\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `🔹 /start — Boshlash\n` +
-      `🔹 /stats — Statistikam\n` +
-      `🔹 /referral — Taklifnomalar\n` +
-      `🔹 /login — Tizimga kirish\n` +
-      `🔹 /id — ID ko'rish\n\n` +
-      `👑 <b>Admin buyruqlari:</b>\n` +
-      `🔹 /postnews — Yangilik yuborish\n` +
-      `🔹 /channels — Kanallar ro'yxati\n` +
-      `🔹 /settopic [@kanal] [mavzular] — Mavzu sozlash\n` +
-      `   claude | codex | cursor | general | all\n` +
-      `🔹 /settype [@kanal] [turlar] — Post turi sozlash\n` +
-      `   news | challenges | all\n` +
-      `🔹 /setschedule [@kanal] [soatlar] — Jadval sozlash\n` +
-      `   Misol: 10,16,20 (3 marta) | 9,18 (2 marta) | 12 (1 marta)\n\n` +
-      `🎛 /admin — Inline admin panel (tavsiya etiladi)\n\n` +
-      `🔄 <b>Nazorat buyruqlari:</b>\n` +
-      `🔹 /toggle [news|challenge|all] — Habarlarni yoq/o'chir\n` +
-      `🔹 /status — Barcha schedulerlar holati\n` +
-      `🔹 /logs [n] — So'nggi yuborilgan habarlar\n\n` +
-      `🌐 aidevix.uz | @aidevix`;
-    await this.sendMessage(chatId, msg, { parse_mode: 'HTML' });
+  /** /help — Kategoriya bo'yicha tartiblangan yordam */
+  async _cmdHelp(chatId, userId) {
+    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const isAdmin = String(userId) === adminId;
+
+    let msg =
+      `ℹ️ <b>Aidevix Bot — Yordam</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `🚀 <b>Boshlash</b>\n` +
+      `   /start — botni qayta ishga tushirish\n` +
+      `   /menu — bosh menyu\n` +
+      `   /login — saytga parolsiz kirish\n\n` +
+      `📊 <b>Profil va o'sish</b>\n` +
+      `   /stats — shaxsiy statistika\n` +
+      `   /leaderboard — TOP-10 reyting\n` +
+      `   /referral — do'st taklif et (+500 XP)\n\n` +
+      `📚 <b>Ta'lim</b>\n` +
+      `   /courses — kurslar katalogi\n` +
+      `   /news — AI yangiliklari haqida\n\n` +
+      `🛠 <b>Boshqa</b>\n` +
+      `   /id — Telegram ID ko'rish\n` +
+      `   /help — ushbu yordam\n\n` +
+      `💡 <i>Maslahat:</i> pastdagi doimiy menyu orqali ham harakat qiling — bir bosishda barcha bo'limlar.`;
+
+    if (isAdmin) {
+      msg +=
+        `\n\n━━━━━━━━━━━━━━━━━━━━\n` +
+        `👑 <b>Admin uchun</b>\n\n` +
+        `🎛 <b>Boshqaruv paneli</b>\n` +
+        `   /admin — inline admin panel (tavsiya)\n` +
+        `   /status — schedulerlar holati\n` +
+        `   /logs [n] — so'nggi habarlar\n\n` +
+        `📡 <b>Kanallar</b>\n` +
+        `   /channels — barcha kanallar\n` +
+        `   /settype @kanal news|challenges|all\n` +
+        `   /settopic @kanal claude,cursor,...\n` +
+        `   /setschedule @kanal 10,16,20\n\n` +
+        `📰 <b>Habar yuborish</b>\n` +
+        `   /postnews — qo'lda yangilik yuborish\n` +
+        `   /toggle news|challenge|all`;
+    }
+
+    await this.sendMessage(chatId, msg, {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          isAdmin
+            ? [{ text: '🎛 Admin Panel', callback_data: 'adm_home' }]
+            : [{ text: '🚀 Akademiyaga kirish', web_app: { url: this._getFrontendUrl() } }],
+          [{ text: '🏠 Bosh menyu', callback_data: 'cb_main_menu' }],
+        ],
+      },
+    });
   }
 
   async _cmdLogin(chatId, userId) {

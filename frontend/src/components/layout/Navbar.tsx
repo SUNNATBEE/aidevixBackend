@@ -428,7 +428,7 @@ export default function Navbar() {
         </div>
 
         <div
-          className={`overflow-hidden transition-all duration-300 xl:hidden ${menuOpen ? 'max-h-[560px] opacity-100' : 'max-h-0 opacity-0'}`}
+          className={`overflow-hidden transition-all duration-300 xl:hidden ${menuOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}
           style={{ borderTop: menuOpen ? `1px solid ${borderColor}` : 'none' }}
         >
           <div className={`${mobileMenuBg} space-y-2 px-3 py-3 backdrop-blur-2xl sm:px-4 sm:py-4`}>

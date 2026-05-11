@@ -250,6 +250,185 @@ PATCH  /api/prompts/:id/feature # Feature/unfeature (admin)
 Categories: `coding, debugging, vibe_coding, claude, cursor, copilot, architecture, refactoring, testing, documentation, other`
 Tools: `Claude Code, Cursor, GitHub Copilot, ChatGPT, Gemini, Windsurf, Any`
 
+## AI Tool Skills — Sozlash qo'llanmasi
+
+Quyida Aidevix platformasida qo'llab-quvvatlanadigan har bir AI tool uchun skill (ko'nikma va konfiguratsiya) qanday o'rnatilishi keltirilgan.
+
+---
+
+### 🤖 Claude Code
+
+**Skill fayllar:**
+| Fayl | Maqsad |
+|------|--------|
+| `CLAUDE.md` | Loyiha konteksti — agent har doim o'qiydi |
+| `.claude/settings.json` | Ruxsatlar, hooks, model tanlash |
+| `.claude/commands/*.md` | Custom slash commands (`/review`, `/deploy` va h.k.) |
+
+**Skill o'rnatish:**
+```bash
+# 1. CLAUDE.md — loyiha ildizida yoki har bir papkada
+#    Agent bu faylni avtomatik o'qiydi
+
+# 2. Custom slash command qo'shish
+mkdir -p .claude/commands
+cat > .claude/commands/review.md << 'EOF'
+Ushbu PR ni security, performance va best practices nuqtai nazaridan tekshir.
+EOF
+
+# 3. MCP server ulash (qo'shimcha qobiliyat)
+# settings.json → mcpServers bo'limiga qo'shing
+```
+
+**Asosiy slash commandlar:**
+```
+/review          — Kodni tekshirish
+/security-review — Xavfsizlik auditi
+/model           — Model almashtirish (Haiku / Sonnet / Opus)
+/clear           — Kontekstni tozalash
+/init            — CLAUDE.md yaratish
+```
+
+---
+
+### ⚡ Cursor
+
+**Skill fayllar:**
+| Fayl | Maqsad |
+|------|--------|
+| `.cursorrules` | Global project qoidalari (barcha fayllar uchun) |
+| `.cursor/rules/*.mdc` | Papka yoki fayl turiga qarab qoidalar |
+
+**Skill o'rnatish:**
+```bash
+# 1. Global qoidalar — loyiha ildizida
+cat > .cursorrules << 'EOF'
+Siz Aidevix loyihasi uchun senior full-stack dasturchiysiz.
+Stack: Next.js 14, Express 5, MongoDB, Tailwind.
+- Auth uchun faqat secure cookie ishlatiladi
+- localStorage ga token SAQLANMAYDI
+- Har qanday DB so'rovidan keyin .exec().catch() bilan xatolik ushlang
+EOF
+
+# 2. Papkaga xos qoidalar
+mkdir -p .cursor/rules
+cat > .cursor/rules/frontend.mdc << 'EOF'
+---
+globs: ["frontend/**/*.tsx", "frontend/**/*.ts"]
+---
+Next.js 14 App Router ishlatiladi. Server Components default.
+"use client" faqat zarur bo'lganda.
+EOF
+```
+
+**Cursor Composer & Chat:**
+```
+@codebase    — Butun loyiha konteksti
+@file        — Aniq fayl
+@web         — Internetdan qidirish
+@docs        — Dokumentatsiya
+```
+
+---
+
+### 🐙 GitHub Copilot
+
+**Skill fayllar:**
+| Fayl | Maqsad |
+|------|--------|
+| `.github/copilot-instructions.md` | Repo darajasidagi custom instructions |
+| `.copilotignore` | Copilot ko'rmaydigan fayllar |
+
+**Skill o'rnatish:**
+```bash
+mkdir -p .github
+cat > .github/copilot-instructions.md << 'EOF'
+## Aidevix Loyihasi
+
+Stack: Next.js 14 + Express 5 + MongoDB + Tailwind CSS
+
+### Qoidalar
+- Cookie-based JWT auth: localStorage FORBIDDEN
+- Subscription gate bypass qilish TAQIQLANGAN
+- GSAP animatsiyalar faqat desktop (reduceMotion tekshir)
+- API error: errorResponse() util ishlatiladi
+- Backend: `node --check` bilan sintaksis tekshir
+- Frontend: `npx tsc --noEmit` bilan typecheck
+EOF
+```
+
+---
+
+### 💬 ChatGPT (Custom GPT / Projects)
+
+**Skill o'rnatish:**
+```
+ChatGPT → Settings → Custom Instructions:
+
+[What you'd like ChatGPT to know:]
+Men Aidevix platformasi (aidevix.uz) ni ishlab chiqyapman.
+Stack: Next.js 14, Express 5, MongoDB, Tailwind, JWT (cookie).
+O'zbek tilidagi AI + dasturlash ta'lim platformasi.
+
+[How you'd like ChatGPT to respond:]
+- Kod misollari bilan javob ber
+- Har doim security (XSS, injection) ni ko'zda tut
+- Cookie-based auth — localStorage ISHLATMA
+```
+
+---
+
+### 🌊 Windsurf (Codeium)
+
+**Skill fayllar:**
+| Fayl | Maqsad |
+|------|--------|
+| `.windsurfrules` | Global qoidalar |
+| `.codeiumignore` | Ignore qilinadigan fayllar |
+
+**Skill o'rnatish:**
+```bash
+cat > .windsurfrules << 'EOF'
+# Aidevix Project Rules
+- Framework: Next.js 14 App Router + Express 5
+- Auth: JWT in httpOnly cookies (NEVER localStorage)
+- DB: MongoDB/Mongoose — always handle .catch()
+- Styles: Tailwind CSS utility classes only
+- Mobile: check reduceMotion before GSAP animations
+EOF
+```
+
+---
+
+### 🔮 Gemini (Google AI Studio / Vertex AI)
+
+**Skill o'rnatish — System Instruction:**
+```
+Siz Aidevix (aidevix.uz) loyihasi uchun AI yordamchisiz.
+Stack: Next.js 14 (App Router), Express 5, MongoDB, JWT (httpOnly cookie),
+Tailwind CSS, Bunny.net video, Telegram Bot API, Groq AI.
+
+Muhim cheklovlar:
+- localStorage'da token saqlash TAQIQLANGAN
+- Subscription gate (Telegram @aidevix) hech qachon bypass qilinmaydi
+- Backend o'zgarishlardan keyin: node --check index.js
+- Frontend o'zgarishlardan keyin: npx tsc --noEmit
+```
+
+---
+
+### Prompt Library kategoriyalari va skill tavsiyalari
+
+| Kategoriya | Qaysi tool uchun | Skill maslahat |
+|------------|-----------------|----------------|
+| `claude` | Claude Code | CLAUDE.md + slash commands |
+| `cursor` | Cursor | `.cursorrules` + `.cursor/rules/` |
+| `copilot` | GitHub Copilot | `.github/copilot-instructions.md` |
+| `vibe_coding` | Har qanday | Tezkor prototiplash uchun |
+| `architecture` | Opus 4.7 | Murakkab dizayn — katta model ishlatiladi |
+| `debugging` | Har qanday | Stack trace + kontekst bilan |
+| `testing` | Har qanday | Test faylini ham birga bering |
+
 ## AI Stack (User Model)
 
 `User.aiStack: ['Claude Code', 'Cursor', 'GitHub Copilot', ...]`

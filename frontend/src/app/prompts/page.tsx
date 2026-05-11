@@ -8,7 +8,7 @@ import { promptApi, type Prompt } from '@api/promptApi';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import {
-  IoSparkles, IoAdd, IoHeart, IoHeartOutline, IoCopy,
+  IoSparkles, IoHeart, IoHeartOutline, IoCopy,
   IoClose, IoFilter, IoTrendingUp, IoTime, IoEye, IoChevronForward,
   IoInformationCircleOutline, IoLockClosed, IoBookmark, IoBookmarkOutline,
   IoArrowForward, IoLogoInstagram,
@@ -518,7 +518,6 @@ export default function PromptsPage() {
   const [category, setCategory] = useState('all');
   const [tool, setTool] = useState('all');
   const [sort, setSort] = useState('newest');
-  const [showCreate, setShowCreate] = useState(false);
   const [detailPrompt, setDetailPrompt] = useState<Prompt | null>(null);
 
   const loadMorePrompts = useCallback(async () => {
@@ -713,33 +712,11 @@ export default function PromptsPage() {
                 </div>
               </details>
             </div>
-            <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center lg:flex-col lg:items-stretch xl:flex-row xl:items-center">
-              {!isAuth ? (
-                <Link
-                  href="/login"
-                  className="flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 font-bold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500"
-                >
-                  <IoAdd size={18} /> {t('prompts.loginCta')}
-                </Link>
-              ) : promptAccess === 'granted' ? (
-                <button
-                  type="button"
-                  onClick={() => setShowCreate(true)}
-                  className="flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 font-bold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500 active:scale-[0.98]"
-                >
-                  <IoAdd size={18} /> {t('prompts.addPrompt')}
-                </button>
-              ) : (
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-center text-xs font-medium text-slate-400 sm:text-sm">
-                  {promptAccess === 'checking' ? t('prompts.checkingSub') : t('prompts.subRequired')}
-                </div>
-              )}
-              <div className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-slate-400">
-                <IoTrendingUp size={15} className="text-indigo-400/90" />
-                <span className="font-semibold text-slate-300">
-                  {promptAccess === 'granted' ? t('prompts.countLine', { n: total.toLocaleString() }) : '—'}
-                </span>
-              </div>
+            <div className="flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-slate-400">
+              <IoTrendingUp size={15} className="text-indigo-400/90" />
+              <span className="font-semibold text-slate-300">
+                {total > 0 ? t('prompts.countLine', { n: total.toLocaleString() }) : '—'}
+              </span>
             </div>
           </div>
         </header>
@@ -904,12 +881,6 @@ export default function PromptsPage() {
           <div className="py-32 text-center">
             <div className="text-5xl mb-4">🔍</div>
             <p className="text-slate-500">{t('prompts.emptyCat')}</p>
-            {promptAccess === 'granted' && isAuth && (
-              <button onClick={() => setShowCreate(true)}
-                className="mt-6 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm transition-all">
-                {t('prompts.beFirst')}
-              </button>
-            )}
           </div>
         ) : (
           <>
@@ -947,11 +918,6 @@ export default function PromptsPage() {
         )}
       </div>
 
-      <AnimatePresence>
-        {showCreate && promptAccess === 'granted' && (
-          <CreatePromptModal onClose={() => setShowCreate(false)} onCreated={handleCreated} />
-        )}
-      </AnimatePresence>
       <AnimatePresence>
         {detailPrompt ? (
           <PromptDetailModal

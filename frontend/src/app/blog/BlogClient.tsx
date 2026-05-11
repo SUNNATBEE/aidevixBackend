@@ -6,10 +6,11 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   IoNewspaperOutline, IoSearch, IoOpenOutline,
-  IoSparkles, IoLogoInstagram, IoLogoUsd,
+  IoSparkles, IoLogoInstagram,
 } from 'react-icons/io5';
 import { FaTelegramPlane } from 'react-icons/fa';
 import { useTheme } from '@/context/ThemeContext';
+import { useLang } from '@/context/LangContext';
 import { API_BASE_URL } from '@/utils/constants';
 
 type NewsItem = {
@@ -48,6 +49,7 @@ const PlatformBadge = ({ platform }: { platform: NewsItem['platform'] }) => {
 
 export default function BlogClient({ initialNews }: { initialNews: NewsItem[] }) {
   const { isDark } = useTheme();
+  const { t } = useLang();
   const [news] = useState<NewsItem[]>(initialNews);
   const [search, setSearch] = useState('');
   const [platform, setPlatform] = useState<'all' | 'telegram' | 'instagram'>('all');
@@ -62,7 +64,6 @@ export default function BlogClient({ initialNews }: { initialNews: NewsItem[] })
   }, [news, search, platform]);
 
   const handleClick = async (item: NewsItem) => {
-    // Backend'ga click track
     try {
       await fetch(`${API_BASE_URL}public/ai-news/${item._id}/click`, {
         method: 'POST',
@@ -85,14 +86,12 @@ export default function BlogClient({ initialNews }: { initialNews: NewsItem[] })
           className="text-center mb-10 max-w-2xl mx-auto"
         >
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-400 mb-3">
-            Blog
+            {t('blog.kicker')}
           </div>
           <h1 className="font-display text-3xl sm:text-5xl font-black tracking-[-0.04em] mb-4 flex items-center justify-center gap-3">
-            <IoSparkles className="text-indigo-400" /> AI Yangiliklar
+            <IoSparkles className="text-indigo-400" /> {t('blog.title')}
           </h1>
-          <p className={`text-sm sm:text-base ${muted}`}>
-            Claude, Cursor, Copilot va boshqa AI tools haqida har kuni yangiliklar — o'zbek tilida.
-          </p>
+          <p className={`text-sm sm:text-base ${muted}`}>{t('blog.subtitle')}</p>
         </motion.div>
 
         {/* Filter bar */}
@@ -103,7 +102,7 @@ export default function BlogClient({ initialNews }: { initialNews: NewsItem[] })
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value.slice(0, 80))}
-              placeholder="Sarlavha yoki matnda qidiring..."
+              placeholder={t('blog.search')}
               className={`flex-1 bg-transparent outline-none text-sm py-2 ${
                 isDark ? 'placeholder:text-slate-500' : 'placeholder:text-slate-400'
               }`}
@@ -120,7 +119,7 @@ export default function BlogClient({ initialNews }: { initialNews: NewsItem[] })
                     : muted + ' hover:bg-white/10'
                 }`}
               >
-                {p === 'all' ? 'Hammasi' : p}
+                {p === 'all' ? t('blog.filter.all') : p}
               </button>
             ))}
           </div>
@@ -131,12 +130,10 @@ export default function BlogClient({ initialNews }: { initialNews: NewsItem[] })
           <div className={`rounded-3xl border p-12 text-center ${cardBg}`}>
             <IoNewspaperOutline className="text-5xl mx-auto text-slate-500 mb-3" />
             <h3 className="font-bold text-lg mb-1">
-              {news.length === 0 ? 'Hozircha yangilik yo\'q' : 'Sizning so\'rovingiz bo\'yicha topilmadi'}
+              {news.length === 0 ? t('blog.empty.title') : t('blog.empty.search')}
             </h3>
             <p className={`text-sm ${muted}`}>
-              {news.length === 0
-                ? 'Tez orada AI yangiliklar bilan qaytamiz. Telegram kanaliga obuna bo\'ling!'
-                : 'Filterlarni o\'zgartirib ko\'ring.'}
+              {news.length === 0 ? t('blog.empty.text') : t('blog.empty.changeFilter')}
             </p>
             {news.length === 0 && (
               <Link
@@ -144,7 +141,7 @@ export default function BlogClient({ initialNews }: { initialNews: NewsItem[] })
                 target="_blank"
                 className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 font-bold text-sm hover:bg-sky-500/20"
               >
-                <FaTelegramPlane /> @aidevix kanal
+                <FaTelegramPlane /> {t('blog.tg.cta')}
               </Link>
             )}
           </div>
@@ -198,7 +195,7 @@ export default function BlogClient({ initialNews }: { initialNews: NewsItem[] })
                 </p>
                 <div className="flex items-center justify-between text-xs font-bold">
                   <span className="text-indigo-400 inline-flex items-center gap-1">
-                    {item.cta || "Ko'rish"} <IoOpenOutline />
+                    {item.cta || t('blog.cta.view')} <IoOpenOutline />
                   </span>
                 </div>
               </div>
@@ -209,10 +206,10 @@ export default function BlogClient({ initialNews }: { initialNews: NewsItem[] })
         {/* CTA */}
         <div className={`mt-16 rounded-3xl border p-8 sm:p-10 text-center ${cardBg}`}>
           <h3 className="font-display text-xl sm:text-2xl font-black mb-2">
-            Yangiliklarni birinchi bo'lib bilib oling
+            {t('blog.cta.title')}
           </h3>
           <p className={`text-sm mb-5 max-w-md mx-auto ${muted}`}>
-            Telegram kanalimizga obuna bo'ling — har kuni 3 marta AI dunyosidagi muhim yangiliklar.
+            {t('blog.cta.subtitle')}
           </p>
           <Link
             href="https://t.me/aidevix"
@@ -220,7 +217,7 @@ export default function BlogClient({ initialNews }: { initialNews: NewsItem[] })
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-blue-500 text-white font-bold text-sm hover:shadow-lg hover:shadow-sky-500/30 transition-shadow"
           >
-            <FaTelegramPlane /> @aidevix obuna bo'lish
+            <FaTelegramPlane /> {t('blog.cta.subscribe')}
           </Link>
         </div>
       </div>
