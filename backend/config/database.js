@@ -14,10 +14,12 @@ const connectDB = async () => {
     console.log('🔄 Connecting to MongoDB...');
     
     const connectionOptions = {
-      maxPoolSize: 10,
+      maxPoolSize: 50,          // 100 concurrent user uchun yetarli (har biri har vaqt DB da emas)
+      minPoolSize: 5,           // Iliq ulanishlar — birinchi so'rov sekin bo'lmaydi
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       connectTimeoutMS: 30000,
+      heartbeatFrequencyMS: 10000, // Ulanish tez tekshiriladi — failover tezroq
       retryWrites: true,
       w: 'majority',
     };

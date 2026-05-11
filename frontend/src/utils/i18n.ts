@@ -973,6 +973,9 @@ export const translations: Record<Lang, Record<string, string>> = {
     'prompts.sort.newest': 'Yangi',
     'prompts.sort.popular': 'Popular',
     'prompts.sort.views': "Ko'p ko'rilgan",
+    'prompts.subGateCta': "Obunani tekshirish / yoqish",
+    'prompts.addPromptBtn': "Prompt qo'shish (+30 XP)",
+    'prompts.waitTelegramBtn': "Telegram ulang — keyin qo'shasiz",
 
     // ─── Beta welcome (first visit) ───
     'betaWelcome.badge': 'Beta',
@@ -2190,6 +2193,9 @@ export const translations: Record<Lang, Record<string, string>> = {
     'prompts.sort.newest': 'Новые',
     'prompts.sort.popular': 'Популярные',
     'prompts.sort.views': 'Больше просмотров',
+    'prompts.subGateCta': "Проверить / активировать подписку",
+    'prompts.addPromptBtn': "Добавить промпт (+30 XP)",
+    'prompts.waitTelegramBtn': "Подключите Telegram — затем добавляйте",
 
     'betaWelcome.badge': 'Бета',
     'betaWelcome.title': 'Добро пожаловать — платформа в бета-версии',
@@ -3402,6 +3408,9 @@ export const translations: Record<Lang, Record<string, string>> = {
     'prompts.sort.newest': 'Newest',
     'prompts.sort.popular': 'Popular',
     'prompts.sort.views': 'Most viewed',
+    'prompts.subGateCta': "Check / activate subscription",
+    'prompts.addPromptBtn': "Add prompt (+30 XP)",
+    'prompts.waitTelegramBtn': "Connect Telegram — then add prompts",
 
     'betaWelcome.badge': 'Beta',
     'betaWelcome.title': 'Welcome — we’re in beta',

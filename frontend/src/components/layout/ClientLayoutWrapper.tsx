@@ -15,6 +15,7 @@ const BetaWelcomeModal = dynamic(() => import('@components/common/BetaWelcomeMod
 const PWAInstallPrompt = dynamic(() => import('@components/common/PWAInstallPrompt'), { ssr: false });
 const CookieConsent = dynamic(() => import('@components/common/CookieConsent'), { ssr: false });
 const TelegramMiniAppBridge = dynamic(() => import('@components/common/TelegramMiniAppBridge'), { ssr: false });
+const SecurityHardening = dynamic(() => import('@components/security/SecurityHardening'), { ssr: false });
 
 export default function ClientLayoutWrapper({
   children,
@@ -118,6 +119,7 @@ export default function ClientLayoutWrapper({
       {isMounted && <ScrollToTop />}
       {isMounted && <CookieConsent />}
       {isMounted && <TelegramMiniAppBridge />}
+      {isMounted && <SecurityHardening />}
     </>
   );
 }

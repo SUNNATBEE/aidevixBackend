@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const helmet = require('helmet');
 const { sanitize: mongoSanitizeValue } = require('express-mongo-sanitize');
 const swaggerUi = require('swagger-ui-express');
@@ -124,6 +125,16 @@ const corsOptions = {
 // MIDDLEWARE TARTIBI MUHIM! CORS → Helmet → Body parsers
 // ═══════════════════════════════════════════════════════════════════
 
+// 0️⃣ Gzip compression — katta JSON javoblarni 3-5x kichraytiradi
+app.use(compression({
+  level: 6,           // Tezlik/siqish muvozanati (1=tez, 9=kichik)
+  threshold: 1024,    // 1KB dan kichik javoblarni siqmaslik
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  },
+}));
+
 // 1️⃣ CORS — BIRINCHI bo'lishi kerak (preflight OPTIONS javob berish uchun)
 app.use(cors(corsOptions));
 
@@ -160,9 +171,21 @@ app.use(helmet({
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }, // Google OAuth popup uchun
 }));
 
-// 4️⃣ Body parsers
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// 4️⃣ Body parsers — strict limits (DoS via large body himoyasi)
+// JSON API uchun 100KB yetarli. Upload routelar Multer'dan o'tadi, body parser'siz.
+// `verify` callback — body parse bo'lmasdan oldin Content-Length tekshiriladi.
+const STRICT_JSON_LIMIT = '100kb';   // standart JSON
+const FORM_LIMIT        = '100kb';   // form-urlencoded
+
+app.use(express.json({
+  limit: STRICT_JSON_LIMIT,
+  strict: true,                       // faqat object/array — JSON nuqtai nazaridan to'g'ri
+}));
+app.use(express.urlencoded({
+  extended: true,
+  limit: FORM_LIMIT,
+  parameterLimit: 200,                // prototype pollution / param flood himoyasi
+}));
 
 // MongoDB injection sanitize — faqat body va params (Express 5 da req.query read-only getter)
 app.use((req, res, next) => {
@@ -366,9 +389,11 @@ const errorHandler = require('./middleware/errorMiddleware');
 app.use(errorHandler);
 
 // Global process handlers for stability (Senior approach)
-process.on('unhandledRejection', (err, promise) => {
-  console.error(`💥 Unhandled Rejection at: ${promise}\nReason: ${err.message}`);
-  process.exit(1);
+process.on('unhandledRejection', (err) => {
+  // Log qilamiz lekin darhol o'ldiirmaymiz — bitta xato butun serverni yoqmaslik
+  // Production: Railway restart qiladi (health check fail bolsa)
+  console.error('💥 Unhandled Rejection:', err?.message ?? err);
+  if (process.env.NODE_ENV !== 'production') process.exit(1);
 });
 
 process.on('uncaughtException', (err) => {
@@ -381,7 +406,7 @@ process.on('uncaughtException', (err) => {
 const PORT = process.env.PORT || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`🚀 Server is running on ${HOST}:${PORT}`);
   console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 API Base URL: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
@@ -390,5 +415,32 @@ app.listen(PORT, HOST, () => {
     console.log(`✅ Production mode enabled`);
   }
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// Slowloris / Slow-POST DDoS himoyasi
+// Hujumchi sekin asta byte yuborib socket'larni egallashga uringanida
+// kerakli timeoutlar bilan ulanish uziladi.
+// ═══════════════════════════════════════════════════════════════════
+server.keepAliveTimeout = 65_000;        // 65s — Railway proxy idle limit dan kichik
+server.headersTimeout   = 70_000;        // headers'ni shu vaqt ichida olib bo'lish kerak
+server.requestTimeout   = 60_000;        // butun so'rov 60s ichida tugashi kerak
+server.timeout          = 60_000;        // legacy socket timeout
+server.maxConnections   = 10_000;        // bitta instansiyada max connection (DoS himoyasi)
+
+// Graceful shutdown — Railway restart paytida ochiq so'rovlarni tugatish
+const shutdown = (signal) => {
+  console.log(`⏬ ${signal} received — closing server gracefully`);
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+  // 15s ichida tugamasa — force exit
+  setTimeout(() => {
+    console.error('⚠️ Forced shutdown after 15s');
+    process.exit(1);
+  }, 15_000).unref();
+};
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
 
 module.exports = app;

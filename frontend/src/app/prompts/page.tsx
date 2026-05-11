@@ -519,6 +519,7 @@ export default function PromptsPage() {
   const [tool, setTool] = useState('all');
   const [sort, setSort] = useState('newest');
   const [detailPrompt, setDetailPrompt] = useState<Prompt | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
 
   const loadMorePrompts = useCallback(async () => {
     if (promptAccess !== 'granted') return;
@@ -712,11 +713,25 @@ export default function PromptsPage() {
                 </div>
               </details>
             </div>
-            <div className="flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-slate-400">
-              <IoTrendingUp size={15} className="text-indigo-400/90" />
-              <span className="font-semibold text-slate-300">
-                {total > 0 ? t('prompts.countLine', { n: total.toLocaleString() }) : '—'}
-              </span>
+            <div className="flex shrink-0 flex-col items-end gap-3">
+              <div className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-slate-400">
+                <IoTrendingUp size={15} className="text-indigo-400/90" />
+                <span className="font-semibold text-slate-300">
+                  {total > 0 ? t('prompts.countLine', { n: total.toLocaleString() }) : '—'}
+                </span>
+              </div>
+              {promptAccess === 'granted' && (
+                <button
+                  type="button"
+                  onClick={() => setShowCreate(true)}
+                  title={!telegram?.subscribed ? t('prompts.waitTelegramBtn') : undefined}
+                  disabled={!telegram?.subscribed}
+                  className="flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <IoSparkles size={15} />
+                  {t('prompts.addPromptBtn')}
+                </button>
+              )}
             </div>
           </div>
         </header>
@@ -789,7 +804,7 @@ export default function PromptsPage() {
                 className="group relative inline-flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-4 text-base font-bold text-white shadow-lg shadow-indigo-600/30 transition-all duration-300 hover:from-indigo-500 hover:to-violet-500 hover:shadow-indigo-500/40 active:scale-[0.98] sm:w-auto sm:px-10"
               >
                 <span className="relative z-10 flex items-center gap-2.5">
-                  Obunani tekshirish / yoqish
+                  {t('prompts.subGateCta')}
                   <IoArrowForward size={18} className="transition-transform duration-300 group-hover:translate-x-1" />
                 </span>
                 <div className="pointer-events-none absolute inset-0 -z-10 translate-x-[-100%] bg-gradient-to-r from-white/0 via-white/10 to-white/0 transition-transform duration-500 group-hover:translate-x-[100%]" />
@@ -919,6 +934,13 @@ export default function PromptsPage() {
       </div>
 
       <AnimatePresence>
+        {showCreate ? (
+          <CreatePromptModal
+            key="create-prompt"
+            onClose={() => setShowCreate(false)}
+            onCreated={handleCreated}
+          />
+        ) : null}
         {detailPrompt ? (
           <PromptDetailModal
             key={detailPrompt._id}
