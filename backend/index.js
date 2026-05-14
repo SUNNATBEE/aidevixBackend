@@ -61,6 +61,14 @@ connectDB().then(async () => {
   } catch (digestError) {
     console.error('⚠️ Digest Scheduler initialization failed:', digestError.message);
   }
+
+  // SMTP credential + connectivity check (logs to Railway at boot)
+  try {
+    const { verifyTransport } = require('./utils/emailService');
+    verifyTransport().catch((e) => console.error('[email] verifyTransport threw:', e.message));
+  } catch (emailError) {
+    console.error('⚠️ Email transport verify failed to start:', emailError.message);
+  }
 }).catch(err => {
   console.error('❌ CRITICAL: Failed to connect to database or initialize core services');
   console.error('   Reason:', err.message);

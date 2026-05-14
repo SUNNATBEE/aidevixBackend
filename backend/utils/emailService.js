@@ -6,11 +6,37 @@ const transporter = nodemailer.createTransport({
   secure: (Number(process.env.EMAIL_PORT) === 465),
   // Railway containers lack IPv6 outbound; force IPv4 lookup to avoid ENETUNREACH on AAAA records.
   family: 4,
+  // Fail-fast timeouts — without these, a stalled SMTP socket hangs the fire-and-forget
+  // .catch() forever (promise never settles), so we never see why delivery is failing.
+  connectionTimeout: 10_000,
+  greetingTimeout: 5_000,
+  socketTimeout: 15_000,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
 });
+
+// Startup-time SMTP credential & connectivity check. Logs once at boot so Railway
+// surfaces EMAIL_USER/EMAIL_PASS misconfig or outbound-port blocks immediately,
+// instead of silently failing inside fire-and-forget sendMail calls.
+async function verifyTransport() {
+  const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
+  const port = Number(process.env.EMAIL_PORT) || 587;
+  const user = process.env.EMAIL_USER;
+  if (!user || !process.env.EMAIL_PASS) {
+    console.error(`[email] ❌ SMTP creds missing — EMAIL_USER=${user ? 'set' : 'MISSING'} EMAIL_PASS=${process.env.EMAIL_PASS ? 'set' : 'MISSING'}`);
+    return false;
+  }
+  try {
+    await transporter.verify();
+    console.log(`[email] ✅ SMTP ready — ${host}:${port} as ${user}`);
+    return true;
+  } catch (err) {
+    console.error(`[email] ❌ SMTP verify failed — ${host}:${port} as ${user}: ${err.code || ''} ${err.message}`);
+    return false;
+  }
+}
 
 const FROM = `"Aidevix" <${process.env.EMAIL_USER || 'noreply@aidevix.uz'}>`;
 
@@ -335,4 +361,5 @@ module.exports = {
   sendNewDeviceLoginEmail,
   sendAccountDeletedEmail,
   sendWeeklyDigestEmail,
+  verifyTransport,
 };
