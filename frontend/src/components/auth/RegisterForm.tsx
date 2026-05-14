@@ -108,6 +108,12 @@ export default function RegisterForm() {
 
     if (registerUser.fulfilled.match(result)) {
       forgotPasswordFlow.rememberEmail(email);
+      const payload: any = result.payload;
+      if (payload?.requiresEmailVerification) {
+        toast.success('Tasdiqlash kodi yuborildi. Email manzilingizni tekshiring.');
+        router.push(`/auth/verify-email?email=${encodeURIComponent(payload.email || email)}`);
+        return;
+      }
       toast.success(t('auth.register.success'));
       router.push('/');
     }

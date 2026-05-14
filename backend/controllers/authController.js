@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const dns = require('dns').promises;
 const validator = require('validator');
 
 const User = require('../models/User');
@@ -222,7 +223,29 @@ const trackDeviceAndAlert = async (req, user) => {
   return isNew;
 };
 
-// @desc    Register new user
+// Check that an email's domain actually has MX records — quick filter against
+// typos and fabricated domains ("user@asdfasdf.xyz"). DNS errors that aren't
+// "domain doesn't exist" are soft-passed so transient resolver hiccups don't
+// block legitimate registrations.
+async function emailDomainHasMx(email) {
+  const domain = String(email).split('@')[1];
+  if (!domain) return false;
+  try {
+    const records = await Promise.race([
+      dns.resolveMx(domain),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('mx_timeout')), 3000)),
+    ]);
+    return Array.isArray(records) && records.length > 0;
+  } catch (err) {
+    if (['ENOTFOUND', 'NXDOMAIN', 'ENODATA'].includes(err.code)) return false;
+    // timeout / SERVFAIL / etc → don't punish legitimate users
+    return true;
+  }
+}
+
+// @desc    Register new user — creates an unverified account and requires email
+//          code verification before any session is issued. The user is NOT logged
+//          in by register; they must verify the emailed code and then sign in.
 const register = asyncHandler(async (req, res, next) => {
   const { username, email, password, firstName, lastName, referralCode } = req.body;
   const normalizedEmail = normalizeEmail(email);
@@ -234,6 +257,12 @@ const register = asyncHandler(async (req, res, next) => {
 
   if (!validator.isEmail(normalizedEmail)) {
     return next(new ErrorResponse('Please provide a valid email address', 400));
+  }
+
+  // Block typo'd / fake email domains before we burn DB write cost on them.
+  const hasMx = await emailDomainHasMx(normalizedEmail);
+  if (!hasMx) {
+    return next(new ErrorResponse('Email manzili mavjud emas yoki noto\'g\'ri yozilgan', 400));
   }
 
   if (!passwordRegex.test(password)) {
@@ -291,6 +320,10 @@ const register = asyncHandler(async (req, res, next) => {
     normalizedUsername.substring(0, 4).toUpperCase() +
     crypto.randomBytes(4).toString('hex').toUpperCase();
 
+  // Account starts unverified; no tokens are issued until the email code is
+  // confirmed. The hashed code is persisted with the same write so the user
+  // record is never in a state where it can be looked up without a pending code.
+  const verifyCode = crypto.randomInt(100000, 1000000).toString();
   const user = await User.create({
     username: normalizedUsername,
     email: normalizedEmail,
@@ -301,43 +334,29 @@ const register = asyncHandler(async (req, res, next) => {
     referredBy,
     xp: startingXp,
     rankTitle: calculateRank(startingXp),
-  });
-
-  const { accessToken, refreshToken } = await issueTokens(user, req);
-  attachAuthCookies(res, accessToken, refreshToken);
-
-  // Seed knownDevices with the registering device — first login is always known.
-  await trackDeviceAndAlert(req, user);
-
-  securityLogger.registerSuccess(req, user);
-
-  // Background tasks
-  UserStats.create({ userId: user._id, xp: user.xp, weeklyXp: user.xp }).catch(() => {});
-
-  const verifyCode = crypto.randomInt(100000, 1000000).toString();
-  User.findByIdAndUpdate(user._id, {
+    emailVerified: false,
     emailVerificationCode: hashToken(verifyCode),
     emailVerificationExpire: new Date(Date.now() + 15 * 60 * 1000),
     emailVerificationAttempts: 0,
-  }).exec().catch((err) =>
-    securityLogger.suspicious(req, 'email_verify_update_failed', { userId: String(user._id), error: err.message })
-  );
-  // Fire-and-forget: SMTP can take >10s; never block the HTTP response on it.
+  });
+
+  securityLogger.registerSuccess(req, user);
+
+  // Background tasks — stats now, welcome email & bot notification deferred to
+  // verifyEmailPublic() so they only fire for real owners.
+  UserStats.create({ userId: user._id, xp: user.xp, weeklyXp: user.xp }).catch(() => {});
+
+  // Fire-and-forget verification email — Resend usually returns in <500ms but
+  // we still don't block the HTTP response on it.
   sendEmailVerificationCode(user.email, user.username, verifyCode).catch((err) =>
     securityLogger.suspicious(req, 'email_verify_send_failed', { userId: String(user._id), error: err.message })
   );
-  sendWelcomeEmail(user.email, user.username).catch(() => {});
 
-  try {
-    const { getBot } = require('../utils/telegramBot');
-    const bot = getBot();
-    if (bot) bot.notifyNewRegistration(user);
-  } catch (_) {}
-
-  const registered = await User.findById(user._id).select('+password');
   res.status(201).json({
     success: true,
-    data: { user: sanitizeUser(registered) },
+    requiresEmailVerification: true,
+    email: normalizedEmail,
+    message: 'Email manzilingizga tasdiqlash kodi yuborildi. Hisobni faollashtirish uchun kodni kiriting.',
   });
 });
 
@@ -557,6 +576,15 @@ const verifyEmailPublic = asyncHandler(async (req, res, next) => {
     },
   });
   securityLogger.emailVerificationSucceeded(req, user);
+
+  // Onboarding side-effects fire only after the email is proven — keeps fake
+  // signups out of Telegram admin notifications and out of the welcome inbox.
+  sendWelcomeEmail(user.email, user.username).catch(() => {});
+  try {
+    const { getBot } = require('../utils/telegramBot');
+    const bot = getBot();
+    if (bot) bot.notifyNewRegistration(user);
+  } catch (_) {}
 
   res.json({
     success: true,

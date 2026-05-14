@@ -9,6 +9,11 @@ export const register = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const { data } = await authApi.register(credentials)
+      // Server no longer auto-logs in. Successful register returns
+      // requiresEmailVerification + email so the UI can hop to /auth/verify-email.
+      if (data?.requiresEmailVerification) {
+        return { requiresEmailVerification: true, email: data.email }
+      }
       tokenStorage.clearTokens()
       tokenStorage.setUser(data.data.user)
       return data.data
