@@ -1,63 +1,85 @@
 const nodemailer = require('nodemailer');
 const dns = require('dns');
-const net = require('net');
 
-// Node 18+ defaults dns.lookup to "verbatim" (returns AAAA first when present).
-// Railway containers expose AAAA records but have no IPv6 outbound route, so
-// nodemailer's own `family: 4` is too late — it tries the IPv6 socket first and
-// dies with ENETUNREACH. Force IPv4 globally for this process.
+// Process-wide defenses (Node version-dependent — wrapped in try/catch).
 try { dns.setDefaultResultOrder('ipv4first'); } catch (_) {}
+try { require('net').setDefaultAutoSelectFamily(false); } catch (_) {}
 
-// Belt & suspenders: provide an explicit dns.lookup that only ever yields IPv4.
-// Some socket paths inside nodemailer construct net.connect with options that
-// ignore the transport-level `family` field, so we hand them a lookup that
-// can't return an AAAA record in the first place.
+const EMAIL_HOST = process.env.EMAIL_HOST || 'smtp.gmail.com';
+const EMAIL_PORT = Number(process.env.EMAIL_PORT) || 587;
+
+// Custom dns.lookup that only ever returns IPv4 — passed to nodemailer for
+// the rare path that actually honors the `lookup` option.
 const ipv4Lookup = (hostname, opts, cb) => {
   if (typeof opts === 'function') { cb = opts; opts = {}; }
   return dns.lookup(hostname, { ...opts, family: 4 }, cb);
 };
 
-// Belt & suspenders #2: also turn off happy-eyeballs on the transport itself
-// in case the global net.setDefaultAutoSelectFamily fails on older Node versions.
-try { require('net').setDefaultAutoSelectFamily(false); } catch (_) {}
+function buildTransport(hostOverride) {
+  return nodemailer.createTransport({
+    host: hostOverride || EMAIL_HOST,
+    port: EMAIL_PORT,
+    secure: EMAIL_PORT === 465,
+    family: 4,
+    autoSelectFamily: false,
+    lookup: ipv4Lookup,
+    // When we connect by IP, TLS still needs the real hostname for SNI + cert validation.
+    tls: hostOverride
+      ? { servername: EMAIL_HOST, minVersion: 'TLSv1.2' }
+      : { minVersion: 'TLSv1.2' },
+    connectionTimeout: 10_000,
+    greetingTimeout: 5_000,
+    socketTimeout: 15_000,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+}
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: Number(process.env.EMAIL_PORT) || 587, // Number() is safer than parseInt() here
-  secure: (Number(process.env.EMAIL_PORT) === 465),
-  // Railway containers lack IPv6 outbound; force IPv4 lookup to avoid ENETUNREACH on AAAA records.
-  family: 4,
-  tls: { family: 4 },
-  // Disable happy-eyeballs at the socket level — net.connect would otherwise
-  // race A and AAAA in parallel regardless of dns.setDefaultResultOrder.
-  autoSelectFamily: false,
-  // Custom DNS lookup — guarantees IPv4 even if internal options drop `family`.
-  lookup: ipv4Lookup,
-  // Fail-fast timeouts — without these, a stalled SMTP socket hangs the fire-and-forget
-  // .catch() forever (promise never settles), so we never see why delivery is failing.
-  connectionTimeout: 10_000,
-  greetingTimeout: 5_000,
-  socketTimeout: 15_000,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// Initial transporter uses the hostname — works on machines with proper IPv6,
+// and is replaced below once we've resolved an IPv4 address ourselves.
+let transporter = buildTransport(null);
+
+// Nodemailer silently drops `family` / `lookup` / `autoSelectFamily` from
+// net.connect on Railway's Node version, so the only reliable way to avoid
+// IPv6 ENETUNREACH is to pre-resolve smtp.gmail.com to an IPv4 ourselves and
+// pass that IP as the host. TLS SNI keeps cert validation correct.
+let _readyPromise = null;
+function ensureReady() {
+  if (_readyPromise) return _readyPromise;
+  _readyPromise = (async () => {
+    try {
+      const addrs = await dns.promises.resolve4(EMAIL_HOST);
+      const ip = addrs && addrs[0];
+      if (!ip) throw new Error('no A records');
+      transporter = buildTransport(ip);
+      console.log(`[email] resolved ${EMAIL_HOST} → ${ip} (IPv4) — transport rebound`);
+    } catch (err) {
+      console.error(`[email] ⚠️ resolve4(${EMAIL_HOST}) failed: ${err.message} — falling back to hostname (may IPv6-fail on Railway)`);
+    }
+  })();
+  return _readyPromise;
+}
+
+async function sendMail(opts) {
+  await ensureReady();
+  return transporter.sendMail(opts);
+}
 
 // Startup-time SMTP credential & connectivity check. Logs once at boot so Railway
 // surfaces EMAIL_USER/EMAIL_PASS misconfig or outbound-port blocks immediately,
 // instead of silently failing inside fire-and-forget sendMail calls.
 async function verifyTransport() {
-  const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
-  const port = Number(process.env.EMAIL_PORT) || 587;
   const user = process.env.EMAIL_USER;
   if (!user || !process.env.EMAIL_PASS) {
     console.error(`[email] ❌ SMTP creds missing — EMAIL_USER=${user ? 'set' : 'MISSING'} EMAIL_PASS=${process.env.EMAIL_PASS ? 'set' : 'MISSING'}`);
     return false;
   }
+  await ensureReady();
   try {
     await transporter.verify();
-    console.log(`[email] ✅ SMTP ready — ${host}:${port} as ${user}`);
+    console.log(`[email] ✅ SMTP ready — ${EMAIL_HOST}:${EMAIL_PORT} as ${user}`);
     return true;
   } catch (err) {
     console.error(`[email] ❌ SMTP verify failed — ${host}:${port} as ${user}: ${err.code || ''} ${err.message}`);
@@ -68,7 +90,7 @@ async function verifyTransport() {
 const FROM = `"Aidevix" <${process.env.EMAIL_USER || 'noreply@aidevix.uz'}>`;
 
 const sendWelcomeEmail = async (email, username) => {
-  await transporter.sendMail({
+  await sendMail({
     from: FROM,
     to: email,
     subject: 'Aidevix ga xush kelibsiz! 🎉',
@@ -81,7 +103,7 @@ const sendWelcomeEmail = async (email, username) => {
 };
 
 const sendLevelUpEmail = async (email, username, level, rankTitle) => {
-  await transporter.sendMail({
+  await sendMail({
     from: FROM,
     to: email,
     subject: `Tabriklaymiz! Siz ${level}-darajaga yetdingiz! 🏆`,
@@ -95,7 +117,7 @@ const sendLevelUpEmail = async (email, username, level, rankTitle) => {
 };
 
 const sendCertificateEmail = async (email, username, courseName, certificateCode) => {
-  await transporter.sendMail({
+  await sendMail({
     from: FROM,
     to: email,
     subject: `Sertifikat: ${courseName} ✅`,
@@ -109,7 +131,7 @@ const sendCertificateEmail = async (email, username, courseName, certificateCode
 };
 
 const sendEnrollmentEmail = async (email, username, courseName) => {
-  await transporter.sendMail({
+  await sendMail({
     from: FROM,
     to: email,
     subject: `${courseName} kursiga yozildingiz! 📚`,
@@ -152,7 +174,7 @@ const sendStreakReminderEmail = async (email, username, streak) => {
   </div>
 </body>
 </html>`;
-  await transporter.sendMail({
+  await sendMail({
     from: FROM,
     to: email,
     subject: `🔥 ${streak} kunlik streak'ingizni saqlab qoling!`,
@@ -182,7 +204,7 @@ const sendQuizResultEmail = async (email, username, quizTitle, score, passed) =>
   </div>
 </body>
 </html>`;
-  await transporter.sendMail({
+  await sendMail({
     from: FROM,
     to: email,
     subject: `${icon} Kviz natijasi: ${score}% — ${quizTitle}`,
@@ -214,7 +236,7 @@ const sendResetCodeEmail = async (email, username, code) => {
 </body>
 </html>`;
 
-  await transporter.sendMail({
+  await sendMail({
     from: FROM,
     to: email,
     subject: `🔐 Parolni tiklash kodi: ${code}`,
@@ -249,7 +271,7 @@ const sendEmailVerificationCode = async (email, username, code) => {
   const maskedTo = email.replace(/^(.{2}).*(@.*)$/, '$1***$2');
   try {
     await sendEmailWithRetry(async () => {
-      const info = await transporter.sendMail({
+      const info = await sendMail({
         from: FROM,
         to: email,
         subject: `✅ Email tasdiqlash kodi: ${code} — Aidevix`,
@@ -290,7 +312,7 @@ const sendNewDeviceLoginEmail = async (email, username, { ip, ua, when }) => {
   </div>
 </body>
 </html>`;
-  await transporter.sendMail({
+  await sendMail({
     from: FROM,
     to: email,
     subject: '🛡️ Yangi qurilmadan Aidevix hisobiga kirish',
@@ -299,7 +321,7 @@ const sendNewDeviceLoginEmail = async (email, username, { ip, ua, when }) => {
 };
 
 const sendAccountDeletedEmail = async (email, username) => {
-  await transporter.sendMail({
+  await sendMail({
     from: FROM,
     to: email,
     subject: 'Aidevix hisob o\'chirildi',
@@ -342,7 +364,7 @@ const sendWeeklyDigestEmail = async (email, digest) => {
        </div>`
     : '';
 
-  await transporter.sendMail({
+  await sendMail({
     from: FROM,
     to: email,
     subject: `📊 Aidevix — Haftalik xulosa (${weeklyXp.toLocaleString()} XP)`,
