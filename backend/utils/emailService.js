@@ -1,93 +1,74 @@
-const nodemailer = require('nodemailer');
-const dns = require('dns');
+// HTTPS-based email transport (Resend). Replaces nodemailer/SMTP because Railway
+// blocks outbound TCP on SMTP ports (25/465/587). Resend sends via HTTPS API
+// over port 443 which is always reachable.
+//
+// Env vars:
+//   RESEND_API_KEY   — required, from https://resend.com/api-keys
+//   EMAIL_FROM       — optional, e.g. 'Aidevix <noreply@aidevix.uz>'.
+//                      Defaults to onboarding@resend.dev (works without domain
+//                      verification but only delivers to the Resend account owner).
+const { Resend } = require('resend');
 
-// Process-wide defenses (Node version-dependent — wrapped in try/catch).
-try { dns.setDefaultResultOrder('ipv4first'); } catch (_) {}
-try { require('net').setDefaultAutoSelectFamily(false); } catch (_) {}
+const FROM = process.env.EMAIL_FROM || 'Aidevix <onboarding@resend.dev>';
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-const EMAIL_HOST = process.env.EMAIL_HOST || 'smtp.gmail.com';
-const EMAIL_PORT = Number(process.env.EMAIL_PORT) || 587;
+let resend = null;
+if (RESEND_API_KEY) {
+  resend = new Resend(RESEND_API_KEY);
+} else {
+  console.error('[email] ❌ RESEND_API_KEY not set — email sending is disabled');
+}
 
-// Custom dns.lookup that only ever returns IPv4 — passed to nodemailer for
-// the rare path that actually honors the `lookup` option.
-const ipv4Lookup = (hostname, opts, cb) => {
-  if (typeof opts === 'function') { cb = opts; opts = {}; }
-  return dns.lookup(hostname, { ...opts, family: 4 }, cb);
-};
-
-function buildTransport(hostOverride) {
-  return nodemailer.createTransport({
-    host: hostOverride || EMAIL_HOST,
-    port: EMAIL_PORT,
-    secure: EMAIL_PORT === 465,
-    family: 4,
-    autoSelectFamily: false,
-    lookup: ipv4Lookup,
-    // When we connect by IP, TLS still needs the real hostname for SNI + cert validation.
-    tls: hostOverride
-      ? { servername: EMAIL_HOST, minVersion: 'TLSv1.2' }
-      : { minVersion: 'TLSv1.2' },
-    connectionTimeout: 10_000,
-    greetingTimeout: 5_000,
-    socketTimeout: 15_000,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
+// Public sendMail() preserves the nodemailer-style call signature used across
+// this module ({ from, to, subject, html }). Returns a nodemailer-like info
+// object so existing callers that inspect .messageId / .accepted keep working.
+async function sendMail({ from, to, subject, html }) {
+  if (!resend) throw new Error('Resend not configured (RESEND_API_KEY missing)');
+  const { data, error } = await resend.emails.send({
+    from: from || FROM,
+    to: Array.isArray(to) ? to : [to],
+    subject,
+    html,
   });
+  if (error) {
+    const err = new Error(error.message || 'Resend send failed');
+    err.code = error.name || error.statusCode || 'RESEND_ERROR';
+    err.details = error;
+    throw err;
+  }
+  return {
+    messageId: data && data.id,
+    accepted: [to],
+    rejected: [],
+    response: `Resend id=${data && data.id}`,
+  };
 }
 
-// Initial transporter uses the hostname — works on machines with proper IPv6,
-// and is replaced below once we've resolved an IPv4 address ourselves.
-let transporter = buildTransport(null);
-
-// Nodemailer silently drops `family` / `lookup` / `autoSelectFamily` from
-// net.connect on Railway's Node version, so the only reliable way to avoid
-// IPv6 ENETUNREACH is to pre-resolve smtp.gmail.com to an IPv4 ourselves and
-// pass that IP as the host. TLS SNI keeps cert validation correct.
-let _readyPromise = null;
-function ensureReady() {
-  if (_readyPromise) return _readyPromise;
-  _readyPromise = (async () => {
-    try {
-      const addrs = await dns.promises.resolve4(EMAIL_HOST);
-      const ip = addrs && addrs[0];
-      if (!ip) throw new Error('no A records');
-      transporter = buildTransport(ip);
-      console.log(`[email] resolved ${EMAIL_HOST} → ${ip} (IPv4) — transport rebound`);
-    } catch (err) {
-      console.error(`[email] ⚠️ resolve4(${EMAIL_HOST}) failed: ${err.message} — falling back to hostname (may IPv6-fail on Railway)`);
-    }
-  })();
-  return _readyPromise;
-}
-
-async function sendMail(opts) {
-  await ensureReady();
-  return transporter.sendMail(opts);
-}
-
-// Startup-time SMTP credential & connectivity check. Logs once at boot so Railway
-// surfaces EMAIL_USER/EMAIL_PASS misconfig or outbound-port blocks immediately,
-// instead of silently failing inside fire-and-forget sendMail calls.
+// Startup probe. Resend has no "verify connection" endpoint, but we can call
+// the API keys list endpoint to confirm the key is valid + reachable. Failing
+// loudly at boot beats failing silently per-request.
 async function verifyTransport() {
-  const user = process.env.EMAIL_USER;
-  if (!user || !process.env.EMAIL_PASS) {
-    console.error(`[email] ❌ SMTP creds missing — EMAIL_USER=${user ? 'set' : 'MISSING'} EMAIL_PASS=${process.env.EMAIL_PASS ? 'set' : 'MISSING'}`);
+  if (!RESEND_API_KEY) {
+    console.error('[email] ❌ RESEND_API_KEY missing — set it in Railway env');
     return false;
   }
-  await ensureReady();
   try {
-    await transporter.verify();
-    console.log(`[email] ✅ SMTP ready — ${EMAIL_HOST}:${EMAIL_PORT} as ${user}`);
+    const res = await fetch('https://api.resend.com/domains', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      console.error(`[email] ❌ Resend probe failed — HTTP ${res.status} ${body.slice(0, 200)}`);
+      return false;
+    }
+    console.log(`[email] ✅ Resend ready — from=${FROM}`);
     return true;
   } catch (err) {
-    console.error(`[email] ❌ SMTP verify failed — ${EMAIL_HOST}:${EMAIL_PORT} as ${user}: ${err.code || ''} ${err.message}`);
+    console.error(`[email] ❌ Resend probe error: ${err.message}`);
     return false;
   }
 }
-
-const FROM = `"Aidevix" <${process.env.EMAIL_USER || 'noreply@aidevix.uz'}>`;
 
 const sendWelcomeEmail = async (email, username) => {
   await sendMail({
@@ -405,6 +386,7 @@ const sendWeeklyDigestEmail = async (email, digest) => {
 };
 
 module.exports = {
+  sendMail,
   sendWelcomeEmail,
   sendEmailVerificationCode,
   sendLevelUpEmail,

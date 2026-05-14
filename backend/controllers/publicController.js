@@ -166,23 +166,16 @@ const submitContact = async (req, res) => {
       // Telegram fail — admin keyin emaildan ko'radi
     }
 
-    // Email orqali ham xabar berish (admin uchun)
+    // Email orqali ham xabar berish (admin uchun) — Resend orqali (HTTPS API)
     try {
-      const nodemailer = require('nodemailer');
-      const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port: Number(process.env.EMAIL_PORT) || 587,
-        secure: Number(process.env.EMAIL_PORT) === 465,
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      });
-      const adminEmail = process.env.CONTACT_NOTIFY_EMAIL || process.env.EMAIL_USER;
+      const { sendMail } = require('../utils/emailService');
+      const adminEmail = process.env.CONTACT_NOTIFY_EMAIL;
       if (adminEmail) {
-        await transporter.sendMail({
-          from: `"Aidevix Contact" <${process.env.EMAIL_USER}>`,
+        await sendMail({
           to: adminEmail,
-          replyTo: cleanEmail,
           subject: `[Contact] ${cleanSubject}`,
-          text: `From: ${cleanName} <${cleanEmail}>\n\n${cleanMessage}`,
+          html: `<p><strong>From:</strong> ${safe(cleanName)} &lt;${safe(cleanEmail)}&gt;</p>`
+              + `<p>${safe(cleanMessage).replace(/\n/g, '<br/>')}</p>`,
         });
       }
     } catch (_) {
