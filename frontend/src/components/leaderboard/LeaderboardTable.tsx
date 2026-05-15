@@ -16,6 +16,13 @@ const getLevelName = (lvl: number, t: (k: string) => string) => {
 const getInitials = (name = '') =>
   name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
 
+const getDisplayName = (u: any, fallback: string) => {
+  const first = u?.firstName?.trim()
+  const last  = u?.lastName?.trim()
+  const full  = [first, last].filter(Boolean).join(' ').trim()
+  return full || u?.username || u?.name || fallback
+}
+
 const TOOL_ICONS: Record<string, string> = {
   'Claude Code': '🤖', 'Cursor': '⚡', 'GitHub Copilot': '🐙',
   'ChatGPT': '💬', 'Gemini': '✨', 'Windsurf': '🌊',
@@ -151,7 +158,7 @@ const LeaderboardTable = ({ users = [], currentUserId, loading }) => {
         <div className="divide-y divide-base-300/60">
           {users.map((u: any, i: number) => {
             const isMe = u.user?._id === currentUserId
-            const username = u.user?.username || u.user?.name || t('auth.register.username')
+            const username = getDisplayName(u.user, t('auth.register.username'))
             const lvlName = getLevelName(u.level || 1, t)
             return (
               <DesktopRow
@@ -171,7 +178,7 @@ const LeaderboardTable = ({ users = [], currentUserId, loading }) => {
       <div className="sm:hidden divide-y divide-base-300/60">
         {users.map((u: any, i: number) => {
           const isMe = u.user?._id === currentUserId
-          const username = u.user?.username || u.user?.name || t('auth.register.username')
+          const username = getDisplayName(u.user, t('auth.register.username'))
           const lvlName = getLevelName(u.level || 1, t)
           return (
             <MobileRow

@@ -43,7 +43,9 @@ function PodiumCard({ user, rank }: { user: any, rank: number }) {
   const { t } = useLang();
   const reduceMotion = useReducedMotion();
   if (!user) return null
-  const username = user.user?.username || user.username || t('auth.register.username')
+  const u = user.user || user
+  const fullName = [u?.firstName, u?.lastName].map((s) => s?.trim()).filter(Boolean).join(' ').trim()
+  const username = fullName || u?.username || t('auth.register.username')
   const sList: any = {
     1:{ wrap:'order-2 z-10 scale-110', card:'border-yellow-500/60 bg-[#1c1500]', shadow:'0 0 40px rgba(234,179,8,0.25)', badge:'bg-yellow-500', ab:'border-yellow-500', sz:'w-[72px] h-[72px]' },
     2:{ wrap:'order-1', card:'border-gray-500/30 bg-[#111318]', shadow:'none', badge:'bg-gray-400', ab:'border-gray-400/60', sz:'w-14 h-14' },
@@ -409,13 +411,17 @@ export default function LeaderboardPage() {
               {weeklyData?.leaderboard?.length > 0 && (
                 <div className="px-3 pb-3 space-y-1">
                   <p className="text-[10px] text-base-content/30 uppercase tracking-widest px-3 pt-2">Bu hafta top</p>
-                  {weeklyData.leaderboard.slice(0, 3).map((u: any, i: number) => (
-                    <div key={u.user?._id || i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg">
-                      <span className="text-xs font-black text-base-content/30 w-4">{i+1}</span>
-                      <span className="text-sm font-semibold flex-1 truncate">{u.user?.username || '—'}</span>
-                      <span className="text-xs font-bold text-yellow-400">{(u.weeklyXp||0).toLocaleString()} XP</span>
-                    </div>
-                  ))}
+                  {weeklyData.leaderboard.slice(0, 3).map((u: any, i: number) => {
+                    const full = [u.user?.firstName, u.user?.lastName].map((s) => s?.trim()).filter(Boolean).join(' ').trim()
+                    const display = full || u.user?.username || '—'
+                    return (
+                      <div key={u.user?._id || i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg">
+                        <span className="text-xs font-black text-base-content/30 w-4">{i+1}</span>
+                        <span className="text-sm font-semibold flex-1 truncate">{display}</span>
+                        <span className="text-xs font-bold text-yellow-400">{(u.weeklyXp||0).toLocaleString()} XP</span>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </motion.div>

@@ -9,6 +9,7 @@ import { selectUser } from '@store/slices/authSlice';
 import { useUserStats } from '@hooks/useUserStats';
 import { useSubscription } from '@hooks/useSubscription';
 import { fetchUserStats, updateProfileThunk } from '@store/slices/userStatsSlice';
+import { updateUser } from '@store/slices/authSlice';
 import { uploadApi } from '@api/uploadApi';
 import { toast } from 'react-hot-toast';
 import { useLang } from '@/context/LangContext';
@@ -233,7 +234,11 @@ export default function ProfilePage() {
 
     try {
       setAvatarUploading(true);
-      await uploadApi.uploadAvatar(file);
+      const { data } = await uploadApi.uploadAvatar(file);
+      const newUrl = data?.data?.avatarUrl || data?.avatarUrl;
+      if (newUrl) {
+        dispatch(updateUser({ avatar: newUrl }));
+      }
       toast.success(t('profile.toast.avatarUpdated'));
       dispatch(fetchUserStats());
       setAvatarPreview(null);

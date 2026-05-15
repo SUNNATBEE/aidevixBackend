@@ -71,7 +71,7 @@ const getTopUsers = async (req, res) => {
       .sort({ xp: -1, level: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('userId', 'username email createdAt avatar aiStack')
+      .populate('userId', 'username email createdAt avatar aiStack firstName lastName jobTitle')
       .select('userId xp level streak badges videosWatched quizzesCompleted avatar bio skills');
 
     // Rank raqami va unvon qo'shish
@@ -152,7 +152,7 @@ const getWeeklyLeaderboard = async (req, res) => {
     const top = await UserStats.find({ weeklyXp: { $gt: 0 } })
       .sort({ weeklyXp: -1 })
       .limit(10)
-      .populate('userId', 'username')
+      .populate('userId', 'username firstName lastName avatar')
       .lean();
 
     const rankedUsers = top.map((u, i) => ({
@@ -202,7 +202,7 @@ const getWeeklyPrizes = async (req, res) => {
     const top = await UserStats.find({ weeklyXp: { $gt: 0 } })
       .sort({ weeklyXp: -1 })
       .limit(10)
-      .populate('userId', 'username avatar aiStack')
+      .populate('userId', 'username firstName lastName avatar aiStack')
       .lean();
 
     const leaderboard = top.map((u, i) => ({
