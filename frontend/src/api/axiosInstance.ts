@@ -45,6 +45,14 @@ const fetchCsrfToken = async (): Promise<string | null> => {
   return null
 }
 
+// Public boot-time helper. Call once on app mount so the in-memory token is
+// ready before any mutating request fires (otherwise the first POST on a
+// fresh tab eats one round-trip on the 403→retry path).
+export const primeCsrfToken = (): void => {
+  if (csrfTokenInMemory) return
+  void fetchCsrfToken()
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,

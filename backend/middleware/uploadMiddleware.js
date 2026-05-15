@@ -8,6 +8,14 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Boot-time visibility — missing credentials would otherwise only surface as
+// an opaque 500 the first time a user tries to upload a file. Logging here
+// makes the misconfiguration obvious in Railway logs at startup.
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+  console.warn('⚠️  Cloudinary credentials missing — avatar/thumbnail uploads will fail with "Must supply api_key".');
+  console.warn('   Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in the environment.');
+}
+
 // Avatar upload storage
 const avatarStorage = new CloudinaryStorage({
   cloudinary,

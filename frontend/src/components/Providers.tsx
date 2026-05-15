@@ -9,6 +9,7 @@ import { LangProvider } from '@/context/LangContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { SoundProvider } from '@/context/SoundContext';
 import { checkAuthStatus } from '@/store/slices/authSlice';
+import { primeCsrfToken } from '@/api/axiosInstance';
 
 import { useDispatch } from 'react-redux';
 
@@ -22,6 +23,11 @@ function AuthBootstrap() {
   useEffect(() => {
     if (!authCheckDispatched) {
       authCheckDispatched = true;
+      // Cross-site clients need an X-CSRF-Token header on the first mutating
+      // request (e.g. /api/auth/daily-reward, profile edit). Prime the
+      // in-memory store before any of those fire so we don't rely on the
+      // 403→retry path for the very first request.
+      primeCsrfToken();
       dispatch(checkAuthStatus() as any);
     }
   }, [dispatch]);

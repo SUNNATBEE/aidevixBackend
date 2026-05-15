@@ -3,6 +3,18 @@ const logger = require('../utils/logger');
 const multer = require('multer');
 
 const errorHandler = (err, req, res, next) => {
+  // Some libraries (notably the legacy `cloudinary` v1 SDK) reject with a
+  // plain string instead of an Error instance. Normalise so downstream code
+  // — including the error logger — sees a real Error and `err.message` is
+  // never undefined.
+  if (typeof err === 'string') {
+    err = new Error(err);
+  } else if (err && typeof err === 'object' && !err.message && !(err instanceof Error)) {
+    const wrapped = new Error(err.error || err.msg || err.statusText || 'Unknown error');
+    wrapped.original = err;
+    err = wrapped;
+  }
+
   let error = { ...err };
   error.message = err.message;
 
@@ -60,6 +72,25 @@ const errorHandler = (err, req, res, next) => {
     )
   ) {
     error = new ErrorResponse(err.message, 400);
+  }
+
+  // Cloudinary configuration / auth failures — surface as 503 so the operator
+  // sees a clear "service misconfigured" message instead of a generic 500.
+  if (
+    !error.statusCode &&
+    typeof err.message === 'string' &&
+    (
+      err.message.includes('Must supply api_key') ||
+      err.message.includes('Must supply cloud_name') ||
+      err.message.includes('cloud_name is disabled') ||
+      err.message.includes('Invalid API key') ||
+      err.message.includes('Invalid Signature')
+    )
+  ) {
+    error = new ErrorResponse(
+      'Rasm yuklash xizmati sozlanmagan. Iltimos administratorga murojaat qiling.',
+      503,
+    );
   }
 
   // Stack trace clientga hech qachon qaytarilmaydi — debug uchun loglarda.
