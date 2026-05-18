@@ -39,6 +39,12 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: 'https://aidevix.uz',
+    languages: {
+      'uz-UZ': 'https://aidevix.uz',
+      'ru-RU': 'https://aidevix.uz',
+      'en-US': 'https://aidevix.uz',
+      'x-default': 'https://aidevix.uz',
+    },
   },
   openGraph: {
     type: 'website',
@@ -87,6 +93,37 @@ export const viewport = {
   maximumScale: 5,
 };
 
+// Site-wide Organization schema — every page inherits this. Powers the Google
+// "knowledge panel" for "Aidevix" queries and validates publisher in nested
+// schemas (Course, VideoObject, Person).
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Aidevix',
+  alternateName: ['Aidevix.uz', 'Aidevix Platform'],
+  url: 'https://aidevix.uz',
+  logo: 'https://aidevix.uz/Logo.jpg',
+  description:
+    "O'zbek tilidagi eng yirik AI va dasturlash o'quv platformasi. Claude Code, Cursor, GitHub Copilot va boshqa AI vositalar.",
+  sameAs: [
+    'https://t.me/aidevix',
+    'https://instagram.com/aidevix',
+  ],
+};
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Aidevix',
+  url: 'https://aidevix.uz',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: 'https://aidevix.uz/courses?search={search_term_string}',
+    'query-input': 'required name=search_term_string',
+  },
+  inLanguage: ['uz-UZ', 'ru-RU', 'en-US'],
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -97,6 +134,14 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://telegram.org" crossOrigin="" />
         <link rel="dns-prefetch" href="https://telegram.org" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
       </head>
       <body className={`${manrope.variable} ${spaceGrotesk.variable} min-w-0 w-full max-w-full antialiased selection:bg-indigo-500/30`}>
         {/* Inline script o'rniga statik /public fayllar — CSP `'unsafe-inline'` siz ishlaydi. */}

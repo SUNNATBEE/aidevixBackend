@@ -1,17 +1,20 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   IoSparkles, IoCheckmarkCircle, IoWarning, IoAlertCircle,
-  IoBulb, IoCopyOutline, IoTrash, IoArrowDown,
+  IoBulb, IoCopyOutline, IoTrash, IoArrowDown, IoCodeSlash,
 } from 'react-icons/io5';
 import { playgroundApi, type PlaygroundReview } from '@/api/playgroundApi';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 
+// Monaco is ~450KB minified. Defer it until the user actually intends to edit
+// (click / focus / keyboard) so bounce visitors and slow-network users get
+// instant first paint with a read-only preview.
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
 const LANGS: { value: string; label: string; sample: string }[] = [
@@ -57,6 +60,11 @@ export default function PlaygroundClient() {
   const [review, setReview] = useState<PlaygroundReview | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Monaco is only mounted after user signals intent to edit. Saves ~450KB
+  // for unauth visitors, bounce traffic, and slow-network users on first paint.
+  const [editorReady, setEditorReady] = useState(false);
+  const activateEditor = useCallback(() => setEditorReady(true), []);
 
   const handleLangChange = (newLang: string) => {
     setLang(newLang);
@@ -170,23 +178,46 @@ export default function PlaygroundClient() {
             </div>
 
             <div className="h-[60vh] min-h-[480px]">
-              <MonacoEditor
-                height="100%"
-                language={lang === 'tsx' ? 'typescript' : lang}
-                theme={isDark ? 'vs-dark' : 'light'}
-                value={code}
-                onChange={(v) => setCode(v || '')}
-                options={{
-                  fontSize: 14,
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  fontLigatures: true,
-                  smoothScrolling: true,
-                  tabSize: 2,
-                  automaticLayout: true,
-                  wordWrap: 'on',
-                }}
-              />
+              {editorReady ? (
+                <MonacoEditor
+                  height="100%"
+                  language={lang === 'tsx' ? 'typescript' : lang}
+                  theme={isDark ? 'vs-dark' : 'light'}
+                  value={code}
+                  onChange={(v) => setCode(v || '')}
+                  options={{
+                    fontSize: 14,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    fontLigatures: true,
+                    smoothScrolling: true,
+                    tabSize: 2,
+                    automaticLayout: true,
+                    wordWrap: 'on',
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={activateEditor}
+                  onFocus={activateEditor}
+                  className={`group relative h-full w-full overflow-auto text-left font-mono text-[13px] leading-6 p-5 ${
+                    isDark ? 'bg-[#0A0E1A] text-slate-300' : 'bg-slate-50 text-slate-700'
+                  }`}
+                  aria-label="Editor'ni faollashtirish"
+                >
+                  <pre className="whitespace-pre-wrap pr-12">{code}</pre>
+                  <span
+                    className={`pointer-events-none absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest transition-opacity group-hover:opacity-100 ${
+                      isDark
+                        ? 'border-indigo-400/30 bg-indigo-500/10 text-indigo-300'
+                        : 'border-indigo-300 bg-indigo-50 text-indigo-700'
+                    }`}
+                  >
+                    <IoCodeSlash /> Tahrirlash uchun bosing
+                  </span>
+                </button>
+              )}
             </div>
 
             <div className="p-3 border-t border-white/5 flex flex-col sm:flex-row gap-2">

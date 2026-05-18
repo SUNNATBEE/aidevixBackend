@@ -1,54 +1,82 @@
 import { MetadataRoute } from 'next'
 import { API_BASE_URL } from '@/utils/constants'
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://aidevix.uz'
-  const courseFeedUrl = API_BASE_URL.startsWith('http') ? `${API_BASE_URL}courses` : null;
+const BASE = 'https://aidevix.uz'
 
-  // Fetch courses for sitemap
-  let courses: { _id: string, updatedAt: string }[] = []
-  if (courseFeedUrl) {
-    try {
-      const res = await fetch(courseFeedUrl, { next: { revalidate: 3600 } })
-      const data = await res.json()
-      courses = data.data?.courses || []
-    } catch (e) {
-      console.error('Sitemap fetch error:', e)
-    }
+type Course  = { _id: string; updatedAt?: string };
+type Video   = { _id: string; updatedAt?: string };
+type Prompt  = { _id: string; updatedAt?: string };
+type Profile = { username: string; updatedAt?: string };
+
+async function fetchJson<T>(url: string, key: string): Promise<T[]> {
+  if (!API_BASE_URL.startsWith('http')) return [];
+  try {
+    const res = await fetch(url, { next: { revalidate: 3600 } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data?.data?.[key] || []) as T[];
+  } catch (e) {
+    console.error(`Sitemap fetch error (${key}):`, e);
+    return [];
   }
+}
 
-  const courseUrls = courses.map((course) => ({
-    url: `${baseUrl}/courses/${course._id}`,
-    lastModified: new Date(course.updatedAt || new Date()),
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Fetch all dynamic content types in parallel — sitemap render must stay fast.
+  const [courses, videos, prompts, profiles] = await Promise.all([
+    fetchJson<Course>(`${API_BASE_URL}courses`, 'courses'),
+    fetchJson<Video>(`${API_BASE_URL}videos?limit=500`, 'videos'),
+    fetchJson<Prompt>(`${API_BASE_URL}prompts?limit=500`, 'prompts'),
+    fetchJson<Profile>(`${API_BASE_URL}users/public?limit=500`, 'users'),
+  ]);
+
+  const now = new Date();
+
+  const courseUrls = courses.map((c) => ({
+    url: `${BASE}/courses/${c._id}`,
+    lastModified: new Date(c.updatedAt || now),
     changeFrequency: 'weekly' as const,
     priority: 0.8,
-  }))
+  }));
+
+  const videoUrls = videos.map((v) => ({
+    url: `${BASE}/videos/${v._id}`,
+    lastModified: new Date(v.updatedAt || now),
+    changeFrequency: 'weekly' as const,
+    priority: 0.7,
+  }));
+
+  const promptUrls = prompts.map((p) => ({
+    url: `${BASE}/prompts/${p._id}`,
+    lastModified: new Date(p.updatedAt || now),
+    changeFrequency: 'monthly' as const,
+    priority: 0.6,
+  }));
+
+  const profileUrls = profiles.map((p) => ({
+    url: `${BASE}/u/${p.username}`,
+    lastModified: new Date(p.updatedAt || now),
+    changeFrequency: 'weekly' as const,
+    priority: 0.5,
+  }));
 
   return [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/courses`,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/videos`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/leaderboard`,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.7,
-    },
+    { url: BASE,                  lastModified: now, changeFrequency: 'daily',  priority: 1   },
+    { url: `${BASE}/courses`,     lastModified: now, changeFrequency: 'daily',  priority: 0.9 },
+    { url: `${BASE}/videos`,      lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${BASE}/leaderboard`, lastModified: now, changeFrequency: 'daily',  priority: 0.7 },
+    { url: `${BASE}/challenges`,  lastModified: now, changeFrequency: 'daily',  priority: 0.7 },
+    { url: `${BASE}/prompts`,     lastModified: now, changeFrequency: 'daily',  priority: 0.8 },
+    { url: `${BASE}/playground`,  lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE}/careers`,     lastModified: now, changeFrequency: 'daily',  priority: 0.6 },
+    { url: `${BASE}/pricing`,     lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE}/about`,       lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${BASE}/blog`,        lastModified: now, changeFrequency: 'weekly', priority: 0.5 },
+    { url: `${BASE}/help`,        lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${BASE}/contact`,     lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
     ...courseUrls,
-  ]
+    ...videoUrls,
+    ...promptUrls,
+    ...profileUrls,
+  ];
 }

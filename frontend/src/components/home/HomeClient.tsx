@@ -39,7 +39,22 @@ if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-export default function HomeClient({ initialCourses = [], initialVideos = [] }) {
+type InitialStats = {
+  students: number;
+  videos: number;
+  mentors: number;
+  rating: number;
+} | null;
+
+export default function HomeClient({
+  initialCourses = [],
+  initialVideos = [],
+  initialStats = null,
+}: {
+  initialCourses?: any[];
+  initialVideos?: any[];
+  initialStats?: InitialStats;
+}) {
   type AiNewsItem = {
     _id?: string;
     title: string;
@@ -60,13 +75,12 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
   const { isDark } = useTheme();
   const { playSound } = useSound();
   const [continueLearning, setContinueLearning] = useState<any>(null);
-  const [homeStats, setHomeStats] = useState({
-    students: 0,
-    videos: 0,
-    mentors: 0,
-    rating: 0,
-  });
-  const [homeStatsLoaded, setHomeStatsLoaded] = useState(false);
+  // Stats are SSR'd in page.tsx (faster LCP, no client fetch hop). Fallback to
+  // client fetch only when the SSR call failed (initialStats === null).
+  const [homeStats, setHomeStats] = useState(
+    initialStats || { students: 0, videos: 0, mentors: 0, rating: 0 },
+  );
+  const [homeStatsLoaded, setHomeStatsLoaded] = useState(Boolean(initialStats));
   const [newsIndex, setNewsIndex] = useState(0);
   const [aiNews, setAiNews] = useState<AiNewsItem[]>([]);
   const [enableNewsImages, setEnableNewsImages] = useState(false);
@@ -106,7 +120,11 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
       .catch(() => {});
   }, [isLoggedIn]);
 
+  // SSR-provided stats cover the common path; this effect only runs as a
+  // fallback when initialStats was null (backend unreachable from edge during
+  // page render).
   useEffect(() => {
+    if (initialStats) return;
     const controller = new AbortController();
     (async () => {
       try {
@@ -133,33 +151,17 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
       }
     })();
     return () => controller.abort();
-  }, []);
+  }, [initialStats]);
 
+  // ThreeHero is now pure CSS (Three.js was removed). Render it as soon as
+  // we're mounted on desktop without prefers-reduced-motion — the previous
+  // 1.2-1.8s requestIdleCallback delay added LCP latency for no real gain.
   useEffect(() => {
     if (!isMounted || !isReady) return;
-
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let idleId: number | null = null;
-
-    const enable = () => {
-      if (!reduceMotion && window.innerWidth >= 768) {
-        setShowHeroVisual(true);
-      }
-    };
-
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      idleId = window.requestIdleCallback(enable, { timeout: 1800 });
-    } else {
-      timeoutId = setTimeout(enable, 1200);
-    }
-
-    return () => {
-      if (idleId !== null && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
-        window.cancelIdleCallback(idleId);
-      }
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [isMounted, reduceMotion]);
+    if (reduceMotion) return;
+    if (typeof window === 'undefined') return;
+    if (window.innerWidth >= 768) setShowHeroVisual(true);
+  }, [isMounted, isReady, reduceMotion]);
 
   // Metrikalar serverdan kelguncha `data-value` 0; GSAP bir marta ishga tushsa — doim 0 qoladi.
   useEffect(() => {
