@@ -28,6 +28,7 @@ const syncDocumentTheme = (nextTheme: Theme) => {
   root.dataset.theme = nextTheme;
   root.classList.toggle('light-mode', nextTheme === 'light');
   root.classList.toggle('dark-mode', nextTheme === 'dark');
+  root.classList.toggle('dark', nextTheme === 'dark');
   root.style.colorScheme = nextTheme;
 };
 

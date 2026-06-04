@@ -28,12 +28,30 @@ export const SoundProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('aidevix_sound_enabled', String(enabled));
   };
 
+  // Preload common sounds on mount to prevent network delay on click/navigation
+  useEffect(() => {
+    const commonSounds = ['/sounds/onlyclick.wav', '/sounds/navchange.wav'];
+    commonSounds.forEach((path) => {
+      try {
+        if (!audioCache.current[path]) {
+          const audio = new Audio(path);
+          audio.preload = 'auto';
+          audioCache.current[path] = audio;
+        }
+      } catch (e) {
+        // Ignore errors during server-side preloading check
+      }
+    });
+  }, []);
+
   const playSound = (path: string, volume: number = 0.2) => {
     if (!isSoundEnabled) return;
 
     try {
       if (!audioCache.current[path]) {
-        audioCache.current[path] = new Audio(path);
+        const audio = new Audio(path);
+        audio.preload = 'auto';
+        audioCache.current[path] = audio;
       }
       
       const audio = audioCache.current[path];

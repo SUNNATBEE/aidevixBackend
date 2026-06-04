@@ -15,6 +15,7 @@
     root.dataset.theme = resolvedTheme;
     root.classList.toggle('light-mode', resolvedTheme === 'light');
     root.classList.toggle('dark-mode', resolvedTheme === 'dark');
+    root.classList.toggle('dark', resolvedTheme === 'dark');
     root.lang = resolvedLang;
     root.dataset.lang = resolvedLang;
     root.style.colorScheme = resolvedTheme;

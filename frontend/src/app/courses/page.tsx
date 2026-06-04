@@ -102,7 +102,7 @@ function CoursesContent() {
             }
           >
             <IoOptions className="text-base" />
-            <span className="hidden xs:inline">Filter</span>
+            <span className="hidden xs:inline">{t('filter.title')}</span>
           </button>
         </div>
 

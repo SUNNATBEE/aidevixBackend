@@ -6,6 +6,7 @@ const Certificate = require('../models/Certificate');
 const Prompt = require('../models/Prompt');
 const Follow = require('../models/Follow');
 const Enrollment = require('../models/Enrollment');
+const QuizResult = require('../models/QuizResult');
 
 /**
  * @desc  Home sahifa uchun ochiq statistika
@@ -14,7 +15,23 @@ const Enrollment = require('../models/Enrollment');
  */
 const getHomeStats = async (_req, res) => {
   try {
-    const [students, videos, mentorsAgg, ratingAgg] = await Promise.all([
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - 7);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const startOfPast24Hours = new Date();
+    startOfPast24Hours.setHours(startOfPast24Hours.getHours() - 24);
+
+    const [
+      students, 
+      videos, 
+      mentorsAgg, 
+      ratingAgg,
+      weeklyVideos,
+      weeklyQuizzes,
+      hourlyVideos,
+      hourlyQuizzes
+    ] = await Promise.all([
       User.countDocuments({ isActive: true }),
       Video.countDocuments({ isActive: true }),
       Course.aggregate([
@@ -26,10 +43,82 @@ const getHomeStats = async (_req, res) => {
         { $match: { isActive: true, rating: { $gt: 0 } } },
         { $group: { _id: null, avg: { $avg: '$rating' } } },
       ]),
+      Enrollment.aggregate([
+        { $unwind: '$watchedVideos' },
+        { $match: { 'watchedVideos.watchedAt': { $gte: startOfWeek } } },
+        {
+          $group: {
+            _id: { $dayOfWeek: '$watchedVideos.watchedAt' },
+            count: { $sum: 1 },
+          }
+        }
+      ]),
+      QuizResult.aggregate([
+        { $match: { completedAt: { $gte: startOfWeek } } },
+        {
+          $group: {
+            _id: { $dayOfWeek: '$completedAt' },
+            xp: { $sum: '$xpEarned' },
+          }
+        }
+      ]),
+      Enrollment.aggregate([
+        { $unwind: '$watchedVideos' },
+        { $match: { 'watchedVideos.watchedAt': { $gte: startOfPast24Hours } } },
+        {
+          $group: {
+            _id: { $hour: '$watchedVideos.watchedAt' },
+            count: { $sum: 1 },
+          }
+        }
+      ]),
+      QuizResult.aggregate([
+        { $match: { completedAt: { $gte: startOfPast24Hours } } },
+        {
+          $group: {
+            _id: { $hour: '$completedAt' },
+            count: { $sum: 1 },
+          }
+        }
+      ])
     ]);
 
     const mentors = mentorsAgg[0]?.total || 0;
     const rating = Number((ratingAgg[0]?.avg || 0).toFixed(1));
+
+    const daysMap = {
+      2: 'Mon',
+      3: 'Tue',
+      4: 'Wed',
+      5: 'Thu',
+      6: 'Fri',
+      7: 'Sat',
+      1: 'Sun'
+    };
+
+    const skillGrowth = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(dayName => {
+      const videoMatch = weeklyVideos.find(v => daysMap[v._id] === dayName);
+      const quizMatch = weeklyQuizzes.find(q => daysMap[q._id] === dayName);
+      
+      const videoXp = videoMatch ? videoMatch.count * 50 : 0;
+      const quizXp = quizMatch ? quizMatch.xp : 0;
+      
+      return {
+        day: dayName,
+        xp: videoXp + quizXp
+      };
+    });
+
+    const activityTelemetry = Array.from({ length: 24 }).map((_, hourOffset) => {
+      const targetHour = (new Date().getHours() - (23 - hourOffset) + 24) % 24;
+      const videoMatch = hourlyVideos.find(v => v._id === targetHour);
+      const quizMatch = hourlyQuizzes.find(q => q._id === targetHour);
+      
+      const videoCount = videoMatch ? videoMatch.count : 0;
+      const quizCount = quizMatch ? quizMatch.count : 0;
+      
+      return videoCount + quizCount;
+    });
 
     return res.json({
       success: true,
@@ -38,6 +127,8 @@ const getHomeStats = async (_req, res) => {
         videos,
         mentors,
         rating,
+        skillGrowth,
+        activityTelemetry
       },
     });
   } catch (err) {

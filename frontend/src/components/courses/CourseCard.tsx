@@ -4,23 +4,38 @@ import { useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { gsap } from 'gsap';
-import { IoPlay, IoTime, IoBookOutline, IoStar } from 'react-icons/io5';
+import { IoTime, IoBookOutline, IoStar } from 'react-icons/io5';
 import { ROUTES } from '@/utils/constants';
 import { formatDurationText } from '@/utils/formatDuration';
 import { useSound } from '@/context/SoundContext';
 import { useLang } from '@/context/LangContext';
 import { localizeCourseText } from '@/utils/courseTextFallback';
+import DynamicSVG from './DynamicSVG';
 
 const CAT = {
-  html:       { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400',  label: 'HTML',   glow: 'hover:shadow-orange-500/10'  },
-  css:        { bg: 'bg-blue-500/10',   border: 'border-blue-500/20',   text: 'text-blue-400',    label: 'CSS',    glow: 'hover:shadow-blue-500/10'    },
-  javascript: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', text: 'text-yellow-400',  label: 'JS',     glow: 'hover:shadow-yellow-500/10'  },
-  typescript: { bg: 'bg-blue-600/10',   border: 'border-blue-600/20',   text: 'text-blue-300',    label: 'TS',     glow: 'hover:shadow-blue-600/10'    },
-  react:      { bg: 'bg-cyan-500/10',   border: 'border-cyan-500/20',   text: 'text-cyan-400',    label: 'React',  glow: 'hover:shadow-cyan-500/10'    },
-  redux:      { bg: 'bg-purple-500/10', border: 'border-purple-500/20', text: 'text-purple-400',  label: 'Redux',  glow: 'hover:shadow-purple-500/10'  },
-  nodejs:     { bg: 'bg-green-500/10',  border: 'border-green-500/20',  text: 'text-green-400',   label: 'Node',   glow: 'hover:shadow-green-500/10'   },
-  tailwind:   { bg: 'bg-teal-500/10',   border: 'border-teal-500/20',   text: 'text-teal-400',    label: 'TW',     glow: 'hover:shadow-teal-500/10'    },
-  general:    { bg: 'bg-violet-500/10', border: 'border-violet-500/20', text: 'text-violet-400',  label: 'Other',  glow: 'hover:shadow-violet-500/10'  },
+  html:       { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400',  label: 'HTML',   glow: 'hover:shadow-orange-500/10', hex: '#fb923c' },
+  css:        { bg: 'bg-blue-500/10',   border: 'border-blue-500/20',   text: 'text-blue-400',    label: 'CSS',    glow: 'hover:shadow-blue-500/10', hex: '#60a5fa' },
+  javascript: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', text: 'text-yellow-400',  label: 'JS',     glow: 'hover:shadow-yellow-500/10', hex: '#facc15' },
+  typescript: { bg: 'bg-blue-600/10',   border: 'border-blue-600/20',   text: 'text-blue-300',    label: 'TS',     glow: 'hover:shadow-blue-600/10', hex: '#93c5fd' },
+  react:      { bg: 'bg-cyan-500/10',   border: 'border-cyan-500/20',   text: 'text-cyan-400',    label: 'React',  glow: 'hover:shadow-cyan-500/10', hex: '#22d3ee' },
+  redux:      { bg: 'bg-purple-500/10', border: 'border-purple-500/20', text: 'text-purple-400',  label: 'Redux',  glow: 'hover:shadow-purple-500/10', hex: '#c084fc' },
+  nodejs:     { bg: 'bg-green-500/10',  border: 'border-green-500/20',  text: 'text-green-400',   label: 'Node',   glow: 'hover:shadow-green-500/10', hex: '#4ade80' },
+  tailwind:   { bg: 'bg-teal-500/10',   border: 'border-teal-500/20',   text: 'text-teal-400',    label: 'TW',     glow: 'hover:shadow-teal-500/10', hex: '#2dd4bf' },
+  ai:         { bg: 'bg-amber-500/10',  border: 'border-amber-500/20',  text: 'text-amber-500',   label: 'AI & Agentlar', glow: 'hover:shadow-amber-500/10', hex: '#f59e0b' },
+  general:    { bg: 'bg-violet-500/10', border: 'border-violet-500/20', text: 'text-violet-400',  label: 'Other',  glow: 'hover:shadow-violet-500/10', hex: '#a78bfa' },
+}
+
+const glowColors = {
+  html:       'rgba(249, 115, 22, 0.2)',
+  css:        'rgba(59, 130, 246, 0.2)',
+  javascript: 'rgba(234, 179, 8, 0.2)',
+  typescript: 'rgba(37, 99, 235, 0.2)',
+  react:      'rgba(6, 182, 212, 0.2)',
+  redux:      'rgba(168, 85, 247, 0.2)',
+  nodejs:     'rgba(34, 197, 94, 0.2)',
+  tailwind:   'rgba(20, 184, 166, 0.2)',
+  ai:         'rgba(245, 158, 11, 0.2)',
+  general:    'rgba(139, 92, 246, 0.2)',
 }
 
 interface CourseProps {
@@ -28,6 +43,7 @@ interface CourseProps {
   index?: number;
   className?: string;
 }
+
 
 export default function CourseCard({ course, index = 0, className = '' }: CourseProps) {
   const cardRef = useRef(null)
@@ -45,14 +61,32 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
 
   const onEnter = () => {
     playSound('/sounds/onlyclick.wav')
-    gsap.to(cardRef.current, { y: -4, boxShadow: '0 10px 40px -5px rgba(124, 58, 237, 0.2)', scale: 1.01, duration: 0.3, ease: 'power2.out' })
+    const glowColor = glowColors[course.category as keyof typeof glowColors] || glowColors.general
+    gsap.to(cardRef.current, {
+      y: -8,
+      scale: 1.02,
+      boxShadow: `0 20px 40px -10px ${glowColor}`,
+      duration: 0.3,
+      ease: 'power2.out',
+      overwrite: 'auto'
+    })
   }
-  const onLeave = () => gsap.to(cardRef.current, { y: 0,  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', scale: 1,     duration: 0.3, ease: 'power2.out' })
+
+  const onLeave = () => {
+    if (!cardRef.current) return
+    gsap.to(cardRef.current, {
+      y: 0,
+      scale: 1,
+      boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.5)',
+      duration: 0.3,
+      ease: 'power2.out',
+      overwrite: 'auto'
+    })
+  }
 
   if (!course) return null
 
   const cat          = CAT[course.category as keyof typeof CAT] || CAT.general
-  const totalSecs    = (course.videos || []).reduce((s: any, v: any) => s + (v.duration || 0), 0)
   const videoCount   = course.videos?.length ?? course.videoCount ?? 0
   const rating       = typeof course.rating === 'object' ? (course.rating?.average ?? 0) : (course.rating ?? 0)
   const ratingCount  = typeof course.rating === 'object' ? (course.rating?.count ?? 0)   : (course.ratingCount ?? 0)
@@ -60,9 +94,6 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
     ? (course.instructor?.firstName ? `${course.instructor.firstName} ${course.instructor.lastName || ''}` : course.instructor?.username) 
     : course.instructor
     
-  const isNew = course.createdAt
-    ? Date.now() - new Date(course.createdAt).getTime() < 14 * 24 * 60 * 60 * 1000
-    : false
   const localizedCourse = localizeCourseText(lang, course.title, course.description)
 
   return (
@@ -72,21 +103,25 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
       className={
-        'group block overflow-hidden rounded-[2rem] border border-white/8 bg-[#11141b] ' +
+        'group block overflow-hidden rounded-[2rem] bg-[#11141b] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] ' +
         'transition-all duration-500 ' +
         cat.glow + ' ' + className
       }
     >
       {/* Thumbnail */}
-      <div className="relative aspect-video bg-[#0f1115] overflow-hidden">
+      <div className="relative aspect-video overflow-hidden" style={{ backgroundColor: 'var(--course-thumbnail-bg, #0f1115)' }}>
         {course.thumbnail ? (
-          <Image
-            src={course.thumbnail}
-            alt={localizedCourse.title}
-            fill
-            className="object-cover group-hover:scale-110 transition-transform duration-700"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
-          />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden shadow-2xl p-4 sm:p-5 flex items-center justify-center" style={{ backgroundColor: 'var(--course-logo-bg, #0c0d12)' }}>
+              <div className="relative w-full h-full">
+                <DynamicSVG
+                  src={course.thumbnail}
+                  alt={localizedCourse.title}
+                  className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700"
+                />
+              </div>
+            </div>
+          </div>
         ) : (
           <div className={'w-full h-full flex items-center justify-center ' + cat.bg}>
             <span className={'text-4xl font-black tracking-tighter opacity-40 ' + cat.text}>
@@ -96,76 +131,80 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
         )}
 
         {/* Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#11141b] via-[#11141b]/20 to-transparent opacity-90" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(86,98,246,0.18),transparent_40%)] opacity-80" />
+        <div className="absolute inset-0 opacity-95 transition-all duration-500" style={{ background: 'var(--course-thumbnail-gradient)' }} />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(86,98,246,0.12),transparent_45%)] opacity-80" />
 
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
-           <div className="scale-50 rounded-full border border-white/15 bg-white/10 p-3 backdrop-blur-md transition-transform duration-500 group-hover:scale-100">
-             <IoPlay className="text-white text-xl translate-x-0.5" />
-           </div>
-        </div>
 
-        {/* Badges */}
-        <div className="absolute left-2.5 top-2.5 flex gap-2 sm:left-4 sm:top-4">
-          {isNew && (
-            <span className="rounded-full bg-emerald-500/90 px-2 py-0.5 text-[9px] font-bold text-white shadow-lg shadow-emerald-500/20 backdrop-blur-md sm:px-2.5 sm:py-1 sm:text-[10px]">
-              {t('courses.newBadge')}
-            </span>
-          )}
-        </div>
+
 
         <div className={'absolute right-2.5 top-2.5 rounded-full border px-2 py-0.5 text-[9px] font-bold backdrop-blur-md sm:right-4 sm:top-4 sm:px-3 sm:py-1 sm:text-[10px] ' + cat.bg + ' ' + cat.text + ' ' + cat.border}>
-          {t(`cat.${course.category}`) || cat.label}
+          {(t(`cat.${course.category}`) || cat.label || '').toUpperCase()}
         </div>
       </div>
 
       {/* Body */}
       <div className="flex h-auto flex-col justify-between p-4 sm:p-5 md:p-6">
-        <div className="space-y-2.5 sm:space-y-3">
-          <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-medium tracking-wide text-white/30 sm:gap-2">
-            <span className="flex items-center gap-1 rounded-full border border-white/8 bg-white/5 px-2 py-0.5 sm:gap-1.5 sm:px-2.5 sm:py-1">
-              <IoBookOutline className="text-[10px] sm:text-xs" />
+        <div className="space-y-3">
+          {/* Lessons badge (top of body) */}
+          <div className="flex items-center gap-1.5 text-[10px] font-medium tracking-wide text-white/40">
+            <span className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/5 px-2.5 py-1">
+              <IoBookOutline className="text-amber-500 text-xs" />
               {videoCount} {t('courses.lessons')}
             </span>
-            {totalSecs > 0 && (
-              <span className="flex items-center gap-1 rounded-full border border-white/8 bg-white/5 px-2 py-0.5 sm:gap-1.5 sm:px-2.5 sm:py-1">
-                <IoTime className="text-[10px] sm:text-xs" />
-                {formatDurationText(totalSecs)}
-              </span>
-            )}
           </div>
 
-          <h3 className="line-clamp-2 text-sm font-semibold leading-snug tracking-[-0.03em] text-white transition-colors duration-300 group-hover:text-indigo-300 sm:text-base md:text-lg">
+          {/* Title */}
+          <h3 
+            style={{
+              backgroundImage: `linear-gradient(to right, ${cat.hex} 50%, var(--course-title-fallback, #ffffff) 50%)`,
+              backgroundSize: '200% 100%',
+              backgroundPosition: 'right bottom',
+            }}
+            className="line-clamp-2 text-sm font-semibold leading-snug tracking-[-0.03em] bg-clip-text text-transparent group-hover:bg-left transition-[background-position] duration-500 ease-out sm:text-base md:text-lg"
+          >
             {localizedCourse.title}
           </h3>
 
-          <div className="group/author flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full border border-indigo-500/20 bg-indigo-600/20 text-[10px] font-bold text-indigo-300 transition-colors group-hover/author:bg-indigo-600/30 sm:h-7 sm:w-7">
-              {instructorName?.[0]?.toUpperCase() || 'A'}
-            </div>
-            <span className="truncate text-[11px] text-white/45 transition-colors group-hover/author:text-white/70 sm:text-xs">
-              {instructorName || 'Aidevix Mentor'}
+          {/* Rating Row */}
+          <div className="flex items-center justify-between text-xs sm:text-sm pt-2">
+            <span className="text-white/40 font-medium">
+              {t('courses.rating')} ({ratingCount})
+            </span>
+            <span className="text-amber-500 font-bold flex items-center gap-1">
+              {rating > 0 ? Number(rating).toFixed(1) : '0.0'} ★
             </span>
           </div>
-        </div>
 
-        <div className="mt-4 flex items-center justify-between border-t border-white/8 pt-3 sm:mt-6 sm:pt-5">
-          <div className="flex items-center gap-1.5">
-            <div className="flex text-yellow-500">
-              <IoStar className="text-xs" />
-            </div>
-            <span className="text-xs font-bold text-white/80 sm:text-sm">
-              {rating > 0 ? Number(rating).toFixed(1) : '—'}
-            </span>
-            {ratingCount > 0 && (
-              <span className="text-[10px] font-medium text-white/20 sm:text-xs">({ratingCount})</span>
-            )}
+          {/* Orange Divider */}
+          <div className="relative h-[3px] w-full bg-white/10 rounded-full my-3 overflow-hidden">
+            <div 
+              style={{ backgroundColor: cat.hex }} 
+              className="absolute inset-y-0 left-0 w-full origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out" 
+            />
           </div>
 
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-indigo-300 sm:text-xs">
-            <IoPlay className="text-[10px] sm:text-xs" />
-            {t('courses.view')}
-          </span>
+          {/* Bottom Row: Instructor & Action button */}
+          <div className="flex items-center justify-between pt-1">
+            {/* Instructor */}
+            <div className="group/author flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full border border-amber-500/20 bg-[#1e1b18] text-[10px] font-bold text-amber-500 transition-colors group-hover/author:bg-amber-600/10 sm:h-7 sm:w-7">
+                {instructorName?.[0]?.toUpperCase() || 'A'}
+              </div>
+              <div className="flex flex-col">
+                <span className="truncate text-[11px] font-semibold text-white transition-colors group-hover/author:text-white/70 sm:text-xs">
+                  {instructorName || 'aidevix_admin'}
+                </span>
+                <span className="text-[9px] text-white/30 sm:text-[10px]">
+                  Mentor
+                </span>
+              </div>
+            </div>
+
+            {/* Ko'rish button */}
+            <span className="flex items-center gap-1 text-[11px] font-bold text-amber-500 sm:text-xs hover:text-amber-400 transition-colors">
+              Ko'rish <span className="text-[10px] sm:text-xs">▸</span>
+            </span>
+          </div>
         </div>
       </div>
     </Link>

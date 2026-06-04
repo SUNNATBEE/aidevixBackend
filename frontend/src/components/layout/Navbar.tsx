@@ -16,7 +16,14 @@ import { MdDarkMode, MdLightMode } from 'react-icons/md'
 import { useSound } from '@/context/SoundContext'
 import type { Lang } from '@utils/i18n'
 
-const LANG_FLAGS: Record<Lang, string> = { uz: '🇺🇿', ru: '🇷🇺', en: '🇺🇸' }
+import React from 'react'
+import { FlagUz, FlagRu, FlagGb } from '@sankyu/react-circle-flags'
+
+const LANG_FLAGS: Record<Lang, React.ReactNode> = {
+  uz: <FlagUz className="w-full h-full inline-block align-middle" />,
+  ru: <FlagRu className="w-full h-full inline-block align-middle border border-slate-200/20 rounded-full" />,
+  en: <FlagGb className="w-full h-full inline-block align-middle" />
+}
 const LANG_NAMES: Record<Lang, string> = { uz: 'UZ', ru: 'RUS', en: 'ENG' }
 
 export default function Navbar() {
@@ -124,25 +131,40 @@ export default function Navbar() {
   const xpValue = (user as any)?.xp || 0
   const rankInfo = getRankInfo(xpValue)
 
-  const navBg = isDark
-    ? scrolled ? 'bg-[#090b10]/82 shadow-[0_18px_60px_rgba(0,0,0,0.36)]' : 'bg-[#090b10]/56'
-    : scrolled ? 'bg-white/88 shadow-[0_18px_50px_rgba(15,23,42,0.08)]' : 'bg-white/58'
+  const isHome = pathname === '/'
+  const showSolidNavbar = scrolled || !isHome
 
-  const borderColor = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(15,23,42,0.08)'
-  const logoTextColor = isDark ? 'text-white' : 'text-slate-950'
+  const navBg = isDark
+    ? showSolidNavbar ? 'bg-[#090b10]/85 shadow-[0_12px_40px_rgba(0,0,0,0.3)] backdrop-blur-xl' : 'bg-transparent'
+    : showSolidNavbar ? 'bg-white/80 shadow-[0_12px_32px_rgba(15,23,42,0.06)] backdrop-blur-xl' : 'bg-transparent'
+
+  const borderColor = showSolidNavbar
+    ? isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'
+    : 'transparent'
+  
+  const logoTextColor = isDark
+    ? 'bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent font-extrabold tracking-[-0.03em]'
+    : 'bg-gradient-to-r from-slate-950 to-slate-800 bg-clip-text text-transparent font-extrabold tracking-[-0.03em]'
+  
   const subText = isDark ? 'text-slate-400' : 'text-slate-500'
-  const surface = isDark ? 'bg-white/[0.04] border-white/10' : 'bg-slate-950/[0.03] border-slate-900/10'
-  const navLinkBase = isDark ? 'text-slate-400 hover:text-white hover:bg-white/[0.06]' : 'text-slate-600 hover:text-slate-950 hover:bg-slate-900/[0.05]'
-  const activeNavLink = isDark ? 'text-white bg-white/[0.08]' : 'text-slate-950 bg-slate-900/[0.06]'
-  const dropdownBg = isDark ? 'bg-[#0d1017] border-white/10 text-slate-200' : 'bg-white border-slate-900/10 text-slate-800'
+  const surface = isDark ? 'bg-white/[0.04] border-white/10 backdrop-blur-md' : 'bg-slate-950/[0.03] border-slate-900/10 backdrop-blur-md'
+  const navLinkBase = isDark ? 'text-slate-400 hover:text-white hover:bg-white/[0.06] border border-transparent' : 'text-slate-600 hover:text-slate-950 hover:bg-slate-900/[0.05] border border-transparent'
+  const activeNavLink = isDark ? 'text-white bg-gradient-to-r from-indigo-500/15 to-purple-500/15 border border-indigo-500/30 shadow-[0_2px_12px_rgba(99,102,241,0.15)] font-semibold' : 'text-indigo-600 bg-indigo-50/80 border border-indigo-100 shadow-[0_2px_8px_rgba(79,70,229,0.08)] font-semibold'
+  const dropdownBg = isDark ? 'bg-[#0d1017]/95 border-white/10 text-slate-200 backdrop-blur-xl' : 'bg-white/95 border-slate-900/10 text-slate-800 backdrop-blur-xl'
   const dropdownItemColor = isDark ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]' : 'text-slate-700 hover:text-slate-950 hover:bg-slate-900/[0.05]'
   const mobileMenuBg = isDark ? 'bg-[#090b10]/96' : 'bg-white/96'
 
   return (
     <>
       <nav
-        className={`fixed inset-x-0 top-0 z-50 w-full min-w-0 max-w-full border-b transition-all duration-300 backdrop-blur-2xl ${navBg}`}
-        style={{ borderBottomColor: borderColor }}
+        className={`fixed inset-x-0 top-0 z-50 w-full min-w-0 max-w-full border-b transition-all duration-300 ${navBg}`}
+        style={{
+          borderBottomColor: borderColor,
+          backgroundColor: showSolidNavbar ? undefined : 'transparent',
+          backdropFilter: showSolidNavbar ? undefined : 'none',
+          WebkitBackdropFilter: showSolidNavbar ? undefined : 'none',
+          boxShadow: showSolidNavbar ? undefined : 'none'
+        }}
       >
         <div className="mx-auto w-full min-w-0 max-w-7xl px-2 sm:px-4 md:px-6 lg:px-8">
           <div className="flex h-14 sm:h-16 items-center justify-between gap-2">
@@ -153,7 +175,7 @@ export default function Navbar() {
                 className="shadow-[0_12px_30px_rgba(86,98,246,0.35)] transition-all duration-300 group-hover:-translate-y-0.5 ring-indigo-500/25"
               />
               <div className="hidden min-[340px]:block leading-none">
-                <span className={`font-display text-lg font-semibold tracking-[-0.04em] ${logoTextColor}`}>Aidevix</span>
+                <span className={`font-display text-lg inline-block ${logoTextColor}`}>Aidevix</span>
               </div>
             </Link>
 
@@ -234,7 +256,11 @@ export default function Navbar() {
               <button
                 onClick={toggleTheme}
                 onMouseEnter={playHoverSound}
-                className={`rounded-full border p-3 transition-all duration-300 ${surface} ${isDark ? 'text-slate-400 hover:text-amber-300' : 'text-slate-500 hover:text-indigo-600'}`}
+                className={`w-11 h-11 rounded-full border flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 ${surface} ${
+                  isDark
+                    ? 'text-slate-400 hover:text-amber-300 hover:bg-amber-500/10 hover:border-amber-500/30 hover:shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+                    : 'text-slate-500 hover:text-amber-600 hover:bg-amber-50/50 hover:border-amber-500/20 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                }`}
                 title={isDark ? t('theme.light') : t('theme.dark')}
                 aria-label={isDark ? t('theme.light') : t('theme.dark')}
               >
@@ -244,7 +270,11 @@ export default function Navbar() {
               <button
                 onClick={() => setIsSoundEnabled(!isSoundEnabled)}
                 onMouseEnter={playHoverSound}
-                className={`rounded-full border p-3 transition-all duration-300 ${surface} ${isDark ? 'text-slate-400 hover:text-indigo-400' : 'text-slate-500 hover:text-indigo-600'}`}
+                className={`w-11 h-11 rounded-full border flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 ${surface} ${
+                  isDark
+                    ? 'text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/30 hover:shadow-[0_0_15px_rgba(99,102,241,0.25)]'
+                    : 'text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50 hover:border-indigo-500/20 hover:shadow-[0_0_12px_rgba(79,70,229,0.15)]'
+                }`}
                 title={isSoundEnabled ? t('nav.soundOff') : t('nav.soundOn')}
                 aria-label={isSoundEnabled ? t('nav.soundOff') : t('nav.soundOn')}
               >
@@ -255,20 +285,23 @@ export default function Navbar() {
                 <button
                   onClick={() => setLangOpen(!langOpen)}
                   onMouseEnter={playHoverSound}
-                  className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-all duration-300 ${surface} ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'}`}
+                  className={`w-11 h-11 rounded-full border flex items-center justify-center overflow-hidden transition-all duration-300 hover:scale-105 active:scale-95 ${surface} ${
+                    isDark
+                      ? 'border-white/[0.08] hover:border-indigo-500/30 hover:shadow-[0_0_15px_rgba(99,102,241,0.25)]'
+                      : 'border-slate-900/10 hover:border-indigo-500/20 hover:shadow-[0_0_12px_rgba(79,70,229,0.15)]'
+                  }`}
                   aria-haspopup="menu"
                   aria-expanded={langOpen}
                   aria-label={t('nav.language')}
                 >
-                  <span aria-hidden>{LANG_FLAGS[lang]}</span>
-                  <span>{t('nav.language')}</span>
-                  <svg className={`h-3 w-3 transition-transform ${langOpen ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                  </svg>
+                  <div className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+                    {LANG_FLAGS[lang]}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-black/25 via-transparent to-white/20 pointer-events-none" />
+                  </div>
                 </button>
 
                 {langOpen && (
-                  <div className={`absolute right-0 mt-2 w-44 rounded-[1.25rem] border p-1.5 shadow-2xl backdrop-blur-2xl z-[60] ${dropdownBg}`}>
+                  <div className={`absolute right-0 mt-2.5 flex flex-col gap-1.5 rounded-[1.5rem] border p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-2xl z-[60] ${dropdownBg}`}>
                     {(['uz', 'ru', 'en'] as Lang[]).map((l) => (
                       <button
                         key={l}
@@ -277,12 +310,15 @@ export default function Navbar() {
                           setLang(l)
                           setLangOpen(false)
                         }}
-                        className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors ${
-                          lang === l ? (isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600') : dropdownItemColor
+                        className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center transition-all duration-200 border-2 ${
+                          lang === l ? (isDark ? 'border-indigo-400' : 'border-indigo-600') : 'border-transparent hover:scale-110'
                         }`}
+                        title={LANG_NAMES[l]}
                       >
-                        <span aria-hidden>{LANG_FLAGS[l]}</span>
-                        <span className="font-medium">{LANG_NAMES[l]}</span>
+                        <div className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+                          {LANG_FLAGS[l]}
+                          <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/15 pointer-events-none" />
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -395,15 +431,27 @@ export default function Navbar() {
                   </div>
                 </div>
               ) : (
-                <>
-                  <Link href={ROUTES.LOGIN} onMouseEnter={playHoverSound} className={`rounded-full px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm ${navLinkBase}`}>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={ROUTES.LOGIN}
+                    onMouseEnter={playHoverSound}
+                    className={`rounded-full px-4 py-2 text-xs font-semibold transition-all duration-300 hover:scale-105 active:scale-95 sm:text-sm ${
+                      isDark
+                        ? 'text-slate-300 hover:text-white hover:bg-white/[0.06] border border-white/10'
+                        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-900/[0.05] border border-slate-900/10'
+                    }`}
+                  >
                     {t('nav.login')}
                   </Link>
-                  <Link href={ROUTES.REGISTER} onMouseEnter={playHoverSound} className="rounded-full bg-indigo-500 px-3 py-2 text-xs font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-400 sm:px-5 sm:text-sm">
+                  <Link
+                    href={ROUTES.REGISTER}
+                    onMouseEnter={playHoverSound}
+                    className="rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 px-4 py-2 text-xs font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(99,102,241,0.45)] active:scale-95 sm:px-5 sm:text-sm flex items-center justify-center leading-none"
+                  >
                     <span className="hidden min-[380px]:inline">{t('nav.register')} →</span>
                     <span className="min-[380px]:hidden">{t('nav.register')}</span>
                   </Link>
-                </>
+                </div>
               )}
             </div>
 
@@ -445,16 +493,18 @@ export default function Navbar() {
 
             <div className={`mt-3 rounded-[1.5rem] border p-3 ${surface}`}>
               <div className={`mb-2 text-[10px] font-semibold uppercase tracking-[0.28em] ${subText}`}>{t('nav.language')}</div>
-              <div className="flex gap-2">
+              <div className="flex justify-around items-center gap-4 py-1">
                 {(['uz', 'ru', 'en'] as Lang[]).map((l) => (
                   <button
                     key={l}
                     onMouseEnter={playHoverSound}
                     onClick={() => setLang(l)}
-                    className={`flex-1 rounded-xl py-2 text-xs font-bold transition-colors ${lang === l ? 'bg-indigo-500 text-white' : isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-slate-900/[0.04] text-slate-500 hover:bg-slate-900/[0.08]'}`}
+                    className={`w-12 h-12 rounded-full overflow-hidden flex items-center justify-center transition-all duration-200 border-2 ${
+                      lang === l ? (isDark ? 'border-indigo-400 ring-4 ring-indigo-500/20' : 'border-indigo-600 ring-4 ring-indigo-600/20') : 'border-transparent hover:scale-105'
+                    }`}
+                    title={LANG_NAMES[l]}
                   >
-                    <span className="mr-1.5" aria-hidden>{LANG_FLAGS[l]}</span>
-                    {LANG_NAMES[l]}
+                    {LANG_FLAGS[l]}
                   </button>
                 ))}
               </div>

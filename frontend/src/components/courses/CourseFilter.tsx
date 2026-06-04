@@ -10,7 +10,9 @@ export default function CourseFilter() {
   const { t } = useLang()
   const dispatch = useDispatch()
   const [expanded, setExpanded] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const filters  = useSelector(selectFilters)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const LEVELS = [
     { id: 'all',          label: t('filter.all') },
@@ -36,6 +38,19 @@ export default function CourseFilter() {
     playSound('/sounds/onlyclick.wav')
   }
 
+  // Click outside to close dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   return (
     <div className="space-y-4">
       {/* Category Grid */}
@@ -50,8 +65,8 @@ export default function CourseFilter() {
               className={
                 'w-full rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition-all duration-300 sm:text-sm ' +
                 (active
-                  ? 'scale-[1.02] bg-indigo-500 text-white shadow-[0_8px_25px_rgba(99,102,241,0.3)]'
-                  : 'border border-base-content/5 bg-base-200/50 text-base-content/60 hover:scale-[1.01] hover:bg-base-300 hover:text-base-content')
+                  ? 'scale-[1.02] bg-[#eb8a14] text-[#211303] shadow-[0_8px_25px_rgba(235,138,20,0.35)]'
+                  : 'border border-base-content/10 bg-base-200 text-base-content/70 hover:scale-[1.01] hover:bg-base-300 hover:text-base-content')
               }
             >
               {t(`cat.${cat.id}`, cat.label)}
@@ -63,7 +78,7 @@ export default function CourseFilter() {
           <button
             onClick={() => setExpanded(!expanded)}
             onMouseEnter={playHoverSound}
-            className="w-full rounded-xl border border-dashed border-primary/30 bg-base-200/80 px-3 py-2.5 text-center text-xs font-bold text-primary transition-all duration-300 hover:border-primary/50 hover:bg-primary/10 sm:text-sm"
+            className="w-full rounded-xl border border-dashed border-[#eb8a14]/30 bg-base-200/50 px-3 py-2.5 text-center text-xs font-bold text-[#eb8a14] transition-all duration-300 hover:border-[#eb8a14]/60 hover:bg-[#eb8a14]/10 sm:text-sm"
           >
             {expanded ? t('filter.collapse') : t('filter.expand')}
           </button>
@@ -71,7 +86,7 @@ export default function CourseFilter() {
       </div>
 
       {/* Level + Rating + Sort — stacked on mobile, inline on tablet+ */}
-      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
+      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center relative z-20">
         {/* Level filter */}
         <div className="flex min-w-0 items-center gap-2 overflow-x-auto no-scrollbar">
           <span className="shrink-0 whitespace-nowrap text-xs text-base-content/40">{t('filter.level')}</span>
@@ -86,8 +101,8 @@ export default function CourseFilter() {
                   className={
                     'shrink-0 rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-200 ' +
                     (active
-                      ? 'border border-primary/30 bg-primary/15 text-primary'
-                      : 'border border-base-content/8 bg-base-200 text-base-content/45 hover:bg-base-300')
+                      ? 'border border-[#eb8a14]/30 bg-[#eb8a14]/15 text-[#efa243]'
+                      : 'border border-base-content/10 bg-base-200 text-base-content/60 hover:bg-base-300')
                   }
                 >
                   {lvl.label}
@@ -111,11 +126,11 @@ export default function CourseFilter() {
                   className={
                     'flex shrink-0 items-center gap-0.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-200 ' +
                     (active
-                      ? 'border border-yellow-500/30 bg-yellow-500/15 text-yellow-400'
-                      : 'border border-base-content/8 bg-base-200 text-base-content/45 hover:bg-base-300')
+                      ? 'border border-[#eb8a14]/30 bg-[#eb8a14]/15 text-[#efa243]'
+                      : 'border border-base-content/10 bg-base-200 text-base-content/60 hover:bg-base-300')
                   }
                 >
-                  {r.value > 0 && <IoStar className="text-[10px] text-yellow-400" />}
+                  {r.value > 0 && <IoStar className={`text-[10px] ${active ? 'text-[#eb8a14]' : 'text-base-content/40'}`} />}
                   {r.label}
                 </button>
               )
@@ -123,18 +138,56 @@ export default function CourseFilter() {
           </div>
         </div>
 
-        {/* Sort */}
-        <div className="flex items-center gap-2 md:ml-auto">
+        {/* Sort custom dropdown */}
+        <div className="flex items-center gap-2 md:ml-auto relative z-30 animate-fade-in-up" ref={dropdownRef}>
           <span className="shrink-0 whitespace-nowrap text-xs text-base-content/40">{t('filter.sort')}</span>
-          <select
-            value={filters.sort || 'newest'}
-            onChange={(e) => dispatch(setFilter({ sort: e.target.value }))}
-            className="select select-xs sm:select-sm w-full max-w-[220px] rounded-xl border-base-content/10 bg-base-200 text-xs sm:text-sm md:w-auto"
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{t(`sort.${opt.value}`, opt.label)}</option>
-            ))}
-          </select>
+          <div className="relative w-full min-w-[160px] sm:min-w-[180px] max-w-[220px]">
+            <button
+              onClick={() => {
+                playHoverSound()
+                setDropdownOpen(!dropdownOpen)
+              }}
+              type="button"
+              className="flex w-full items-center justify-between rounded-xl border border-base-content/10 bg-base-200 px-3.5 py-2 text-left text-xs font-semibold text-base-content/80 transition-all duration-300 hover:border-[#eb8a14]/40 hover:bg-base-300 sm:text-sm"
+            >
+              <span>{t(`sort.${filters.sort || 'newest'}`, SORT_OPTIONS.find(o => o.value === (filters.sort || 'newest'))?.label)}</span>
+              <svg
+                className={`h-4 w-4 text-base-content/40 transition-transform duration-300 ${dropdownOpen ? 'rotate-180 text-[#eb8a14]' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {dropdownOpen && (
+              <div className="absolute right-0 z-50 mt-1.5 w-full origin-top-right rounded-xl border border-[#eb8a14]/20 bg-base-200 p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.15)] focus:outline-none">
+                <div className="space-y-1">
+                  {SORT_OPTIONS.map((opt) => {
+                    const active = (filters.sort || 'newest') === opt.value
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          playHoverSound()
+                          dispatch(setFilter({ sort: opt.value }))
+                          setDropdownOpen(false)
+                        }}
+                        className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-xs font-medium transition-all duration-200 sm:text-sm ${
+                          active
+                            ? 'bg-[#eb8a14] text-[#211303] font-bold'
+                            : 'text-base-content/70 hover:bg-[#eb8a14]/10 hover:text-[#eb8a14]'
+                        }`}
+                      >
+                        {t(`sort.${opt.value}`, opt.label)}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

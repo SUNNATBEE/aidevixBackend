@@ -1,10 +1,20 @@
-// UserXPCard.jsx — SUHROB
+// UserXPCard.tsx — SUHROB
 import { motion } from 'framer-motion'
 import { FaFire, FaTrophy } from 'react-icons/fa'
-import { HiSparkles } from 'react-icons/hi2'
 import { useLang } from '@/context/LangContext'
 
-const getLevelName = (lvl, t) => {
+interface UserXPCardProps {
+  xp?: number
+  level?: number
+  levelProgress?: number
+  xpToNextLevel?: number
+  streak?: number
+  badges?: any[]
+  rank?: number
+  topPercent?: number
+}
+
+const getLevelName = (lvl: number, t: any) => {
   if (!lvl) return t('lb.level.1')
   const keys = [1, 5, 10, 15, 20, 25, 30, 35, 40, 50].sort((a,b)=>b-a)
   return t(`lb.level.${keys.find((k) => lvl >= k)}`) || t('lb.level.1')
@@ -14,7 +24,7 @@ const UserXPCard = ({
   xp = 0, level = 1, levelProgress = 0,
   xpToNextLevel = 1000, streak = 0, badges = [],
   rank, topPercent,
-}) => {
+}: UserXPCardProps) => {
   const { t } = useLang()
   const nextLevelXP    = xpToNextLevel || 1000
   const currentLevelXP = xp % nextLevelXP
@@ -25,25 +35,25 @@ const UserXPCard = ({
     <motion.div
       initial={{ opacity: 0, y: -16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full rounded-xl overflow-hidden border border-primary/20"
-      style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.18) 0%, rgba(139,92,246,0.10) 60%, rgba(20,20,35,0.95) 100%)' }}
+      className="w-full rounded-xl overflow-hidden border border-[#ffba08]/20"
+      style={{ background: 'linear-gradient(135deg, rgba(232,93,4,0.18) 0%, rgba(55,6,23,0.10) 60%, rgba(3,7,30,0.95) 100%)' }}
     >
       <div className="flex items-center px-4 py-3 gap-3 flex-wrap">
 
         {/* Rank box */}
         <div
           className="flex-shrink-0 w-14 h-14 rounded-lg flex flex-col items-center justify-center"
-          style={{ background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(99,102,241,0.4)' }}
+          style={{ background: 'rgba(232,93,4,0.25)', border: '1px solid rgba(232,93,4,0.4)' }}
         >
           <span className="text-2xl font-black text-white leading-none">{rank ?? '—'}</span>
-          <span className="text-[9px] text-indigo-300/60 uppercase tracking-wider">{t('lb.rank')}</span>
+          <span className="text-[9px] text-[#fff1ce]/60 uppercase tracking-wider">{t('lb.rank')}</span>
         </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
             <span className="text-xs font-bold text-white uppercase">{t('lb.myRating')}</span>
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/30 text-indigo-300 border border-indigo-500/30">
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#e85d04]/30 text-[#ffba08] border border-[#e85d04]/30">
               {levelName.toUpperCase()}
             </span>
           </div>
@@ -59,7 +69,7 @@ const UserXPCard = ({
                 animate={{ width: `${progressPct}%` }}
                 transition={{ duration: 1.2, ease: 'easeOut' }}
                 className="h-full rounded-full"
-                style={{ background: 'linear-gradient(90deg, #6366f1, #ec4899)' }}
+                style={{ background: 'linear-gradient(90deg, #6a040f, #ffba08)' }}
               />
             </div>
             <span className="text-[10px] text-white/40 whitespace-nowrap">
