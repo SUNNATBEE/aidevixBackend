@@ -61,6 +61,7 @@ const userStatsSlice = createSlice({
     bio: '',
     skills: [],
     avatar: null,
+    aiStack: [],
     loading: false,
     error: null,
     // Level-up modal uchun
@@ -87,7 +88,10 @@ const userStatsSlice = createSlice({
       })
       .addCase(fetchUserStats.fulfilled, (state, action) => {
         state.loading = false
-        Object.assign(state, action.payload)
+        // Faqat ma'lum field'larni ko'chiramiz (server javobidagi kutilmagan field'lar store'ni ifloslantirmasin)
+        const p = action.payload || {}
+        const KEYS = ['xp', 'level', 'levelProgress', 'xpToNextLevel', 'streak', 'lastActivityDate', 'badges', 'videosWatched', 'quizzesCompleted', 'bio', 'skills', 'avatar', 'aiStack']
+        KEYS.forEach((k) => { if (p[k] !== undefined) state[k] = p[k] })
       })
       .addCase(fetchUserStats.rejected, (state, action) => {
         state.loading = false
@@ -113,6 +117,7 @@ const userStatsSlice = createSlice({
         state.bio = action.payload.bio
         state.skills = action.payload.skills
         state.avatar = action.payload.avatar
+        if (action.payload.aiStack !== undefined) state.aiStack = action.payload.aiStack
       })
   },
 })

@@ -135,6 +135,7 @@ export default function AICoach() {
   useEffect(() => {
     const button = buttonRef.current;
     if (!button) return undefined;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
     const tween = gsap.to(button, {
       boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)',
       repeat: -1,
@@ -170,6 +171,7 @@ export default function AICoach() {
   const sendMessage = async (overrideText?: string) => {
     const trimmed = (overrideText ?? input).trim();
     if (!trimmed || isTyping) return;
+    if (trimmed.length > 1000) return;
 
     const userMessage: ExtendedMessage = {
       id: makeMessageId(),
@@ -387,6 +389,7 @@ export default function AICoach() {
                 type="text"
                 placeholder={t('coach.inputPlaceholder')}
                 value={input}
+                maxLength={1000}
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={handleKeyDown}
                 className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-8 pr-3 text-xs text-white outline-none transition-colors placeholder:text-white/20 focus:border-indigo-500/50"

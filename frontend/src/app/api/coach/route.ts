@@ -321,12 +321,48 @@ PLATFORMA:
   }
 }
 
+// ------- In-memory rate limit (per-IP, per-instance) -------
+// AI kalitlarini anonim drain qilishdan himoya. Multi-instance uchun ideal emas,
+// lekin har bir Vercel funksiya instance'ida abuse'ni sezilarli cheklaydi.
+const RATE_LIMIT = 20; // so'rov
+const RATE_WINDOW_MS = 60_000; // 1 daqiqa
+const MAX_MESSAGE_LEN = 2000;
+const MAX_HISTORY = 10;
+const MAX_HISTORY_ITEM_LEN = 1000;
+const rateMap = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    if (rateMap.size > 5000) {
+      // unbounded o'sishdan himoya — muddati o'tganlarni tozalash
+      for (const [k, v] of rateMap) if (now > v.resetAt) rateMap.delete(k);
+    }
+    return false;
+  }
+  entry.count += 1;
+  return entry.count > RATE_LIMIT;
+}
+
 // ------- Main POST handler -------
 
 export async function POST(request: Request) {
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
+  if (rateLimited(ip)) {
+    return NextResponse.json(
+      { success: false, message: 'Juda ko\'p so\'rov. Bir oz kuting.' },
+      { status: 429 },
+    );
+  }
+
   const payload = await request.json().catch(() => ({}));
-  const message = typeof payload?.message === 'string' ? payload.message.trim() : '';
-  const history: ChatMessage[] = Array.isArray(payload?.history) ? payload.history : [];
+  let message = typeof payload?.message === 'string' ? payload.message.trim() : '';
+  const rawHistory: ChatMessage[] = Array.isArray(payload?.history) ? payload.history : [];
 
   if (!message) {
     return NextResponse.json(
@@ -334,6 +370,14 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+  if (message.length > MAX_MESSAGE_LEN) {
+    message = message.slice(0, MAX_MESSAGE_LEN);
+  }
+  // History'ni cheklash — token abuse va katta payloadlardan himoya
+  const history: ChatMessage[] = rawHistory.slice(-MAX_HISTORY).map((m) => ({
+    ...m,
+    content: typeof m?.content === 'string' ? m.content.slice(0, MAX_HISTORY_ITEM_LEN) : '',
+  }));
 
   // 1. Intent aniqlash
   const { intent, searchQuery } = detectIntent(message);

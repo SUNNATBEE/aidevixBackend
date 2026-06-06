@@ -789,9 +789,9 @@ export default function HomeClient({
                     {/* Overlapping avatars stack */}
                     <div className="mt-3 flex items-center justify-between gap-1">
                       <div className="flex -space-x-1.5 overflow-hidden">
-                        <img className="inline-block h-5 w-5 rounded-full ring-1 ring-[#0c0f17] dark:ring-[#0c0f17]" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
-                        <img className="inline-block h-5 w-5 rounded-full ring-1 ring-[#0c0f17] dark:ring-[#0c0f17]" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
-                        <img className="inline-block h-5 w-5 rounded-full ring-1 ring-[#0c0f17] dark:ring-[#0c0f17]" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
+                        <img aria-hidden="true" className="inline-block h-5 w-5 rounded-full ring-1 ring-[#0c0f17] dark:ring-[#0c0f17]" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
+                        <img aria-hidden="true" className="inline-block h-5 w-5 rounded-full ring-1 ring-[#0c0f17] dark:ring-[#0c0f17]" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
+                        <img aria-hidden="true" className="inline-block h-5 w-5 rounded-full ring-1 ring-[#0c0f17] dark:ring-[#0c0f17]" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
                       </div>
                       <span className={`text-[9px] font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{isDark ? '124 faol' : '124 active'}</span>
                     </div>

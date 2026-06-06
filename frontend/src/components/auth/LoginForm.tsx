@@ -94,6 +94,7 @@ export default function LoginForm() {
         <div className="relative">
           <input
             type="email"
+            autoComplete="email"
             placeholder={t('auth.login.emailPlaceholder')}
             className={`w-full px-5 py-3.5 rounded-full outline-none transition-all ${inputCls} ${errors.email ? '!ring-2 !ring-red-500/50' : ''}`}
             {...register('email', {

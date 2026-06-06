@@ -13,13 +13,47 @@ const svgCache = new Map<string, string>();
 // Track active fetches to deduplicate parallel requests for the same SVG
 const pendingFetches = new Map<string, Promise<string>>();
 
+const escapeAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// SVG'ni dangerouslySetInnerHTML'dan oldin tozalash — stored XSS himoyasi.
+// Browser DOMParser orqali parse qilamiz (regex'dan mustahkam), xavfli element/atributlarni olib tashlaymiz.
+function sanitizeSvg(raw: string): string {
+  if (typeof window === 'undefined' || typeof DOMParser === 'undefined') return '';
+  const doc = new DOMParser().parseFromString(raw, 'image/svg+xml');
+  if (doc.querySelector('parsererror')) return '';
+  const svg = doc.querySelector('svg');
+  if (!svg) return '';
+
+  const all: Element[] = [svg, ...Array.from(svg.querySelectorAll('*'))];
+  for (const el of all) {
+    const tag = el.tagName.toLowerCase();
+    // Skript bajaradigan / tashqi kontent yuklaydigan elementlarni butunlay o'chiramiz
+    if (tag === 'script' || tag === 'foreignobject' || tag === 'iframe' || tag === 'animate' || tag === 'set' || tag === 'handler') {
+      el.remove();
+      continue;
+    }
+    for (const attr of Array.from(el.attributes)) {
+      const name = attr.name.toLowerCase();
+      const val = attr.value.replace(/\s+/g, '').toLowerCase();
+      if (name.startsWith('on')) el.removeAttribute(attr.name); // event handlerlar
+      else if ((name === 'href' || name === 'xlink:href' || name === 'src') && val.startsWith('javascript:')) el.removeAttribute(attr.name);
+      else if (name === 'style' && (val.includes('javascript:') || val.includes('expression('))) el.removeAttribute(attr.name);
+    }
+  }
+  return new XMLSerializer().serializeToString(svg);
+}
+
+function withAria(svg: string, alt: string): string {
+  if (!alt) return svg;
+  return svg.replace('<svg ', `<svg aria-label="${escapeAttr(alt)}" role="img" `);
+}
+
 export default function DynamicSVG({ src, className = '', alt = '' }: DynamicSVGProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [svgContent, setSvgContent] = useState<string>(() => {
-    // Proactively initialize from cache on mount/render if available
+    // Proactively initialize from cache on mount/render if available (cache = sanitized)
     if (src && svgCache.has(src)) {
-      const cachedContent = svgCache.get(src)!;
-      return alt ? cachedContent.replace('<svg ', `<svg aria-label="${alt}" role="img" `) : cachedContent;
+      return withAria(svgCache.get(src)!, alt);
     }
     return '';
   });
@@ -27,23 +61,21 @@ export default function DynamicSVG({ src, className = '', alt = '' }: DynamicSVG
   useEffect(() => {
     if (!src) return;
 
-    // Use cached content if it exists
+    // Use cached (already sanitized) content if it exists
     if (svgCache.has(src)) {
-      const cachedContent = svgCache.get(src)!;
-      setSvgContent(alt ? cachedContent.replace('<svg ', `<svg aria-label="${alt}" role="img" `) : cachedContent);
+      setSvgContent(withAria(svgCache.get(src)!, alt));
       return;
     }
 
     const processSvg = (rawText: string) => {
       const svgStart = rawText.indexOf('<svg');
-      if (svgStart !== -1) {
-        const svgOnly = rawText.substring(svgStart);
-        svgCache.set(src, svgOnly);
-        
-        setSvgContent(alt ? svgOnly.replace('<svg ', `<svg aria-label="${alt}" role="img" `) : svgOnly);
-      } else {
+      if (svgStart === -1) {
         throw new Error('No SVG element found in response');
       }
+      const sanitized = sanitizeSvg(rawText.substring(svgStart));
+      if (!sanitized) return; // tozalashda yaroqsiz/xavfli — render qilmaymiz
+      svgCache.set(src, sanitized);
+      setSvgContent(withAria(sanitized, alt));
     };
 
     // Deduplicate concurrent fetch requests for the same SVG URL

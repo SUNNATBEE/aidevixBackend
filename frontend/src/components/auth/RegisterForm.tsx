@@ -296,17 +296,15 @@ export default function RegisterForm() {
       <div className="flex items-start gap-3 mt-4">
         <div className="flex items-center h-5 mt-1">
           <input
+            id="terms-checkbox"
             type="checkbox"
             {...register('terms', { required: t('auth.validation.termsRequired') })}
             className={`w-4 h-4 rounded transition-all cursor-pointer focus:ring-offset-0 ${checkboxCls}`}
           />
         </div>
         <label
+          htmlFor="terms-checkbox"
           className={`text-sm leading-relaxed cursor-pointer ${termsTextCls}`}
-          onClick={() => {
-            const checkbox = document.querySelector('input[name="terms"]');
-            if (checkbox) (checkbox as any).click();
-          }}
         >
           {t('auth.register.termsAgree')}{' '}
           <span className="text-indigo-500 hover:text-indigo-400 hover:underline">{t('auth.register.termsLink')}</span>{' '}

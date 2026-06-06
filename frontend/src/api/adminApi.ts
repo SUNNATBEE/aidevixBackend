@@ -62,9 +62,8 @@ export const reorderVideos = (videos: { id: string; order: number }[]) =>
 export const uploadThumbnail = (courseId: string, file: File) => {
   const fd = new FormData()
   fd.append('thumbnail', file)
-  return axiosInstance.post(`upload/thumbnail/${courseId}`, fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  // Content-Type'ni qo'lda bermaymiz — axios FormData boundary'ni o'zi qo'yadi
+  return axiosInstance.post(`upload/thumbnail/${courseId}`, fd)
 }
 
 // ─── Challenges (admin) ─────────────────────────────────────────────────────

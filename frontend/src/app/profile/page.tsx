@@ -177,7 +177,8 @@ export default function ProfilePage() {
   // Sync activeTab when language changes
   useEffect(() => {
     setActiveTab(TABS[0]);
-  }, [t('profile.tab.info')]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   // Form states initialized properly from Redux/Stats
   const [editDraft, setEditDraft] = useState({
@@ -199,7 +200,7 @@ export default function ProfilePage() {
     }
   }, [editOpen, user, bio]);
 
-  const handleSave = async (e) => {
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       setIsSaving(true);
@@ -219,7 +220,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAvatarChange = async (e) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
@@ -241,6 +242,7 @@ export default function ProfilePage() {
       }
       toast.success(t('profile.toast.avatarUpdated'));
       dispatch(fetchUserStats());
+      URL.revokeObjectURL(nextPreview);
       setAvatarPreview(null);
     } catch (err: any) {
       const message =
@@ -248,6 +250,7 @@ export default function ProfilePage() {
         err?.message ||
         t('profile.toast.avatarError');
       toast.error(message);
+      URL.revokeObjectURL(nextPreview);
       setAvatarPreview(null);
     } finally {
       setAvatarUploading(false);
@@ -418,8 +421,8 @@ export default function ProfilePage() {
                     {t('profile.section.skills')}
                   </h3>
                   <div className="flex flex-wrap gap-2 sm:gap-3">
-                    {skills?.length > 0 ? skills.map((skill, i) => (
-                      <span key={i} className="rounded-xl border border-indigo-500/10 bg-indigo-500/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-300 sm:px-4 sm:py-2 sm:text-xs">
+                    {skills?.length > 0 ? skills.map((skill) => (
+                      <span key={skill} className="rounded-xl border border-indigo-500/10 bg-indigo-500/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-300 sm:px-4 sm:py-2 sm:text-xs">
                         {skill}
                       </span>
                     )) : (

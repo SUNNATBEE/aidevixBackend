@@ -342,7 +342,7 @@ export default function Navbar() {
                   </div>
 
                   <div className="dropdown dropdown-end">
-                    <label tabIndex={0} className="group flex min-w-0 cursor-pointer items-center gap-2">
+                    <label tabIndex={0} role="button" aria-haspopup="menu" aria-label="User menu" className="group flex min-w-0 cursor-pointer items-center gap-2">
                       {avatarSrc ? (
                         <div className="relative">
                           <Image
@@ -374,7 +374,7 @@ export default function Navbar() {
                       </div>
                     </label>
 
-                    <ul tabIndex={0} className={`dropdown-content menu mt-3 w-72 rounded-[1.5rem] border p-2 shadow-2xl z-50 translate-y-2 ${dropdownBg}`}>
+                    <ul tabIndex={0} role="menu" className={`dropdown-content menu mt-3 w-72 rounded-[1.5rem] border p-2 shadow-2xl z-50 translate-y-2 ${dropdownBg}`}>
                       <div className={`relative mb-2 overflow-hidden rounded-[1.25rem] border p-4 ${isDark ? 'border-white/8 bg-white/[0.03]' : 'border-slate-900/10 bg-slate-950/[0.03]'}`}>
                         <div className="mb-2 flex items-end justify-between">
                           <div className={`text-xs font-semibold ${subText}`}>
