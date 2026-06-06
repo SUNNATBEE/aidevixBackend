@@ -13,8 +13,18 @@ const QuizResult = require('../models/QuizResult');
  * @route GET /api/users/home-stats
  * @access Public
  */
+// Home stats cache — public homepage endpoint, 8 ta aggregation har yuklanishda
+// MongoDB'ni ortiqcha yuklamasligi uchun 5 daqiqalik in-memory cache.
+let _homeStatsCache = null;
+let _homeStatsCacheAt = 0;
+const HOME_STATS_TTL = 5 * 60 * 1000;
+
 const getHomeStats = async (_req, res) => {
   try {
+    if (_homeStatsCache && Date.now() - _homeStatsCacheAt < HOME_STATS_TTL) {
+      return res.json({ success: true, data: _homeStatsCache });
+    }
+
     const startOfWeek = new Date();
     startOfWeek.setDate(startOfWeek.getDate() - 7);
     startOfWeek.setHours(0, 0, 0, 0);
@@ -120,19 +130,12 @@ const getHomeStats = async (_req, res) => {
       return videoCount + quizCount;
     });
 
-    return res.json({
-      success: true,
-      data: {
-        students,
-        videos,
-        mentors,
-        rating,
-        skillGrowth,
-        activityTelemetry
-      },
-    });
+    _homeStatsCache = { students, videos, mentors, rating, skillGrowth, activityTelemetry };
+    _homeStatsCacheAt = Date.now();
+
+    return res.json({ success: true, data: _homeStatsCache });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Server xatosi' : err.message });
   }
 };
 

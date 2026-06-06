@@ -69,3 +69,6 @@ nul
 NUL
 .vercel
 .env*.local
+
+# Audit scratch artifacts (security findings — do not track)
+.audit/
