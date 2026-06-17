@@ -88,10 +88,16 @@ connectDB().then(async () => {
 // ═══════════════════════════════════════════════════════════════════
 // CORS Configuration — BIRINCHI middleware bo'lishi SHART
 // ═══════════════════════════════════════════════════════════════════
-const allowedOrigins = (process.env.FRONTEND_URL || '')
-  .split(',')
-  .map(o => o.trim())
-  .filter(Boolean);
+// FRONTEND_URL env'da takror origin bo'lsa ham (masalan www.aidevix.uz ikki
+// marta) — Set bilan dedupe. Funksionalga ta'sir qilmaydi, log'ni tozalaydi.
+const allowedOrigins = [
+  ...new Set(
+    (process.env.FRONTEND_URL || '')
+      .split(',')
+      .map(o => o.trim())
+      .filter(Boolean)
+  ),
+];
 
 const devOrigins = [
   'http://localhost:3000',
