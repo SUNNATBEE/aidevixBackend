@@ -198,12 +198,13 @@ const getUserDetail = async (req, res) => {
     if (!user) return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
 
     const [stats, enrollments, payments] = await Promise.all([
-      UserStats.findOne({ userId: req.params.id }),
+      UserStats.findOne({ userId: req.params.id }).lean(),
       Enrollment.find({ userId: req.params.id })
         .populate('courseId', 'title thumbnail category')
         .sort({ createdAt: -1 })
-        .limit(20),
-      Payment.find({ userId: req.params.id }).sort({ createdAt: -1 }).limit(10),
+        .limit(20)
+        .lean(),
+      Payment.find({ userId: req.params.id }).sort({ createdAt: -1 }).limit(10).lean(),
     ]);
 
     res.json({ success: true, data: { user, stats, enrollments, payments } });
@@ -587,6 +588,8 @@ const adminDeleteChallenge = async (req, res) => {
 /** @desc  Foydalanuvchiga XP berish | @route POST /api/admin/users/:id/award-xp | @access Admin */
 const adminAwardXp = async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) return res.status(400).json({ success: false, message: 'Yaroqsiz ID' });
+
     const { xp, reason } = req.body;
     const amount = parseInt(xp);
     if (!amount || amount < 1 || amount > 100000) {

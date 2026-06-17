@@ -127,7 +127,8 @@ userStatsSchema.methods.getLevelTitle = function () {
   return 'Ustoz';
 };
 
-userStatsSchema.index({ xp: -1 });
+userStatsSchema.index({ xp: -1, level: -1 });
 userStatsSchema.index({ weeklyXp: -1 });
+userStatsSchema.index({ skills: 1 });
 
 module.exports = mongoose.model('UserStats', userStatsSchema);

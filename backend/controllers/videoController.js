@@ -277,9 +277,8 @@ const createVideo = async (req, res) => {
       bunnyStatus: 'pending',
     });
 
-    // Kursga video qo'shish
-    course.videos.push(video._id);
-    await course.save();
+    // Kursga video qo'shish (atomic — race'da VersionError oldini oladi)
+    await Course.updateOne({ _id: courseId }, { $push: { videos: video._id } });
 
     // Upload proxy ma'lumoti — admin backend orqali yuklaydi (AccessKey leak qilinmaydi)
     const uploadInfo = bunnyVideoId
@@ -428,7 +427,8 @@ const getVideoQuestions = async (req, res) => {
         .populate('answeredBy', 'username')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       VideoQuestion.countDocuments({ videoId }),
     ]);
 
@@ -442,10 +442,10 @@ const getVideoQuestions = async (req, res) => {
       }
     });
     const threaded = roots.map((q) => ({
-      ...q.toObject(),
+      ...q,
       upvotesCount: q.upvotes?.length || 0,
       replies: (repliesMap[q._id.toString()] || []).map((r) => ({
-        ...r.toObject(),
+        ...r,
         upvotesCount: r.upvotes?.length || 0,
       })),
     }));
@@ -494,19 +494,30 @@ const answerQuestion = async (req, res) => {
 const upvoteQuestion = async (req, res) => {
   try {
     const { questionId } = req.params;
-    const qa = await VideoQuestion.findById(questionId);
-    if (!qa) return res.status(404).json({ success: false, message: 'Savol topilmadi' });
-    const userId = req.user._id.toString();
-    const exists = qa.upvotes.some((id) => id.toString() === userId);
-    if (exists) {
-      qa.upvotes = qa.upvotes.filter((id) => id.toString() !== userId);
-    } else {
-      qa.upvotes.push(req.user._id);
+    const userId = req.user._id;
+
+    // Atomic toggle: avval pull, modifiedCount=0 bo'lsa addToSet
+    const pulled = await VideoQuestion.updateOne(
+      { _id: questionId, upvotes: userId },
+      { $pull: { upvotes: userId } }
+    );
+    let upvoted = false;
+    if (pulled.modifiedCount === 0) {
+      const added = await VideoQuestion.updateOne(
+        { _id: questionId },
+        { $addToSet: { upvotes: userId } }
+      );
+      if (added.matchedCount === 0) {
+        return res.status(404).json({ success: false, message: 'Savol topilmadi' });
+      }
+      upvoted = true;
     }
-    await qa.save();
+
+    const qa = await VideoQuestion.findById(questionId).select('upvotes').lean();
+    if (!qa) return res.status(404).json({ success: false, message: 'Savol topilmadi' });
     return res.json({
       success: true,
-      data: { upvoted: !exists, upvotesCount: qa.upvotes.length },
+      data: { upvoted, upvotesCount: qa.upvotes.length },
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

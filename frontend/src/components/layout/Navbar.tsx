@@ -462,11 +462,13 @@ export default function Navbar() {
               >
                 {isDark ? <MdLightMode size={20} /> : <MdDarkMode size={20} />}
               </button>
-              <button 
+              <button
                 className={`rounded-full border p-2 transition-colors ${surface} ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'}`}
                 onClick={() => setMenuOpen(!menuOpen)}
                 onMouseEnter={playHoverSound}
                 aria-label="Menu"
+                aria-expanded={menuOpen}
+                aria-controls="mobile-nav-menu"
               >
                 {menuOpen ? <HiX size={22} /> : <HiMenuAlt3 size={22} />}
               </button>
@@ -475,6 +477,9 @@ export default function Navbar() {
         </div>
 
         <div
+          id="mobile-nav-menu"
+          aria-hidden={!menuOpen}
+          {...(!menuOpen ? { inert: '' } : {})}
           className={`overflow-hidden transition-all duration-300 xl:hidden ${menuOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}
           style={{ borderTop: menuOpen ? `1px solid ${borderColor}` : 'none' }}
         >

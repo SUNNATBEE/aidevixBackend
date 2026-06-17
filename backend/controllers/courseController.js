@@ -45,14 +45,15 @@ const getAllCourses = async (req, res) => {
     const lim  = Math.min(Math.max(1, parseInt(limit) || 12), 50);
     const pg   = Math.max(1, parseInt(page) || 1);
     const skip = (pg - 1) * lim;
-    const total = await Course.countDocuments(filter);
-
-    const courses = await Course.find(filter)
-      .populate('instructor', 'username email jobTitle position')
-      .sort(sortOption)
-      .skip(skip)
-      .limit(lim)
-      .lean();
+    const [total, courses] = await Promise.all([
+      Course.countDocuments(filter),
+      Course.find(filter)
+        .populate('instructor', 'username email jobTitle position')
+        .sort(sortOption)
+        .skip(skip)
+        .limit(lim)
+        .lean(),
+    ]);
 
     // Map through courses to populate videoCount and calculate valid video stats
     // Even without populating full video details, we have the IDs in the array to count

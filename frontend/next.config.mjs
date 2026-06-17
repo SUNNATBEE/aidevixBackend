@@ -81,11 +81,17 @@ const nextConfig = {
     ];
   },
   images: {
-    // Avatarlar har xil hostlardan kelishi mumkin (Telegram, Cloudinary, ui-avatars,
-    // Google avatars, va h.k.). Bunday hollar uchun wildcard ruxsat berilgan
-    // — Next.js har bir rasmni o'z proxy orqali optimizatsiya qiladi.
+    // [SEO-008] Wildcard hostname '**' open image-proxy/SSRF xavfini keltiradi.
+    // Faqat kodda haqiqatan ishlatiladigan rasm hostlari oq ro'yxatga olingan:
+    //   - res.cloudinary.com : yuklangan avatar / thumbnail / sertifikat rasmlari
+    //   - ui-avatars.com     : avatar yo'q bo'lganda fallback initial avatar
+    //   - images.unsplash.com: homep, dekorativ avatarlar
+    //   - t.me               : Telegram Mini App user photo_url (avatar sifatida)
     remotePatterns: [
-      { protocol: 'https', hostname: '**' },
+      { protocol: 'https', hostname: 'res.cloudinary.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'ui-avatars.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
+      { protocol: 'https', hostname: 't.me', pathname: '/**' },
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [360, 640, 750, 828, 1080, 1200, 1920],

@@ -173,6 +173,7 @@ export default function ProfilePage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const firstFieldRef = useRef<HTMLInputElement | null>(null);
 
   // Sync activeTab when language changes
   useEffect(() => {
@@ -199,6 +200,20 @@ export default function ProfilePage() {
       });
     }
   }, [editOpen, user, bio]);
+
+  // [FE-008] Accessible dialog: Escape yopadi + ochilganda birinchi maydonga fokus
+  useEffect(() => {
+    if (!editOpen) return undefined;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setEditOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const focusTimer = setTimeout(() => firstFieldRef.current?.focus(), 100);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      clearTimeout(focusTimer);
+    };
+  }, [editOpen]);
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -592,10 +607,10 @@ export default function ProfilePage() {
                   <h4 className="mb-5 text-xs font-bold uppercase tracking-widest text-slate-400 sm:mb-6 sm:text-sm">{profileLocalText.yourStack}</h4>
                   <div className="flex flex-wrap gap-2 sm:gap-3">
                     {selectedTools.map(tool => {
-                      const t = AI_TOOLS.find(a => a.name === tool);
+                      const toolInfo = AI_TOOLS.find(a => a.name === tool);
                       return (
-                        <span key={tool} className={`flex items-center gap-2 rounded-xl border bg-gradient-to-r px-3 py-1.5 text-xs font-bold sm:px-4 sm:py-2 sm:text-sm ${t?.color || 'border-white/10 text-slate-300'}`}>
-                          <span>{t?.icon}</span> {tool}
+                        <span key={tool} className={`flex items-center gap-2 rounded-xl border bg-gradient-to-r px-3 py-1.5 text-xs font-bold sm:px-4 sm:py-2 sm:text-sm ${toolInfo?.color || 'border-white/10 text-slate-300'}`}>
+                          <span>{toolInfo?.icon}</span> {tool}
                         </span>
                       );
                     })}
@@ -620,6 +635,9 @@ export default function ProfilePage() {
             />
 
             <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="profile-edit-modal-title"
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -629,7 +647,7 @@ export default function ProfilePage() {
               <div className="pointer-events-none absolute right-0 top-0 -z-10 h-64 w-64 bg-indigo-500/5 blur-3xl"></div>
 
               <div className="mb-6 flex items-center justify-between gap-3 sm:mb-10">
-                <h2 className="min-w-0 truncate text-xl font-black italic text-white sm:text-2xl md:text-3xl">{t('profile.modal.title')}</h2>
+                <h2 id="profile-edit-modal-title" className="min-w-0 truncate text-xl font-black italic text-white sm:text-2xl md:text-3xl">{t('profile.modal.title')}</h2>
                 <button onClick={() => setEditOpen(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:text-white sm:h-10 sm:w-10">
                    <FiX size={20} />
                 </button>
@@ -640,6 +658,7 @@ export default function ProfilePage() {
                   <div className="space-y-2">
                     <label className="px-1 text-[10px] font-black uppercase text-slate-500">{t('profile.field.firstName')}</label>
                     <input
+                      ref={firstFieldRef}
                       type="text"
                       value={editDraft.ism}
                       onChange={(e) => setEditDraft({...editDraft, ism: e.target.value})}

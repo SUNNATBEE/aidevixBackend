@@ -26,7 +26,7 @@ const getRankTitle = (level) => {
  */
 const getTopCourses = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const category = req.query.category || null;
 
     const filter = { isActive: true };
@@ -58,8 +58,8 @@ const getTopCourses = async (req, res) => {
  */
 const getTopUsers = async (req, res) => {
   try {
-    const limit    = parseInt(req.query.limit) || 20;
-    const page     = parseInt(req.query.page)  || 1;
+    const limit    = Math.min(parseInt(req.query.limit) || 20, 100);
+    const page     = Math.max(1, parseInt(req.query.page) || 1);
     const category = req.query.category || null; // e.g. javascript, react, python
     const skip     = (page - 1) * limit;
 

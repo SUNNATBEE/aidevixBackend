@@ -156,6 +156,16 @@ export default function AICoach({ visible = true }: { visible?: boolean }) {
     setTimeout(() => inputRef.current?.focus(), 300);
   }, [isOpen]);
 
+  // [FE-007] Escape yopadi (accessible dialog)
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen]);
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
@@ -277,6 +287,9 @@ export default function AICoach({ visible = true }: { visible?: boolean }) {
       {isOpen && (
         <div
           ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('coach.title')}
           className="coach-window absolute bottom-20 right-0 flex h-[min(520px,72vh)] w-[min(380px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#12141c]/95 shadow-2xl backdrop-blur-2xl max-sm:fixed max-sm:bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] max-sm:left-2 max-sm:right-2 max-sm:h-[70vh] max-sm:w-auto"
         >
           {/* Header */}

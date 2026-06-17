@@ -20,7 +20,8 @@ const getTodayChallenge = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -60,7 +61,8 @@ const updateChallengeProgress = async (req, res) => {
       data: { progress },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -76,7 +78,8 @@ const createChallenge = async (req, res) => {
   } catch (err) {
     if (err.code === 11000)
       return res.status(400).json({ success: false, message: 'Bu sana uchun vazifa allaqachon mavjud' });
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 

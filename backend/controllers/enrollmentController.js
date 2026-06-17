@@ -101,7 +101,7 @@ const markVideoWatched = async (req, res) => {
 /** @desc  Kurs progressi | @route GET /api/enrollments/:courseId/progress | @access Private */
 const getCourseProgress = async (req, res) => {
   try {
-    const enrollment = await Enrollment.findOne({ userId: req.user._id, courseId: req.params.courseId });
+    const enrollment = await Enrollment.findOne({ userId: req.user._id, courseId: req.params.courseId }).lean();
     if (!enrollment)
       return res.json({ success: true, data: { enrolled: false, progressPercent: 0 } });
 

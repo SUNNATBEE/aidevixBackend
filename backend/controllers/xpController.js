@@ -484,7 +484,8 @@ const getWeeklyLeaderboard = async (req, res) => {
     const leaders = await UserStats.find({ weeklyXp: { $gt: 0 } })
       .sort({ weeklyXp: -1 })
       .limit(limit)
-      .populate('userId', 'username');
+      .populate('userId', 'username')
+      .lean();
 
     res.json({
       success: true,

@@ -39,7 +39,7 @@ const logger = {
   request: (req, statusCode, durationMs) => {
     // Sensitive query parametrlarni maskalash (token, code, password log'ga tushmasligi uchun)
     const safePath = String(req.originalUrl || '').replace(
-      /([?&])(token|code|password|secret|access_token|refresh_token|authorization|api_key)=[^&]*/gi,
+      /([?&])(token|code|password|secret|access_token|refresh_token|authorization|api_key|otp|resettoken|initdata|signature)=[^&]*/gi,
       '$1$2=***'
     );
     write('info', 'HTTP', {

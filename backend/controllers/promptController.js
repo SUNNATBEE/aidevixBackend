@@ -32,7 +32,8 @@ const getPrompts = async (req, res) => {
 
     res.json({ success: true, data: { prompts, total, page: pg, pages: Math.ceil(total / lim) } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -45,7 +46,8 @@ const getFeaturedPrompts = async (req, res) => {
       .limit(6);
     res.json({ success: true, data: prompts });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -125,7 +127,8 @@ const getSavedPrompts = async (req, res) => {
       data: { prompts, total, page, pages: Math.max(1, Math.ceil(total / limit)) },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -135,7 +138,8 @@ const getSavedPromptIds = async (req, res) => {
     const ids = await SavedPrompt.find({ user: req.user._id }).distinct('prompt');
     res.json({ success: true, data: { ids: ids.map((id) => id.toString()) } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -151,7 +155,8 @@ const savePrompt = async (req, res) => {
     );
     res.json({ success: true, saved: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -161,7 +166,8 @@ const unsavePrompt = async (req, res) => {
     await SavedPrompt.deleteOne({ user: req.user._id, prompt: req.params.id });
     res.json({ success: true, saved: false });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -176,7 +182,8 @@ const getPrompt = async (req, res) => {
     if (!prompt) return res.status(404).json({ success: false, message: 'Prompt topilmadi' });
     res.json({ success: true, data: prompt });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -191,7 +198,8 @@ const viewPrompt = async (req, res) => {
     if (!prompt) return res.status(404).json({ success: false, message: 'Prompt topilmadi' });
     return res.json({ success: true, viewsCount: prompt.viewsCount });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    return res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -217,7 +225,8 @@ const createPrompt = async (req, res) => {
     await prompt.populate('author', 'username firstName avatar');
     res.status(201).json({ success: true, message: 'Prompt yaratildi! +30 XP', data: prompt });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -225,27 +234,35 @@ const createPrompt = async (req, res) => {
 const likePrompt = async (req, res) => {
   try {
     const id = req.params.id;
-    // Atomik toggle (lost-update race fix): load-modify-save o'rniga $addToSet/$pull + $inc
-    const already = await Prompt.exists({ _id: id, likes: req.user._id });
-    let updated;
-    if (already) {
-      updated = await Prompt.findByIdAndUpdate(
-        id,
-        { $pull: { likes: req.user._id }, $inc: { likesCount: -1 } },
-        { new: true }
-      );
+    const userId = req.user._id;
+    // Atomik toggle (TOCTOU fix): exists()-then-update o'rniga shartli updateOne.
+    // Avval LIKE urinishi — faqat user hali like qilmagan bo'lsa qo'shadi.
+    const likeRes = await Prompt.updateOne(
+      { _id: id, likes: { $ne: userId } },
+      { $addToSet: { likes: userId }, $inc: { likesCount: 1 } }
+    );
+
+    let liked;
+    if (likeRes.matchedCount > 0) {
+      liked = true;
     } else {
-      updated = await Prompt.findByIdAndUpdate(
-        id,
-        { $addToSet: { likes: req.user._id }, $inc: { likesCount: 1 } },
-        { new: true }
+      // Like qilolmadik — yoki allaqachon like bor (unlike), yoki prompt yo'q.
+      const unlikeRes = await Prompt.updateOne(
+        { _id: id, likes: userId },
+        { $pull: { likes: userId }, $inc: { likesCount: -1 } }
       );
+      if (unlikeRes.matchedCount === 0) {
+        return res.status(404).json({ success: false, message: 'Prompt topilmadi' });
+      }
+      liked = false;
     }
 
+    const updated = await Prompt.findById(id).select('likesCount').lean();
     if (!updated) return res.status(404).json({ success: false, message: 'Prompt topilmadi' });
-    res.json({ success: true, liked: !already, likesCount: updated.likesCount });
+    res.json({ success: true, liked, likesCount: updated.likesCount });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -263,7 +280,8 @@ const deletePrompt = async (req, res) => {
     await prompt.deleteOne();
     res.json({ success: true, message: 'Prompt o\'chirildi' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -278,7 +296,8 @@ const featurePrompt = async (req, res) => {
     if (!prompt) return res.status(404).json({ success: false, message: 'Prompt topilmadi' });
     res.json({ success: true, data: prompt });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -317,7 +336,8 @@ const adminListPrompts = async (req, res) => {
 
     res.json({ success: true, data: { prompts, pagination: { total, page, limit, pages: Math.ceil(total / limit) } } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 
@@ -348,7 +368,8 @@ const adminSetPromptVisibility = async (req, res) => {
 
     res.json({ success: true, data: prompt });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
   }
 };
 

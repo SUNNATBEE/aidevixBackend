@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const UserStats = require('../models/UserStats');
 const Course = require('../models/Course');
 const User = require('../models/User');
@@ -27,9 +28,9 @@ const uploadAvatar = async (req, res) => {
     });
   } catch (err) {
     console.error('❌ AVATAR UPLOAD ERROR:', err);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Avatar yuklashda xatolik yuz berdi: ' + err.message 
+    res.status(500).json({
+      success: false,
+      message: 'Avatar yuklashda xatolik yuz berdi'
     });
   }
 };
@@ -37,6 +38,10 @@ const uploadAvatar = async (req, res) => {
 /** @desc  Kurs thumbnail yuklash (Admin) | @route POST /api/upload/thumbnail/:courseId | @access Admin */
 const uploadThumbnail = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.courseId)) {
+      return res.status(400).json({ success: false, message: 'Yaroqsiz ID' });
+    }
+
     if (!req.file) return res.status(400).json({ success: false, message: 'Rasm tanlanmadi' });
 
     const thumbnailUrl = req.file.path;
@@ -50,7 +55,8 @@ const uploadThumbnail = async (req, res) => {
 
     res.json({ success: true, message: 'Thumbnail yangilandi', data: { thumbnailUrl } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('❌ THUMBNAIL UPLOAD ERROR:', err);
+    res.status(500).json({ success: false, message: 'Thumbnail yuklashda xatolik yuz berdi' });
   }
 };
 

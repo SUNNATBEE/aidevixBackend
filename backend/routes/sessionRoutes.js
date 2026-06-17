@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
+const validateObjectId = require('../middleware/validateObjectId');
 const {
   listMySessions,
   revokeSession,
@@ -9,6 +10,6 @@ const {
 
 router.get('/', authenticate, listMySessions);
 router.delete('/', authenticate, revokeOtherSessions);
-router.delete('/:id', authenticate, revokeSession);
+router.delete('/:id', authenticate, validateObjectId('id'), revokeSession);
 
 module.exports = router;

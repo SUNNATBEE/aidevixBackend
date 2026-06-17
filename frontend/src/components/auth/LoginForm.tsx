@@ -88,11 +88,12 @@ export default function LoginForm() {
 
       {/* Email input */}
       <div className="form-control w-full">
-        <label className="label pt-0 pb-1 px-1">
+        <label htmlFor="login-email" className="label pt-0 pb-1 px-1">
           <span className={`label-text font-medium text-sm ${labelCls}`}>{t('auth.login.email')}</span>
         </label>
         <div className="relative">
           <input
+            id="login-email"
             type="email"
             autoComplete="email"
             placeholder={t('auth.login.emailPlaceholder')}
@@ -112,7 +113,7 @@ export default function LoginForm() {
       {/* Parol input */}
       <div className="form-control w-full">
         <div className="flex justify-between items-center pb-1 px-1">
-          <label className="label pt-0 pb-0">
+          <label htmlFor="login-password" className="label pt-0 pb-0">
             <span className={`label-text font-medium text-sm ${labelCls}`}>{t('auth.login.password')}</span>
           </label>
           <Link href="/forgot-password" className="text-indigo-500 hover:text-indigo-400 text-xs hover:underline">
@@ -121,6 +122,7 @@ export default function LoginForm() {
         </div>
         <div className="relative flex items-center">
           <input
+            id="login-password"
             type={showPass ? 'text' : 'password'}
             placeholder={t('auth.login.passwordPlaceholder')}
             autoComplete="current-password"
@@ -138,6 +140,8 @@ export default function LoginForm() {
             onClick={() => setShowPass(!showPass)}
             className={`absolute right-5 focus:outline-none ${eyeBtnCls}`}
             data-testid="login-toggle-password"
+            aria-label={showPass ? 'Hide password' : 'Show password'}
+            aria-pressed={showPass}
           >
             {showPass ? <FiEyeOff size={18} /> : <FiEye size={18} />}
           </button>

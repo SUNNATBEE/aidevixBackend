@@ -40,10 +40,10 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: 'https://aidevix.uz',
+    // [SEO-007] Lokalizatsiyalangan marshrutlar yo'q — barcha til hreflanglar
+    // bir xil URL'ga ishora qilardi (ru-RU/en-US ortiqcha). Faqat uz + x-default.
     languages: {
       'uz-UZ': 'https://aidevix.uz',
-      'ru-RU': 'https://aidevix.uz',
-      'en-US': 'https://aidevix.uz',
       'x-default': 'https://aidevix.uz',
     },
   },
@@ -81,7 +81,7 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: '/Logo.jpg', type: 'image/jpeg' }],
   },
-  manifest: '/site.webmanifest',
+  manifest: '/manifest.json',
   verification: {
     google: 'TUCRHfBmNAFXN61L3px29vaGKe1epzTfbY1lB0zeydk',
   },

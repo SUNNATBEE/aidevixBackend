@@ -24,7 +24,7 @@ const errorHandler = (err, req, res, next) => {
     method: req.method,
     status: err.statusCode || 500,
     // Stack faqat serverga (logger), hech qachon client'ga emas.
-    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
+    stack: err.stack,
   });
 
   if (err.name === 'CastError') {

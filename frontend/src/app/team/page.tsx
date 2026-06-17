@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { FaInstagram, FaTelegram } from 'react-icons/fa';
 import { useLang } from '@/context/LangContext';
@@ -348,9 +349,11 @@ export default function TeamPage() {
                       </div>
                     </div>
                   ) : (
-                    <img
+                    <Image
                       src={member.asset}
                       alt={member.name}
+                      width={400}
+                      height={500}
                       className="w-full h-full object-cover object-top origin-top filter grayscale opacity-60 contrast-125 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-500 ease-out rounded-none"
                     />
                   )}

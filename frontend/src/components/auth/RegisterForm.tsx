@@ -150,12 +150,13 @@ export default function RegisterForm() {
 
       {/* Ism */}
       <div>
-        <label className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('auth.register.fullNameLabel')}</label>
+        <label htmlFor="register-fullName" className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('auth.register.fullNameLabel')}</label>
         <div className="relative">
           <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${iconCls}`}>
             <IoPersonOutline className="w-5 h-5" />
           </div>
           <input
+            id="register-fullName"
             type="text"
             {...register('fullName', {
               required: t('auth.validation.fullNameRequired'),
@@ -173,12 +174,13 @@ export default function RegisterForm() {
 
       {/* Email */}
       <div>
-        <label className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('auth.register.emailLabel')}</label>
+        <label htmlFor="register-email" className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('auth.register.emailLabel')}</label>
         <div className="relative">
           <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${iconCls}`}>
             <IoMailOutline className="w-5 h-5" />
           </div>
           <input
+            id="register-email"
             type="email"
             {...register('email', {
               required: t('auth.validation.emailRequired'),
@@ -197,12 +199,13 @@ export default function RegisterForm() {
 
       {/* Parol */}
       <div>
-        <label className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('auth.register.passwordLabel')}</label>
+        <label htmlFor="register-password" className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('auth.register.passwordLabel')}</label>
         <div className="relative">
           <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${iconCls}`}>
             <IoLockClosedOutline className="w-5 h-5" />
           </div>
           <input
+            id="register-password"
             type={showPassword ? 'text' : 'password'}
             {...register('password', {
               required: t('auth.validation.passwordRequired'),
@@ -222,6 +225,8 @@ export default function RegisterForm() {
             type="button"
             className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${eyeBtnCls}`}
             onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            aria-pressed={showPassword}
           >
             {showPassword ? <IoEyeOffOutline className="w-5 h-5" /> : <IoEyeOutline className="w-5 h-5" />}
           </button>
@@ -245,12 +250,13 @@ export default function RegisterForm() {
 
       {/* Parolni tasdiqlash */}
       <div>
-        <label className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('auth.register.confirmLabel')}</label>
+        <label htmlFor="register-confirmPassword" className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('auth.register.confirmLabel')}</label>
         <div className="relative">
           <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${iconCls}`}>
             <FiRefreshCcw className="w-4 h-4" />
           </div>
           <input
+            id="register-confirmPassword"
             type={showConfirmPassword ? 'text' : 'password'}
             {...register('confirmPassword', {
               required: t('auth.validation.confirmRequired'),
@@ -264,6 +270,8 @@ export default function RegisterForm() {
             type="button"
             className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${eyeBtnCls}`}
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+            aria-pressed={showConfirmPassword}
           >
             {showConfirmPassword ? <IoEyeOffOutline className="w-5 h-5" /> : <IoEyeOutline className="w-5 h-5" />}
           </button>
@@ -273,7 +281,7 @@ export default function RegisterForm() {
 
       {/* Referral */}
       <div>
-        <label className={`flex justify-between text-sm font-medium mb-1.5 ${labelCls}`}>
+        <label htmlFor="register-referralCode" className={`flex justify-between text-sm font-medium mb-1.5 ${labelCls}`}>
           <span>{t('auth.register.ref')}</span>
           <span className={`text-xs font-normal ${subLabelCls}`}>{t('auth.register.refOptional')}</span>
         </label>
@@ -282,6 +290,7 @@ export default function RegisterForm() {
             <span className="text-emerald-500 font-bold mb-1">🎁</span>
           </div>
           <input
+            id="register-referralCode"
             type="text"
             defaultValue={refCodeParam}
             {...register('referralCode')}

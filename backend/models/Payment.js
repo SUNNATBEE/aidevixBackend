@@ -77,5 +77,6 @@ paymentSchema.index({ createdAt: -1 });
 paymentSchema.index({ providerTransactionId: 1 }, { unique: true, sparse: true });
 paymentSchema.index({ userId: 1, courseId: 1 });
 paymentSchema.index({ clickTransId: 1 }, { unique: true, sparse: true });
+paymentSchema.index({ status: 1, createdAt: 1 });
 
 module.exports = mongoose.model('Payment', paymentSchema);

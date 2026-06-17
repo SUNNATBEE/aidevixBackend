@@ -453,8 +453,8 @@ const handlePayme = async (req, res) => {
       default: return res.json({ error: { code: -32601, message: 'Method not found' }, id });
     }
   } catch (err) {
-    console.error('Payme error:', err.message);
-    return res.json({ error: { code: -31008, message: err.message }, id });
+    console.error('Payme error:', err);
+    return res.json({ error: { code: -31008, message: 'Internal error' }, id });
   }
 };
 
@@ -494,7 +494,11 @@ const clickComplete = async (req, res) => {
     if (!/^[0-9a-fA-F]{24}$/.test(String(merchant_trans_id || ''))) return res.json({ error: -5, error_note: 'To\'lov topilmadi' });
 
     if (Number(clickError) < 0) {
-      await Payment.findByIdAndUpdate(merchant_trans_id, { $set: { status: 'failed' } });
+      // Guard: allaqachon completed bo'lgan to'lovni 'failed' ga overwrite qilmaymiz
+      await Payment.findOneAndUpdate(
+        { _id: merchant_trans_id, status: { $ne: 'completed' } },
+        { $set: { status: 'failed' } }
+      );
       return res.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Cancelled' });
     }
 
