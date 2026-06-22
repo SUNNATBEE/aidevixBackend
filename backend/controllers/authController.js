@@ -676,8 +676,12 @@ const refresh = asyncHandler(async (req, res, next) => {
   const token = cookies[REFRESH_COOKIE_NAME];
 
   if (!token) {
+    // Anonim foydalanuvchilar uchun bu KUTILGAN holat (cookie yo'q). `next(Error)`
+    // qilsak errorMiddleware uni `error` darajada stack bilan log qiladi — har bir
+    // login bo'lmagan sahifa yuklanishida shovqin. Shu sabab to'g'ridan-to'g'ri
+    // javob qaytaramiz (security warn log baribir qoladi).
     securityLogger.refreshTokenInvalid(req, 'no_token');
-    return next(new ErrorResponse('No refresh token provided', 400));
+    return res.status(400).json({ success: false, message: 'No refresh token provided' });
   }
 
   const decoded = verifyRefreshToken(token);
@@ -1276,7 +1280,9 @@ const googleAuth = asyncHandler(async (req, res, next) => {
     try {
       // Audience tekshiruvi: token AYNAN shu ilova (GOOGLE_CLIENT_ID) uchun berilganligini tasdiqlaymiz.
       // Aks holda boshqa ilovaning valid access token'i bilan account hijack mumkin.
-      const expectedAud = process.env.GOOGLE_CLIENT_ID;
+      // `.trim()` + qo'shtirnoq tozalash — Railway/host env'ga qiymat qo'yilganda
+      // tasodifan qo'shilib qoladigan bo'sh joy / yangi qator / qo'shtirnoqlardan himoya.
+      const expectedAud = (process.env.GOOGLE_CLIENT_ID || '').trim().replace(/^["']|["']$/g, '');
       const { data: tokenInfo } = await axios.get('https://oauth2.googleapis.com/tokeninfo', {
         params: { access_token: googleAccessToken },
         timeout: 8000,
