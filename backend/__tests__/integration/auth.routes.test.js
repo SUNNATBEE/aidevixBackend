@@ -48,6 +48,13 @@ jest.mock('../../utils/subscriptionCache', () => ({
   set: jest.fn(),
   invalidate: jest.fn(),
 }));
+// Make the MX-record check deterministic — registration no longer depends on
+// real DNS resolution during tests (otherwise example.com / no-network flips it).
+jest.mock('dns', () => ({
+  promises: {
+    resolveMx: jest.fn().mockResolvedValue([{ exchange: 'mx.example.com', priority: 10 }]),
+  },
+}));
 
 const User      = require('../../models/User');
 const Session   = require('../../models/Session');
@@ -159,23 +166,21 @@ describe('POST /api/auth/register', () => {
     password: 'Valid@Pass1!',
   };
 
-  test('201 and sets auth cookies on valid registration', async () => {
+  // Registration no longer auto-logs-in: an unverified account is created and the
+  // user must confirm the emailed code before any session is issued (2026-05-15).
+  test('201 and requires email verification (no auto-login) on valid registration', async () => {
     const res = await request(app).post('/api/auth/register').send(validBody);
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
-    expect(res.body.data.user).toBeDefined();
-    // Auth cookies must be set
-    const cookies = res.headers['set-cookie'];
-    expect(cookies).toBeDefined();
-    expect(cookies.some((c) => c.startsWith('aidevix_access='))).toBe(true);
-    expect(cookies.some((c) => c.startsWith('aidevix_refresh='))).toBe(true);
+    expect(res.body.requiresEmailVerification).toBe(true);
+    expect(res.body.email).toBe('new@example.com');
   });
 
-  test('auth cookies must be HttpOnly', async () => {
+  test('no auth cookies are set before email verification', async () => {
     const res = await request(app).post('/api/auth/register').send(validBody);
-    const cookies = res.headers['set-cookie'];
-    const accessCookie = cookies.find((c) => c.startsWith('aidevix_access='));
-    expect(accessCookie.toLowerCase()).toContain('httponly');
+    const cookies = res.headers['set-cookie'] || [];
+    expect(cookies.some((c) => c.startsWith('aidevix_access='))).toBe(false);
+    expect(cookies.some((c) => c.startsWith('aidevix_refresh='))).toBe(false);
   });
 
   test('400 when username is missing', async () => {
