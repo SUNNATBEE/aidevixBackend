@@ -32,6 +32,7 @@ const nextConfig = {
       '@reduxjs/toolkit',
       'react-redux',
       'swiper',
+      'recharts',
     ],
   },
   async headers() {

@@ -5,8 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 
 import CourseCard from '@/components/courses/CourseCard';
 import VideoCard from '@/components/videos/VideoCard';
@@ -43,9 +41,27 @@ const ThreeHero = dynamic(() => import('@/components/home/ThreeHero'), {
   ),
 });
 
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
-}
+// GSAP faqat scroll animatsiyalari uchun kerak (sahifaning pastki qismi) —
+// boshlang'ich home bundle'iga (~70KB) tushmasligi uchun lazy yuklanadi.
+// Mobil / reduceMotion'da umuman ishlatilmaydi, shuning uchun yuklanmaydi ham.
+type GsapModule = {
+  gsap: typeof import('gsap')['gsap'];
+  ScrollTrigger: typeof import('gsap/dist/ScrollTrigger')['ScrollTrigger'];
+};
+let gsapPromise: Promise<GsapModule> | null = null;
+const loadGsap = (): Promise<GsapModule> => {
+  if (!gsapPromise) {
+    gsapPromise = Promise.all([
+      import('gsap'),
+      import('gsap/dist/ScrollTrigger'),
+    ]).then(([g, s]) => {
+      const gsap = g.default ?? g.gsap;
+      gsap.registerPlugin(s.ScrollTrigger);
+      return { gsap, ScrollTrigger: s.ScrollTrigger };
+    });
+  }
+  return gsapPromise;
+};
 
 type InitialStats = {
   students: number;
@@ -213,91 +229,107 @@ export default function HomeClient({
       return;
     }
 
-    // Desktop: GSAP scroll-triggered counter
-    const ctx = gsap.context(() => {
-      const counters = el.querySelectorAll('.stat-value');
-      counters.forEach((counter: Element) => {
-        const targetValue = Number(counter.getAttribute('data-value') || '0');
-        const decimals = Number(counter.getAttribute('data-decimals') || '0');
-        const valueProxy = { value: 0 };
-        gsap.fromTo(
-          valueProxy,
-          { value: 0 },
-          {
-            value: targetValue,
-            duration: 1.8,
-            ease: 'power2.out',
-            onUpdate: () => {
-              const current = valueProxy.value;
-              counter.textContent = decimals > 0
-                ? current.toFixed(decimals)
-                : Math.round(current).toString();
+    // Desktop: GSAP scroll-triggered counter (gsap lazy yuklanadi)
+    let ctx: ReturnType<GsapModule['gsap']['context']> | null = null;
+    let cancelled = false;
+    loadGsap().then(({ gsap, ScrollTrigger }) => {
+      if (cancelled) return;
+      ctx = gsap.context(() => {
+        const counters = el.querySelectorAll('.stat-value');
+        counters.forEach((counter: Element) => {
+          const targetValue = Number(counter.getAttribute('data-value') || '0');
+          const decimals = Number(counter.getAttribute('data-decimals') || '0');
+          const valueProxy = { value: 0 };
+          gsap.fromTo(
+            valueProxy,
+            { value: 0 },
+            {
+              value: targetValue,
+              duration: 1.8,
+              ease: 'power2.out',
+              onUpdate: () => {
+                const current = valueProxy.value;
+                counter.textContent = decimals > 0
+                  ? current.toFixed(decimals)
+                  : Math.round(current).toString();
+              },
+              scrollTrigger: {
+                trigger: el,
+                start: 'top 82%',
+                once: true,
+              },
             },
-            scrollTrigger: {
-              trigger: el,
-              start: 'top 82%',
-              once: true,
-            },
-          },
-        );
-      });
-    }, el);
-    requestAnimationFrame(() => ScrollTrigger.refresh());
-    return () => ctx.revert();
+          );
+        });
+      }, el);
+      requestAnimationFrame(() => ScrollTrigger.refresh());
+    });
+    return () => {
+      cancelled = true;
+      if (ctx) ctx.revert();
+    };
   }, [isMounted, homeStatsLoaded, homeStats.students, homeStats.videos, homeStats.mentors, homeStats.rating, reduceMotion]);
 
   useEffect(() => {
     if (!isMounted || !pageRef.current || reduceMotion) return;
 
-    const ctx = gsap.context(() => {
-      gsap.utils.toArray<HTMLElement>('.reveal-section').forEach((section, index) => {
-        const direction = section.getAttribute('data-direction') || 'up';
-        let x = 0, y = 0;
-        
-        if (direction === 'up') y = 100;
-        else if (direction === 'left') x = 100;
-        else if (direction === 'right') x = -100;
+    let ctx: ReturnType<GsapModule['gsap']['context']> | null = null;
+    let cancelled = false;
+    loadGsap().then(({ gsap }) => {
+      if (cancelled || !pageRef.current) return;
+      ctx = gsap.context(() => {
+        gsap.utils.toArray<HTMLElement>('.reveal-section').forEach((section, index) => {
+          const direction = section.getAttribute('data-direction') || 'up';
+          let x = 0, y = 0;
 
+          if (direction === 'up') y = 100;
+          else if (direction === 'left') x = 100;
+          else if (direction === 'right') x = -100;
+
+          gsap.fromTo(
+            section,
+            { x, y, opacity: 0, scale: 0.95 },
+            {
+              x: 0,
+              y: 0,
+              scale: 1,
+              opacity: 1,
+              duration: 1.2,
+              delay: Math.min(index * 0.05, 0.2),
+              ease: 'power4.out',
+              scrollTrigger: {
+                trigger: section,
+                start: 'top 88%',
+                once: true,
+              },
+            },
+          );
+        });
+
+        // Staggered animation for category items
         gsap.fromTo(
-          section,
-          { x, y, opacity: 0, scale: 0.95 },
+          '.category-item',
+          { x: 100, opacity: 0 },
           {
             x: 0,
-            y: 0,
-            scale: 1,
             opacity: 1,
             duration: 1.2,
-            delay: Math.min(index * 0.05, 0.2),
-            ease: 'power4.out',
+            stagger: 0.1,
+            ease: 'power3.out',
             scrollTrigger: {
-              trigger: section,
-              start: 'top 88%',
+              trigger: '.category-item',
+              start: 'top 90%',
               once: true,
             },
-          },
+          }
         );
-      });
+      }, pageRef);
+    });
 
-      // Staggered animation for category items
-      gsap.fromTo(
-        '.category-item',
-        { x: 100, opacity: 0 },
-        {
-          x: 0,
-          opacity: 1,
-          duration: 1.2,
-          stagger: 0.1,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: '.category-item',
-            start: 'top 90%',
-            once: true,
-          },
-        }
-      );
-    }, pageRef);
-
-    return () => ctx.revert();
+    return () => {
+      cancelled = true;
+      if (ctx) ctx.revert();
+    };
   }, [isMounted, reduceMotion]);
 
   const categories = [
