@@ -137,6 +137,7 @@ const corsOptions = {
     'Authorization',
     'X-Requested-With',
     'X-CSRF-Token',
+    'X-Client-Type',
     'Accept',
     'Origin',
   ],

@@ -251,6 +251,37 @@ const deleteProject = async (req, res) => {
   }
 };
 
+/**
+ * @desc  Foydalanuvchi bajargan barcha loyihalar
+ * @route GET /api/projects/my
+ * @access Private
+ */
+const getMyProjects = async (req, res) => {
+  try {
+    const userId = req.user._id.toString();
+    const projects = await Project.find({
+      'completedBy.userId': req.user._id,
+      isActive: true,
+    })
+      .populate('courseId', 'title category')
+      .sort({ updatedAt: -1 });
+
+    const result = projects.map((p) => {
+      const pObj = p.toObject();
+      const mine = p.completedBy.find((c) => c.userId.toString() === userId);
+      pObj.isCompleted = true;
+      pObj.completedAt = mine?.completedAt || null;
+      pObj.githubUrl = mine?.githubUrl || null;
+      delete pObj.completedBy; // boshqalarning ma'lumotini yashirish
+      return pObj;
+    });
+
+    res.json({ success: true, data: { projects: result } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getProjectsByCourse,
   getProject,
@@ -259,4 +290,5 @@ module.exports = {
   createProject,
   updateProject,
   deleteProject,
+  getMyProjects,
 };

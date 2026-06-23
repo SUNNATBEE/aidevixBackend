@@ -520,6 +520,67 @@ const getXPHistory = async (req, res) => {
 };
 
 /**
+ * @desc  Kunlik check-in — streak heartbeat (XP bermaydi, faqat streakni yangilaydi).
+ *        Mobil ilova kuniga bir marta chaqiradi (useDailyCheckIn).
+ * @route POST /api/xp/check-in
+ * @access Private
+ */
+const dailyCheckIn = async (req, res) => {
+  try {
+    let stats = await UserStats.findOne({ userId: req.user.id });
+    if (!stats) {
+      stats = await UserStats.create({ userId: req.user.id });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let increased = false;
+    let freezeUsed = false;
+
+    if (stats.lastActivityDate) {
+      const last = new Date(stats.lastActivityDate);
+      last.setHours(0, 0, 0, 0);
+      const diffDays = Math.floor((today - last) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) {
+        // Bugun allaqachon check-in bo'lgan — o'zgarish yo'q.
+        return res.json({
+          success: true,
+          data: { streak: stats.streak || 0, increased: false, freezeUsed: false },
+        });
+      } else if (diffDays === 1) {
+        stats.streak += 1;
+        increased = true;
+      } else if ((stats.streakFreezes || 0) > 0 && diffDays === 2) {
+        stats.streakFreezes -= 1;
+        stats.streakFreezeUsedAt = new Date();
+        freezeUsed = true; // streak saqlanadi
+      } else {
+        stats.streak = 1; // Streak uzildi — qaytadan boshlandi
+        increased = true;
+      }
+    } else {
+      stats.streak = 1;
+      increased = true;
+    }
+
+    stats.lastActivityDate = new Date();
+    await stats.save();
+
+    // User modelini sinxronlash (Navbar/Auth streak ko'rsatishi uchun)
+    await User.findByIdAndUpdate(req.user.id, { $set: { streak: stats.streak } });
+
+    res.json({
+      success: true,
+      data: { streak: stats.streak, increased, freezeUsed },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Server xatosi' : err.message });
+  }
+};
+
+/**
  * @desc  Streak holati va qolgan vaqt
  * @route GET /api/xp/streak-status
  * @access Private
@@ -557,4 +618,5 @@ module.exports = {
   getWeeklyLeaderboard,
   getXPHistory,
   getStreakStatus,
+  dailyCheckIn,
 };

@@ -9,7 +9,12 @@
       "Bash(npm install:*)",
       "Bash(node --check backend/controllers/authController.js)",
       "Bash(node --check backend/controllers/xpController.js)",
-      "Bash(vercel --prod)"
+      "Bash(vercel --prod)",
+      "Bash(seq 1 15)",
+      "Read(//tmp/**)",
+      "Bash(break)",
+      "Bash(sleep 10)",
+      "Bash(echo \"=== HOME + key routes ===\")"
     ]
   }
 }

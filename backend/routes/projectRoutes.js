@@ -8,6 +8,7 @@ const {
   createProject,
   updateProject,
   deleteProject,
+  getMyProjects,
 } = require('../controllers/projectController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const validateObjectId = require('../middleware/validateObjectId');
@@ -22,6 +23,7 @@ const optionalAuth = (req, res, next) => {
 };
 
 router.get('/course/:courseId', optionalAuth, validateObjectId('courseId'), getProjectsByCourse);
+router.get('/my', authenticate, getMyProjects); // `/:id` dan OLDIN — aks holda :id='my' bo'ladi
 router.get('/:id', optionalAuth, validateObjectId('id'), getProject);
 router.post('/:id/complete', authenticate, validateObjectId('id'), completeProject);
 router.post('/:id/review', authenticate, validateObjectId('id'), reviewProject);

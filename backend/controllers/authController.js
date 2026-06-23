@@ -196,6 +196,15 @@ const issueTokens = async (user, req, existingSession = null) => {
 };
 
 /**
+ * Native mobil (RN/Expo) httpOnly cookie'ni ishonchli o'qiy olmaydi — shuning uchun
+ * token'larni JSON body'da ham qaytaramiz. Web cookie-only (XSS exfiltration) modeli
+ * buzilmasligi uchun FAQAT `X-Client-Type: mobile` header bo'lganda. Mobil axios bu
+ * header'ni har so'rovda yuboradi (AidevixApp/src/api/axiosInstance.ts).
+ */
+const mobileTokenBody = (req, accessToken, refreshToken) =>
+  req.headers['x-client-type'] === 'mobile' ? { accessToken, refreshToken } : {};
+
+/**
  * Anomaly check + new-device email.
  * Returns true if the device is new (and was added to knownDevices).
  */
@@ -481,6 +490,7 @@ const login = asyncHandler(async (req, res, next) => {
     success: true,
     data: { user: sanitizeUser(user) },
     csrfToken,
+    ...mobileTokenBody(req, accessToken, refreshToken),
   });
 });
 
@@ -538,7 +548,12 @@ const verify2FALogin = asyncHandler(async (req, res, next) => {
   await trackDeviceAndAlert(req, user);
   securityLogger.loginSuccess(req, user);
 
-  const resp = { success: true, data: { user: sanitizeUser(user) }, csrfToken };
+  const resp = {
+    success: true,
+    data: { user: sanitizeUser(user) },
+    csrfToken,
+    ...mobileTokenBody(req, accessToken, refreshToken),
+  };
   // Backup kod ishlatilgan bo'lsa — qancha qolganini bildirish
   if (req._backupCodesRemaining !== undefined) {
     resp.backupCodesRemaining = req._backupCodesRemaining;
@@ -673,7 +688,8 @@ const resendVerificationPublic = asyncHandler(async (req, res) => {
 // @desc    Refresh Token
 const refresh = asyncHandler(async (req, res, next) => {
   const cookies = parseCookies(req.headers.cookie);
-  const token = cookies[REFRESH_COOKIE_NAME];
+  // Native mobil cookie yubora olmaydi — refresh token'ni body'dan ham qabul qilamiz.
+  const token = cookies[REFRESH_COOKIE_NAME] || (req.body && req.body.refreshToken);
 
   if (!token) {
     // Anonim foydalanuvchilar uchun bu KUTILGAN holat (cookie yo'q). `next(Error)`
@@ -755,7 +771,12 @@ const refresh = asyncHandler(async (req, res, next) => {
     const { accessToken, refreshToken: newRefreshToken } =
       await issueTokens(user, req, session);
     const csrfToken = attachAuthCookies(res, accessToken, newRefreshToken);
-    return res.json({ success: true, data: { user: sanitizeUser(user) }, csrfToken });
+    return res.json({
+      success: true,
+      data: { user: sanitizeUser(user) },
+      csrfToken,
+      ...mobileTokenBody(req, accessToken, newRefreshToken),
+    });
   }
 
   // Legacy path — refresh token issued before session model deployed.
@@ -777,7 +798,12 @@ const refresh = asyncHandler(async (req, res, next) => {
   }
   const { accessToken, refreshToken: newRefreshToken } = await issueTokens(user, req);
   const csrfToken = attachAuthCookies(res, accessToken, newRefreshToken);
-  res.json({ success: true, data: { user: sanitizeUser(user) }, csrfToken });
+  res.json({
+    success: true,
+    data: { user: sanitizeUser(user) },
+    csrfToken,
+    ...mobileTokenBody(req, accessToken, newRefreshToken),
+  });
 });
 
 // @desc    Logout
@@ -1396,6 +1422,7 @@ const googleAuth = asyncHandler(async (req, res, next) => {
     data: { user: sanitizeUser(oauthUser) },
     isNewUser: isNew,
     csrfToken,
+    ...mobileTokenBody(req, accessToken, refreshToken),
   });
 });
 
@@ -1523,6 +1550,7 @@ const telegramMiniAppAuth = asyncHandler(async (req, res, next) => {
     isNewUser: isNew,
     source: 'telegram-miniapp',
     csrfToken,
+    ...mobileTokenBody(req, accessToken, refreshToken),
   });
 });
 
@@ -1572,6 +1600,7 @@ const telegramMagicLogin = asyncHandler(async (req, res, next) => {
     data: { user: sanitizeUser(fresh) },
     source: 'telegram-magic-login',
     csrfToken,
+    ...mobileTokenBody(req, accessToken, refreshToken),
   });
 });
 
