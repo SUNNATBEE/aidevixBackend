@@ -13,6 +13,7 @@ const AICoach = dynamic(() => import('@components/common/AICoach'), { ssr: false
 const ExitIntentModal = dynamic(() => import('@components/common/ExitIntentModal'), { ssr: false });
 const BetaWelcomeModal = dynamic(() => import('@components/common/BetaWelcomeModal'), { ssr: false });
 const PWAInstallPrompt = dynamic(() => import('@components/common/PwaInstallPrompt'), { ssr: false });
+const InstallAppFab = dynamic(() => import('@components/common/InstallAppFab'), { ssr: false });
 const CookieConsent = dynamic(() => import('@components/common/CookieConsent'), { ssr: false });
 const TelegramMiniAppBridge = dynamic(() => import('@components/common/TelegramMiniAppBridge'), { ssr: false });
 const SecurityHardening = dynamic(() => import('@components/security/SecurityHardening'), { ssr: false });
@@ -115,6 +116,7 @@ export default function ClientLayoutWrapper({
       {showDeferredPrompts && <BetaWelcomeModal />}
       {showDeferredPrompts && <ExitIntentModal />}
       {showDeferredPrompts && <PWAInstallPrompt />}
+      {showDeferredPrompts && <InstallAppFab />}
       {isMounted && !hideLayout && <Footer />}
       {isMounted && <ScrollToTop />}
       {isMounted && <CookieConsent />}

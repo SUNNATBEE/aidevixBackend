@@ -4,28 +4,26 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IoClose, IoDownload, IoSparkles } from 'react-icons/io5';
 import SiteLogoMark from '@components/common/SiteLogoMark';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 
 const STORAGE_KEY = 'aidevix_pwa_dismissed';
 const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 kun keyin yana so'raymiz
 
 export default function PWAInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  // Install event'ni umumiy singleton hook ushlaydi (suzuvchi knopka bilan
+  // bir eventni ikki marta `.prompt()` qilib yubormaslik uchun).
+  const { canInstall, isInstalled, promptInstall } = usePwaInstall();
   const [isVisible, setIsVisible] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
 
   useEffect(() => {
+    if (!canInstall || isInstalled) return;
     const dismissedAt = Number(localStorage.getItem(STORAGE_KEY) || 0);
     if (dismissedAt && Date.now() - dismissedAt < DISMISS_TTL_MS) return;
 
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setTimeout(() => setIsVisible(true), 8000);
-    };
-
-    window.addEventListener('beforeinstallprompt', handler as EventListener);
-    return () => window.removeEventListener('beforeinstallprompt', handler as EventListener);
-  }, []);
+    const timer = setTimeout(() => setIsVisible(true), 8000);
+    return () => clearTimeout(timer);
+  }, [canInstall, isInstalled]);
 
   // SW update detector — `register-sw.js` `aidevix:sw-update` event yuboradi
   useEffect(() => {
@@ -35,18 +33,11 @@ export default function PWAInstallPrompt() {
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    try {
-      await deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      if (choice?.outcome === 'dismissed') {
-        localStorage.setItem(STORAGE_KEY, String(Date.now()));
-      }
-    } catch (_) {
-      // user cancelled
+    const outcome = await promptInstall();
+    if (outcome === 'dismissed') {
+      localStorage.setItem(STORAGE_KEY, String(Date.now()));
     }
     setIsVisible(false);
-    setDeferredPrompt(null);
   };
 
   const handleDismiss = () => {
