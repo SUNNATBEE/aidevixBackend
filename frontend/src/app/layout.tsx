@@ -27,8 +27,9 @@ export const metadata: Metadata = {
   },
   description: 'Aidevix - O\'zbek tilidagi eng yirik va zamonaviy dasturlash o\'quv platformasi. React, Node.js, Python, Mobile va boshqa yo\'nalishlarda sifatli kurslar.',
   keywords: [
-    'dasturlash', 'online ta\'lim', 'uzbek tilida', 'react', 'nextjs', 'javascript', 
-    'backend o\'rganish', 'frontend kurslar', 'python uzbekcha', 'it kurslar'
+    'aidevix', 'dasturlash kurslari', 'dasturlash', 'online ta\'lim', 'uzbek tilida',
+    'react', 'nextjs', 'javascript', 'backend o\'rganish', 'frontend kurslar',
+    'python uzbekcha', 'it kurslar', 'AI kurslari', 'kodlashni o\'rganish'
   ],
   authors: [{ name: 'Aidevix Team' }],
   creator: 'Aidevix',
@@ -122,16 +123,29 @@ const organizationSchema = {
     '@type': 'Country',
     name: 'Uzbekistan',
   },
+  // ⚠️ NAP — Google Business Profile bilan AYNAN bir xil bo'lishi shart.
+  // (Profil ma'lumoti: Toshkent, Yangishahar ko'chasi 10, 100194)
   address: {
     '@type': 'PostalAddress',
+    streetAddress: "Yangishahar ko'chasi, 10",
+    addressLocality: 'Toshkent',
+    addressRegion: 'Toshkent',
+    postalCode: '100194',
     addressCountry: 'UZ',
-    addressLocality: 'Tashkent',
+  },
+  telephone: '+998909712160',
+  openingHoursSpecification: {
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    opens: '11:00',
+    closes: '20:00',
   },
   founder: {
     '@type': 'Person',
     '@id': 'https://aidevix.uz/team#sunnatbek',
     name: 'Sunnatbek Yusupov',
     jobTitle: 'Founder & CEO',
+    image: 'https://aidevix.uz/team/sunnatbee.jpg',
     worksFor: { '@id': 'https://aidevix.uz/#organization' },
     url: 'https://aidevix.uz/team',
     sameAs: [
@@ -140,9 +154,30 @@ const organizationSchema = {
       'https://www.instagram.com/sunnatbee',
     ],
   },
+  // Aidevix taklif qiladigan kurs yo'nalishlari — Google'ga platforma nimani
+  // o'qitishini aniq bildiradi ("dasturlash kurslari" intentига mos keladi).
+  hasOfferCatalog: {
+    '@type': 'OfferCatalog',
+    name: 'Dasturlash kurslari',
+    itemListElement: [
+      'Frontend dasturlash (React, Next.js, TypeScript)',
+      'Backend dasturlash (Node.js, Express)',
+      'Python dasturlash',
+      'AI va Agentlar (Claude, Cursor, Copilot)',
+      'Mobil dasturlash',
+      'Kiberxavfsizlik',
+      'Web3 va Kripto',
+      'Karyera va Freelance',
+    ].map((name) => ({
+      '@type': 'Course',
+      name,
+      provider: { '@id': 'https://aidevix.uz/#organization' },
+    })),
+  },
   contactPoint: {
     '@type': 'ContactPoint',
     contactType: 'customer support',
+    telephone: '+998909712160',
     email: 'support@aidevix.uz',
     url: 'https://aidevix.uz/contact',
     availableLanguage: ['uz', 'ru', 'en'],

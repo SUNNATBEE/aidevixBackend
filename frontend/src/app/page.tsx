@@ -1,11 +1,12 @@
 import { Metadata } from 'next';
 import HomeClient from '@/components/home/HomeClient';
 import { SSR_API_BASE_URL } from '@/utils/constants';
+import { safeJsonLd } from '@/utils/jsonLd';
 
 // Professional Metadata for SEO
 export const metadata: Metadata = {
-  title: 'Aidevix - Dasturlashni O\'zbek tilida o\'rganing',
-  description: 'O\'zbek tilidagi eng yirik va zamonaviy dasturlash o\'quv platformasi. Frontend, Backend, Mobile va AI yo\'nalishlari bo\'yicha sifatli kurslar.',
+  title: 'Aidevix — Dasturlash kurslari, O\'zbek tilida onlayn ta\'lim',
+  description: 'Aidevix — O\'zbek tilidagi eng yirik dasturlash kurslari platformasi. Frontend, Backend, Mobile, AI va kiberxavfsizlik yo\'nalishlari bo\'yicha amaliy onlayn kurslar.',
   alternates: {
     canonical: 'https://aidevix.uz',
     languages: {
@@ -16,8 +17,8 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'Aidevix - Kelajakni kodlashni boshlang',
-    description: 'Dasturlashni O\'zbek tilida sifatli o\'rganing.',
+    title: 'Aidevix — Dasturlash kurslari, O\'zbek tilida onlayn ta\'lim',
+    description: 'Dasturlashni O\'zbek tilida sifatli o\'rganing. React, Python, AI va boshqa kurslar.',
     images: ['/Logo.jpg'],
   },
 };
@@ -72,11 +73,38 @@ export default async function HomePage() {
     getHomeStats(),
   ]);
 
+  // ItemList of real top courses — Google'ga bosh sahifada haqiqiy kurslar
+  // borligini bildiradi ("dasturlash kurslari" rich natijasi uchun signal).
+  // Kurs bo'lmasa schema chiqarilmaydi (soxta data yo'q).
+  const courseItemList =
+    Array.isArray(initialCourses) && initialCourses.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          name: 'Aidevix mashhur dasturlash kurslari',
+          numberOfItems: initialCourses.length,
+          itemListElement: initialCourses.map((c: any, i: number) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            url: `https://aidevix.uz/courses/${c._id}`,
+            name: c.title || 'Aidevix kurs',
+          })),
+        }
+      : null;
+
   return (
-    <HomeClient
-      initialCourses={initialCourses}
-      initialVideos={initialVideos}
-      initialStats={initialStats}
-    />
+    <>
+      {courseItemList && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(courseItemList) }}
+        />
+      )}
+      <HomeClient
+        initialCourses={initialCourses}
+        initialVideos={initialVideos}
+        initialStats={initialStats}
+      />
+    </>
   );
 }
