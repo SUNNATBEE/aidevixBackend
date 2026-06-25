@@ -6,7 +6,7 @@ import { safeJsonLd } from '@/utils/jsonLd';
 // Professional Metadata for SEO
 export const metadata: Metadata = {
   title: 'Aidevix — Dasturlash kurslari, O\'zbek tilida onlayn ta\'lim',
-  description: 'Aidevix — O\'zbek tilidagi eng yirik dasturlash kurslari platformasi. Frontend, Backend, Mobile, AI va kiberxavfsizlik yo\'nalishlari bo\'yicha amaliy onlayn kurslar.',
+  description: 'Aidevix — O\'zbek tilidagi eng yirik dasturlash kurslari platformasi. Frontend, Backend, Mobile, AI va kiberxavfsizlik bo\'yicha amaliy onlayn kurslar.',
   alternates: {
     canonical: 'https://aidevix.uz',
     languages: {

@@ -9,9 +9,27 @@ import { motion } from 'framer-motion';
 import CourseCard from '@/components/courses/CourseCard';
 import VideoCard from '@/components/videos/VideoCard';
 import ProBanner from '@/components/home/ProBanner';
-import ContinueWatching from '@/components/home/ContinueWatching';
-import RecommendedForYou from '@/components/home/RecommendedForYou';
-import AiNewsTabs from '@/components/home/AiNewsTabs';
+// Below-the-fold home widgets — split out of the initial bundle to cut
+// mobile main-thread/JS parse cost (LCP). ContinueWatching & RecommendedForYou
+// render null for anonymous users, so ssr:false removes them entirely from the
+// (Google-measured) logged-out visitor's bundle with zero layout shift.
+const ContinueWatching = dynamic(() => import('@/components/home/ContinueWatching'), { ssr: false });
+const RecommendedForYou = dynamic(() => import('@/components/home/RecommendedForYou'), { ssr: false });
+// AiNewsTabs fetches its news client-side anyway; ssr:false + a height-matched
+// placeholder keeps CLS unchanged while deferring its framer-motion weight.
+const AiNewsTabs = dynamic(() => import('@/components/home/AiNewsTabs'), {
+  ssr: false,
+  loading: () => (
+    <section
+      aria-hidden="true"
+      className="relative w-full border-t border-b border-platinum-200/40 py-20 dark:border-platinum-800/40 sm:py-24"
+    >
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="h-[26rem] w-full animate-pulse rounded-none bg-white/5" />
+      </div>
+    </section>
+  ),
+});
 // Recharts alohida chunk'ga ajratildi — boshlang'ich home bundle'iga tushmaydi.
 const WeeklyXpChart = dynamic(() => import('@/components/home/WeeklyXpChart'), {
   ssr: false,
@@ -721,11 +739,8 @@ export default function HomeClient({
           </div>
 
           {/* Right Column - Bento Learning Hub Dashboard */}
-          <motion.aside
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.18 }}
-            className="min-w-0 w-full lg:col-span-5 self-stretch flex items-center relative"
+          <aside
+            className="hero-rise min-w-0 w-full lg:col-span-5 self-stretch flex items-center relative"
           >
             {/* 3D Perspective & Skew Wrapper */}
             <div className="w-full h-full relative [perspective:1200px] md:[perspective:1200px] [transform-style:preserve-3d] py-6 md:py-8 flex items-center justify-center">
@@ -997,7 +1012,7 @@ export default function HomeClient({
 
               </div>
             </div>
-          </motion.aside>
+          </aside>
         </div>
       </section>
 
@@ -1043,9 +1058,14 @@ export default function HomeClient({
         </motion.section>
       )}
 
-      {/* Personalized sections — faqat auth user uchun ko'rinadi */}
-      <ContinueWatching />
-      <RecommendedForYou limit={8} />
+      {/* Personalized sections — faqat auth user uchun. isLoggedIn gate anonim
+          (Google o'lchaydigan) tashrifchiga bu chunk'larni umuman yuklatmaydi. */}
+      {isLoggedIn && (
+        <>
+          <ContinueWatching />
+          <RecommendedForYou limit={8} />
+        </>
+      )}
 
       <section data-direction="left" className="reveal-section px-3 py-16 sm:px-4 sm:py-28 md:py-36">
         <div className="mx-auto grid max-w-7xl gap-12 xl:grid-cols-[0.8fr_1.2fr] xl:gap-20">
